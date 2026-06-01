@@ -504,10 +504,13 @@ async function loadRefs(){
   var refs=[];
   for(var ri=0;ri<REFS.length;ri++){
     try{
-      var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
+      var rr=await fetch(REFS[ri]);
+      if(!rr.ok)continue;
+      var ct=rr.headers.get('content-type')||'';
+      if(ct.indexOf('image/')===-1){console.warn('Ref '+ri+' no es imagen:'+ct);continue;}
       var rb=await rr.blob();
       var rb64=await new Promise(function(res){var rd=new FileReader();rd.onloadend=function(){res(rd.result.split(',')[1]);};rd.readAsDataURL(rb);});
-      refs.push(rb64);
+      if(rb64&&rb64.length>100)refs.push(rb64);
     }catch(e){console.warn('Ref '+ri+' failed:',e);}
   }
   return refs;
