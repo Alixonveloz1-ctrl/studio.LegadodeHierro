@@ -514,28 +514,14 @@ async function loadRefs(){
 }
 
 async function genOneImage(prompt,refs){
-  for(var attempt=0;attempt<2;attempt++){
-    try{
-      var ir=await fetch('/api/image',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:prompt,refImages:refs}),
-      });
-      var id=await ir.json();
-      var isRateLimit=ir.status===429||(id&&id.error&&id.error.toLowerCase().indexOf('resource exhausted')>-1);
-      if(isRateLimit){
-        if(attempt===0){await new Promise(function(r){setTimeout(r,15000);});continue;}
-        throw new Error('Rate limit. Usa el boton Regenerar en unos segundos.');
-      }
-      if(!ir.ok)throw new Error(id.error||'Error '+ir.status);
-      if(!id.image)throw new Error('Sin imagen generada');
-      return 'data:image/png;base64,'+id.image;
-    }catch(e){
-      if(attempt===0&&e.message.indexOf('Rate limit')===-1){
-        await new Promise(function(r){setTimeout(r,4000);});continue;
-      }
-      throw e;
-    }
-  }
+  var ir=await fetch('/api/image',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:prompt,refImages:refs}),
+  });
+  var id=await ir.json();
+  if(!ir.ok)throw new Error(id.error||'Error '+ir.status);
+  if(!id.image)throw new Error('Sin imagen generada');
+  return 'data:image/png;base64,'+id.image;
 }
 
 function setSlotLoading(slot,idx){
