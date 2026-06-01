@@ -83,21 +83,30 @@ module.exports = async (req, res) => {
       }
     }
 
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'X-Goog-User-Project': PROJECT_ID,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: parts }],
-        generationConfig: {
-          responseModalities: ['IMAGE'],
-          temperature: 1.0
+    const controller = new AbortController();
+    const timeoutId = setTimeout(function() { controller.abort(); }, 55000);
+
+    let r;
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'X-Goog-User-Project': PROJECT_ID,
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: parts }],
+          generationConfig: {
+            responseModalities: ['IMAGE'],
+            temperature: 1.0
+          },
+        }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const d = await r.json();
     if (!r.ok) {
@@ -118,6 +127,7 @@ module.exports = async (req, res) => {
     if (!imageB64) return res.status(500).json({ error: 'Sin imagen generada' });
     return res.json({ success: true, image: imageB64 });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    const msg = e.name === 'AbortError' ? 'Generacion tardó demasiado. Usa Regenerar.' : e.message;
+    return res.status(500).json({ error: msg });
   }
 };
