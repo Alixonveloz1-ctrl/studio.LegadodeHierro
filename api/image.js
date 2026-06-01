@@ -45,9 +45,9 @@ module.exports = async (req, res) => {
     } catch(e) { req.body = {}; }
   }
 
-  const prompt = req.body && req.body.prompt ? req.body.prompt : null;
+  const userPrompt = req.body && req.body.prompt ? req.body.prompt : null;
   const refImages = req.body && req.body.refImages ? req.body.refImages : [];
-  if (!prompt) return res.status(400).json({ error: 'Prompt requerido' });
+  if (!userPrompt) return res.status(400).json({ error: 'Prompt requerido' });
 
   if (!process.env.GCP_SERVICE_ACCOUNT) {
     return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
@@ -58,10 +58,15 @@ module.exports = async (req, res) => {
     const token = await getGCPToken();
     const url = 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/us-central1/publishers/google/models/gemini-2.5-flash-image:generateContent';
 
+    // Forzar 9:16 vertical en el prompt
+    const prompt = '9:16 vertical portrait format, tall image not square. ' + userPrompt;
+
     const parts = [{ text: prompt }];
-    if (Array.isArray(refImages)) {
+
+    // Agregar imágenes de referencia si existen
+    if (Array.isArray(refImages) && refImages.length > 0) {
       for (let i = 0; i < refImages.length; i++) {
-        if (refImages[i]) {
+        if (refImages[i] && typeof refImages[i] === 'string' && refImages[i].length > 100) {
           parts.push({
             inlineData: {
               mimeType: 'image/jpeg',
@@ -72,21 +77,32 @@ module.exports = async (req, res) => {
       }
     }
 
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'X-Goog-User-Project': PROJECT_ID,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: parts }],
-        generationConfig: {
-          responseModalities: ['IMAGE'],
-          temperature: 1.0
+    // Timeout de 50 segundos para no quedar colgado
+    const controller = new AbortController();
+    const timeoutId = setTimeout(function() { controller.abort(); }, 50000);
+
+    let r;
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'X-Goog-User-Project': PROJECT_ID,
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: parts }],
+          generationConfig: {
+            responseModalities: ['IMAGE'],
+            temperature: 1.0
+          },
+        }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
     const d = await r.json();
     if (!r.ok) {
       const errMsg = (d && d.error && d.error.message) ? d.error.message : ('Vertex Error ' + r.status);
@@ -106,6 +122,7 @@ module.exports = async (req, res) => {
     if (!imageB64) return res.status(500).json({ error: 'Sin imagen generada' });
     return res.json({ success: true, image: imageB64 });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    const msg = e.name === 'AbortError' ? 'Timeout: la imagen tardó demasiado' : e.message;
+    return res.status(500).json({ error: msg });
   }
 };
