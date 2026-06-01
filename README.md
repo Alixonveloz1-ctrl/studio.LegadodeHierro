@@ -60,3 +60,5 @@ Configurar en Settings → Environment Variables:
 - Las cuentas se guardan en `localStorage` del navegador (cada navegador es independiente)
 
 ⚔ Legado de Hierro · Ejecuta. Calla. Domina.
+
+Versión estable 1.0
