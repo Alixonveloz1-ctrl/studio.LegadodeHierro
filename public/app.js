@@ -497,6 +497,83 @@ async function genAudio(lang){
 }
 
 // IMAGES
+var imgRefs=[];
+
+async function loadRefs(){
+  var REFS=['https://i.ibb.co/m5Cqfs5n/IMG-8206.jpg','https://i.ibb.co/3m42CzNf/IMG-8162.jpg','https://i.ibb.co/GvfhKnJ3/IMG-8117.jpg'];
+  var refs=[];
+  for(var ri=0;ri<REFS.length;ri++){
+    try{
+      var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
+      var rb=await rr.blob();
+      var rb64=await new Promise(function(res){var rd=new FileReader();rd.onloadend=function(){res(rd.result.split(',')[1]);};rd.readAsDataURL(rb);});
+      refs.push(rb64);
+    }catch(e){console.warn('Ref '+ri+' failed:',e);}
+  }
+  return refs;
+}
+
+async function genOneImage(prompt,refs){
+  for(var attempt=0;attempt<2;attempt++){
+    try{
+      var ir=await fetch('/api/image',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({prompt:prompt,refImages:refs}),
+      });
+      var id=await ir.json();
+      var isRateLimit=ir.status===429||(id&&id.error&&id.error.toLowerCase().indexOf('resource exhausted')>-1);
+      if(isRateLimit){
+        if(attempt===0){await new Promise(function(r){setTimeout(r,15000);});continue;}
+        throw new Error('Rate limit. Usa el boton Regenerar en unos segundos.');
+      }
+      if(!ir.ok)throw new Error(id.error||'Error '+ir.status);
+      if(!id.image)throw new Error('Sin imagen generada');
+      return 'data:image/png;base64,'+id.image;
+    }catch(e){
+      if(attempt===0&&e.message.indexOf('Rate limit')===-1){
+        await new Promise(function(r){setTimeout(r,4000);});continue;
+      }
+      throw e;
+    }
+  }
+}
+
+function setSlotLoading(slot,idx){
+  slot.style.cssText='border-radius:10px;background:var(--warm);border:1px dashed var(--border);min-height:130px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px';
+  slot.innerHTML='<span class="spin" style="width:16px;height:16px;border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span><span style="font-size:10px;color:var(--tx3)">Imagen '+(idx+1)+'...</span>';
+}
+
+function setSlotOk(slot,src,idx){
+  slot.style.cssText='position:relative;border-radius:10px;overflow:hidden;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
+  slot.innerHTML='<img src="'+src+'" style="width:100%;display:block;border-radius:10px"><div style="position:absolute;bottom:6px;right:6px"><a href="'+src+'" download="legado-img-'+(idx+1)+'.png" style="background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none">⬇</a></div>';
+}
+
+function setSlotError(slot,idx,msg){
+  slot.style.cssText='border-radius:10px;overflow:hidden';
+  slot.innerHTML='';
+  var ecard=document.createElement('div');
+  ecard.style.cssText='background:#f8ede8;border:1px solid #c4897a;border-radius:8px 8px 0 0;padding:8px 9px;font-size:10px;color:#8a4a3a';
+  var short=msg.length>70?msg.slice(0,70)+'...':msg;
+  ecard.textContent='Img '+(idx+1)+': '+short;
+  var rbtn=document.createElement('button');
+  rbtn.textContent='↺ Regenerar imagen '+(idx+1);
+  rbtn.style.cssText='width:100%;background:#fff;border:1.5px solid #b8975a;border-top:none;border-radius:0 0 8px 8px;padding:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;color:#b8975a';
+  var iidx=idx;
+  rbtn.addEventListener('click',function(){
+    setSlotLoading(slot,iidx);
+    var prompt=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
+    genOneImage(prompt,imgRefs).then(function(src){
+      imgs[iidx]={src:src,idx:iidx+1};
+      setSlotOk(slot,src,iidx);
+      cost+=0.068;updCost();chkExport();
+    }).catch(function(e){
+      setSlotError(slot,iidx,e.message);
+    });
+  });
+  slot.appendChild(ecard);
+  slot.appendChild(rbtn);
+}
+
 async function genImages(){
   if(!lastRes||!lastRes.c||!lastRes.c.length){alert('No hay prompts. Regenera el episodio.');return;}
   while(lastRes.c.length<8){lastRes.c.push(lastRes.c[lastRes.c.length-1]);}
@@ -506,41 +583,30 @@ async function genImages(){
   var er=document.getElementById('ie');
   btn.textContent='...';btn.style.opacity='.6';btn.disabled=true;
   st.style.display='block';grid.innerHTML='';er.style.display='none';
-  st.textContent='Cargando referencias...';
-  var REFS=['https://i.ibb.co/m5Cqfs5n/IMG-8206.jpg','https://i.ibb.co/3m42CzNf/IMG-8162.jpg','https://i.ibb.co/GvfhKnJ3/IMG-8117.jpg'];
-  var refs=[];
-  for(var ri=0;ri<REFS.length;ri++){
-    try{
-      var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
-      var rb=await rr.blob();
-      var rb64=await new Promise(function(res){var rd=new FileReader();rd.onloadend=function(){res(rd.result.split(',')[1]);};rd.readAsDataURL(rb);});
-      refs.push(rb64);
-    }catch(e){console.warn(e);}
-  }
-  imgs=[];var gen=0;
+  st.textContent='Cargando referencias del personaje...';
+  imgRefs=await loadRefs();
+  imgs=[];
   var totalImgs=Math.min(lastRes.c.length,8);
+  // Crear todos los slots primero
+  var slots=[];
+  for(var i=0;i<totalImgs;i++){
+    var slot=document.createElement('div');
+    setSlotLoading(slot,i);
+    grid.appendChild(slot);
+    slots.push(slot);
+  }
+  var gen=0;
   for(var i=0;i<totalImgs;i++){
     st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
     try{
-      var ir=await fetch('/api/image',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:lastRes.c[i],refImages:refs}),
-      });
-      var id=await ir.json();
-      if(!ir.ok)throw new Error(id.error||'Error '+ir.status);
-      if(!id.image)throw new Error('Sin imagen');
-      var src='data:image/png;base64,'+id.image;
-      imgs.push({src:src,idx:i+1});
-      var card=document.createElement('div');card.style.cssText='position:relative;border-radius:10px;overflow:hidden;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
-      card.innerHTML='<img src="'+src+'" style="width:100%;display:block;border-radius:10px"><div style="position:absolute;bottom:6px;right:6px"><a href="'+src+'" download="legado-img-'+(i+1)+'.png" style="background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none">⬇</a></div>';
-      grid.appendChild(card);gen++;cost+=0.068;updCost();
+      var src=await genOneImage(lastRes.c[i],imgRefs);
+      imgs[i]={src:src,idx:i+1};
+      setSlotOk(slots[i],src,i);
+      gen++;cost+=0.068;updCost();chkExport();
     }catch(e){
-      var ecard=document.createElement('div');
-      ecard.style.cssText='background:#f8ede8;border:1px solid #c4897a;border-radius:8px;padding:9px;font-size:11px;color:#8a4a3a';
-      ecard.textContent='Imagen '+(i+1)+': '+e.message;
-      grid.appendChild(ecard);
+      setSlotError(slots[i],i,e.message);
     }
-    if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,6000);});
+    if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,8000);});
   }
   st.textContent=gen+'/'+totalImgs+' imagenes generadas.';
   btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
