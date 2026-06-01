@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
   try {
     const PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
     const token = await getGCPToken();
-    const url = 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/us-central1/publishers/google/models/gemini-2.5-flash-image-preview:generateContent';
+    const url = 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/us-central1/publishers/google/models/gemini-2.5-flash-image:generateContent';
 
     const parts = [{ text: prompt }];
     if (Array.isArray(refImages)) {
