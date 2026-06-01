@@ -18,10 +18,10 @@ var HOOKS=[
   {id:'historia',  label:'🎯 Historia Personal',   desc:'Experiencia real que conecta'},
   {id:'pasos',     label:'⚡ Lista de Pasos',      desc:'Instrucciones directas y ejecutables'},
 ];
+// TABS: solo ES y EN — los prompts son internos para imágenes, no se muestran
 var TABS=[
   {id:'a',label:'⚔ Guion ES',c:'#b8975a',p:'#f0e8d8'},
   {id:'f',label:'🇺🇸 Guion EN',c:'#c4897a',p:'#f8ede8'},
-  {id:'c',label:'🖼 Prompts',c:'#7a9b8a',p:'#eaf2ee'},
 ];
 var SCHED_TEMAS=[
   [{t:'libertad',  i:'🔓',concept:'Por qué el empleo nunca te hará libre financieramente',h:'dato'},
@@ -63,7 +63,7 @@ function getWeekSched(){
 }
 var SCHED=getWeekSched();
 
-var SP='Eres el Guionista Principal del canal "LEGADO DE HIERRO" en Facebook Reels.\n\nFILOSOFIA: Estrategias reales para hacer dinero y lograr libertad financiera. Sin charlataneria. Crudeza con proposito.\n\nRITMO PARA AUDIO: Usa comas para conectar ideas, no puntos que las corten.\nVOZ: 70% segunda persona, 30% primera persona.\nGANCHOS - DATO: empieza con cifra impactante, NO lista de pasos. PREGUNTA: empieza con pregunta disruptiva, NO lista de pasos. AFIRMACION: verdad incomoda directa, NO lista de pasos. HISTORIA: primera persona, experiencia cruda, NO lista de pasos. PASOS: Primero, Segundo, Tercero, con coma.\nCIERRES UNICOS: nunca repitas el mismo cierre. Firma siempre: Legado de Hierro.\nREGLA ABSOLUTA BLOQUE A: SOLO texto hablado. SIN corchetes, tiempos, etiquetas, hashtags.\nREGLA DE ESCRITURA: Usa SIEMPRE acentos y tildes correctos en espanol.\n\nGENERA EXACTAMENTE ESTOS 3 BLOQUES:\n\nBLOQUE A: EL GUION\n[Solo texto hablado. Parrafos con linea en blanco. Termina con: Legado de Hierro.]\n\nBLOQUE C: PROMPTS IA GENERADORA\nGenera 8 prompts. IDENTIDAD FIJA: A handsome 35-year-old man, short black hair slicked back, short dark beard, strong jawline, intense dark brown eyes, serious expression never smiling, black three-piece suit, dark tie, white pocket square, luxury watch. American 2D comic book illustration, clean ink lines, cel-shading, NOT photorealistic. 9:16 vertical. No text.\nPROMPT 1: [accion + identidad + estilo]\nPROMPT 2: [accion + identidad + estilo]\nPROMPT 3: [accion + identidad + estilo]\nPROMPT 4: [accion + identidad + estilo]\nPROMPT 5: [accion + identidad + estilo]\nPROMPT 6: [accion + identidad + estilo]\nPROMPT 7: [accion + identidad + estilo]\nPROMPT 8: [accion + identidad + estilo]\n\nBLOQUE F: GUION EN INGLES\n[Traduccion como angloparlante nativo. Solo texto hablado. Termina con: Iron Legacy.]\nIron Legacy.';
+var SP='Eres el Guionista Principal del canal LEGADO DE HIERRO en Facebook Reels.\n\nFILOSOFIA: Estrategias reales para hacer dinero y lograr libertad financiera. Sin charlataneria. Crudeza con proposito.\n\nRITMO PARA AUDIO: Usa comas para conectar ideas, no puntos que las corten.\nVOZ: 70% segunda persona, 30% primera persona.\nGANCHOS - DATO: empieza con cifra impactante, NO lista de pasos. PREGUNTA: empieza con pregunta disruptiva, NO lista de pasos. AFIRMACION: verdad incomoda directa, NO lista de pasos. HISTORIA: primera persona, experiencia cruda, NO lista de pasos. PASOS: Primero, Segundo, Tercero, con coma.\nCIERRES UNICOS: nunca repitas el mismo cierre. Firma siempre: Legado de Hierro.\nREGLA ABSOLUTA BLOQUE A: SOLO texto hablado. SIN corchetes, tiempos, etiquetas, hashtags. SIN prompts de imagen.\nREGLA DE ESCRITURA: Usa SIEMPRE acentos y tildes correctos en espanol.\nFORMATO: NO uses markdown, NO uses ** ni ## ni ningun marcador especial. Solo texto plano.\n\nGENERA EXACTAMENTE ESTOS 3 BLOQUES EN ESTE ORDEN:\n\nBLOQUE A\n[Solo texto hablado en espanol. Parrafos separados por linea en blanco. Termina con la linea: Legado de Hierro.]\n\nBLOQUE C\nPROMPT 1: [descripcion visual]\nPROMPT 2: [descripcion visual]\nPROMPT 3: [descripcion visual]\nPROMPT 4: [descripcion visual]\nPROMPT 5: [descripcion visual]\nPROMPT 6: [descripcion visual]\nPROMPT 7: [descripcion visual]\nPROMPT 8: [descripcion visual]\n\nBLOQUE F\n[Traduccion como angloparlante nativo. Solo texto hablado en ingles. Parrafos separados por linea en blanco. Termina con la linea: Iron Legacy.]';
 
 // AUTH
 function hashPass(p){
@@ -133,7 +133,7 @@ var HARDCODED_ANT='';
 var HARDCODED_EL='';
 var HARDCODED_VOICE='IRHApOXLvnW57QJPQH2P';
 var HARDCODED_NB='';
-var ACCESS_CODE=(window.__ENV__ && window.__ENV__.ACCESS_CODE)?window.__ENV__.ACCESS_CODE:'LEGADO2025';
+var ACCESS_CODE=(window.__ENV__&&window.__ENV__.ACCESS_CODE)?window.__ENV__.ACCESS_CODE:'LEGADO2025';
 var ANT=HARDCODED_ANT,EL=HARDCODED_EL,VOICE=HARDCODED_VOICE,NB=HARDCODED_NB;
 var sT='',sD='60',sH='dato';
 var loading=false,lastRes=null,activeTab='a';
@@ -239,8 +239,9 @@ async function generate(){
   var tO=THEMES.find(function(t){return t.id===sT;});
   var hO=HOOKS.find(function(h){return h.id===sH;});
   var dO=DURS.find(function(d){return d.id===sD;});
-  var hi={dato:'Empieza con dato/cifra impactante. NO lista de pasos.',pregunta:'Empieza con pregunta disruptiva. NO lista de pasos.',afirmacion:'Empieza con verdad incomoda directa. NO lista de pasos.',historia:'Empieza en primera persona con experiencia cruda. NO lista de pasos.',pasos:'Desarrolla con Primero, Segundo, etc.'};
-  var msg=SP+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[sH]||hi.dato)+'\nCONCEPTO: '+topic+'\n\nGenera EXACTAMENTE 3 bloques: BLOQUE A, BLOQUE C, BLOQUE F.';
+  var hi={dato:'Empieza con dato/cifra impactante.',pregunta:'Empieza con pregunta disruptiva.',afirmacion:'Empieza con verdad incomoda directa.',historia:'Empieza en primera persona con experiencia cruda.',pasos:'Desarrolla con Primero, Segundo, Tercero.'};
+  var identidad='IDENTIDAD FIJA DEL PERSONAJE EN PROMPTS: A handsome 35-year-old man, short black hair slicked back, short dark beard, strong jawline, intense dark brown eyes, serious expression never smiling, black three-piece suit, dark tie, white pocket square, luxury watch. American 2D comic book illustration, clean ink lines, cel-shading, NOT photorealistic. 9:16 vertical. No text in image.';
+  var msg=SP+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[sH]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nRecuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son los 8 prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
   try{
     var r=await fetch('/api/generate',{
       method:'POST',
@@ -250,13 +251,12 @@ async function generate(){
     var d=await r.json();
     if(!r.ok){
       var m=d&&d.error?d.error:'Error '+r.status;
-      if(r.status===401)throw new Error('API Key invalida en servidor.');
-      if(r.status===402)throw new Error('Sin creditos.');
       throw new Error(m);
     }
     var txt=d.text;
-    if(!txt)throw new Error('Sin respuesta de texto: '+(d.error||JSON.stringify(d).slice(0,100)));
+    if(!txt)throw new Error('Sin respuesta de texto.');
     var p=parseBlocks(txt);
+    if(!p.a||p.a.length<20)throw new Error('No se pudo leer el guion ES. Intenta de nuevo.');
     lastRes=Object.assign({},p,{raw:txt,topic:topic,tO:tO,dO:dO,hO:hO});
     genCount++;cost+=0.015;updCost();
     audES=null;audEN=null;imgs=[];
@@ -271,31 +271,41 @@ async function generate(){
   }
 }
 
-// PARSE - 100% compatible iOS WebKit - CERO regex con \n problematicos
+// PARSE — robusto para Claude 4.6, sin regex con \n
 function cleanG(t){
+  if(!t)return'';
   var lines=t.split('\n');
   var result=[];
   var blankCount=0;
   for(var i=0;i<lines.length;i++){
     var line=lines[i];
+    // Eliminar timestamps
     line=line.replace(/\[\d\d:\d\d[^\]]*\]/g,'');
+    // Eliminar markdown
+    line=line.replace(/^#{1,6}\s+/,'');
+    line=line.replace(/\*\*/g,'');
+    line=line.replace(/\*/g,'');
     var trimmed=line.trim();
-    if(trimmed.length>0 && trimmed.charAt(0)==='[' && trimmed.charAt(trimmed.length-1)===']'){
-      continue;
-    }
+    // Saltar corchetes de accion
+    if(trimmed.length>0&&trimmed.charAt(0)==='['&&trimmed.charAt(trimmed.length-1)===']'){continue;}
     var upper=trimmed.toUpperCase();
-    if(upper.indexOf('GANCHO')=== 0||upper.indexOf('DESARROLLO')===0||upper.indexOf('CUERPO')===0||upper.indexOf('CIERRE')===0){
+    // Saltar etiquetas de seccion
+    if(upper.indexOf('GANCHO')===0||upper.indexOf('DESARROLLO')===0||upper.indexOf('CUERPO')===0||upper.indexOf('CIERRE')===0||upper.indexOf('INTRO')===0){
       var colonIdx=trimmed.indexOf(':');
-      if(colonIdx>-1&&colonIdx<15){continue;}
+      if(colonIdx>-1&&colonIdx<20){continue;}
     }
+    // Saltar encabezados de bloque
     if(upper.indexOf('BLOQUE ')===0){continue;}
+    // Saltar lineas de prompt
+    if(/^PROMPT\s*\d+/i.test(trimmed)){continue;}
+    // Saltar headers markdown
     if(trimmed.charAt(0)==='#'){continue;}
     if(trimmed===''){
       blankCount++;
       if(blankCount<=1)result.push('');
     }else{
       blankCount=0;
-      result.push(line);
+      result.push(line.replace(/^#{1,6}\s+/,'').replace(/\*\*/g,'').replace(/\*/g,''));
     }
   }
   while(result.length>0&&result[0]==='')result.shift();
@@ -304,59 +314,85 @@ function cleanG(t){
 }
 
 function parseBlocks(raw){
-  function get(letter){
-    var nx={A:'C',C:'F',F:'Z'};
-    var lines=raw.split('\n');
-    var siLine=-1;
-    for(var i=0;i<lines.length;i++){
-      var lu=lines[i].toUpperCase().trim();
-      if(lu.indexOf('BLOQUE '+letter)===0){siLine=i;break;}
-    }
-    if(siLine===-1)return'';
-    var sub=lines.slice(siLine+1).join('\n');
-    var n=nx[letter];
-    if(n){
-      var subLines=sub.split('\n');
-      var niLine=-1;
-      for(var j=0;j<subLines.length;j++){
-        var su=subLines[j].toUpperCase().trim();
-        if(su.indexOf('BLOQUE '+n)===0){niLine=j;break;}
-      }
-      if(niLine!==-1)sub=subLines.slice(0,niLine).join('\n');
-    }
-    return sub.trim();
+  // Limpiar markdown para detectar bloques
+  var lines=raw.split('\n');
+  var cleanLines=[];
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i];
+    l=l.replace(/\*\*/g,'');
+    l=l.replace(/^#{1,6}\s+/,'');
+    cleanLines.push(l);
   }
-  var aRaw=get('A');
-  var cutoffs=['BLOQUE C','BLOQUE F','---CAPTION---'];
-  for(var ci=0;ci<cutoffs.length;ci++){
-    var idx=aRaw.toUpperCase().indexOf(cutoffs[ci]);
-    if(idx>-1){aRaw=aRaw.slice(0,idx);break;}
+
+  // Encontrar inicio de cada bloque
+  var posA=-1,posC=-1,posF=-1;
+  for(var i=0;i<cleanLines.length;i++){
+    var upper=cleanLines[i].trim().toUpperCase().replace(/[*#_`:]/g,'').trim();
+    if(posA===-1&&upper.indexOf('BLOQUE A')===0){posA=i;}
+    else if(posC===-1&&upper.indexOf('BLOQUE C')===0){posC=i;}
+    else if(posF===-1&&upper.indexOf('BLOQUE F')===0){posF=i;}
   }
-  var cRaw=get('C');
+
+  // Extraer contenido entre bloques
+  function extract(start,others){
+    if(start===-1)return'';
+    var end=cleanLines.length;
+    for(var oi=0;oi<others.length;oi++){
+      if(others[oi]>start&&others[oi]<end)end=others[oi];
+    }
+    return cleanLines.slice(start+1,end).join('\n').trim();
+  }
+
+  var aRaw=extract(posA,[posC,posF]);
+  var cRaw=extract(posC,[posA,posF]);
+  var fRaw=extract(posF,[posA,posC]);
+
+  // Si no encontro bloques por encabezado, intentar heuristico
+  if(!aRaw&&!fRaw){
+    // Buscar texto antes del primer PROMPT como guion ES
+    var firstPromptLine=-1;
+    for(var i=0;i<cleanLines.length;i++){
+      if(/^PROMPT\s*\d+/i.test(cleanLines[i].trim())){firstPromptLine=i;break;}
+    }
+    if(firstPromptLine>0){
+      aRaw=cleanLines.slice(0,firstPromptLine).join('\n').trim();
+    }
+    // Buscar texto despues del ultimo PROMPT como guion EN
+    var lastPromptLine=-1;
+    for(var i=cleanLines.length-1;i>=0;i--){
+      if(/^PROMPT\s*\d+/i.test(cleanLines[i].trim())){lastPromptLine=i;break;}
+    }
+    if(lastPromptLine>-1&&lastPromptLine<cleanLines.length-5){
+      fRaw=cleanLines.slice(lastPromptLine+1).join('\n').trim();
+    }
+    if(firstPromptLine>-1&&lastPromptLine>-1){
+      cRaw=cleanLines.slice(firstPromptLine,lastPromptLine+1).join('\n').trim();
+    }
+  }
+
+  // Extraer prompts de BLOQUE C
   var prompts=[];
   if(cRaw){
-    var parts=cRaw.split(/PROMPT\s*\d+\s*[:\-.]/i);
-    for(var pi=1;pi<parts.length;pi++){
-      var pc=parts[pi].replace(/\*+/g,'').trim();
-      if(pc.length>20)prompts.push(pc);
-    }
-  }
-  if(!prompts.length){
-    var rlines=raw.split('\n');
-    for(var li=0;li<rlines.length;li++){
-      var lt=rlines[li].trim();
+    var cLines=cRaw.split('\n');
+    var currentPrompt='';
+    for(var ci=0;ci<cLines.length;ci++){
+      var lt=cLines[ci].trim().replace(/\*+/g,'');
       if(/^PROMPT\s*\d+\s*[:\-.]/i.test(lt)){
-        var pc2=lt.replace(/^PROMPT\s*\d+\s*[:\-.]\s*/i,'').replace(/\*+/g,'').trim();
-        if(pc2.length>20)prompts.push(pc2);
+        if(currentPrompt.length>20)prompts.push(currentPrompt);
+        currentPrompt=lt.replace(/^PROMPT\s*\d+\s*[:\-.]\s*/i,'').trim();
+      }else if(lt&&currentPrompt){
+        currentPrompt=currentPrompt+' '+lt;
       }
     }
+    if(currentPrompt.length>20)prompts.push(currentPrompt);
   }
-  var fRaw=get('F');
-  if(!fRaw||fRaw.length<30){
-    var li2=raw.lastIndexOf('Legado de Hierro.');
-    if(li2>-1){var af=raw.slice(li2+17).trim();if(af.length>50)fRaw=af;}
-  }
-  return{a:cleanG(aRaw),f:cleanG(fRaw||''),c:prompts,cRaw:cRaw};
+
+  return{
+    a:cleanG(aRaw),
+    f:cleanG(fRaw),
+    c:prompts,
+    cRaw:cRaw
+  };
 }
 
 // RENDER
@@ -367,7 +403,7 @@ function renderOut(r){
   document.getElementById('oconcept').textContent='"'+(r.topic.length>70?r.topic.slice(0,70)+'...':r.topic)+'"';
   var tr=document.getElementById('tabrow');tr.innerHTML='';activeTab='a';
   TABS.forEach(function(tab){
-    var has={a:r.a,f:r.f,c:r.cRaw}[tab.id];if(!has)return;
+    var has={a:r.a,f:r.f}[tab.id];if(!has)return;
     var btn=document.createElement('button');btn.className='tabbtn'+(tab.id==='a'?' on':'');
     btn.textContent=tab.label;
     if(tab.id==='a'){btn.style.borderColor=tab.c;btn.style.color=tab.c;btn.style.background=tab.p;}
@@ -397,9 +433,10 @@ function rfTabs(r){
   });
   var ct=document.getElementById('tabcontent');ct.innerHTML='';
   var tm=TABS.find(function(t){return t.id===activeTab;});
-  var text={a:r.a,f:r.f,c:r.cRaw}[activeTab]||'';
+  // Solo guiones — los prompts son internos
+  var text={a:r.a,f:r.f}[activeTab]||'';
   if(!text)return;
-  var lbls={a:'⚔ Guion en Español',f:'🇺🇸 Script in English',c:'🖼 Prompts IA Generadora'};
+  var lbls={a:'⚔ Guion en Español',f:'🇺🇸 Script in English'};
   var blk=document.createElement('div');blk.className='blk';blk.style.borderColor=(tm?tm.c+'44':'');
   var hdr=document.createElement('div');hdr.className='bhdr';hdr.style.background=tm?tm.p:'';
   hdr.innerHTML='<span class="bttl" style="color:'+(tm?tm.c:'')+'">'+lbls[activeTab]+'</span>';
@@ -408,20 +445,23 @@ function rfTabs(r){
   text.split('\n').forEach(function(line){
     var t=line.trim(),div=document.createElement('div');
     if(!t){div.style.marginBottom='10px';div.innerHTML='&nbsp;';}
-    else if(t==='Legado de Hierro.'){div.className='bsig';div.style.color=tm?tm.c:'';div.textContent=t;}
-    else if(/^PROMPT\s*\d+/i.test(t)){div.className='blbl';div.style.color=tm?tm.c:'';div.textContent=t.replace(/\*+/g,'');}
+    else if(t==='Legado de Hierro.'||t==='Iron Legacy.'){div.className='bsig';div.style.color=tm?tm.c:'';div.textContent=t;}
     else if(/^(Primero|Segundo|Tercero|First|Second|Third)\./i.test(t)){div.className='bprim';div.textContent=line;}
-    else{div.className=activeTab==='c'?'bmono':'';div.textContent=line;}
+    else{div.textContent=line;}
     body.appendChild(div);
   });
   blk.appendChild(body);ct.appendChild(blk);
 }
 
-// AUDIO
+// AUDIO — usa solo el guion limpio, sin prompts
 async function genAudio(lang){
   var isEN=lang==='en';
+  // Usar solo el guion limpio — a (ES) o f (EN)
   var text=isEN?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
-  if(!text||text.length<10){alert(isEN?'Guion EN no disponible.':'Genera un episodio primero.');return;}
+  if(!text||text.length<10){
+    alert(isEN?'Guion EN no disponible. Genera el episodio primero.':'Genera un episodio primero.');
+    return;
+  }
   var btn=document.getElementById(isEN?'baen':'baes');
   var st=document.getElementById('ast');
   var er=document.getElementById('ae');
@@ -502,7 +542,7 @@ async function genImages(){
     }
     if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,4000);});
   }
-  st.textContent=gen+'/'+lastRes.c.length+' imagenes generadas.';
+  st.textContent=gen+'/'+totalImgs+' imagenes generadas.';
   btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
   chkExport();
 }
@@ -538,8 +578,6 @@ async function exportAll(){
   }
 }
 
-function pad(n){return String(n).padStart(2,'0');}
-
 // HELPERS
 function mkCp(t){
   var b=document.createElement('button');b.className='cbtn';b.textContent='Copiar';
@@ -572,11 +610,11 @@ function selPostFmt(fmt){
 }
 
 var POST_FRASES=[
-  {titulo:'El empleo tiene un techo.\nTu ambicion no.',subtitulo:'Mientras intercambias tiempo por dinero, otros construyen sistemas que generan sin ellos. La diferencia no es suerte. Es el modelo.'},
-  {titulo:'Nadie se hizo rico\ntrabajando para otro.',subtitulo:'El empleo paga tus gastos. Los activos construyen tu libertad. Tienes que elegir en que inviertes tu energia.'},
-  {titulo:'La disciplina\nes el unico atajo.',subtitulo:'No hay inversion secreta. No hay truco oculto. Solo personas que hacen consistentemente lo que la mayoria abandona.'},
-  {titulo:'Tu dinero durmiendo\nes dinero muriendo.',subtitulo:'La inflacion no descansa. El capital estatico pierde valor cada dia. El dinero que no trabaja para ti, trabaja en tu contra.'},
-  {titulo:'El sistema funciona.\nPero no para ti.',subtitulo:'Fue disenado para que consumas, te endeudes y trabajes. Salir requiere entender las reglas y luego romperlas.'},
+  {titulo:'El empleo tiene un techo.\nTu ambicion no.',subtitulo:'Mientras intercambias tiempo por dinero, otros construyen sistemas que generan sin ellos.'},
+  {titulo:'Nadie se hizo rico\ntrabajando para otro.',subtitulo:'El empleo paga tus gastos. Los activos construyen tu libertad. Tienes que elegir.'},
+  {titulo:'La disciplina\nes el unico atajo.',subtitulo:'No hay inversion secreta. Solo personas que hacen consistentemente lo que la mayoria abandona.'},
+  {titulo:'Tu dinero durmiendo\nes dinero muriendo.',subtitulo:'La inflacion no descansa. El capital estatico pierde valor cada dia.'},
+  {titulo:'El sistema funciona.\nPero no para ti.',subtitulo:'Fue disenado para que consumas, te endeudes y trabajes. Salir requiere entender las reglas.'},
 ];
 
 var POST_ESTILOS_IMG=[
@@ -611,7 +649,7 @@ async function genPost(){
     if(tema){
       var rf=await fetch('/api/generate',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:'Genera un post de Facebook para el canal Legado de Hierro sobre el tema: "'+tema+'". Devuelve SOLO un JSON con este formato exacto (sin markdown, sin explicacion): {"titulo":"MAXIMO 6 PALABRAS EN MAYUSCULAS\\nSEGUNDA LINEA OPCIONAL","subtitulo":"Una o dos oraciones de impacto, maximo 25 palabras"}'}),
+        body:JSON.stringify({prompt:'Genera un post de Facebook para el canal Legado de Hierro sobre el tema: "'+tema+'". Devuelve SOLO un JSON con este formato exacto sin markdown ni explicacion: {"titulo":"MAXIMO 6 PALABRAS EN MAYUSCULAS\\nSEGUNDA LINEA OPCIONAL","subtitulo":"Una o dos oraciones de impacto maximo 25 palabras"}'}),
       });
       var rd=await rf.json();
       try{fraseObj=JSON.parse(rd.text.replace(/```json|```/g,'').trim());}
@@ -714,7 +752,12 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   document.getElementById('conc').addEventListener('input',function(){updCC();updGBtn();});
   document.getElementById('gbtn').addEventListener('click',generate);
-  document.getElementById('cpall').addEventListener('click',function(){if(lastRes)navigator.clipboard.writeText(lastRes.raw);});
+  document.getElementById('cpall').addEventListener('click',function(){
+    if(lastRes){
+      var todo=(lastRes.a||'')+'\n\n---\n\n'+(lastRes.f||'');
+      navigator.clipboard.writeText(todo);
+    }
+  });
   document.getElementById('baes').addEventListener('click',function(){genAudio('es');});
   document.getElementById('baen').addEventListener('click',function(){genAudio('en');});
   document.getElementById('bimg').addEventListener('click',genImages);
