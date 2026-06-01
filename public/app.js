@@ -601,8 +601,9 @@ async function genImages(){
   var gen=0;
   for(var i=0;i<totalImgs;i++){
     st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
+    var imgPrompt='9:16 vertical portrait format, tall image not square. '+lastRes.c[i];
     try{
-      var src=await genOneImage(lastRes.c[i],imgRefs);
+      var src=await genOneImage(imgPrompt,imgRefs);
       imgs[i]={src:src,idx:i+1};
       setSlotOk(slots[i],src,i);
       gen++;cost+=0.068;updCost();chkExport();
