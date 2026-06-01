@@ -81,7 +81,7 @@ module.exports = async (req, res) => {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(function() { controller.abort(); }, 55000);
+    const timeoutId = setTimeout(function() { controller.abort(); }, 58000);
 
     let r;
     try {
