@@ -58,10 +58,7 @@ module.exports = async (req, res) => {
     const token = await getGCPToken();
     const url = 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/us-central1/publishers/google/models/gemini-2.5-flash-image:generateContent';
 
-    // Forzar 9:16 vertical en el prompt
-    const prompt = '9:16 vertical portrait format, tall image not square. ' + userPrompt;
-
-    const parts = [{ text: prompt }];
+    const parts = [{ text: userPrompt }];
 
     // Detectar mimeType real del base64 y validar que sea imagen
     function detectMime(b64) {
@@ -124,7 +121,17 @@ module.exports = async (req, res) => {
         }
       }
     }
-    if (!imageB64) return res.status(500).json({ error: 'Sin imagen generada' });
+    if (!imageB64) {
+      let reason = '';
+      if (d && d.candidates && d.candidates[0]) {
+        if (d.candidates[0].finishReason) reason = ' (' + d.candidates[0].finishReason + ')';
+        if (d.candidates[0].content && d.candidates[0].content.parts) {
+          const tp = d.candidates[0].content.parts.find(function(p){ return p.text; });
+          if (tp) reason += ' ' + tp.text.slice(0, 80);
+        }
+      }
+      return res.status(500).json({ error: 'Sin imagen generada' + reason });
+    }
     return res.json({ success: true, image: imageB64 });
   } catch (e) {
     const msg = e.name === 'AbortError' ? 'Generacion tardó demasiado. Usa Regenerar.' : e.message;
