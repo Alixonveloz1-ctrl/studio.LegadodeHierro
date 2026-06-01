@@ -509,8 +509,24 @@ async function loadRefs(){
       var ct=rr.headers.get('content-type')||'';
       if(ct.indexOf('image/')===-1){console.warn('Ref '+ri+' no es imagen:'+ct);continue;}
       var rb=await rr.blob();
-      var rb64=await new Promise(function(res){var rd=new FileReader();rd.onloadend=function(){res(rd.result.split(',')[1]);};rd.readAsDataURL(rb);});
-      if(rb64&&rb64.length>100)refs.push(rb64);
+      // Comprimir a 256px máximo para reducir payload de ~500KB a ~30KB
+      var compressed=await new Promise(function(res){
+        var img=new Image();
+        var objUrl=URL.createObjectURL(rb);
+        img.onload=function(){
+          URL.revokeObjectURL(objUrl);
+          var maxS=256,w=img.width,h=img.height;
+          if(w>h){h=Math.round(h*maxS/w);w=maxS;}else{w=Math.round(w*maxS/h);h=maxS;}
+          var cv=document.createElement('canvas');
+          cv.width=w;cv.height=h;
+          cv.getContext('2d').drawImage(img,0,0,w,h);
+          var b64=cv.toDataURL('image/jpeg',0.7).split(',')[1];
+          res(b64&&b64.length>100?b64:null);
+        };
+        img.onerror=function(){URL.revokeObjectURL(objUrl);res(null);};
+        img.src=objUrl;
+      });
+      if(compressed)refs.push(compressed);
     }catch(e){console.warn('Ref '+ri+' failed:',e);}
   }
   return refs;
@@ -599,27 +615,17 @@ async function genImages(){
     slots.push(slot);
   }
   var gen=0;
-  // Generar de 2 en 2 con 15s entre grupos para evitar rate limit
-  for(var i=0;i<totalImgs;i+=2){
-    var group=Math.min(2,totalImgs-i);
-    st.textContent='Generando imagenes '+(i+1)+'-'+(i+group)+' de '+totalImgs+'...';
-    // Lanzar las 2 en paralelo
-    var promises=[];
-    for(var j=0;j<group;j++){
-      promises.push((function(idx){
-        return genOneImage('9:16 vertical portrait format, tall image not square. '+lastRes.c[idx],imgRefs)
-          .then(function(src){
-            imgs[idx]={src:src,idx:idx+1};
-            setSlotOk(slots[idx],src,idx);
-            gen++;cost+=0.068;updCost();chkExport();
-          })
-          .catch(function(e){
-            setSlotError(slots[idx],idx,e.message);
-          });
-      })(i+j));
+  for(var i=0;i<totalImgs;i++){
+    st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
+    try{
+      var src=await genOneImage('9:16 vertical portrait format, tall image not square. '+lastRes.c[i],imgRefs);
+      imgs[i]={src:src,idx:i+1};
+      setSlotOk(slots[i],src,i);
+      gen++;cost+=0.068;updCost();chkExport();
+    }catch(e){
+      setSlotError(slots[i],i,e.message);
     }
-    await Promise.all(promises);
-    if(i+2<totalImgs)await new Promise(function(resolve){setTimeout(resolve,15000);});
+    if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,10000);});
   }
   st.textContent=gen+'/'+totalImgs+' imagenes generadas.';
   btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
@@ -745,8 +751,12 @@ async function genPost(){
       try{
         var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
         var rb=await rr.blob();
-        var rb64=await new Promise(function(res){var rd2=new FileReader();rd2.onloadend=function(){res(rd2.result.split(',')[1]);};rd2.readAsDataURL(rb);});
-        refs.push(rb64);
+        var compressed=await new Promise(function(res){
+          var img=new Image();var ou=URL.createObjectURL(rb);
+          img.onload=function(){URL.revokeObjectURL(ou);var maxS=256,w=img.width,h=img.height;if(w>h){h=Math.round(h*maxS/w);w=maxS;}else{w=Math.round(w*maxS/h);h=maxS;}var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);var b=cv.toDataURL('image/jpeg',0.7).split(',')[1];res(b&&b.length>100?b:null);};
+          img.onerror=function(){URL.revokeObjectURL(ou);res(null);};img.src=ou;
+        });
+        if(compressed)refs.push(compressed);
       }catch(e){}
     }
     var ri2=await fetch('/api/image',{
