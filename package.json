@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "Sistema de Producción Facebook Reels",
   "engines": {
-    "node": "24.x"
+    "node":  "24.x"
   }
 }
