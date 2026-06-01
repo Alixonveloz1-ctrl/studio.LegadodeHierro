@@ -517,11 +517,25 @@ async function loadRefs(){
 }
 
 async function genOneImage(prompt,refs){
-  var ir=await fetch('/api/image',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:prompt,refImages:refs}),
-  });
-  var id=await ir.json();
+  var ir;
+  try{
+    ir=await fetch('/api/image',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:prompt,refImages:refs}),
+    });
+  }catch(e){
+    throw new Error('Error de conexion. Usa Regenerar.');
+  }
+  // Manejar 504 antes de parsear JSON (Vercel timeout devuelve HTML)
+  if(ir.status===504){
+    throw new Error('Tiempo agotado. Usa Regenerar en unos segundos.');
+  }
+  var id;
+  try{
+    id=await ir.json();
+  }catch(e){
+    throw new Error('Error '+ir.status+'. Usa Regenerar en unos segundos.');
+  }
   if(!ir.ok)throw new Error(id.error||'Error '+ir.status);
   if(!id.image)throw new Error('Sin imagen generada');
   return 'data:image/png;base64,'+id.image;
