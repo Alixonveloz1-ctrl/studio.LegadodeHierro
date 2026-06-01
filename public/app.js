@@ -540,7 +540,7 @@ async function genImages(){
       ecard.textContent='Imagen '+(i+1)+': '+e.message;
       grid.appendChild(ecard);
     }
-    if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,4000);});
+    if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,6000);});
   }
   st.textContent=gen+'/'+totalImgs+' imagenes generadas.';
   btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
