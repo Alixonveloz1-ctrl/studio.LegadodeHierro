@@ -500,36 +500,15 @@ async function genAudio(lang){
 var imgRefs=[];
 
 async function loadRefs(){
-  var REFS=['https://i.ibb.co/m5Cqfs5n/IMG-8206.jpg','https://i.ibb.co/3m42CzNf/IMG-8162.jpg','https://i.ibb.co/GvfhKnJ3/IMG-8117.jpg'];
-  var refs=[];
-  for(var ri=0;ri<REFS.length;ri++){
-    try{
-      var rr=await fetch(REFS[ri]);
-      if(!rr.ok)continue;
-      var ct=rr.headers.get('content-type')||'';
-      if(ct.indexOf('image/')===-1){console.warn('Ref '+ri+' no es imagen:'+ct);continue;}
-      var rb=await rr.blob();
-      // Comprimir a 256px máximo para reducir payload de ~500KB a ~30KB
-      var compressed=await new Promise(function(res){
-        var img=new Image();
-        var objUrl=URL.createObjectURL(rb);
-        img.onload=function(){
-          URL.revokeObjectURL(objUrl);
-          var maxS=256,w=img.width,h=img.height;
-          if(w>h){h=Math.round(h*maxS/w);w=maxS;}else{w=Math.round(w*maxS/h);h=maxS;}
-          var cv=document.createElement('canvas');
-          cv.width=w;cv.height=h;
-          cv.getContext('2d').drawImage(img,0,0,w,h);
-          var b64=cv.toDataURL('image/jpeg',0.7).split(',')[1];
-          res(b64&&b64.length>100?b64:null);
-        };
-        img.onerror=function(){URL.revokeObjectURL(objUrl);res(null);};
-        img.src=objUrl;
-      });
-      if(compressed)refs.push(compressed);
-    }catch(e){console.warn('Ref '+ri+' failed:',e);}
+  try{
+    var r=await fetch('/api/refs');
+    if(!r.ok)return[];
+    var d=await r.json();
+    return(d&&d.refs&&d.refs.length)?d.refs:[];
+  }catch(e){
+    console.warn('loadRefs failed:',e);
+    return[];
   }
-  return refs;
 }
 
 async function genOneImage(prompt,refs){
@@ -763,20 +742,10 @@ async function genPost(){
     var estilo=POST_ESTILOS_IMG[Math.floor(Math.random()*POST_ESTILOS_IMG.length)];
     var isVertical=postFmt==='vertical';
     var prompt=estilo+'. Subject: handsome confident man, 35 years old, short black hair slicked back, well-groomed short dark beard, sharp jawline, intense dark brown eyes, serious determined expression never smiling. Wearing impeccably tailored black three-piece suit, dark tie, white pocket square, luxury watch. American comic book illustration style, bold ink lines, dramatic cel-shading, rich dark palette, golden accent lighting. Character positioned on RIGHT side of image, LEFT side darker/empty for text overlay. '+(isVertical?'4:5 vertical format':'1:1 square format')+'. No text in image.';
-    var REFS=['https://i.ibb.co/m5Cqfs5n/IMG-8206.jpg','https://i.ibb.co/3m42CzNf/IMG-8162.jpg','https://i.ibb.co/GvfhKnJ3/IMG-8117.jpg'];
+    st.textContent='Cargando referencias del personaje...';
+    var refsResp=await fetch('/api/refs').catch(function(){return null;});
     var refs=[];
-    for(var ri=0;ri<REFS.length;ri++){
-      try{
-        var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
-        var rb=await rr.blob();
-        var compressed=await new Promise(function(res){
-          var img=new Image();var ou=URL.createObjectURL(rb);
-          img.onload=function(){URL.revokeObjectURL(ou);var maxS=256,w=img.width,h=img.height;if(w>h){h=Math.round(h*maxS/w);w=maxS;}else{w=Math.round(w*maxS/h);h=maxS;}var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);var b=cv.toDataURL('image/jpeg',0.7).split(',')[1];res(b&&b.length>100?b:null);};
-          img.onerror=function(){URL.revokeObjectURL(ou);res(null);};img.src=ou;
-        });
-        if(compressed)refs.push(compressed);
-      }catch(e){}
-    }
+    if(refsResp&&refsResp.ok){var rd2=await refsResp.json().catch(function(){return{};});refs=(rd2&&rd2.refs)?rd2.refs:[];}
     var ri2=await fetch('/api/image',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({prompt:prompt,refImages:refs}),
