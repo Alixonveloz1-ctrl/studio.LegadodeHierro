@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Legado de Hierro">
+<meta name="theme-color" content="#b8975a">
+<title>Legado de Hierro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#b8975a;--gold-l:#d4b47a;--gold-p:#f0e8d8;
+  --sage:#7a9b8a;--sage-p:#eaf2ee;
+  --rose:#c4897a;--rose-p:#f8ede8;
+  --sky:#7a9ec4;--sky-p:#e8f0f8;
+  --lav:#9a8ac4;--lav-p:#f0eef8;
+  --grn:#9ab47a;--grn-p:#eef4e8;
+  --cream:#faf8f4;--warm:#f5f0e8;--sand:#e8e0d0;
+  --border:#e0d8cc;--sh:rgba(74,74,90,0.08);
+  --tx:#2a2a3a;--tx2:#5a5a6e;--tx3:#9a9aaa;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:var(--cream);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}
+.pg{display:none;min-height:100vh}
+.pg.on{display:block}
+#pg-login{display:none;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#f5f0e8,#ede8f5,#e8f0f5);min-height:100vh}
+#pg-login.on{display:flex}
+.lcard{max-width:400px;width:100%;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(74,74,90,0.12);overflow:hidden}
+.lhdr{background:linear-gradient(135deg,var(--gold),var(--gold-l));padding:28px;text-align:center}
+.lhdr-icon{font-size:36px;margin-bottom:8px}
+.lhdr-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:3px}
+.lhdr-title em{font-style:italic}
+.lhdr-sub{font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:.14em;text-transform:uppercase}
+.lbody{padding:24px}
+.ltabs{display:flex;gap:3px;margin-bottom:18px;background:var(--warm);border-radius:10px;padding:3px}
+.ltab{flex:1;padding:8px;border:none;background:none;border-radius:8px;font-size:13px;font-weight:500;color:var(--tx3);cursor:pointer;font-family:inherit;transition:all .15s}
+.ltab.on{background:#fff;color:var(--tx);box-shadow:0 1px 4px var(--sh)}
+.fg{margin-bottom:12px}
+.fl{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--warm);border:1.5px solid var(--border);border-radius:10px;color:var(--tx);padding:11px 14px;font-size:14px;font-family:inherit;outline:none;-webkit-appearance:none}
+.fi:focus{border-color:var(--gold)}
+.fi::placeholder{color:var(--tx3)}
+.lbtn{width:100%;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px;-webkit-appearance:none}
+.lbtn:active{opacity:.9}
+.lerr{background:var(--rose-p);border:1px solid var(--rose);border-radius:8px;padding:9px 12px;font-size:12px;color:#8a4a3a;margin-top:9px;display:none}
+.lok{background:var(--sage-p);border:1px solid #a8c4b4;border-radius:8px;padding:9px 12px;font-size:12px;color:#2a6a4a;margin-top:9px;display:none}
+.lhelp{background:var(--warm);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:11px;color:var(--tx3);line-height:1.7}
+.lft{text-align:center;font-size:10px;color:var(--tx3);padding:12px;border-top:1px solid var(--border)}
+.ahdr{background:#fff;border-bottom:1px solid var(--border);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px var(--sh)}
+.ahdr-l .eye{font-size:9px;font-weight:600;letter-spacing:.2em;color:var(--tx3);text-transform:uppercase;margin-bottom:2px}
+.ahdr-l .ttl{font-family:'Playfair Display',serif;font-size:clamp(15px,3vw,20px);font-weight:700;color:var(--tx)}
+.ahdr-l .ttl em{color:var(--gold);font-style:italic}
+.ahdr-r{display:flex;align-items:center;gap:8px}
+.badge{background:var(--sage-p);border:1px solid #a8c4b4;border-radius:20px;padding:4px 10px;display:flex;align-items:center;gap:5px}
+.bdot{width:5px;height:5px;background:var(--sage);border-radius:50%}
+.btxt{font-size:9px;font-weight:600;color:var(--sage);letter-spacing:.06em}
+.xbtn{background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--tx3);padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit}
+.amain{max-width:860px;margin:0 auto;padding:18px 14px 80px}
+.slbl{font-size:9px;font-weight:700;letter-spacing:.2em;color:var(--tx3);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.slbl::after{content:'';flex:1;height:1px;background:var(--border)}
+section{margin-bottom:20px}
+.cbar{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:18px;box-shadow:0 1px 4px var(--sh)}
+.cbar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.cbar-lbl{font-size:11px;color:var(--tx3)}
+.cbar-val{font-size:13px;font-weight:600;color:var(--tx)}
+.api-pills{display:flex;gap:6px;flex-wrap:wrap}
+.api-pill{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px}
+.sbtn{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 16px;font-family:inherit;font-size:12px;font-weight:500;color:var(--tx2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px var(--sh)}
+.spanel{background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow-x:auto;display:none;box-shadow:0 4px 12px var(--sh)}
+.spanel.on{display:block}
+.sgrid{display:grid;grid-template-columns:repeat(7,minmax(168px,1fr));min-width:1176px}
+.scol{padding:11px;border-right:1px solid var(--border)}.scol:last-child{border-right:none}
+.sday{font-size:9px;font-weight:700;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin-bottom:2px}
+.sslots{font-size:9px;color:var(--tx3);margin-bottom:6px}
+.sitem{padding:7px 8px;margin-bottom:5px;background:var(--warm);border:1.5px solid transparent;border-radius:8px;cursor:pointer;transition:all .15s}
+.sitem:hover{background:#fff;box-shadow:0 2px 8px var(--sh)}
+.sitop{display:flex;justify-content:space-between;margin-bottom:2px}
+.sconcept{font-size:10px;color:var(--tx2);line-height:1.35}
+.shook{font-size:9px;font-weight:600}
+.suse{font-size:9px;color:var(--gold);font-weight:600;margin-top:3px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:7px}
+.tc{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px;text-align:left;cursor:pointer;box-shadow:0 1px 4px var(--sh);font-family:inherit;width:100%}
+.tc.sel{border-width:2px}
+.ticon{font-size:18px;margin-bottom:4px}
+.tname{font-size:11px;font-weight:600;color:var(--tx);margin-bottom:2px}
+.tdesc{font-size:10px;color:var(--tx3);line-height:1.3}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+@media(max-width:500px){.twocol{grid-template-columns:1fr}}
+.olist{display:flex;flex-direction:column;gap:5px}
+.oc{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;box-shadow:0 1px 3px var(--sh);font-family:inherit;text-align:left;width:100%}
+.oc.sel{border-width:2px}
+.om{font-size:12px;font-weight:600;color:var(--tx)}
+.os{font-size:10px;color:var(--tx3)}
+.cinput{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:12px;color:var(--tx);padding:12px 14px;font-size:14px;font-family:inherit;line-height:1.7;resize:vertical;outline:none;min-height:90px;box-shadow:0 1px 4px var(--sh)}
+.cinput::placeholder{color:var(--tx3)}
+.cc{font-size:10px;color:var(--tx3);margin-top:4px;text-align:right}
+.grow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gbtn{background:var(--sand);color:var(--tx3);border:none;border-radius:12px;padding:13px 26px;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.04em;cursor:not-allowed;display:flex;align-items:center;gap:9px}
+.gbtn.on{background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(184,151,90,0.3)}
+.gnote{font-size:12px;color:var(--tx3);font-style:italic}
+.spin{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ebox{margin-top:12px;background:var(--rose-p);border:1.5px solid var(--rose);border-radius:12px;padding:12px 14px;display:none}
+.etitle{font-size:12px;font-weight:600;color:var(--rose);margin-bottom:5px}
+.ow{margin-top:32px;display:none}
+.ohdr{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;box-shadow:0 2px 8px var(--sh)}
+.otag{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px}
+.oconcept{font-size:13px;color:var(--tx2);font-style:italic;max-width:460px;line-height:1.4}
+.cbtn{background:var(--warm);border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:inherit}
+.cbtn.done{background:var(--sage-p);border-color:#a8c4b4;color:var(--sage)}
+.tabrow{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+.tabbtn{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:500;color:var(--tx3);cursor:pointer;font-family:inherit}
+.tabbtn.on{border-width:2px;font-weight:600}
+.blk{background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh)}
+.bhdr{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.bttl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.bbody{padding:18px;max-height:480px;overflow-y:auto;line-height:1.9;font-size:14px}
+.bsig{font-weight:700;font-size:15px}
+.blbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:6px;margin-bottom:3px}
+.bprim{font-size:15px;font-weight:700}
+.bmono{font-family:'Courier New',monospace;font-size:11px;color:var(--tx2)}
+.scard{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh);margin-top:14px}
+.shdr{padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:7px}
+.stitl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.ssub{font-size:11px;color:var(--tx3);margin-top:2px}
+.sbody{padding:16px}
+.sbtns{display:flex;gap:7px;flex-wrap:wrap}
+.stxt{font-size:13px;color:var(--tx3);font-style:italic;margin-bottom:9px;display:none}
+.serr{display:none;background:var(--rose-p);border:1px solid var(--rose);border-radius:8px;padding:9px;font-size:12px;color:#8a4a3a;margin-bottom:9px}
+.ares{display:none;margin-top:9px}
+.arlbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
+.expbtn{background:linear-gradient(135deg,var(--lav),#b8a8e4);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:14px}
+.oftr{margin-top:22px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.fsig{font-size:10px;color:var(--tx3);letter-spacing:.1em}
+.nbtn{background:#fff;border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="pg-login" class="pg">
+  <div class="lcard">
+    <div class="lhdr">
+      <div class="lhdr-icon">⚔</div>
+      <div class="lhdr-title">Legado <em>de</em> Hierro</div>
+      <div class="lhdr-sub">Sistema de Producción · Facebook Reels</div>
+    </div>
+    <div class="lbody">
+      <div class="ltabs">
+        <button class="ltab on" id="tl" onclick="switchTab('login')">Iniciar Sesión</button>
+        <button class="ltab" id="tr" onclick="switchTab('reg')">Registrarse</button>
+      </div>
+      <div id="fl">
+        <div class="fg"><label class="fl">Usuario</label><input class="fi" id="lu" type="text" placeholder="tu_usuario" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
+        <div class="fg"><label class="fl">Contraseña</label><input class="fi" id="lp" type="password" placeholder="••••••••"></div>
+        <button class="lbtn" onclick="doLogin()">⚔ Entrar</button>
+        <div class="lerr" id="le"></div>
+      </div>
+      <div id="fr" style="display:none">
+        <div class="fg"><label class="fl">Código de Acceso</label><input class="fi" id="rac" type="password" placeholder="Código proporcionado por el admin" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
+        <div class="fg"><label class="fl">Usuario</label><input class="fi" id="ru" type="text" placeholder="elige_un_usuario" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
+        <div class="fg"><label class="fl">Contraseña</label><input class="fi" id="rp" type="password" placeholder="mínimo 6 caracteres"></div>
+        <div class="fg"><label class="fl">Confirmar contraseña</label><input class="fi" id="rp2" type="password" placeholder="repite la contraseña"></div>
+        <button class="lbtn" onclick="doRegister()">Crear Cuenta</button>
+        <div class="lerr" id="re"></div>
+        <div class="lok" id="ro"></div>
+      </div>
+      <div class="lhelp">Tus claves se guardan en este dispositivo de forma segura. <strong style="color:#b8975a">Nota:</strong> cada navegador (Safari, Chrome) necesita su propio registro — son almacenes separados.</div>
+    </div>
+    <div class="lft">legadodehierro.com · Ejecuta. Calla. Domina.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="pg-app" class="pg">
+  <header class="ahdr">
+    <div class="ahdr-l">
+      <div class="eye">Sistema de Producción · Facebook Reels</div>
+      <div class="ttl">Legado <em>de</em> Hierro</div>
+    </div>
+    <div class="ahdr-r">
+      <div class="badge"><div class="bdot"></div><span class="btxt">Monetización Activa</span></div>
+      <button class="xbtn" onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <main class="amain">
+    <div class="cbar">
+      <div class="cbar-top">
+        <span class="cbar-lbl">Sesión actual</span>
+        <span class="cbar-val" id="gcost">$0.00 estimado · 0 generaciones</span>
+      </div>
+      <div class="api-pills" id="apipills"></div>
+    </div>
+
+    <section>
+      <div class="slbl" style="justify-content:space-between;display:flex;align-items:center">
+        <span style="font-size:9px;font-weight:700;letter-spacing:.2em;color:var(--tx3);text-transform:uppercase">📅 Cronograma Semanal</span>
+        <button onclick="refreshSched()" style="background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--tx3);padding:4px 10px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">↻ Esta semana</button>
+      </div>
+      <button class="sbtn" id="schedBtn"><span id="schedLbl">Cargando...</span><span id="sa">▼</span></button>
+      <div class="spanel" id="schedPanel"><div class="sgrid" id="schedGrid"></div></div>
+    </section>
+
+    <section><div class="slbl">01 · Pilar Temático</div><div class="tgrid" id="themeGrid"></div></section>
+
+    <div class="twocol">
+      <section><div class="slbl">02 · Duración</div><div class="olist" id="durGrid"></div></section>
+      <section><div class="slbl">03 · Gancho</div><div class="olist" id="hookGrid"></div></section>
+    </div>
+
+    <section>
+      <div class="slbl">04 · Concepto del Reel</div>
+      <textarea class="cinput" id="conc" rows="3" placeholder="Describe el concepto central&#10;Ej: Por qué el empleo nunca te hará libre financieramente"></textarea>
+      <div class="cc"><span id="cc">0</span>/500</div>
+    </section>
+
+    <div class="grow">
+      <button class="gbtn" id="gbtn" disabled>⚔ Forjar Reel</button>
+      <span class="gnote" id="gnote" style="display:none">Generando guiones ES + EN y prompts...</span>
+    </div>
+    <div class="ebox" id="ebox"><div class="etitle" id="etitle"></div></div>
+
+    <!-- POST FACEBOOK -->
+    <div style="margin-top:20px">
+      <div class="slbl">📱 Post de Facebook</div>
+      <div style="background:#fff;border:1.5px solid #9ab47a44;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh)">
+        <div style="background:#eef4e8;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ab47a">🖼 Generador de Posts — Diseño Profesional</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">Personaje IA + diseño editorial · Listo para publicar</div>
+          </div>
+          <button class="cbtn" id="bpost" style="border-color:#9ab47a;color:#9ab47a" onclick="genPost()">🖼 Generar Post</button>
+        </div>
+        <div style="padding:16px">
+          <div style="margin-bottom:12px">
+            <label style="font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:6px">Tema del Post <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <input class="fi" id="postTema" type="text" placeholder="Ej: disciplina financiera, mentalidad ganadora..." style="width:100%">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="oc" id="pfmt1" onclick="selPostFmt('cuadrado')" style="flex:1;min-width:80px;padding:8px;text-align:center">
+              <span style="font-size:16px">⬛</span><br><span class="os" style="font-size:10px">Cuadrado 1:1</span>
+            </button>
+            <button class="oc" id="pfmt2" onclick="selPostFmt('vertical')" style="flex:1;min-width:80px;padding:8px;text-align:center">
+              <span style="font-size:16px">📱</span><br><span class="os" style="font-size:10px">Vertical 4:5</span>
+            </button>
+          </div>
+          <div class="stxt" id="postSt" style="display:none"></div>
+          <div class="serr" id="postErr" style="display:none"></div>
+          <div id="postResult" style="display:none;margin-top:10px">
+            <canvas id="postCanvas" style="width:100%;border-radius:10px;box-shadow:0 3px 12px rgba(74,74,90,0.15);display:block"></canvas>
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+              <button onclick="downloadPost()" style="background:linear-gradient(135deg,#9ab47a,#b4cc9a);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">⬇ Descargar Post</button>
+              <button onclick="genPost()" style="background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:8px 14px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit">↻ Regenerar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ow" id="ow">
+      <div class="ohdr">
+        <div><div class="otag" id="otag"></div><div class="oconcept" id="oconcept"></div></div>
+        <button class="cbtn" id="cpall">Copiar Todo</button>
+      </div>
+      <div class="tabrow" id="tabrow"></div>
+      <div id="tabcontent"></div>
+
+      <div class="scard" id="audioCard" style="border:1.5px solid #c4897a44">
+        <div class="shdr" style="background:#f8ede8">
+          <div><div class="stitl" style="color:#c4897a">🎙 ElevenLabs — Audio</div><div class="ssub">Genera con tu voz clonada</div></div>
+          <div class="sbtns">
+            <button class="cbtn" id="baes" style="border-color:#b8975a;color:#b8975a">🎙 Audio ES</button>
+            <button class="cbtn" id="baen" style="border-color:#c4897a;color:#c4897a">🎙 Audio EN</button>
+          </div>
+        </div>
+        <div class="sbody">
+          <div class="stxt" id="ast"></div>
+          <div class="serr" id="ae"></div>
+          <div class="ares" id="rES">
+            <div class="arlbl" style="color:#b8975a">Audio en Español</div>
+            <audio id="pES" controls style="width:100%;border-radius:8px;margin-bottom:8px"></audio>
+            <a id="dES" download="legado-es.mp3" style="display:inline-block;background:linear-gradient(135deg,#b8975a,#d4b47a);color:#fff;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none">⬇ Descargar ES</a>
+          </div>
+          <div class="ares" id="rEN" style="margin-top:12px">
+            <div class="arlbl" style="color:#c4897a">Audio en Inglés</div>
+            <audio id="pEN" controls style="width:100%;border-radius:8px;margin-bottom:8px"></audio>
+            <a id="dEN" download="legado-en.mp3" style="display:inline-block;background:linear-gradient(135deg,#c4897a,#d4a090);color:#fff;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none">⬇ Descargar EN</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="scard" id="imgCard" style="border:1.5px solid #7a9b8a44;margin-top:14px">
+        <div class="shdr" style="background:#eaf2ee">
+          <div><div class="stitl" style="color:#7a9b8a">🖼 Gemini — Imágenes del Personaje</div><div class="ssub">8 imágenes · Personaje en acción acorde al guion</div></div>
+          <button class="cbtn" id="bimg" style="border-color:#7a9b8a;color:#7a9b8a">🖼 Generar</button>
+        </div>
+        <div class="sbody">
+          <div class="stxt" id="ist"></div>
+          <div class="serr" id="ie"></div>
+          <div class="igrid" id="igrid"></div>
+        </div>
+      </div>
+
+      <button class="expbtn" id="expbtn" style="display:none">📦 Exportar todo (Guiones + Audio + Imágenes)</button>
+
+      <div class="oftr">
+        <span class="fsig">⚔ Legado de Hierro · Ejecuta. Calla. Domina.</span>
+        <button class="nbtn" onclick="reset()">+ Nuevo Reel</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
