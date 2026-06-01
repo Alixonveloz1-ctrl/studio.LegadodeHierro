@@ -63,17 +63,23 @@ module.exports = async (req, res) => {
 
     const parts = [{ text: prompt }];
 
-    // Agregar imágenes de referencia si existen
+    // Detectar mimeType real del base64 y validar que sea imagen
+    function detectMime(b64) {
+      if (!b64 || typeof b64 !== 'string' || b64.length < 100) return null;
+      if (b64.startsWith('/9j/')) return 'image/jpeg';
+      if (b64.startsWith('iVBOR')) return 'image/png';
+      if (b64.startsWith('R0lGOD')) return 'image/gif';
+      if (b64.startsWith('UklGR')) return 'image/webp';
+      if (b64.startsWith('AAAB')) return 'image/png';
+      return null; // No es imagen válida — skip
+    }
+
+    // Agregar imágenes de referencia si existen y son válidas
     if (Array.isArray(refImages) && refImages.length > 0) {
       for (let i = 0; i < refImages.length; i++) {
-        if (refImages[i] && typeof refImages[i] === 'string' && refImages[i].length > 100) {
-          parts.push({
-            inlineData: {
-              mimeType: 'image/jpeg',
-              data: refImages[i]
-            }
-          });
-        }
+        const mime = detectMime(refImages[i]);
+        if (!mime) continue; // Skip si no es imagen válida
+        parts.push({ inlineData: { mimeType: mime, data: refImages[i] } });
       }
     }
 
