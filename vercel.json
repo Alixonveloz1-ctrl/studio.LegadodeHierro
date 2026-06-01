@@ -1,3 +1,8 @@
 {
-  "version": 2
+  "version": 2,
+  "functions": {
+    "api/image.js": { "maxDuration": 60 },
+    "api/generate.js": { "maxDuration": 60 },
+    "api/audio.js": { "maxDuration": 60 }
+  }
 }
