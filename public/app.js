@@ -564,7 +564,25 @@ function setSlotLoading(slot,idx){
 
 function setSlotOk(slot,src,idx){
   slot.style.cssText='position:relative;border-radius:10px;overflow:hidden;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
-  slot.innerHTML='<img src="'+src+'" style="width:100%;display:block;border-radius:10px"><div style="position:absolute;bottom:6px;right:6px"><a href="'+src+'" download="legado-img-'+(idx+1)+'.png" style="background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none">⬇</a></div>';
+  slot.innerHTML='';
+  var im=document.createElement('img');im.src=src;im.style.cssText='width:100%;display:block;border-radius:10px';slot.appendChild(im);
+  // Boton descargar
+  var dd=document.createElement('div');dd.style.cssText='position:absolute;bottom:6px;right:6px';
+  var da=document.createElement('a');da.href=src;da.download='legado-img-'+(idx+1)+'.png';da.textContent='⬇';da.style.cssText='background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none;display:block';
+  dd.appendChild(da);slot.appendChild(dd);
+  // Boton regenerar
+  var rd=document.createElement('div');rd.style.cssText='position:absolute;top:6px;right:6px';
+  var rb=document.createElement('button');rb.textContent='↺';rb.title='Regenerar';
+  rb.style.cssText='background:rgba(255,255,255,.85);border:none;border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer;line-height:1';
+  var iidx=idx;
+  rb.addEventListener('click',function(){
+    setSlotLoading(slot,iidx);
+    var p=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
+    genOneImage('9:16 vertical portrait format, tall image not square. '+p,imgRefs).then(function(s){
+      imgs[iidx]={src:s,idx:iidx+1};setSlotOk(slot,s,iidx);cost+=0.068;updCost();chkExport();
+    }).catch(function(e){setSlotError(slot,iidx,e.message);});
+  });
+  rd.appendChild(rb);slot.appendChild(rd);
 }
 
 function setSlotError(slot,idx,msg){
@@ -695,11 +713,11 @@ function selPostFmt(fmt){
 }
 
 var POST_FRASES=[
-  {titulo:'El empleo te paga.\nLos activos te liberan.',subtitulo:'Trabajar para alguien más garantiza un ingreso, nunca riqueza. La diferencia entre el empleado y el libre financieramente no es el salario — es que uno construye activos que generan mientras duerme. Tu tiempo es finito. Tu dinero, si lo pones a trabajar, no lo es. Empieza hoy: un activo, una fuente, un sistema. Legado de Hierro.'},
-  {titulo:'Nadie te enseñó esto\nen la escuela.',subtitulo:'Te enseñaron a obedecer horarios, no a crear sistemas. Te enseñaron a ahorrar, no a invertir. Te enseñaron a buscar empleo, no a construir negocios. La libertad financiera no es suerte ni herencia — es educación que el sistema nunca quiso que tuvieras. La información existe. La disciplina para aplicarla, eso lo decides tú. Legado de Hierro.'},
-  {titulo:'La inflación trabaja\nen tu contra 24 horas.',subtitulo:'Mientras tu dinero duerme en una cuenta, la inflación lo come silenciosamente. Cada año que no inviertes, pierdes poder adquisitivo. El capital que no se mueve, muere. La solución no es guardar más — es mover mejor. Aprende los vehículos de inversión que protegen y multiplican: acciones, bienes raíces, negocios, activos digitales. El conocimiento es el activo más barato que existe. Legado de Hierro.'},
-  {titulo:'Disciplina de hierro,\nresultados de oro.',subtitulo:'La motivación llega y se va. La disciplina permanece. Los hombres que lograron independencia financiera no se levantaron emocionados cada día — se levantaron igual aunque no tuvieran ganas. El hábito de construir sistemáticamente, aunque sea poco, supera al talento sin constancia. Diez minutos diarios aprendiendo, ejecutando, revisando. En un año serás otra persona. En cinco, otra vida. Legado de Hierro.'},
-  {titulo:'Tu red vale más\nque tu título.',subtitulo:'El título abre una puerta. Las personas correctas en tu red abren diez. Los negocios se hacen entre personas que se conocen, confían y se recomiendan. Invierte tiempo en construir relaciones reales, no seguidores vacíos. Un mentor que ya llegó donde quieres ir vale más que mil horas de estudio solo. Rodéate de quien ya construyó lo que tú quieres construir. El ambiente define el resultado. Legado de Hierro.'},
+  {titulo:'El empleo te paga.\nLos activos te liberan.',subtitulo:'Nadie construyó riqueza cambiando tiempo por dinero. El empleado trabaja para que el dueño acumule activos. Tú produces, otro se queda con el diferencial. Mientras no entiendas eso, seguirás en la misma rueda. El primer paso no es renunciar — es construir la salida mientras sigues adentro.'},
+  {titulo:'El sistema no\nte va a rescatar.',subtitulo:'Te prometieron que si estudiabas y trabajabas duro, llegarías. ¿Llegarías a qué exactamente? A pagar una hipoteca de 30 años, un carro a crédito y vacaciones una vez al año si alcanza. Eso no es éxito — es deuda organizada. Romper el ciclo requiere información que no te enseñaron y decisiones que la mayoría no tiene el coraje de tomar.'},
+  {titulo:'Sin activos\nno hay libertad.',subtitulo:'Un activo es cualquier cosa que genera dinero sin que estés presente. Si todo tu ingreso depende de que vayas a trabajar mañana, eres frágil. Un despido, una enfermedad, una crisis — y quedas en cero. No necesitas un millón para empezar. Necesitas el primer activo. Después el segundo. La consistencia hace el resto.'},
+  {titulo:'La disciplina\nvale más que el talento.',subtitulo:'El talentoso que no ejecuta pierde contra el mediocre que aparece todos los días. No existe la motivación permanente — existe el sistema de hábitos. El que construyó riqueza no se levantó emocionado cada mañana. Se levantó igual. Ejecutó igual. Los resultados financieros son el reflejo acumulado de decisiones que nadie ve.'},
+  {titulo:'Tu red determina\ntu techo.',subtitulo:'El conocimiento está disponible para todos — lo que escasea es acceso a personas que ya construyeron lo que tú quieres construir. Un mentor real, un socio correcto, una red que abre puertas — vale más que años de estudio en soledad. Deja de acumular información y empieza a invertir en relaciones con gente que ya llegó.'},
 ];
 
 var POST_ESTILOS_IMG=[
@@ -734,7 +752,7 @@ async function genPost(){
     if(tema){
       var rf=await fetch('/api/generate',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:'Eres el redactor del canal Legado de Hierro. Genera un post de Facebook sobre el tema: "'+tema+'". Tono: directo, crudo, sin motivacion vacia. Ensenanza real sobre libertad financiera, mentalidad de hierro o construccion de riqueza. Devuelve SOLO un JSON sin markdown ni explicacion: {"titulo":"MAXIMO 6 PALABRAS EN MAYUSCULAS\\nSEGUNDA LINEA OPCIONAL","subtitulo":"Texto de 3 a 5 oraciones con ensenanza real, datos concretos o pasos accionables. Termina con Legado de Hierro."}'}),
+        body:JSON.stringify({prompt:'Eres el redactor del canal Legado de Hierro. Genera un post de Facebook sobre el tema: "'+tema+'". Tono: directo, crudo, sin motivacion vacia. Verdad incomoda sobre libertad financiera o construccion de riqueza. Devuelve SOLO un JSON sin markdown ni explicacion: {"titulo":"MAXIMO 6 PALABRAS EN MAYUSCULAS\\nSEGUNDA LINEA OPCIONAL","subtitulo":"Texto de 3 a 5 oraciones con ensenanza real y datos concretos. Sin firma al final."}'}),
       });
       var rd=await rf.json();
       try{fraseObj=JSON.parse(rd.text.replace(/```json|```/g,'').trim());}
