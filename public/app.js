@@ -713,11 +713,11 @@ function selPostFmt(fmt){
 }
 
 var POST_FRASES=[
-  {titulo:'El empleo te paga.\nLos activos te liberan.',subtitulo:'Nadie construyó riqueza cambiando tiempo por dinero. El empleado trabaja para que el dueño acumule activos. Tú produces, otro se queda con el diferencial. Mientras no entiendas eso, seguirás en la misma rueda. El primer paso no es renunciar — es construir la salida mientras sigues adentro.'},
-  {titulo:'El sistema no\nte va a rescatar.',subtitulo:'Te prometieron que si estudiabas y trabajabas duro, llegarías. ¿Llegarías a qué exactamente? A pagar una hipoteca de 30 años, un carro a crédito y vacaciones una vez al año si alcanza. Eso no es éxito — es deuda organizada. Romper el ciclo requiere información que no te enseñaron y decisiones que la mayoría no tiene el coraje de tomar.'},
-  {titulo:'Sin activos\nno hay libertad.',subtitulo:'Un activo es cualquier cosa que genera dinero sin que estés presente. Si todo tu ingreso depende de que vayas a trabajar mañana, eres frágil. Un despido, una enfermedad, una crisis — y quedas en cero. No necesitas un millón para empezar. Necesitas el primer activo. Después el segundo. La consistencia hace el resto.'},
-  {titulo:'La disciplina\nvale más que el talento.',subtitulo:'El talentoso que no ejecuta pierde contra el mediocre que aparece todos los días. No existe la motivación permanente — existe el sistema de hábitos. El que construyó riqueza no se levantó emocionado cada mañana. Se levantó igual. Ejecutó igual. Los resultados financieros son el reflejo acumulado de decisiones que nadie ve.'},
-  {titulo:'Tu red determina\ntu techo.',subtitulo:'El conocimiento está disponible para todos — lo que escasea es acceso a personas que ya construyeron lo que tú quieres construir. Un mentor real, un socio correcto, una red que abre puertas — vale más que años de estudio en soledad. Deja de acumular información y empieza a invertir en relaciones con gente que ya llegó.'},
+  {titulo:'El empleo te paga.\nLos activos te liberan.',subtitulo:'Te pagan por tu tiempo, no por tu valor. Cada hora que trabajas para otro es una hora que no invertiste en construirte a ti. El empleado intercambia libertad por seguridad falsa. El que entiende esto empieza a construir algo propio aunque sea pequeño, aunque sea lento. Porque un dia ese algo trabaja sin ti.'},
+  {titulo:'Nadie se hace rico\ntrabajando para otro.',subtitulo:'Lo que te dieron fue un contrato, no un futuro. El salario cubre gastos. Los activos construyen riqueza. Mientras tu dinero duerme en una cuenta, el tiempo pasa y la inflacion come lo poco que guardaste. La diferencia no es suerte. Es que unos entienden como funciona el dinero y otros no.'},
+  {titulo:'Sin disciplina\nno hay salida.',subtitulo:'La motivacion llega y se va. El que espera ganas para ejecutar, nunca ejecuta. Los habitos no se sienten, se construyen. Diez minutos al dia aprendiendo como funciona el dinero valen mas que un fin de semana de cursos que nunca aplicas. Consistencia sin resultados visibles es lo que separa al que llega del que se queda.'},
+  {titulo:'Tu dinero parado\nes dinero perdido.',subtitulo:'La inflacion no descansa. Cada año que no mueves tu capital, pierdes poder adquisitivo en silencio. No necesitas mucho para empezar. Necesitas entender que el dinero es una herramienta, y las herramientas que no se usan se oxidan. Empieza con lo que tienes, donde estas, con lo que sabes hoy.'},
+  {titulo:'El ambiente\ndecide el resultado.',subtitulo:'No puedes pensar como libre si todos a tu alrededor piensan como empleados. Las personas que tienes cerca definen el techo de lo que crees posible. Busca a los que ya construyeron lo que tu quieres construir. Observa como piensan. Como deciden. Como actuan cuando nadie los ve. Eso vale mas que cualquier libro.'},
 ];
 
 var POST_ESTILOS_IMG=[
@@ -752,7 +752,7 @@ async function genPost(){
     if(tema){
       var rf=await fetch('/api/generate',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:'Eres el redactor del canal Legado de Hierro. Genera un post de Facebook sobre el tema: "'+tema+'". Tono: directo, crudo, sin motivacion vacia. Verdad incomoda sobre libertad financiera o construccion de riqueza. Devuelve SOLO un JSON sin markdown ni explicacion: {"titulo":"MAXIMO 6 PALABRAS EN MAYUSCULAS\\nSEGUNDA LINEA OPCIONAL","subtitulo":"Texto de 3 a 5 oraciones con ensenanza real y datos concretos. Sin firma al final."}'}),
+        body:JSON.stringify({prompt:'Eres el guionista del canal Legado de Hierro. Genera el texto de un post de Facebook sobre: "'+tema+'". Usa el mismo vocabulario y tono de los guiones del canal: directo, sin palabras complejas, sin motivacion vacia, verdad cruda sobre dinero y libertad. Oraciones cortas. Sin firma al final. Devuelve SOLO un JSON sin markdown: {"titulo":"MAXIMO 6 PALABRAS\\nSEGUNDA LINEA OPCIONAL","subtitulo":"4 a 6 oraciones cortas con la ensenanza. Sin firma."}'}),
       });
       var rd=await rf.json();
       try{fraseObj=JSON.parse(rd.text.replace(/```json|```/g,'').trim());}
