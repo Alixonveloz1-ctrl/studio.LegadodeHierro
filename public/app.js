@@ -640,22 +640,22 @@ async function exportAll(){
     if(lastRes&&lastRes.a){
       var b1=new Blob([lastRes.a],{type:'text/plain'});
       var u1=URL.createObjectURL(b1);var a1=document.createElement('a');
-      a1.href=u1;a1.download=slug+'-guion-es.txt';a1.click();URL.revokeObjectURL(u1);
+      a1.href=u1;a1.download=slug+'-guion-es.txt';document.body.appendChild(a1);a1.click();document.body.removeChild(a1);URL.revokeObjectURL(u1);
     }
     if(lastRes&&lastRes.f){
       var b2=new Blob([lastRes.f],{type:'text/plain'});
       var u2=URL.createObjectURL(b2);var a2=document.createElement('a');
-      a2.href=u2;a2.download=slug+'-guion-en.txt';a2.click();URL.revokeObjectURL(u2);
+      a2.href=u2;a2.download=slug+'-guion-en.txt';document.body.appendChild(a2);a2.click();document.body.removeChild(a2);URL.revokeObjectURL(u2);
     }
-    if(audES){var a3=document.createElement('a');a3.href=audES.url;a3.download=slug+'-audio-es.mp3';a3.click();}
-    if(audEN){var a4=document.createElement('a');a4.href=audEN.url;a4.download=slug+'-audio-en.mp3';a4.click();}
+    if(audES){var a3=document.createElement('a');a3.href=audES.url;a3.download=slug+'-audio-es.mp3';document.body.appendChild(a3);a3.click();document.body.removeChild(a3);}
+    if(audEN){var a4=document.createElement('a');a4.href=audEN.url;a4.download=slug+'-audio-en.mp3';document.body.appendChild(a4);a4.click();document.body.removeChild(a4);}
     imgs.forEach(function(img){
-      var a5=document.createElement('a');a5.href=img.src;a5.download=slug+'-imagen-'+img.idx+'.png';a5.click();
+      var a5=document.createElement('a');a5.href=img.src;a5.download=slug+'-imagen-'+img.idx+'.png';document.body.appendChild(a5);a5.click();document.body.removeChild(a5);
     });
-    btn.textContent='Descargado';
-    setTimeout(function(){btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imagenes)';btn.disabled=false;},2500);
+    btn.textContent='✓ Descargado';
+    setTimeout(function(){btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imágenes)';btn.disabled=false;},2500);
   }catch(e){
-    btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imagenes)';btn.disabled=false;
+    btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imágenes)';btn.disabled=false;
     alert('Error: '+e.message);
   }
 }
