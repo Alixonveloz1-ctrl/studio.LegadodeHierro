@@ -24,13 +24,14 @@ module.exports = async (req, res) => {
   if (!EL_KEY) return res.status(500).json({ error: 'ELEVENLABS_API_KEY no configurada' });
 
   try {
-    const url = 'https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID;
+    // Use with-timestamps endpoint to get word-level timing for SRT
+    const url = 'https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID + '/with-timestamps';
     const r = await fetch(url, {
       method: 'POST',
       headers: {
         'xi-api-key': EL_KEY,
         'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg'
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
         text: text,
@@ -55,9 +56,15 @@ module.exports = async (req, res) => {
       return res.status(r.status).json({ error: errMsg });
     }
 
-    const arrayBuffer = await r.arrayBuffer();
-    const audioB64 = Buffer.from(arrayBuffer).toString('base64');
-    return res.json({ success: true, audio: audioB64 });
+    // Response is JSON with audio_base64 and alignment (character-level timestamps)
+    const data = await r.json();
+
+    return res.json({
+      success: true,
+      audio: data.audio_base64,
+      alignment: data.alignment || null
+    });
+
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
