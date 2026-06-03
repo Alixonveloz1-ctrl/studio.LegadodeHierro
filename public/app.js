@@ -63,7 +63,7 @@ function getWeekSched(){
 }
 var SCHED=getWeekSched();
 
-var SP='Eres el Guionista Principal del canal LEGADO DE HIERRO en Facebook Reels.\n\nFILOSOFIA: Estrategias reales para hacer dinero y lograr libertad financiera. Sin charlataneria. Crudeza con proposito.\n\nRITMO PARA AUDIO: Usa comas para conectar ideas, no puntos que las corten.\nVOZ: 70% segunda persona, 30% primera persona.\nGANCHOS - DATO: empieza con cifra impactante, NO lista de pasos. PREGUNTA: empieza con pregunta disruptiva, NO lista de pasos. AFIRMACION: verdad incomoda directa, NO lista de pasos. HISTORIA: primera persona, experiencia cruda, NO lista de pasos. PASOS: Primero, Segundo, Tercero, con coma.\nCIERRES UNICOS: nunca repitas el mismo cierre. Firma siempre: Legado de Hierro.\nREGLA ABSOLUTA BLOQUE A: SOLO texto hablado. SIN corchetes, tiempos, etiquetas, hashtags. SIN prompts de imagen.\nREGLA DE ESCRITURA: Usa SIEMPRE acentos y tildes correctos en espanol.\nFORMATO: NO uses markdown, NO uses ** ni ## ni ningun marcador especial. Solo texto plano.\n\nGENERA EXACTAMENTE ESTOS 3 BLOQUES EN ESTE ORDEN:\n\nBLOQUE A\n[Solo texto hablado en espanol. Parrafos separados por linea en blanco. Termina con la linea: Legado de Hierro.]\n\nBLOQUE C\nPROMPT 1: [descripcion visual]\nPROMPT 2: [descripcion visual]\nPROMPT 3: [descripcion visual]\nPROMPT 4: [descripcion visual]\nPROMPT 5: [descripcion visual]\nPROMPT 6: [descripcion visual]\nPROMPT 7: [descripcion visual]\nPROMPT 8: [descripcion visual]\n\nBLOQUE F\n[Traduccion como angloparlante nativo. Solo texto hablado en ingles. Parrafos separados por linea en blanco. Termina con la linea: Iron Legacy.]';
+var SP='Eres el Guionista Principal del canal LEGADO DE HIERRO en Facebook Reels.\n\nFILOSOFÍA: Estrategias reales para hacer dinero y lograr libertad financiera. Sin charlatanería. Crudeza con propósito.\n\nRITMO PARA AUDIO: Usa comas para conectar ideas. Usa puntos para pausas dramáticas cortas. Nunca omitas signos de puntuación.\nVOZ: 70% segunda persona, 30% primera persona.\nGANCHOS - DATO: empieza con cifra impactante, NO lista de pasos. PREGUNTA: empieza con pregunta disruptiva, NO lista de pasos. AFIRMACIÓN: verdad incómoda directa, NO lista de pasos. HISTORIA: primera persona, experiencia cruda, NO lista de pasos. PASOS: Primero, Segundo, Tercero, con coma.\nCIERRES ÚNICOS: nunca repitas el mismo cierre. Firma siempre: Legado de Hierro.\nREGLA ABSOLUTA BLOQUE A: SOLO texto hablado. SIN corchetes, tiempos, etiquetas, hashtags. SIN prompts de imagen.\nREGLA DE ESCRITURA: Escribe SIEMPRE con acentos y tildes correctos en español. Nunca omitas una letra. Nunca escribas palabras incompletas.\nFORMATO: NO uses markdown, NO uses ** ni ## ni ningún marcador especial. Solo texto plano.\n\nGENERA EXACTAMENTE ESTOS 3 BLOQUES EN ESTE ORDEN:\n\nBLOQUE A\n[Solo texto hablado en español. Párrafos separados por línea en blanco. Termina con la línea: Legado de Hierro.]\n\nBLOQUE C\nREGLA CRÍTICA: Cada prompt debe ilustrar el momento exacto del guión. El personaje debe estar HACIENDO algo relacionado con la narración, no solo mirando a la cámara. Escenas de acción financiera real: firmando contratos, revisando gráficas, en reuniones de negocios, calculando inversiones, hablando frente a una pizarra, caminando por Wall Street, entregando documentos, mirando pantallas con datos financieros.\nPROMPT 1: [escena que ilustra el gancho del guión]\nPROMPT 2: [escena que ilustra el segundo momento del guión]\nPROMPT 3: [escena que ilustra el tercer momento del guión]\nPROMPT 4: [escena que ilustra el cuarto momento del guión]\nPROMPT 5: [escena que ilustra el quinto momento del guión]\nPROMPT 6: [escena que ilustra el sexto momento del guión]\nPROMPT 7: [escena que ilustra el séptimo momento del guión]\nPROMPT 8: [escena que ilustra el cierre del guión]\n\nBLOQUE F\n[Traducción como angloparlante nativo. Solo texto hablado en inglés. Párrafos separados por línea en blanco. Termina con la línea: Iron Legacy.]';
 
 // AUTH
 function hashPass(p){
@@ -483,7 +483,7 @@ async function genAudio(lang){
     for(var i=0;i<chars.length;i++)bytes[i]=chars.charCodeAt(i);
     var blob=new Blob([bytes],{type:'audio/mpeg'});
     var url=URL.createObjectURL(blob);
-    if(isEN){audEN={blob:blob,url:url};}else{audES={blob:blob,url:url};}
+    if(isEN){audEN={blob:blob,url:url,alignment:data.alignment||null};}else{audES={blob:blob,url:url,alignment:data.alignment||null};}
     document.getElementById(isEN?'pEN':'pES').src=url;
     document.getElementById(isEN?'dEN':'dES').href=url;
     document.getElementById(isEN?'rEN':'rES').style.display='block';
@@ -632,12 +632,47 @@ async function genImages(){
 // EXPORT
 function chkExport(){if(audES||audEN||imgs.length)document.getElementById('expbtn').style.display='flex';}
 
+function fmtSRTTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.round((s%1)*1000);return(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc+','+(ms<100?(ms<10?'00':'0'):'')+ms;}
+
+// Build SRT from ElevenLabs alignment (character-level timestamps)
+// alignment = { characters: [...], character_start_times_seconds: [...], character_end_times_seconds: [...] }
+function makeSRTFromAlignment(alignment){
+  if(!alignment||!alignment.characters)return '';
+  var chars=alignment.characters;
+  var starts=alignment.character_start_times_seconds;
+  var ends=alignment.character_end_times_seconds;
+  // Reconstruct words with their start/end times
+  var words=[],curWord='',curStart=0,curEnd=0;
+  for(var i=0;i<chars.length;i++){
+    var c=chars[i];
+    if(c===' '||c==='\n'||c==='\r'){
+      if(curWord.length>0){words.push({text:curWord,start:curStart,end:curEnd});curWord='';}
+    } else {
+      if(curWord.length===0)curStart=starts[i];
+      curWord+=c;curEnd=ends[i];
+    }
+  }
+  if(curWord.length>0)words.push({text:curWord,start:curStart,end:curEnd});
+  // Group words into subtitle lines (max 4 words, break on punctuation)
+  var segs=[],gi=0;
+  while(gi<words.length){
+    var group=[],gStart=words[gi].start,gEnd=0;
+    while(gi<words.length&&group.length<4){
+      group.push(words[gi].text);gEnd=words[gi].end;gi++;
+      if(/[.!?,;]$/.test(group[group.length-1])&&group.length>=1)break;
+    }
+    if(group.length)segs.push({text:group.join(' '),start:gStart,end:gEnd});
+  }
+  return segs.map(function(s,i){return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
+}
+
+// Fallback: estimate timing from text only (used when no alignment available)
 function makeSRT(text){
   var words=text.replace(/\n+/g,' ').replace(/\s+/g,' ').trim().split(' ').filter(function(w){return w.length>0;});
   var WPM=130,secPerWord=60/WPM,segs=[],t=0,i=0;
   while(i<words.length){
     var group=[];
-    while(i<words.length&&group.length<3){
+    while(i<words.length&&group.length<4){
       group.push(words[i]);i++;
       if(/[.!?,;]$/.test(group[group.length-1])&&group.length>=1)break;
     }
@@ -646,8 +681,7 @@ function makeSRT(text){
     segs.push({text:group.join(' '),start:t,end:t+dur});
     t+=dur;
   }
-  function fmt(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.round((s%1)*1000);return(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc+','+(ms<100?(ms<10?'00':'0'):'')+ms;}
-  return segs.map(function(s,i){return(i+1)+'\n'+fmt(s.start)+' --> '+fmt(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
+  return segs.map(function(s,i){return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
 }
 
 async function exportAll(){
@@ -659,9 +693,11 @@ async function exportAll(){
     // Guiones
     if(lastRes&&lastRes.a) zip.file(slug+'-guion-es.txt',lastRes.a);
     if(lastRes&&lastRes.f) zip.file(slug+'-guion-en.txt',lastRes.f);
-    // Subtítulos
-    if(lastRes&&lastRes.a) zip.file(slug+'-subtitulos-es.srt',makeSRT(lastRes.a));
-    if(lastRes&&lastRes.f) zip.file(slug+'-subtitulos-en.srt',makeSRT(lastRes.f));
+    // Subtítulos — usar timestamps reales si están disponibles
+    var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'');
+    var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'');
+    if(srtES) zip.file(slug+'-subtitulos-es.srt',srtES);
+    if(srtEN) zip.file(slug+'-subtitulos-en.srt',srtEN);
     // Audio — leer el blob directamente
     if(audES&&audES.blob){
       var ab1=await audES.blob.arrayBuffer();
