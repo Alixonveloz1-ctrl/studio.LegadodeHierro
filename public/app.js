@@ -5,6 +5,8 @@ var THEMES=[
   {id:'manufactura',label:'Manufactura & Oficio',     icon:'⚒️',desc:'Taller, producción, oficio',       c:'#c4897a',p:'#f8ede8'},
   {id:'inversion',  label:'Inversión & Capital',      icon:'📈',desc:'Activos, portafolio, dinero',      c:'#7a9ec4',p:'#e8f0f8'},
   {id:'negocio',    label:'Negocio & Ventas',         icon:'🏗️',desc:'Estructura comercial, escala',     c:'#9ab47a',p:'#eef4e8'},
+  {id:'poco',       label:'Negocios con Poco Capital',icon:'💡',desc:'Empieza desde cero, escala rápido', c:'#c4a85a',p:'#f8f0d8'},
+  {id:'millonario', label:'Negocios Millonarios',     icon:'🏆',desc:'Construcción de riqueza a largo plazo',c:'#8a7ac4',p:'#eceaf8'},
 ];
 var DURS=[
   {id:'30',label:'30 segundos',sub:'Reel express — máximo impacto'},
@@ -23,47 +25,71 @@ var TABS=[
   {id:'a',label:'⚔ Guion ES',c:'#b8975a',p:'#f0e8d8'},
   {id:'f',label:'🇺🇸 Guion EN',c:'#c4897a',p:'#f8ede8'},
 ];
-var SCHED_TEMAS=[
-  [{t:'libertad',  i:'🔓',concept:'Por qué el empleo nunca te hará libre financieramente',h:'dato'},
-   {t:'mentalidad',i:'🧠',concept:'El día que dejé de quejarme y empecé a construir',h:'historia'},
-   {t:'sistema',   i:'⚙️',concept:'Cómo hacer que tu dinero trabaje mientras duermes',h:'pregunta'}],
-  [{t:'manufactura',i:'⚒️',concept:'Un oficio con las manos vale más que un título',h:'afirmacion'},
-   {t:'inversion',  i:'📈',concept:'El primer activo que debes construir antes de los 35',h:'dato'},
-   {t:'mentalidad', i:'🧠',concept:'La diferencia entre el que planea y el que ejecuta',h:'pasos'}],
-  [{t:'negocio',   i:'🏗️',concept:'Cómo vender sin sentirte vendedor',h:'pregunta'},
-   {t:'libertad',  i:'🔓',concept:'Lo que nadie te dice sobre renunciar al empleo',h:'dato'},
-   {t:'sistema',   i:'⚙️',concept:'El error que comete el 90% de emprendedores',h:'afirmacion'}],
-  [{t:'manufactura',i:'⚒️',concept:'Cómo convertir una habilidad en negocio escalable',h:'pasos'},
-   {t:'inversion',  i:'📈',concept:'Reinversión agresiva — la estrategia más incómoda',h:'afirmacion'},
-   {t:'mentalidad', i:'🧠',concept:'Por qué la disciplina vale más que la motivación',h:'dato'}],
-  [{t:'negocio',   i:'🏗️',concept:'Tu primer cliente sin gastar un peso en publicidad',h:'pasos'},
-   {t:'libertad',  i:'🔓',concept:'Vivir con lo básico no es pobreza — es estrategia',h:'afirmacion'},
-   {t:'sistema',   i:'⚙️',concept:'3 pasos para salir del ciclo quincena a quincena',h:'pasos'}],
-  [{t:'manufactura',i:'⚒️',concept:'El que construye con sus manos nunca mendiga trabajo',h:'historia'},
-   {t:'inversion',  i:'📈',concept:'Cómo empezar a invertir con $50 este mes',h:'pasos'},
-   {t:'mentalidad', i:'🧠',concept:'Lo que separa al que llega del que se queda a mitad',h:'afirmacion'}],
-  [{t:'negocio',   i:'🏗️',concept:'Por qué tu negocio no crece — y no es falta de dinero',h:'dato'},
-   {t:'libertad',  i:'🔓',concept:'El mapa real hacia la independencia financiera en 3 años',h:'pasos'},
-   {t:'sistema',   i:'⚙️',concept:'Automatiza esto primero si quieres escalar sin quemarte',h:'pregunta'}],
+var SCHED_POOL=[
+  {t:'libertad',  concept:'Por qué el empleo nunca te hará libre financieramente',h:'dato'},
+  {t:'libertad',  concept:'Lo que nadie te dice sobre renunciar al empleo',h:'afirmacion'},
+  {t:'libertad',  concept:'El día que entendí que el tiempo es el único activo real',h:'historia'},
+  {t:'libertad',  concept:'Cuánto dinero necesitas exactamente para no depender de nadie',h:'dato'},
+  {t:'libertad',  concept:'La trampa del salario fijo que nadie quiere ver',h:'pregunta'},
+  {t:'libertad',  concept:'Vivir con lo básico no es pobreza, es estrategia',h:'afirmacion'},
+  {t:'libertad',  concept:'El mapa real hacia la independencia financiera en 3 años',h:'pasos'},
+  {t:'libertad',  concept:'Por qué tener trabajo estable te mantiene pobre',h:'dato'},
+  {t:'mentalidad',concept:'La diferencia entre el que planea y el que ejecuta',h:'pasos'},
+  {t:'mentalidad',concept:'Por qué la disciplina vale más que la motivación',h:'dato'},
+  {t:'mentalidad',concept:'Lo que separa al que llega del que se queda a mitad',h:'afirmacion'},
+  {t:'mentalidad',concept:'El día que dejé de quejarme y empecé a construir',h:'historia'},
+  {t:'mentalidad',concept:'Cuántas horas al día le dedicas a crecer versus a distraerte',h:'pregunta'},
+  {t:'mentalidad',concept:'El hábito más barato que cambia todo',h:'pasos'},
+  {t:'mentalidad',concept:'Por qué el ambiente donde vives decide tu techo económico',h:'afirmacion'},
+  {t:'mentalidad',concept:'Lo que pasa en tu cabeza cuando dejas de ser empleado',h:'historia'},
+  {t:'sistema',   concept:'Cómo hacer que tu dinero trabaje mientras duermes',h:'pregunta'},
+  {t:'sistema',   concept:'El error que comete el 90% al intentar automatizar',h:'dato'},
+  {t:'sistema',   concept:'3 pasos para salir del ciclo quincena a quincena',h:'pasos'},
+  {t:'sistema',   concept:'Automatiza esto primero si quieres escalar sin quemarte',h:'afirmacion'},
+  {t:'sistema',   concept:'Cómo construir un sistema que genere sin que estés presente',h:'pasos'},
+  {t:'sistema',   concept:'La diferencia entre trabajar en tu negocio y trabajar para tu negocio',h:'pregunta'},
+  {t:'manufactura',concept:'Un oficio con las manos vale más que un título universitario',h:'afirmacion'},
+  {t:'manufactura',concept:'Cómo convertir una habilidad en negocio escalable',h:'pasos'},
+  {t:'manufactura',concept:'El que construye con sus manos nunca mendiga trabajo',h:'historia'},
+  {t:'manufactura',concept:'Lo que aprendí construyendo mi primer producto físico',h:'historia'},
+  {t:'inversion', concept:'El primer activo que debes construir antes de los 35',h:'dato'},
+  {t:'inversion', concept:'Reinversión agresiva, la estrategia más incómoda',h:'afirmacion'},
+  {t:'inversion', concept:'Cómo empezar a invertir con poco dinero este mes',h:'pasos'},
+  {t:'inversion', concept:'Por qué tu dinero parado en el banco te está costando caro',h:'dato'},
+  {t:'inversion', concept:'La diferencia entre ahorrar e invertir que nadie explica',h:'pregunta'},
+  {t:'negocio',   concept:'Cómo vender sin sentirte vendedor',h:'pregunta'},
+  {t:'negocio',   concept:'Tu primer cliente sin gastar un peso en publicidad',h:'pasos'},
+  {t:'negocio',   concept:'Por qué tu negocio no crece y no es falta de dinero',h:'dato'},
+  {t:'negocio',   concept:'El modelo de negocio más simple que existe y que nadie usa',h:'afirmacion'},
+  {t:'negocio',   concept:'Cómo construir una marca personal desde cero en 90 días',h:'pasos'},
+  {t:'poco',      concept:'5 negocios que puedes arrancar hoy con menos de 100 dólares',h:'pasos'},
+  {t:'poco',      concept:'Por qué no necesitas capital para empezar, necesitas moverte',h:'afirmacion'},
+  {t:'poco',      concept:'El negocio que empecé con mi teléfono y sin invertir nada',h:'historia'},
+  {t:'poco',      concept:'Cómo validar si tu idea de negocio vende antes de gastar un centavo',h:'pasos'},
+  {t:'poco',      concept:'Los negocios de servicios son los más fáciles de arrancar con poco',h:'dato'},
+  {t:'poco',      concept:'Lo que le falta a la mayoría no es dinero, es la primera acción',h:'afirmacion'},
+  {t:'poco',      concept:'Cómo convertir una habilidad que ya tienes en dinero esta semana',h:'pregunta'},
+  {t:'poco',      concept:'El negocio de reventa que genera flujo de caja desde el primer mes',h:'dato'},
+  {t:'millonario',concept:'La mentalidad que separa a los que construyen millones de los que no',h:'afirmacion'},
+  {t:'millonario',concept:'Cómo piensan los que construyen negocios de 8 cifras',h:'pregunta'},
+  {t:'millonario',concept:'El activo que más millonarios han construido en los últimos 10 años',h:'dato'},
+  {t:'millonario',concept:'Por qué pensar en grande es la única estrategia real a largo plazo',h:'afirmacion'},
+  {t:'millonario',concept:'Los 3 pilares que tienen en común todos los negocios millonarios',h:'pasos'},
+  {t:'millonario',concept:'Lo que hace diferente a un negocio de 6 cifras de uno de 7',h:'dato'},
+  {t:'millonario',concept:'Cómo escalar un negocio sin destruirte en el intento',h:'pasos'},
+  {t:'millonario',concept:'El momento exacto en que un negocio deja de depender de su dueño',h:'historia'},
 ];
 
-function getWeekSched(){
-  var dias=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  var today=new Date();
-  var dow=today.getDay();
-  var diffToMon=dow===0?-6:1-dow;
-  var mon=new Date(today);
-  mon.setDate(today.getDate()+diffToMon);
-  return dias.map(function(d,i){
-    var dt=new Date(mon);
-    dt.setDate(mon.getDate()+i);
-    return{day:d+' '+dt.getDate()+' '+meses[dt.getMonth()],slots:'7AM·12PM·7PM',items:SCHED_TEMAS[i]};
-  });
+function getRandomSuggestions(){
+  var pool=SCHED_POOL.slice();
+  for(var i=pool.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=pool[i];pool[i]=pool[j];pool[j]=tmp;}
+  return pool.slice(0,7);
 }
-var SCHED=getWeekSched();
+var SCHED_CURRENT=getRandomSuggestions();
 
-var SP='Eres el Guionista Principal del canal LEGADO DE HIERRO en Facebook Reels.\n\nFILOSOFÍA: Estrategias reales para hacer dinero y lograr libertad financiera. Sin charlatanería. Crudeza con propósito.\n\nRITMO PARA AUDIO: Usa comas para conectar ideas. Usa puntos para pausas dramáticas cortas. Nunca omitas signos de puntuación.\nVOZ: 70% segunda persona, 30% primera persona.\nGANCHOS - DATO: empieza con cifra impactante, NO lista de pasos. PREGUNTA: empieza con pregunta disruptiva, NO lista de pasos. AFIRMACIÓN: verdad incómoda directa, NO lista de pasos. HISTORIA: primera persona, experiencia cruda, NO lista de pasos. PASOS: Primero, Segundo, Tercero, con coma.\nCIERRES ÚNICOS: nunca repitas el mismo cierre. Firma siempre: Legado de Hierro.\nREGLA ABSOLUTA BLOQUE A: SOLO texto hablado. SIN corchetes, tiempos, etiquetas, hashtags. SIN prompts de imagen.\nREGLA DE ESCRITURA: Escribe SIEMPRE con acentos y tildes correctos en español. Nunca omitas una letra. Nunca escribas palabras incompletas.\nFORMATO: NO uses markdown, NO uses ** ni ## ni ningún marcador especial. Solo texto plano.\n\nGENERA EXACTAMENTE ESTOS 3 BLOQUES EN ESTE ORDEN:\n\nBLOQUE A\n[Solo texto hablado en español. Párrafos separados por línea en blanco. Termina con la línea: Legado de Hierro.]\n\nBLOQUE C\nREGLA CRÍTICA: Cada prompt debe ilustrar el momento exacto del guión. El personaje debe estar HACIENDO algo relacionado con la narración, no solo mirando a la cámara. Escenas de acción financiera real: firmando contratos, revisando gráficas, en reuniones de negocios, calculando inversiones, hablando frente a una pizarra, caminando por Wall Street, entregando documentos, mirando pantallas con datos financieros.\nPROMPT 1: [escena que ilustra el gancho del guión]\nPROMPT 2: [escena que ilustra el segundo momento del guión]\nPROMPT 3: [escena que ilustra el tercer momento del guión]\nPROMPT 4: [escena que ilustra el cuarto momento del guión]\nPROMPT 5: [escena que ilustra el quinto momento del guión]\nPROMPT 6: [escena que ilustra el sexto momento del guión]\nPROMPT 7: [escena que ilustra el séptimo momento del guión]\nPROMPT 8: [escena que ilustra el cierre del guión]\n\nBLOQUE F\n[Traducción como angloparlante nativo. Solo texto hablado en inglés. Párrafos separados por línea en blanco. Termina con la línea: Iron Legacy.]';
+
+
+var SP='Eres el Guionista Principal del canal LEGADO DE HIERRO en Facebook Reels. Voz: directa, cruda, sin motivación vacía. Vocabulario simple. Oraciones cortas. Verdad incómoda sobre dinero y libertad.\n\nREGLA DE VARIEDAD: NUNCA uses frases genéricas de apertura como "el noventa por ciento", "la mayoría de las personas", "muchos no saben". El gancho debe ser único, específico al tema, y diferente cada vez.\n\nGANCHOS POR TIPO:\n- DATO: cifra exacta e impactante relacionada al tema. Ej: "En Estados Unidos, 78 de cada 100 trabajadores viven de quincena en quincena."\n- PREGUNTA: pregunta que incomoda y obliga a reflexionar. Ej: "¿Cuántos años llevas trabajando sin acercarte un solo día a la libertad?"\n- AFIRMACIÓN: verdad incómoda y directa. Ej: "El empleo es el único negocio donde el dueño eres tú y el que se queda con la ganancia es otro."\n- HISTORIA: primera persona, momento específico real. Ej: "Tuve trabajo fijo por seis años. El día que me despidieron, entendí que nunca fue seguridad."\n- PASOS: comenzar directo con el primer paso. Ej: "Primero, deja de gastar en lo que no produce."\n\nINSTRUCCIONES POR PILAR:\n- LIBERTAD FINANCIERA: enfoque en salir del sistema, tiempo vs dinero, independencia real.\n- MENTALIDAD Y DISCIPLINA: hábitos concretos, decisiones difíciles, diferencias de mentalidad.\n- SISTEMAS Y AUTOMATIZACIÓN: procesos específicos que generan sin presencia, ejemplos reales.\n- MANUFACTURA Y OFICIO: valor del trabajo manual, habilidades concretas que se monetizan.\n- INVERSIÓN Y CAPITAL: activos reales, números concretos, estrategias simples ejecutables.\n- NEGOCIO Y VENTAS: estructura comercial real, cómo vender, cómo escalar.\n- NEGOCIOS CON POCO CAPITAL: ideas específicas ejecutables hoy, sin capital inicial, modelos de servicio o reventa, pasos concretos desde cero.\n- NEGOCIOS MILLONARIOS: mentalidad de escala, diferencia entre negocio pequeño y grande, sistemas, delegación, visión a largo plazo.\n\nRITMO PARA AUDIO: comas para conectar, puntos para pausas dramáticas. Nunca omitas puntuación.\nVOZ: 70% segunda persona, 30% primera persona.\nCIERRES: nunca repitas el mismo cierre. Siempre termina con: Legado de Hierro.\nREGLA ABSOLUTA BLOQUE A: SOLO texto hablado. SIN corchetes, etiquetas, hashtags, prompts.\nESCRITURA: acentos y tildes correctos siempre. Nunca palabras incompletas.\nFORMATO: sin markdown, sin **, sin ##. Solo texto plano.\n\nGENERA EXACTAMENTE ESTOS 3 BLOQUES:\n\nBLOQUE A\n[Solo texto hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]\n\nBLOQUE C\nREGLA CRÍTICA: cada prompt ilustra el momento exacto del guión. El personaje hace algo relacionado a la narración. Escenas reales: firmando contratos, revisando gráficas, en reuniones, calculando inversiones, hablando frente a pizarra, caminando por Wall Street, mirando pantallas con datos.\nPROMPT 1: [escena del gancho]\nPROMPT 2: [escena del segundo momento]\nPROMPT 3: [escena del tercer momento]\nPROMPT 4: [escena del cuarto momento]\nPROMPT 5: [escena del quinto momento]\nPROMPT 6: [escena del sexto momento]\nPROMPT 7: [escena del séptimo momento]\nPROMPT 8: [escena del cierre]\n\nBLOQUE F\n[Traducción como angloparlante nativo. Solo texto hablado en inglés. Párrafos separados por línea en blanco. Termina con: Iron Legacy.]';
 
 // AUTH
 function hashPass(p){
@@ -147,7 +173,7 @@ function showPills(){
 }
 
 function refreshSched(){
-  SCHED=getWeekSched();
+  SCHED_CURRENT=getRandomSuggestions();
   document.getElementById('schedGrid').innerHTML='';
   buildSched();
 }
@@ -155,28 +181,29 @@ function refreshSched(){
 function buildSched(){
   var sg=document.getElementById('schedGrid');
   var lbl=document.getElementById('schedLbl');
-  if(lbl)lbl.textContent=SCHED[0].day+' - '+SCHED[6].day+' · 3 Reels/dia';
-  SCHED.forEach(function(day){
-    var col=document.createElement('div');col.className='scol';
-    col.innerHTML='<div class="sday">'+day.day+'</div><div class="sslots">'+day.slots+'</div>';
-    day.items.forEach(function(item){
-      var th=THEMES.find(function(t){return t.id===item.t;});
-      var hk=HOOKS.find(function(h){return h.id===item.h;});
-      var el=document.createElement('div');el.className='sitem';
-      el.innerHTML='<div class="sitop"><span>'+item.i+'</span><span class="shook" style="color:'+(th?th.c:'')+'">'+((hk?hk.label:'').replace(/^[^ ]+ /,''))+'</span></div><div class="sconcept">'+item.concept+'</div><div class="suse">→ Usar</div>';
-      el.addEventListener('mouseenter',function(){el.style.borderColor=(th?th.c+'66':'');});
-      el.addEventListener('mouseleave',function(){el.style.borderColor='';});
-      el.addEventListener('click',function(){
-        sT=item.t;sH=item.h;
-        document.getElementById('conc').value=item.concept;
-        updCC();rfAll();
-        document.getElementById('schedPanel').classList.remove('on');
-        document.getElementById('sa').textContent='▼';
-        window.scrollTo({top:0,behavior:'smooth'});
-      });
-      col.appendChild(el);
+  if(lbl)lbl.textContent='Sugerencias de Reels · '+SCHED_CURRENT.length+' ideas';
+  SCHED_CURRENT.forEach(function(item){
+    var th=THEMES.find(function(t){return t.id===item.t;});
+    var hk=HOOKS.find(function(h){return h.id===item.h;});
+    var el=document.createElement('div');el.className='sitem';
+    el.style.cssText='background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;cursor:pointer;transition:border-color .15s';
+    el.innerHTML='<div class="sitop" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'
+      +'<span style="font-size:13px">'+(th?th.icon:'')+'</span>'
+      +'<span style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+(th?th.c:'#b8975a')+';text-transform:uppercase">'+(hk?hk.label.replace(/^[^ ]+ /,''):'')+' · '+(th?th.label:'')+'</span>'
+      +'</div>'
+      +'<div style="font-size:12px;font-weight:600;color:var(--tx1);line-height:1.4;margin-bottom:6px">'+item.concept+'</div>'
+      +'<div style="font-size:10px;color:'+(th?th.c:'#b8975a')+';font-weight:600">→ Usar este tema</div>';
+    el.addEventListener('mouseenter',function(){el.style.borderColor=(th?th.c+'88':'#b8975a88');});
+    el.addEventListener('mouseleave',function(){el.style.borderColor='var(--border)';});
+    el.addEventListener('click',function(){
+      sT=item.t;sH=item.h;
+      document.getElementById('conc').value=item.concept;
+      updCC();rfAll();
+      document.getElementById('schedPanel').classList.remove('on');
+      document.getElementById('sa').textContent='▼';
+      window.scrollTo({top:0,behavior:'smooth'});
     });
-    sg.appendChild(col);
+    sg.appendChild(el);
   });
 }
 
@@ -500,15 +527,17 @@ async function genAudio(lang){
 var imgRefs=[];
 
 async function loadRefs(){
-  try{
-    var r=await fetch('/api/refs');
-    if(!r.ok)return[];
-    var d=await r.json();
-    return(d&&d.refs&&d.refs.length)?d.refs:[];
-  }catch(e){
-    console.warn('loadRefs failed:',e);
-    return[];
+  var REFS=['https://i.ibb.co/m5Cqfs5n/IMG-8206.jpg','https://i.ibb.co/3m42CzNf/IMG-8162.jpg','https://i.ibb.co/GvfhKnJ3/IMG-8117.jpg'];
+  var refs=[];
+  for(var ri=0;ri<REFS.length;ri++){
+    try{
+      var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
+      var rb=await rr.blob();
+      var rb64=await new Promise(function(res){var rd=new FileReader();rd.onloadend=function(){res(rd.result.split(',')[1]);};rd.readAsDataURL(rb);});
+      refs.push(rb64);
+    }catch(e){console.warn('Ref '+ri+' failed:',e);}
   }
+  return refs;
 }
 
 async function genOneImage(prompt,refs){
