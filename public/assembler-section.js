@@ -1,25 +1,26 @@
 // ============================================================
-// ENSAMBLADOR DE REELS — SECCIÓN NUEVA (no modifica código existente)
-// Sube archivos a GCS directamente (URLs firmadas), luego dispara el ensamblaje.
-// Esto evita enviar JSON gigante en un fetch (que rompe Chrome iOS).
+// ENSAMBLADOR DE REELS — sube archivos vía servidor Vercel (sin CORS)
 // ============================================================
 
 function imgSrcToBase64(src) {
   return src.split(',')[1];
 }
 
-// Convierte base64 a Blob (para subir a GCS)
-function base64ToBlob(b64, contentType) {
-  var chars = atob(b64);
-  var bytes = new Uint8Array(chars.length);
-  for (var i = 0; i < chars.length; i++) bytes[i] = chars.charCodeAt(i);
-  return new Blob([bytes], { type: contentType });
+async function uploadFile(folder, name, contentType, data) {
+  var resp = await fetch('/api/upload-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ folder: folder, name: name, contentType: contentType, data: data }),
+  });
+  var json = await resp.json();
+  if (!resp.ok) throw new Error(json.error || 'Error subiendo ' + name);
+  return json;
 }
 
 async function assembleReel(lang) {
   var isEN = lang === 'en';
-
   var audObj = isEN ? audEN : audES;
+
   if (!audObj || !audObj.b64) {
     alert(isEN ? 'Genera primero el Audio EN.' : 'Genera primero el Audio ES.');
     return;
@@ -41,84 +42,43 @@ async function assembleReel(lang) {
   resultEl.style.display = 'none';
 
   try {
-    // 1. Recopilar imágenes válidas
+    // Imágenes válidas
     var validImgs = [];
     for (var i = 0; i < imgs.length; i++) {
       if (imgs[i] && imgs[i].src) validImgs.push(imgSrcToBase64(imgs[i].src));
     }
-    if (validImgs.length === 0) throw new Error('No hay imágenes válidas para ensamblar.');
+    if (validImgs.length === 0) throw new Error('No hay imágenes válidas.');
 
-    // 2. Generar SRT
+    // SRT
     var srtContent = audObj.alignment
       ? makeSRTFromAlignment(audObj.alignment)
       : makeSRT(isEN ? (lastRes && lastRes.f) : (lastRes && lastRes.a));
     if (!srtContent) throw new Error('No se pudieron generar los subtítulos.');
 
-    // 3. Carpeta única para esta sesión de ensamblaje
+    // Carpeta única
     var folder = 'reel-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
 
-    // 4. Preparar lista de archivos a subir
-    var fileList = [];
+    // Subir imágenes una por una vía servidor
     for (var i = 0; i < validImgs.length; i++) {
-      fileList.push({ name: 'img' + String(i).padStart(2, '0') + '.png', contentType: 'image/png' });
-    }
-    fileList.push({ name: 'voice.mp3', contentType: 'audio/mpeg' });
-    fileList.push({ name: 'subtitles.srt', contentType: 'text/plain' });
-
-    // 5. Pedir URLs firmadas de subida
-    statusEl.textContent = 'Solicitando acceso de subida...';
-    var urlResp = await fetch('/api/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ folder: folder, files: fileList }),
-    });
-    var urlData = await urlResp.json();
-    if (!urlResp.ok) throw new Error(urlData.error || 'Error obteniendo URLs de subida');
-    var uploads = urlData.uploads;
-
-    // Mapa nombre -> url firmada
-    var urlMap = {};
-    for (var i = 0; i < uploads.length; i++) urlMap[uploads[i].name] = uploads[i].url;
-
-    // 6. Subir cada archivo directamente a GCS
-    statusEl.textContent = 'Subiendo imágenes...';
-    for (var i = 0; i < validImgs.length; i++) {
+      statusEl.textContent = 'Subiendo imagen ' + (i + 1) + ' de ' + validImgs.length + '...';
       var imgName = 'img' + String(i).padStart(2, '0') + '.png';
-      var imgBlob = base64ToBlob(validImgs[i], 'image/png');
-      var put = await fetch(urlMap[imgName], {
-        method: 'PUT',
-        headers: { 'Content-Type': 'image/png' },
-        body: imgBlob,
-      });
-      if (!put.ok) throw new Error('Error subiendo ' + imgName);
-      statusEl.textContent = 'Subiendo imágenes... (' + (i + 1) + '/' + validImgs.length + ')';
+      await uploadFile(folder, imgName, 'image/png', validImgs[i]);
     }
 
-    // Subir audio (desde el blob ya existente)
+    // Subir audio
     statusEl.textContent = 'Subiendo audio...';
-    var audioBlob = audObj.blob ? audObj.blob : base64ToBlob(audObj.b64, 'audio/mpeg');
-    var putAudio = await fetch(urlMap['voice.mp3'], {
-      method: 'PUT',
-      headers: { 'Content-Type': 'audio/mpeg' },
-      body: audioBlob,
-    });
-    if (!putAudio.ok) throw new Error('Error subiendo el audio');
+    await uploadFile(folder, 'voice.mp3', 'audio/mpeg', audObj.b64);
 
     // Subir SRT
     statusEl.textContent = 'Subiendo subtítulos...';
-    var srtBlob = new Blob([srtContent], { type: 'text/plain' });
-    var putSrt = await fetch(urlMap['subtitles.srt'], {
-      method: 'PUT',
-      headers: { 'Content-Type': 'text/plain' },
-      body: srtBlob,
-    });
-    if (!putSrt.ok) throw new Error('Error subiendo los subtítulos');
+    var srtB64 = btoa(unescape(encodeURIComponent(srtContent)));
+    await uploadFile(folder, 'subtitles.srt', 'text/plain', srtB64);
 
-    // 7. Disparar ensamblaje (solo metadatos ligeros)
+    // Disparar ensamblaje
     var slug = (lastRes && lastRes.topic ? lastRes.topic : 'reel')
       .slice(0, 25).replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
 
-    statusEl.textContent = 'Ensamblando en Google Cloud... (puede tomar 2-5 minutos)';
+    statusEl.textContent = 'Ensamblando en Google Cloud... (2-5 minutos)';
     var response = await fetch('/api/assemble', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -139,7 +99,7 @@ async function assembleReel(lang) {
       + 'style="display:inline-block;background:linear-gradient(135deg,#b8975a,#d4b47a);color:#fff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;margin-top:8px">'
       + '⬇ Descargar Reel ' + lang.toUpperCase() + ' (MP4)</a>';
 
-  } catch (err) {
+  } catch(err) {
     statusEl.textContent = '❌ Error: ' + (err.message || 'Error desconocido');
     console.error('Error ensamblando reel:', err);
   } finally {
@@ -150,7 +110,6 @@ async function assembleReel(lang) {
 
 function initAssembler() {
   if (document.getElementById('reel-assembler')) return;
-
   var section = document.createElement('div');
   section.id = 'reel-assembler';
   section.style.cssText = 'margin-top:20px;display:none';
@@ -173,26 +132,20 @@ function initAssembler() {
     +     '<div style="font-size:11px;color:var(--tx3);line-height:1.6">Requiere: Audio ES o EN generado + 8 imágenes generadas. La música se selecciona aleatoriamente. El proceso toma 2-5 minutos en Google Cloud.</div>'
     +   '</div>'
     + '</div>';
-
   var expBtn = document.getElementById('expbtn');
-  if (expBtn && expBtn.parentNode) {
-    expBtn.parentNode.insertBefore(section, expBtn.nextSibling);
-  }
+  if (expBtn && expBtn.parentNode) expBtn.parentNode.insertBefore(section, expBtn.nextSibling);
 }
 
 window.addEventListener('load', function() {
   initAssembler();
-
   if (typeof chkExport === 'function') {
-    var _origChkExport = chkExport;
+    var _orig = chkExport;
     chkExport = function() {
-      _origChkExport();
+      _orig();
       var section = document.getElementById('reel-assembler');
-      if (!section) {
-        initAssembler();
-        section = document.getElementById('reel-assembler');
-      }
-      if (section && typeof imgs !== 'undefined' && imgs && imgs.length > 0 && (typeof audES !== 'undefined' && audES || typeof audEN !== 'undefined' && audEN)) {
+      if (!section) { initAssembler(); section = document.getElementById('reel-assembler'); }
+      if (section && typeof imgs !== 'undefined' && imgs && imgs.length > 0
+          && (typeof audES !== 'undefined' && audES || typeof audEN !== 'undefined' && audEN)) {
         section.style.display = 'block';
       }
     };
