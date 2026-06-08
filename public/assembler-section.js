@@ -21,7 +21,6 @@ function imgSrcToBase64(src) {
 async function assembleReel(lang) {
   var isEN = lang === 'en';
 
-  // Validar que tenemos los elementos necesarios
   var audObj = isEN ? audEN : audES;
   if (!audObj || !audObj.blob) {
     alert(isEN ? 'Genera primero el Audio EN.' : 'Genera primero el Audio ES.');
@@ -44,11 +43,9 @@ async function assembleReel(lang) {
   resultEl.style.display = 'none';
 
   try {
-    // 1. Convertir audio a base64
     statusEl.textContent = 'Procesando audio...';
     var audioB64 = await blobToBase64(audObj.blob);
 
-    // 2. Recopilar imágenes como base64
     statusEl.textContent = 'Procesando imágenes...';
     var imagesB64 = [];
     for (var i = 0; i < imgs.length; i++) {
@@ -60,7 +57,6 @@ async function assembleReel(lang) {
       throw new Error('No hay imágenes válidas para ensamblar.');
     }
 
-    // 3. Generar SRT con los timestamps reales
     var srtContent = audObj.alignment
       ? makeSRTFromAlignment(audObj.alignment)
       : makeSRT(isEN ? (lastRes && lastRes.f) : (lastRes && lastRes.a));
@@ -69,13 +65,11 @@ async function assembleReel(lang) {
       throw new Error('No se pudieron generar los subtítulos.');
     }
 
-    // 4. Preparar slug
     var slug = (lastRes && lastRes.topic ? lastRes.topic : 'reel')
       .slice(0, 25)
       .replace(/[^a-zA-Z0-9]/g, '-')
       .toLowerCase();
 
-    // 5. Llamar al endpoint de ensamblaje
     statusEl.textContent = 'Enviando a Google Cloud... (puede tomar 2-5 minutos)';
 
     var response = await fetch('/api/assemble', {
@@ -93,7 +87,6 @@ async function assembleReel(lang) {
     var data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Error en el servidor');
 
-    // 6. Mostrar link de descarga
     statusEl.textContent = '✅ Reel listo.';
     resultEl.style.display = 'block';
     resultEl.innerHTML = '<a href="' + data.url + '" download="legado-reel-' + lang + '.mp4" '
@@ -109,12 +102,9 @@ async function assembleReel(lang) {
   }
 }
 
-// Función para inicializar los botones del ensamblador
 function initAssembler() {
-  // Verificar si ya existe la sección para no duplicar
   if (document.getElementById('reel-assembler')) return;
 
-  // Crear sección del ensamblador
   var section = document.createElement('div');
   section.id = 'reel-assembler';
   section.style.cssText = 'margin-top:20px;display:none';
@@ -138,23 +128,28 @@ function initAssembler() {
     +   '</div>'
     + '</div>';
 
-  // Insertar DESPUÉS del botón de exportar ZIP
   var expBtn = document.getElementById('expbtn');
   if (expBtn && expBtn.parentNode) {
     expBtn.parentNode.insertBefore(section, expBtn.nextSibling);
   }
 }
 
-// Modificar chkExport para también mostrar el ensamblador cuando haya audio e imágenes
-var _origChkExport = chkExport;
-chkExport = function() {
-  _origChkExport();
-  var section = document.getElementById('reel-assembler');
-  if (!section) {
-    initAssembler();
-    section = document.getElementById('reel-assembler');
+// Esperar a que app.js termine de cargar antes de sobreescribir chkExport
+window.addEventListener('load', function() {
+  initAssembler();
+
+  if (typeof chkExport === 'function') {
+    var _origChkExport = chkExport;
+    chkExport = function() {
+      _origChkExport();
+      var section = document.getElementById('reel-assembler');
+      if (!section) {
+        initAssembler();
+        section = document.getElementById('reel-assembler');
+      }
+      if (section && typeof imgs !== 'undefined' && imgs && imgs.length > 0 && (typeof audES !== 'undefined' && audES || typeof audEN !== 'undefined' && audEN)) {
+        section.style.display = 'block';
+      }
+    };
   }
-  if (section && imgs && imgs.length > 0 && (audES || audEN)) {
-    section.style.display = 'block';
-  }
-};
+});
