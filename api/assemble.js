@@ -1,6 +1,6 @@
 // api/assemble.js
-// Endpoint que recibe imágenes + audio + SRT y dispara el Cloud Run Job en Google Cloud
-// Devuelve URL firmada del MP4 generado
+// Recibe el nombre de la carpeta en GCS (donde el cliente ya subió las imágenes + audio + SRT)
+// y dispara el Cloud Run Job. Devuelve URL firmada del MP4 generado.
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,17 +11,22 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { images, audio, srt, lang, slug } = req.body;
-
-    if (!images || !audio || !srt || !lang) {
-      return res.status(400).json({ error: 'Faltan parámetros: images, audio, srt, lang' });
+    let body = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+    if (!body) {
+      try {
+        const chunks = [];
+        for await (const chunk of req) chunks.push(chunk);
+        body = JSON.parse(Buffer.concat(chunks).toString());
+      } catch (e) { body = {}; }
     }
 
-    if (!Array.isArray(images) || images.length === 0) {
-      return res.status(400).json({ error: 'images debe ser un array con al menos una imagen' });
+    const { folder, imageCount, lang, slug } = body;
+
+    if (!folder || !imageCount || !lang) {
+      return res.status(400).json({ error: 'Faltan parámetros: folder, imageCount, lang' });
     }
 
-    // Obtener token de autenticación para Google Cloud
     const GCP_SERVICE_ACCOUNT = process.env.GCP_SERVICE_ACCOUNT;
     const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
     const CLOUD_RUN_JOB_NAME = 'legado-assembler';
@@ -33,7 +38,6 @@ export default async function handler(req, res) {
 
     const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
 
-    // Generar JWT para autenticación con Google Cloud
     const { GoogleAuth } = await import('google-auth-library');
     const auth = new GoogleAuth({
       credentials: serviceAccount,
@@ -42,10 +46,14 @@ export default async function handler(req, res) {
     const client = await auth.getClient();
     const accessToken = await client.getAccessToken();
 
-    // Preparar datos del job
-    const jobData = JSON.stringify({ images, audio, srt, lang, slug: slug || 'reel' });
+    // Datos ligeros: solo la carpeta y metadatos
+    const jobData = JSON.stringify({
+      folder: folder,
+      imageCount: imageCount,
+      lang: lang,
+      slug: slug || 'reel',
+    });
 
-    // Disparar Cloud Run Job con los datos como variable de entorno
     const jobUrl = `https://${CLOUD_RUN_REGION}-run.googleapis.com/v2/projects/${GCP_PROJECT_ID}/locations/${CLOUD_RUN_REGION}/jobs/${CLOUD_RUN_JOB_NAME}:run`;
 
     const jobResponse = await fetch(jobUrl, {
@@ -71,11 +79,10 @@ export default async function handler(req, res) {
     const jobResult = await jobResponse.json();
     const operationName = jobResult.name;
 
-    // Polling: esperar hasta que el job termine (máx 10 minutos)
     const operationUrl = `https://${CLOUD_RUN_REGION}-run.googleapis.com/v2/${operationName}`;
     let signedUrl = null;
     const maxWait = 600000; // 10 minutos
-    const pollInterval = 5000; // cada 5 segundos
+    const pollInterval = 5000;
     const startTime = Date.now();
 
     while (Date.now() - startTime < maxWait) {
@@ -90,8 +97,6 @@ export default async function handler(req, res) {
         if (pollData.error) {
           return res.status(500).json({ error: 'Job falló: ' + JSON.stringify(pollData.error) });
         }
-        // Job completado — obtener URL del log
-        // La URL firmada la escribe el job en los logs con prefijo SIGNED_URL:
         const logsUrl = `https://logging.googleapis.com/v2/entries:list`;
         const logsResponse = await fetch(logsUrl, {
           method: 'POST',
