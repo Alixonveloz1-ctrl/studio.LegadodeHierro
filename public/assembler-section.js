@@ -3,17 +3,6 @@
 // Se agrega después del botón de exportar ZIP
 // ============================================================
 
-// Convierte blob a base64
-function blobToBase64(blob) {
-  return new Promise(function(resolve, reject) {
-    var reader = new FileReader();
-    reader.onloadend = function() { resolve(reader.result.split(',')[1]); };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-// Convierte src base64 de imagen a base64 puro
 function imgSrcToBase64(src) {
   return src.split(',')[1];
 }
@@ -22,7 +11,7 @@ async function assembleReel(lang) {
   var isEN = lang === 'en';
 
   var audObj = isEN ? audEN : audES;
-  if (!audObj || !audObj.blob) {
+  if (!audObj || !audObj.b64) {
     alert(isEN ? 'Genera primero el Audio EN.' : 'Genera primero el Audio ES.');
     return;
   }
@@ -43,9 +32,7 @@ async function assembleReel(lang) {
   resultEl.style.display = 'none';
 
   try {
-    statusEl.textContent = 'Procesando audio...';
-    var audioB64 = await blobToBase64(audObj.blob);
-
+    // Audio ya viene en base64 directamente
     statusEl.textContent = 'Procesando imágenes...';
     var imagesB64 = [];
     for (var i = 0; i < imgs.length; i++) {
@@ -77,7 +64,7 @@ async function assembleReel(lang) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         images: imagesB64,
-        audio: audioB64,
+        audio: audObj.b64,
         srt: srtContent,
         lang: lang,
         slug: slug,
@@ -134,7 +121,6 @@ function initAssembler() {
   }
 }
 
-// Esperar a que app.js termine de cargar antes de sobreescribir chkExport
 window.addEventListener('load', function() {
   initAssembler();
 
