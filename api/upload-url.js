@@ -1,6 +1,6 @@
 // api/upload-url.js
-// Genera URLs firmadas (V4) para subir archivos directamente a GCS desde el cliente.
-// Esto evita enviar imágenes/audio gigantes en el body de un fetch (que rompe Chrome iOS).
+// Recibe los archivos en base64 y los sube directamente a GCS desde el servidor.
+// Esto elimina el problema de CORS — el navegador nunca habla con GCS directamente.
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,49 +12,38 @@ export default async function handler(req, res) {
 
   try {
     let body = req.body;
-    if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) { body = {}; } }
     if (!body) {
       try {
         const chunks = [];
         for await (const chunk of req) chunks.push(chunk);
         body = JSON.parse(Buffer.concat(chunks).toString());
-      } catch (e) { body = {}; }
+      } catch(e) { body = {}; }
     }
 
-    const { folder, files } = body;
-    if (!folder || !Array.isArray(files) || files.length === 0) {
-      return res.status(400).json({ error: 'Faltan parámetros: folder, files[]' });
+    const { folder, name, contentType, data } = body;
+    if (!folder || !name || !data) {
+      return res.status(400).json({ error: 'Faltan parámetros: folder, name, data' });
     }
 
     const GCP_SERVICE_ACCOUNT = process.env.GCP_SERVICE_ACCOUNT;
-    if (!GCP_SERVICE_ACCOUNT) {
-      return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
-    }
-    const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
+    if (!GCP_SERVICE_ACCOUNT) return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
 
+    const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
     const { Storage } = await import('@google-cloud/storage');
     const storage = new Storage({ credentials: serviceAccount, projectId: serviceAccount.project_id });
+
     const BUCKET = 'legado-videos';
+    const objectPath = `uploads/${folder}/${name}`;
+    const fileBuffer = Buffer.from(data, 'base64');
 
-    // Generar una URL firmada de subida para cada archivo
-    const uploads = [];
-    for (const f of files) {
-      const objectPath = `uploads/${folder}/${f.name}`;
-      const [url] = await storage
-        .bucket(BUCKET)
-        .file(objectPath)
-        .getSignedUrl({
-          version: 'v4',
-          action: 'write',
-          expires: Date.now() + 30 * 60 * 1000, // 30 minutos
-          contentType: f.contentType || 'application/octet-stream',
-        });
-      uploads.push({ name: f.name, url: url, path: objectPath });
-    }
+    await storage.bucket(BUCKET).file(objectPath).save(fileBuffer, {
+      metadata: { contentType: contentType || 'application/octet-stream' },
+    });
 
-    return res.status(200).json({ uploads: uploads });
+    return res.status(200).json({ ok: true, path: objectPath });
 
-  } catch (err) {
+  } catch(err) {
     console.error('Error en /api/upload-url:', err);
     return res.status(500).json({ error: err.message || 'Error interno' });
   }
