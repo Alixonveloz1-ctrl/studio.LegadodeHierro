@@ -1,10 +1,19 @@
 // ============================================================
 // ENSAMBLADOR DE REELS — SECCIÓN NUEVA (no modifica código existente)
-// Se agrega después del botón de exportar ZIP
+// Sube archivos a GCS directamente (URLs firmadas), luego dispara el ensamblaje.
+// Esto evita enviar JSON gigante en un fetch (que rompe Chrome iOS).
 // ============================================================
 
 function imgSrcToBase64(src) {
   return src.split(',')[1];
+}
+
+// Convierte base64 a Blob (para subir a GCS)
+function base64ToBlob(b64, contentType) {
+  var chars = atob(b64);
+  var bytes = new Uint8Array(chars.length);
+  for (var i = 0; i < chars.length; i++) bytes[i] = chars.charCodeAt(i);
+  return new Blob([bytes], { type: contentType });
 }
 
 async function assembleReel(lang) {
@@ -32,40 +41,90 @@ async function assembleReel(lang) {
   resultEl.style.display = 'none';
 
   try {
-    // Audio ya viene en base64 directamente
-    statusEl.textContent = 'Procesando imágenes...';
-    var imagesB64 = [];
+    // 1. Recopilar imágenes válidas
+    var validImgs = [];
     for (var i = 0; i < imgs.length; i++) {
-      if (imgs[i] && imgs[i].src) {
-        imagesB64.push(imgSrcToBase64(imgs[i].src));
-      }
+      if (imgs[i] && imgs[i].src) validImgs.push(imgSrcToBase64(imgs[i].src));
     }
-    if (imagesB64.length === 0) {
-      throw new Error('No hay imágenes válidas para ensamblar.');
-    }
+    if (validImgs.length === 0) throw new Error('No hay imágenes válidas para ensamblar.');
 
+    // 2. Generar SRT
     var srtContent = audObj.alignment
       ? makeSRTFromAlignment(audObj.alignment)
       : makeSRT(isEN ? (lastRes && lastRes.f) : (lastRes && lastRes.a));
+    if (!srtContent) throw new Error('No se pudieron generar los subtítulos.');
 
-    if (!srtContent) {
-      throw new Error('No se pudieron generar los subtítulos.');
+    // 3. Carpeta única para esta sesión de ensamblaje
+    var folder = 'reel-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+
+    // 4. Preparar lista de archivos a subir
+    var fileList = [];
+    for (var i = 0; i < validImgs.length; i++) {
+      fileList.push({ name: 'img' + String(i).padStart(2, '0') + '.png', contentType: 'image/png' });
+    }
+    fileList.push({ name: 'voice.mp3', contentType: 'audio/mpeg' });
+    fileList.push({ name: 'subtitles.srt', contentType: 'text/plain' });
+
+    // 5. Pedir URLs firmadas de subida
+    statusEl.textContent = 'Solicitando acceso de subida...';
+    var urlResp = await fetch('/api/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder: folder, files: fileList }),
+    });
+    var urlData = await urlResp.json();
+    if (!urlResp.ok) throw new Error(urlData.error || 'Error obteniendo URLs de subida');
+    var uploads = urlData.uploads;
+
+    // Mapa nombre -> url firmada
+    var urlMap = {};
+    for (var i = 0; i < uploads.length; i++) urlMap[uploads[i].name] = uploads[i].url;
+
+    // 6. Subir cada archivo directamente a GCS
+    statusEl.textContent = 'Subiendo imágenes...';
+    for (var i = 0; i < validImgs.length; i++) {
+      var imgName = 'img' + String(i).padStart(2, '0') + '.png';
+      var imgBlob = base64ToBlob(validImgs[i], 'image/png');
+      var put = await fetch(urlMap[imgName], {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/png' },
+        body: imgBlob,
+      });
+      if (!put.ok) throw new Error('Error subiendo ' + imgName);
+      statusEl.textContent = 'Subiendo imágenes... (' + (i + 1) + '/' + validImgs.length + ')';
     }
 
+    // Subir audio (desde el blob ya existente)
+    statusEl.textContent = 'Subiendo audio...';
+    var audioBlob = audObj.blob ? audObj.blob : base64ToBlob(audObj.b64, 'audio/mpeg');
+    var putAudio = await fetch(urlMap['voice.mp3'], {
+      method: 'PUT',
+      headers: { 'Content-Type': 'audio/mpeg' },
+      body: audioBlob,
+    });
+    if (!putAudio.ok) throw new Error('Error subiendo el audio');
+
+    // Subir SRT
+    statusEl.textContent = 'Subiendo subtítulos...';
+    var srtBlob = new Blob([srtContent], { type: 'text/plain' });
+    var putSrt = await fetch(urlMap['subtitles.srt'], {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/plain' },
+      body: srtBlob,
+    });
+    if (!putSrt.ok) throw new Error('Error subiendo los subtítulos');
+
+    // 7. Disparar ensamblaje (solo metadatos ligeros)
     var slug = (lastRes && lastRes.topic ? lastRes.topic : 'reel')
-      .slice(0, 25)
-      .replace(/[^a-zA-Z0-9]/g, '-')
-      .toLowerCase();
+      .slice(0, 25).replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
 
-    statusEl.textContent = 'Enviando a Google Cloud... (puede tomar 2-5 minutos)';
-
+    statusEl.textContent = 'Ensamblando en Google Cloud... (puede tomar 2-5 minutos)';
     var response = await fetch('/api/assemble', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        images: imagesB64,
-        audio: audObj.b64,
-        srt: srtContent,
+        folder: folder,
+        imageCount: validImgs.length,
         lang: lang,
         slug: slug,
       }),
