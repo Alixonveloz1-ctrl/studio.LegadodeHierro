@@ -4,5 +4,9 @@
   "description": "Sistema de Produccion Facebook Reels",
   "engines": {
     "node": "24.x"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.0.0",
+    "google-auth-library": "^9.0.0"
   }
 }
