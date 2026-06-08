@@ -20,7 +20,6 @@ var HOOKS=[
   {id:'historia',  label:'🎯 Historia Personal',   desc:'Experiencia real que conecta'},
   {id:'pasos',     label:'⚡ Lista de Pasos',      desc:'Instrucciones directas y ejecutables'},
 ];
-// TABS: solo ES y EN — los prompts son internos para imágenes, no se muestran
 var TABS=[
   {id:'a',label:'⚔ Guion ES',c:'#b8975a',p:'#f0e8d8'},
   {id:'f',label:'🇺🇸 Guion EN',c:'#c4897a',p:'#f8ede8'},
@@ -298,7 +297,7 @@ async function generate(){
   }
 }
 
-// PARSE — robusto para Claude 4.6, sin regex con \n
+// PARSE
 function cleanG(t){
   if(!t)return'';
   var lines=t.split('\n');
@@ -306,26 +305,19 @@ function cleanG(t){
   var blankCount=0;
   for(var i=0;i<lines.length;i++){
     var line=lines[i];
-    // Eliminar timestamps
     line=line.replace(/\[\d\d:\d\d[^\]]*\]/g,'');
-    // Eliminar markdown
     line=line.replace(/^#{1,6}\s+/,'');
     line=line.replace(/\*\*/g,'');
     line=line.replace(/\*/g,'');
     var trimmed=line.trim();
-    // Saltar corchetes de accion
     if(trimmed.length>0&&trimmed.charAt(0)==='['&&trimmed.charAt(trimmed.length-1)===']'){continue;}
     var upper=trimmed.toUpperCase();
-    // Saltar etiquetas de seccion
     if(upper.indexOf('GANCHO')===0||upper.indexOf('DESARROLLO')===0||upper.indexOf('CUERPO')===0||upper.indexOf('CIERRE')===0||upper.indexOf('INTRO')===0){
       var colonIdx=trimmed.indexOf(':');
       if(colonIdx>-1&&colonIdx<20){continue;}
     }
-    // Saltar encabezados de bloque
     if(upper.indexOf('BLOQUE ')===0){continue;}
-    // Saltar lineas de prompt
     if(/^PROMPT\s*\d+/i.test(trimmed)){continue;}
-    // Saltar headers markdown
     if(trimmed.charAt(0)==='#'){continue;}
     if(trimmed===''){
       blankCount++;
@@ -341,7 +333,6 @@ function cleanG(t){
 }
 
 function parseBlocks(raw){
-  // Limpiar markdown para detectar bloques
   var lines=raw.split('\n');
   var cleanLines=[];
   for(var i=0;i<lines.length;i++){
@@ -350,8 +341,6 @@ function parseBlocks(raw){
     l=l.replace(/^#{1,6}\s+/,'');
     cleanLines.push(l);
   }
-
-  // Encontrar inicio de cada bloque
   var posA=-1,posC=-1,posF=-1;
   for(var i=0;i<cleanLines.length;i++){
     var upper=cleanLines[i].trim().toUpperCase().replace(/[*#_`:]/g,'').trim();
@@ -359,8 +348,6 @@ function parseBlocks(raw){
     else if(posC===-1&&upper.indexOf('BLOQUE C')===0){posC=i;}
     else if(posF===-1&&upper.indexOf('BLOQUE F')===0){posF=i;}
   }
-
-  // Extraer contenido entre bloques
   function extract(start,others){
     if(start===-1)return'';
     var end=cleanLines.length;
@@ -369,22 +356,15 @@ function parseBlocks(raw){
     }
     return cleanLines.slice(start+1,end).join('\n').trim();
   }
-
   var aRaw=extract(posA,[posC,posF]);
   var cRaw=extract(posC,[posA,posF]);
   var fRaw=extract(posF,[posA,posC]);
-
-  // Si no encontro bloques por encabezado, intentar heuristico
   if(!aRaw&&!fRaw){
-    // Buscar texto antes del primer PROMPT como guion ES
     var firstPromptLine=-1;
     for(var i=0;i<cleanLines.length;i++){
       if(/^PROMPT\s*\d+/i.test(cleanLines[i].trim())){firstPromptLine=i;break;}
     }
-    if(firstPromptLine>0){
-      aRaw=cleanLines.slice(0,firstPromptLine).join('\n').trim();
-    }
-    // Buscar texto despues del ultimo PROMPT como guion EN
+    if(firstPromptLine>0){aRaw=cleanLines.slice(0,firstPromptLine).join('\n').trim();}
     var lastPromptLine=-1;
     for(var i=cleanLines.length-1;i>=0;i--){
       if(/^PROMPT\s*\d+/i.test(cleanLines[i].trim())){lastPromptLine=i;break;}
@@ -396,8 +376,6 @@ function parseBlocks(raw){
       cRaw=cleanLines.slice(firstPromptLine,lastPromptLine+1).join('\n').trim();
     }
   }
-
-  // Extraer prompts de BLOQUE C
   var prompts=[];
   if(cRaw){
     var cLines=cRaw.split('\n');
@@ -413,13 +391,7 @@ function parseBlocks(raw){
     }
     if(currentPrompt.length>20)prompts.push(currentPrompt);
   }
-
-  return{
-    a:cleanG(aRaw),
-    f:cleanG(fRaw),
-    c:prompts,
-    cRaw:cRaw
-  };
+  return{a:cleanG(aRaw),f:cleanG(fRaw),c:prompts,cRaw:cRaw};
 }
 
 // RENDER
@@ -460,7 +432,6 @@ function rfTabs(r){
   });
   var ct=document.getElementById('tabcontent');ct.innerHTML='';
   var tm=TABS.find(function(t){return t.id===activeTab;});
-  // Solo guiones — los prompts son internos
   var text={a:r.a,f:r.f}[activeTab]||'';
   if(!text)return;
   var lbls={a:'⚔ Guion en Español',f:'🇺🇸 Script in English'};
@@ -480,10 +451,9 @@ function rfTabs(r){
   blk.appendChild(body);ct.appendChild(blk);
 }
 
-// AUDIO — usa solo el guion limpio, sin prompts
+// AUDIO
 async function genAudio(lang){
   var isEN=lang==='en';
-  // Usar solo el guion limpio — a (ES) o f (EN)
   var text=isEN?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
   if(!text||text.length<10){
     alert(isEN?'Guion EN no disponible. Genera el episodio primero.':'Genera un episodio primero.');
@@ -510,7 +480,9 @@ async function genAudio(lang){
     for(var i=0;i<chars.length;i++)bytes[i]=chars.charCodeAt(i);
     var blob=new Blob([bytes],{type:'audio/mpeg'});
     var url=URL.createObjectURL(blob);
-    if(isEN){audEN={blob:blob,url:url,alignment:data.alignment||null};}else{audES={blob:blob,url:url,alignment:data.alignment||null};}
+    // *** CAMBIO: guardar b64 original para el ensamblador ***
+    if(isEN){audEN={blob:blob,url:url,b64:audioB64,alignment:data.alignment||null};}
+    else{audES={blob:blob,url:url,b64:audioB64,alignment:data.alignment||null};}
     document.getElementById(isEN?'pEN':'pES').src=url;
     document.getElementById(isEN?'dEN':'dES').href=url;
     document.getElementById(isEN?'rEN':'rES').style.display='block';
@@ -550,7 +522,6 @@ async function genOneImage(prompt,refs){
   }catch(e){
     throw new Error('Error de conexion. Usa Regenerar.');
   }
-  // Manejar 504 antes de parsear JSON (Vercel timeout devuelve HTML)
   if(ir.status===504){
     throw new Error('Tiempo agotado. Usa Regenerar en unos segundos.');
   }
@@ -574,11 +545,9 @@ function setSlotOk(slot,src,idx){
   slot.style.cssText='position:relative;border-radius:10px;overflow:hidden;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
   slot.innerHTML='';
   var im=document.createElement('img');im.src=src;im.style.cssText='width:100%;display:block;border-radius:10px';slot.appendChild(im);
-  // Boton descargar
   var dd=document.createElement('div');dd.style.cssText='position:absolute;bottom:6px;right:6px';
   var da=document.createElement('a');da.href=src;da.download='legado-img-'+(idx+1)+'.png';da.textContent='⬇';da.style.cssText='background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none;display:block';
   dd.appendChild(da);slot.appendChild(dd);
-  // Boton regenerar
   var rd=document.createElement('div');rd.style.cssText='position:absolute;top:6px;right:6px';
   var rb=document.createElement('button');rb.textContent='↺';rb.title='Regenerar';
   rb.style.cssText='background:rgba(255,255,255,.85);border:none;border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer;line-height:1';
@@ -632,7 +601,6 @@ async function genImages(){
   imgRefs=await loadRefs();
   imgs=[];
   var totalImgs=Math.min(lastRes.c.length,8);
-  // Crear todos los slots primero
   var slots=[];
   for(var i=0;i<totalImgs;i++){
     var slot=document.createElement('div');
@@ -663,14 +631,11 @@ function chkExport(){if(audES||audEN||imgs.length)document.getElementById('expbt
 
 function fmtSRTTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.round((s%1)*1000);return(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc+','+(ms<100?(ms<10?'00':'0'):'')+ms;}
 
-// Build SRT from ElevenLabs alignment (character-level timestamps)
-// alignment = { characters: [...], character_start_times_seconds: [...], character_end_times_seconds: [...] }
 function makeSRTFromAlignment(alignment){
   if(!alignment||!alignment.characters)return '';
   var chars=alignment.characters;
   var starts=alignment.character_start_times_seconds;
   var ends=alignment.character_end_times_seconds;
-  // Reconstruct words with their start/end times
   var words=[],curWord='',curStart=0,curEnd=0;
   for(var i=0;i<chars.length;i++){
     var c=chars[i];
@@ -682,7 +647,6 @@ function makeSRTFromAlignment(alignment){
     }
   }
   if(curWord.length>0)words.push({text:curWord,start:curStart,end:curEnd});
-  // Group words into subtitle lines (max 4 words, break on punctuation)
   var segs=[],gi=0;
   while(gi<words.length){
     var group=[],gStart=words[gi].start,gEnd=0;
@@ -695,7 +659,6 @@ function makeSRTFromAlignment(alignment){
   return segs.map(function(s,i){return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
 }
 
-// Fallback: estimate timing from text only (used when no alignment available)
 function makeSRT(text){
   var words=text.replace(/\n+/g,' ').replace(/\s+/g,' ').trim().split(' ').filter(function(w){return w.length>0;});
   var WPM=130,secPerWord=60/WPM,segs=[],t=0,i=0;
@@ -719,15 +682,12 @@ async function exportAll(){
   var slug=(lastRes&&lastRes.topic?lastRes.topic:'reel').slice(0,25).replace(/[^a-zA-Z0-9]/g,'-');
   try{
     var zip=new JSZip();
-    // Guiones
     if(lastRes&&lastRes.a) zip.file(slug+'-guion-es.txt',lastRes.a);
     if(lastRes&&lastRes.f) zip.file(slug+'-guion-en.txt',lastRes.f);
-    // Subtítulos — usar timestamps reales si están disponibles
     var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'');
     var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'');
     if(srtES) zip.file(slug+'-subtitulos-es.srt',srtES);
     if(srtEN) zip.file(slug+'-subtitulos-en.srt',srtEN);
-    // Audio — leer el blob directamente
     if(audES&&audES.blob){
       var ab1=await audES.blob.arrayBuffer();
       zip.file(slug+'-audio-es.mp3',ab1);
@@ -736,7 +696,6 @@ async function exportAll(){
       var ab2=await audEN.blob.arrayBuffer();
       zip.file(slug+'-audio-en.mp3',ab2);
     }
-    // Imágenes — base64 directo
     for(var i=0;i<imgs.length;i++){
       if(imgs[i]&&imgs[i].src){
         var b64=imgs[i].src.split(',')[1];
