@@ -1,8 +1,6 @@
-// api/upload-url.js
-// Recibe los archivos en base64 y los sube directamente a GCS desde el servidor.
-// Esto elimina el problema de CORS — el navegador nunca habla con GCS directamente.
+const { Storage } = require('@google-cloud/storage');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -30,7 +28,6 @@ export default async function handler(req, res) {
     if (!GCP_SERVICE_ACCOUNT) return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
 
     const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
-    const { Storage } = await import('@google-cloud/storage');
     const storage = new Storage({ credentials: serviceAccount, projectId: serviceAccount.project_id });
 
     const BUCKET = 'legado-videos';
@@ -47,4 +44,4 @@ export default async function handler(req, res) {
     console.error('Error en /api/upload-url:', err);
     return res.status(500).json({ error: err.message || 'Error interno' });
   }
-}
+};
