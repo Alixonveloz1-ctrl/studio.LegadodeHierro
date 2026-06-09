@@ -1,5 +1,5 @@
 // ============================================================
-// ENSAMBLADOR DE REELS — sube archivos vía servidor Vercel (sin CORS)
+// ENSAMBLADOR DE REELS
 // ============================================================
 
 function imgSrcToBase64(src) {
@@ -42,43 +42,37 @@ async function assembleReel(lang) {
   resultEl.style.display = 'none';
 
   try {
-    // Imágenes válidas
     var validImgs = [];
     for (var i = 0; i < imgs.length; i++) {
       if (imgs[i] && imgs[i].src) validImgs.push(imgSrcToBase64(imgs[i].src));
     }
     if (validImgs.length === 0) throw new Error('No hay imágenes válidas.');
 
-    // SRT
     var srtContent = audObj.alignment
       ? makeSRTFromAlignment(audObj.alignment)
       : makeSRT(isEN ? (lastRes && lastRes.f) : (lastRes && lastRes.a));
     if (!srtContent) throw new Error('No se pudieron generar los subtítulos.');
 
-    // Carpeta única
     var folder = 'reel-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
 
-    // Subir imágenes una por una vía servidor
     for (var i = 0; i < validImgs.length; i++) {
       statusEl.textContent = 'Subiendo imagen ' + (i + 1) + ' de ' + validImgs.length + '...';
       var imgName = 'img' + String(i).padStart(2, '0') + '.png';
       await uploadFile(folder, imgName, 'image/png', validImgs[i]);
     }
 
-    // Subir audio
     statusEl.textContent = 'Subiendo audio...';
     await uploadFile(folder, 'voice.mp3', 'audio/mpeg', audObj.b64);
 
-    // Subir SRT
     statusEl.textContent = 'Subiendo subtítulos...';
     var srtB64 = btoa(unescape(encodeURIComponent(srtContent)));
     await uploadFile(folder, 'subtitles.srt', 'text/plain', srtB64);
 
-    // Disparar ensamblaje
     var slug = (lastRes && lastRes.topic ? lastRes.topic : 'reel')
       .slice(0, 25).replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
 
     statusEl.textContent = 'Ensamblando en Google Cloud... (2-5 minutos)';
+
     var response = await fetch('/api/assemble', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -90,8 +84,17 @@ async function assembleReel(lang) {
       }),
     });
 
-    var data = await response.json();
+    // Leer como texto primero para ver el error real
+    var rawText = await response.text();
+    var data;
+    try {
+      data = JSON.parse(rawText);
+    } catch(e) {
+      throw new Error('Respuesta del servidor (status ' + response.status + '): ' + rawText.slice(0, 200));
+    }
+
     if (!response.ok) throw new Error(data.error || 'Error en el servidor');
+    if (!data.url) throw new Error('No se recibió URL del video. Respuesta: ' + JSON.stringify(data));
 
     statusEl.textContent = '✅ Reel listo.';
     resultEl.style.display = 'block';
