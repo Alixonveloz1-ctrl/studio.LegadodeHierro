@@ -1,6 +1,6 @@
 // ============================================================
 // ENSAMBLADOR DE REELS
-// Flujo: subir archivos → disparar job → polling cada 8s hasta completar
+// Flujo: subir archivos → disparar job → polling cada 10s hasta completar
 // ============================================================
 
 function imgSrcToBase64(src) {
@@ -21,11 +21,12 @@ async function uploadFile(folder, name, contentType, data) {
 }
 
 async function pollStatus(operationName, statusEl) {
-  var maxAttempts = 60; // 60 × 8s = 8 minutos máximo
+  var maxAttempts = 90; // 90 × 10s = 15 minutos
   for (var i = 0; i < maxAttempts; i++) {
-    await new Promise(function(r) { setTimeout(r, 8000); });
-    var mins = Math.floor((i * 8) / 60);
-    var secs = (i * 8) % 60;
+    await new Promise(function(r) { setTimeout(r, 10000); });
+    var totalSecs = (i + 1) * 10;
+    var mins = Math.floor(totalSecs / 60);
+    var secs = totalSecs % 60;
     statusEl.textContent = 'Ensamblando en Google Cloud... (' + mins + 'm ' + secs + 's)';
 
     var resp = await fetch('/api/assemble-status', {
@@ -40,7 +41,7 @@ async function pollStatus(operationName, statusEl) {
     if (data.status === 'done') return data.url;
     if (data.status !== 'running') throw new Error('Estado inesperado: ' + JSON.stringify(data));
   }
-  throw new Error('Tiempo de espera agotado. El video puede estar procesándose todavía.');
+  throw new Error('Tiempo de espera agotado (15 min). Intenta de nuevo.');
 }
 
 async function assembleReel(lang) {
@@ -105,7 +106,7 @@ async function assembleReel(lang) {
     });
     var startText = await startResp.text();
     var startData;
-    try { startData = JSON.parse(startText); } catch(e) { throw new Error('Error iniciando ensamblaje: ' + startText.slice(0, 200)); }
+    try { startData = JSON.parse(startText); } catch(e) { throw new Error('Error iniciando: ' + startText.slice(0, 200)); }
     if (!startResp.ok) throw new Error(startData.error || 'Error iniciando ensamblaje');
     if (!startData.operationName) throw new Error('No se recibió operationName: ' + JSON.stringify(startData));
 
@@ -148,7 +149,7 @@ function initAssembler() {
     +   '<div style="padding:16px">'
     +     '<div id="reel-status" style="display:none;font-size:12px;color:var(--tx3);margin-bottom:10px;font-style:italic"></div>'
     +     '<div id="reel-result" style="display:none"></div>'
-    +     '<div style="font-size:11px;color:var(--tx3);line-height:1.6">Requiere: Audio ES o EN generado + 8 imágenes generadas. La música se selecciona aleatoriamente. El proceso toma 2-5 minutos en Google Cloud.</div>'
+    +     '<div style="font-size:11px;color:var(--tx3);line-height:1.6">Requiere: Audio ES o EN generado + 8 imágenes generadas. Proceso: 5-10 minutos en Google Cloud.</div>'
     +   '</div>'
     + '</div>';
   var expBtn = document.getElementById('expbtn');
