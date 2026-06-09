@@ -1,8 +1,6 @@
-// api/assemble.js
-// Recibe el nombre de la carpeta en GCS (donde el cliente ya subió las imágenes + audio + SRT)
-// y dispara el Cloud Run Job. Devuelve URL firmada del MP4 generado.
+const { GoogleAuth } = require('google-auth-library');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -12,17 +10,16 @@ export default async function handler(req, res) {
 
   try {
     let body = req.body;
-    if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) { body = {}; } }
     if (!body) {
       try {
         const chunks = [];
         for await (const chunk of req) chunks.push(chunk);
         body = JSON.parse(Buffer.concat(chunks).toString());
-      } catch (e) { body = {}; }
+      } catch(e) { body = {}; }
     }
 
     const { folder, imageCount, lang, slug } = body;
-
     if (!folder || !imageCount || !lang) {
       return res.status(400).json({ error: 'Faltan parámetros: folder, imageCount, lang' });
     }
@@ -32,21 +29,18 @@ export default async function handler(req, res) {
     const CLOUD_RUN_JOB_NAME = 'legado-assembler';
     const CLOUD_RUN_REGION = 'us-central1';
 
-    if (!GCP_SERVICE_ACCOUNT) {
-      return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
-    }
+    if (!GCP_SERVICE_ACCOUNT) return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
 
     const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
 
-    const { GoogleAuth } = await import('google-auth-library');
     const auth = new GoogleAuth({
       credentials: serviceAccount,
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     });
     const client = await auth.getClient();
-    const accessToken = await client.getAccessToken();
+    const tokenData = await client.getAccessToken();
+    const accessToken = tokenData.token;
 
-    // Datos ligeros: solo la carpeta y metadatos
     const jobData = JSON.stringify({
       folder: folder,
       imageCount: imageCount,
@@ -59,7 +53,7 @@ export default async function handler(req, res) {
     const jobResponse = await fetch(jobUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken.token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -78,10 +72,10 @@ export default async function handler(req, res) {
 
     const jobResult = await jobResponse.json();
     const operationName = jobResult.name;
-
     const operationUrl = `https://${CLOUD_RUN_REGION}-run.googleapis.com/v2/${operationName}`;
+
     let signedUrl = null;
-    const maxWait = 600000; // 10 minutos
+    const maxWait = 600000;
     const pollInterval = 5000;
     const startTime = Date.now();
 
@@ -89,7 +83,7 @@ export default async function handler(req, res) {
       await new Promise(r => setTimeout(r, pollInterval));
 
       const pollResponse = await fetch(operationUrl, {
-        headers: { 'Authorization': `Bearer ${accessToken.token}` },
+        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
       const pollData = await pollResponse.json();
 
@@ -97,11 +91,11 @@ export default async function handler(req, res) {
         if (pollData.error) {
           return res.status(500).json({ error: 'Job falló: ' + JSON.stringify(pollData.error) });
         }
-        const logsUrl = `https://logging.googleapis.com/v2/entries:list`;
-        const logsResponse = await fetch(logsUrl, {
+
+        const logsResponse = await fetch('https://logging.googleapis.com/v2/entries:list', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken.token}`,
+            'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -111,6 +105,7 @@ export default async function handler(req, res) {
             pageSize: 5,
           }),
         });
+
         const logsData = await logsResponse.json();
         if (logsData.entries && logsData.entries.length > 0) {
           for (const entry of logsData.entries) {
@@ -131,8 +126,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ url: signedUrl });
 
-  } catch (err) {
+  } catch(err) {
     console.error('Error en /api/assemble:', err);
     return res.status(500).json({ error: err.message || 'Error interno' });
   }
-}
+};
