@@ -1,5 +1,6 @@
 // ============================================================
 // ENSAMBLADOR DE REELS
+// Flujo: subir archivos → disparar job → polling cada 8s hasta completar
 // ============================================================
 
 function imgSrcToBase64(src) {
@@ -12,9 +13,34 @@ async function uploadFile(folder, name, contentType, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ folder: folder, name: name, contentType: contentType, data: data }),
   });
-  var json = await resp.json();
+  var text = await resp.text();
+  var json;
+  try { json = JSON.parse(text); } catch(e) { throw new Error('Error subiendo ' + name + ': ' + text.slice(0, 100)); }
   if (!resp.ok) throw new Error(json.error || 'Error subiendo ' + name);
   return json;
+}
+
+async function pollStatus(operationName, statusEl) {
+  var maxAttempts = 60; // 60 × 8s = 8 minutos máximo
+  for (var i = 0; i < maxAttempts; i++) {
+    await new Promise(function(r) { setTimeout(r, 8000); });
+    var mins = Math.floor((i * 8) / 60);
+    var secs = (i * 8) % 60;
+    statusEl.textContent = 'Ensamblando en Google Cloud... (' + mins + 'm ' + secs + 's)';
+
+    var resp = await fetch('/api/assemble-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operationName: operationName }),
+    });
+    var text = await resp.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error('Error verificando estado: ' + text.slice(0, 100)); }
+    if (!resp.ok) throw new Error(data.error || 'Error verificando estado');
+    if (data.status === 'done') return data.url;
+    if (data.status !== 'running') throw new Error('Estado inesperado: ' + JSON.stringify(data));
+  }
+  throw new Error('Tiempo de espera agotado. El video puede estar procesándose todavía.');
 }
 
 async function assembleReel(lang) {
@@ -71,34 +97,24 @@ async function assembleReel(lang) {
     var slug = (lastRes && lastRes.topic ? lastRes.topic : 'reel')
       .slice(0, 25).replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
 
-    statusEl.textContent = 'Ensamblando en Google Cloud... (2-5 minutos)';
-
-    var response = await fetch('/api/assemble', {
+    statusEl.textContent = 'Disparando ensamblaje...';
+    var startResp = await fetch('/api/assemble', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        folder: folder,
-        imageCount: validImgs.length,
-        lang: lang,
-        slug: slug,
-      }),
+      body: JSON.stringify({ folder: folder, imageCount: validImgs.length, lang: lang, slug: slug }),
     });
+    var startText = await startResp.text();
+    var startData;
+    try { startData = JSON.parse(startText); } catch(e) { throw new Error('Error iniciando ensamblaje: ' + startText.slice(0, 200)); }
+    if (!startResp.ok) throw new Error(startData.error || 'Error iniciando ensamblaje');
+    if (!startData.operationName) throw new Error('No se recibió operationName: ' + JSON.stringify(startData));
 
-    // Leer como texto primero para ver el error real
-    var rawText = await response.text();
-    var data;
-    try {
-      data = JSON.parse(rawText);
-    } catch(e) {
-      throw new Error('Respuesta del servidor (status ' + response.status + '): ' + rawText.slice(0, 200));
-    }
-
-    if (!response.ok) throw new Error(data.error || 'Error en el servidor');
-    if (!data.url) throw new Error('No se recibió URL del video. Respuesta: ' + JSON.stringify(data));
+    statusEl.textContent = 'Ensamblando en Google Cloud... (0m 0s)';
+    var videoUrl = await pollStatus(startData.operationName, statusEl);
 
     statusEl.textContent = '✅ Reel listo.';
     resultEl.style.display = 'block';
-    resultEl.innerHTML = '<a href="' + data.url + '" download="legado-reel-' + lang + '.mp4" '
+    resultEl.innerHTML = '<a href="' + videoUrl + '" download="legado-reel-' + lang + '.mp4" '
       + 'style="display:inline-block;background:linear-gradient(135deg,#b8975a,#d4b47a);color:#fff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;margin-top:8px">'
       + '⬇ Descargar Reel ' + lang.toUpperCase() + ' (MP4)</a>';
 
