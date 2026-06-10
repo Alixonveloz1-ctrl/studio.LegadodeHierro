@@ -487,15 +487,50 @@ async function genAudio(lang){
     });
     if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||'Error '+r.status);}
     var data=await r.json();
-    var audioB64=data.audio;
-    var chars=atob(audioB64);
-    var bytes=new Uint8Array(chars.length);
-    for(var i=0;i<chars.length;i++)bytes[i]=chars.charCodeAt(i);
-    var blob=new Blob([bytes],{type:'audio/mpeg'});
-    var url=URL.createObjectURL(blob);
-    // *** CAMBIO: guardar b64 original para el ensamblador ***
-    if(isEN){audEN={blob:blob,url:url,b64:audioB64,alignment:data.alignment||null};}
-    else{audES={blob:blob,url:url,b64:audioB64,alignment:data.alignment||null};}
+    var partsB64=data.parts||[];
+    var alignments=data.alignments||[];
+    if(!partsB64.length)throw new Error('Sin audio recibido.');
+    // Decodifica cada parte b64 a bytes
+    function b64ToBytes(b64){
+      var chars=atob(b64);var bytes=new Uint8Array(chars.length);
+      for(var i=0;i<chars.length;i++)bytes[i]=chars.charCodeAt(i);
+      return bytes;
+    }
+    var blob,url,combinedAlignment;
+    if(partsB64.length===1){
+      // Una sola parte: MP3 directo, sin union
+      var bytes=b64ToBytes(partsB64[0]);
+      blob=new Blob([bytes],{type:'audio/mpeg'});
+      url=URL.createObjectURL(blob);
+      combinedAlignment=alignments[0]||null;
+    }else{
+      // Dos partes: decodificar como audio real y unir en un WAV valido
+      var AC=window.AudioContext||window.webkitAudioContext;
+      var ctx=new AC();
+      var bufs=[];
+      for(var pi=0;pi<partsB64.length;pi++){
+        var ab=b64ToBytes(partsB64[pi]).buffer;
+        var decoded=await ctx.decodeAudioData(ab);
+        bufs.push(decoded);
+      }
+      // Concatena los AudioBuffers
+      var totalLen=0,nCh=bufs[0].numberOfChannels,sr=bufs[0].sampleRate;
+      for(var bi=0;bi<bufs.length;bi++)totalLen+=bufs[bi].length;
+      var out=ctx.createBuffer(nCh,totalLen,sr);
+      for(var c=0;c<nCh;c++){
+        var od=out.getChannelData(c);var off=0;
+        for(var bi=0;bi<bufs.length;bi++){
+          od.set(bufs[bi].getChannelData(c%bufs[bi].numberOfChannels),off);
+          off+=bufs[bi].length;
+        }
+      }
+      blob=audioBufferToWav(out);
+      url=URL.createObjectURL(blob);
+      // Combina alignments: a la 2da parte le suma la duracion real de la 1ra
+      combinedAlignment=combineAlignments(alignments,bufs[0].duration);
+    }
+    if(isEN){audEN={blob:blob,url:url,alignment:combinedAlignment};}
+    else{audES={blob:blob,url:url,alignment:combinedAlignment};}
     document.getElementById(isEN?'pEN':'pES').src=url;
     document.getElementById(isEN?'dEN':'dES').href=url;
     document.getElementById(isEN?'rEN':'rES').style.display='block';
@@ -506,6 +541,40 @@ async function genAudio(lang){
   }finally{
     btn.textContent=orig;btn.style.opacity='1';btn.disabled=false;
   }
+}
+
+// Convierte un AudioBuffer a un Blob WAV valido
+function audioBufferToWav(buffer){
+  var nCh=buffer.numberOfChannels,len=buffer.length*nCh*2,sr=buffer.sampleRate;
+  var ab=new ArrayBuffer(44+len);var view=new DataView(ab);
+  function ws(o,s){for(var i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));}
+  ws(0,'RIFF');view.setUint32(4,36+len,true);ws(8,'WAVE');ws(12,'fmt ');
+  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,nCh,true);
+  view.setUint32(24,sr,true);view.setUint32(28,sr*nCh*2,true);
+  view.setUint16(32,nCh*2,true);view.setUint16(34,16,true);ws(36,'data');
+  view.setUint32(40,len,true);
+  var off=44;
+  for(var i=0;i<buffer.length;i++){
+    for(var c=0;c<nCh;c++){
+      var s=Math.max(-1,Math.min(1,buffer.getChannelData(c)[i]));
+      view.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;
+    }
+  }
+  return new Blob([view],{type:'audio/wav'});
+}
+
+// Combina dos alignments de ElevenLabs sumando el offset real a la segunda parte
+function combineAlignments(alignments,offsetSeconds){
+  var a1=alignments[0],a2=alignments[1];
+  if(!a1||!a1.characters)return a2||null;
+  if(!a2||!a2.characters)return a1;
+  var offset=offsetSeconds||0;
+  var characters=a1.characters.concat([' '],a2.characters);
+  var starts=(a1.character_start_times_seconds||[])
+    .concat([offset],(a2.character_start_times_seconds||[]).map(function(t){return t+offset;}));
+  var ends=(a1.character_end_times_seconds||[])
+    .concat([offset],(a2.character_end_times_seconds||[]).map(function(t){return t+offset;}));
+  return {characters:characters,character_start_times_seconds:starts,character_end_times_seconds:ends};
 }
 
 // IMAGES
@@ -703,11 +772,11 @@ async function exportAll(){
     if(srtEN) zip.file(slug+'-subtitulos-en.srt',srtEN);
     if(audES&&audES.blob){
       var ab1=await audES.blob.arrayBuffer();
-      zip.file(slug+'-audio-es.mp3',ab1);
+      zip.file(slug+'-audio-es.wav',ab1);
     }
     if(audEN&&audEN.blob){
       var ab2=await audEN.blob.arrayBuffer();
-      zip.file(slug+'-audio-en.mp3',ab2);
+      zip.file(slug+'-audio-en.wav',ab2);
     }
     for(var i=0;i<imgs.length;i++){
       if(imgs[i]&&imgs[i].src){
