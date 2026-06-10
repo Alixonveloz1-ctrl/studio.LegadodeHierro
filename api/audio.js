@@ -28,7 +28,6 @@ module.exports = async (req, res) => {
     const clean = t.trim();
     if (clean.length < 400) return [clean]; // corto: una sola llamada
     const mid = Math.floor(clean.length / 2);
-    // Busca el punto mas cercano al centro
     let best = -1, bestDist = Infinity;
     for (let i = 0; i < clean.length; i++) {
       if (clean[i] === '.') {
@@ -36,7 +35,7 @@ module.exports = async (req, res) => {
         if (dist < bestDist) { bestDist = dist; best = i; }
       }
     }
-    if (best === -1) return [clean]; // sin puntos: una sola llamada
+    if (best === -1) return [clean];
     const first = clean.slice(0, best + 1).trim();
     const second = clean.slice(best + 1).trim();
     if (!first || !second) return [clean];
@@ -88,53 +87,26 @@ module.exports = async (req, res) => {
   try {
     const parts = splitInHalf(text);
 
-    // Caso simple: una sola llamada (texto corto)
+    // Caso simple: una sola llamada (texto corto). Devuelve un solo fragmento.
     if (parts.length === 1) {
       const data = await generatePart(parts[0], '', '');
       return res.json({
         success: true,
-        audio: data.audio_base64,
-        alignment: data.alignment || null
+        parts: [ data.audio_base64 ],
+        alignments: [ data.alignment || null ]
       });
     }
 
-    // Dos llamadas con contexto cruzado para que la voz suene continua
+    // Dos llamadas con contexto cruzado para que la voz suene continua.
+    // IMPORTANTE: devolvemos las dos partes POR SEPARADO. El navegador las une
+    // a nivel de audio real (Web Audio API), evitando el MP3 con cabecera intermedia.
     const first = await generatePart(parts[0], '', parts[1]);
     const second = await generatePart(parts[1], parts[0], '');
 
-    // Concatena los dos MP3
-    const buf1 = Buffer.from(first.audio_base64, 'base64');
-    const buf2 = Buffer.from(second.audio_base64, 'base64');
-    const combinedAudio = Buffer.concat([buf1, buf2]).toString('base64');
-
-    // Combina los timestamps: a la segunda mitad se le suma la duracion de la primera
-    let alignment = null;
-    const a1 = first.alignment;
-    const a2 = second.alignment;
-    if (a1 && a1.characters && a2 && a2.characters) {
-      // Duracion de la primera mitad = ultimo tiempo de fin de su alignment
-      const ends1 = a1.character_end_times_seconds || [];
-      const offset = ends1.length ? ends1[ends1.length - 1] : 0;
-
-      const characters = a1.characters.concat([' '], a2.characters);
-      const starts = (a1.character_start_times_seconds || [])
-        .concat([offset], (a2.character_start_times_seconds || []).map(function(t){ return t + offset; }));
-      const ends = (a1.character_end_times_seconds || [])
-        .concat([offset], (a2.character_end_times_seconds || []).map(function(t){ return t + offset; }));
-
-      alignment = {
-        characters: characters,
-        character_start_times_seconds: starts,
-        character_end_times_seconds: ends
-      };
-    } else {
-      alignment = a1 || a2 || null;
-    }
-
     return res.json({
       success: true,
-      audio: combinedAudio,
-      alignment: alignment
+      parts: [ first.audio_base64, second.audio_base64 ],
+      alignments: [ first.alignment || null, second.alignment || null ]
     });
 
   } catch (e) {
