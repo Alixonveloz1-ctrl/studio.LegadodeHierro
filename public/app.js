@@ -298,7 +298,7 @@ async function generate(){
     if(!p.a||p.a.length<20)throw new Error('No se pudo leer el guion ES. Intenta de nuevo.');
     lastRes=Object.assign({},p,{raw:txt,topic:topic,tO:tO,dO:dO,hO:hO});
     genCount++;cost+=0.015;updCost();
-    audES=null;audEN=null;imgs=[];
+    audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
     renderOut(lastRes);
   }catch(e){
     showErr(e.message||'Error de conexion.');
@@ -640,12 +640,13 @@ function setSlotLoading(slot,idx){
 }
 
 function setSlotOk(slot,src,idx){
-  slot.style.cssText='position:relative;border-radius:10px;overflow:hidden;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
+  slot.style.cssText='position:relative;border-radius:10px;overflow:visible;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
   slot.innerHTML='';
-  var im=document.createElement('img');im.src=src;im.style.cssText='width:100%;display:block;border-radius:10px';slot.appendChild(im);
+  var imWrap=document.createElement('div');imWrap.style.cssText='position:relative;border-radius:10px;overflow:hidden';
+  var im=document.createElement('img');im.src=src;im.style.cssText='width:100%;display:block;border-radius:10px';imWrap.appendChild(im);
   var dd=document.createElement('div');dd.style.cssText='position:absolute;bottom:6px;right:6px';
   var da=document.createElement('a');da.href=src;da.download='legado-img-'+(idx+1)+'.png';da.textContent='⬇';da.style.cssText='background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none;display:block';
-  dd.appendChild(da);slot.appendChild(dd);
+  dd.appendChild(da);imWrap.appendChild(dd);
   var rd=document.createElement('div');rd.style.cssText='position:absolute;top:6px;right:6px';
   var rb=document.createElement('button');rb.textContent='↺';rb.title='Regenerar';
   rb.style.cssText='background:rgba(255,255,255,.85);border:none;border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer;line-height:1';
@@ -659,7 +660,11 @@ function setSlotOk(slot,src,idx){
       imgs[iidx]={src:s,idx:iidx+1};setSlotOk(slot,s,iidx);cost+=0.068;updCost();chkExport();
     }).catch(function(e){setSlotError(slot,iidx,e.message);});
   });
-  rd.appendChild(rb);slot.appendChild(rd);
+  rd.appendChild(rb);imWrap.appendChild(rd);
+  slot.appendChild(imWrap);
+  var videoBox=document.createElement('div');videoBox.className='vbox';videoBox.style.cssText='margin-top:6px';
+  slot.appendChild(videoBox);
+  renderVideoControls(videoBox,iidx);
 }
 
 function setSlotError(slot,idx,msg){
@@ -718,6 +723,7 @@ async function genImages(){
   var er=document.getElementById('ie');
   btn.textContent='...';btn.style.opacity='.6';btn.disabled=true;
   st.style.display='block';grid.innerHTML='';er.style.display='none';
+  vids=[];vidState=[];vidErrMsg=[];
   st.textContent='Cargando referencias del personaje...';
   imgRefs=await loadRefs();
   imgs=[];
@@ -751,6 +757,117 @@ async function genImages(){
 }
 
 // EXPORT
+// VIDEO (Veo) -- un clip de 8s por imagen, generado manualmente uno por uno
+var vids=[]; // vids[idx] = {url: blob url para <video>, downloadUrl: url firmada de GCS}
+var vidState=[]; // vidState[idx] = 'idle' | 'loading' | 'done' | 'error'
+var vidErrMsg=[];
+
+function dataUrlMimeAndB64(dataUrl){
+  var m=/^data:([^;]+);base64,(.*)$/.exec(dataUrl||'');
+  if(!m)return{mime:'image/png',b64:dataUrlToB64(dataUrl)};
+  return{mime:m[1],b64:m[2]};
+}
+
+function renderVideoControls(box,idx){
+  box.innerHTML='';
+  var state=vidState[idx]||'idle';
+  if(state==='loading'){
+    box.style.cssText='margin-top:6px;display:flex;align-items:center;gap:6px;justify-content:center;padding:7px;background:var(--warm);border-radius:8px;border:1px dashed var(--border)';
+    box.innerHTML='<span class="spin" style="width:12px;height:12px;border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span><span style="font-size:10px;color:var(--tx3)">Generando video...</span>';
+    return;
+  }
+  if(state==='done'&&vids[idx]){
+    box.style.cssText='margin-top:6px';
+    var vid=document.createElement('video');
+    vid.src=vids[idx].url;vid.controls=true;vid.style.cssText='width:100%;border-radius:8px;display:block;background:#000';
+    box.appendChild(vid);
+    var row=document.createElement('div');row.style.cssText='display:flex;gap:6px;margin-top:5px';
+    var dl=document.createElement('a');dl.href=vids[idx].url;dl.download='legado-video-'+(idx+1)+'.mp4';dl.textContent='⬇ Descargar';
+    dl.style.cssText='flex:1;text-align:center;background:#fff;border:1.5px solid #9ab47a;border-radius:6px;padding:6px;font-size:10px;font-weight:600;color:#9ab47a;text-decoration:none';
+    var rg=document.createElement('button');rg.textContent='↺ Regenerar';
+    rg.style.cssText='flex:1;background:#fff;border:1.5px solid #b8975a;border-radius:6px;padding:6px;font-size:10px;font-weight:600;color:#b8975a;cursor:pointer;font-family:inherit';
+    rg.addEventListener('click',function(){genVideoForSlot(idx,box);});
+    row.appendChild(dl);row.appendChild(rg);
+    box.appendChild(row);
+    return;
+  }
+  if(state==='error'){
+    box.style.cssText='margin-top:6px';
+    var ec=document.createElement('div');
+    ec.style.cssText='background:#f8ede8;border:1px solid #c4897a;border-radius:8px;padding:7px 9px;font-size:9.5px;color:#8a4a3a;margin-bottom:5px';
+    var short=(vidErrMsg[idx]||'Error').slice(0,90);
+    ec.textContent=short;
+    box.appendChild(ec);
+    var rb=document.createElement('button');rb.textContent='🎬 Reintentar Video';
+    rb.style.cssText='width:100%;background:#fff;border:1.5px solid #b8975a;border-radius:6px;padding:7px;font-size:10.5px;font-weight:600;color:#b8975a;cursor:pointer;font-family:inherit';
+    rb.addEventListener('click',function(){genVideoForSlot(idx,box);});
+    box.appendChild(rb);
+    return;
+  }
+  // idle: boton inicial para generar el video de esta imagen
+  box.style.cssText='margin-top:6px';
+  var gb=document.createElement('button');gb.textContent='🎬 Generar Video';
+  gb.style.cssText='width:100%;background:#fff;border:1.5px solid #7a9ec4;border-radius:6px;padding:7px;font-size:10.5px;font-weight:600;color:#7a9ec4;cursor:pointer;font-family:inherit';
+  gb.addEventListener('click',function(){genVideoForSlot(idx,box);});
+  box.appendChild(gb);
+}
+
+async function genVideoForSlot(idx,box){
+  if(!imgs[idx]||!imgs[idx].src){alert('Primero genera la imagen '+(idx+1)+'.');return;}
+  vidState[idx]='loading';vidErrMsg[idx]='';
+  renderVideoControls(box,idx);
+  try{
+    var movePrompt=buildVideoMotionPrompt(idx);
+    var imgInfo=dataUrlMimeAndB64(imgs[idx].src);
+    var startRes=await fetch('/api/video-start',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imageBase64:imgInfo.b64,prompt:movePrompt}),
+    });
+    var startData=await startRes.json();
+    if(!startRes.ok)throw new Error(startData.error||'Error '+startRes.status);
+    if(!startData.operationName)throw new Error('No se recibio operationName.');
+
+    var videoUrl=null,attempts=0,maxAttempts=60; // ~10 minutos a 10s cada uno
+    while(attempts<maxAttempts){
+      await new Promise(function(r){setTimeout(r,10000);});
+      attempts++;
+      var statusRes=await fetch('/api/video-status',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({operationName:startData.operationName}),
+      });
+      var statusData=await statusRes.json();
+      if(!statusRes.ok)throw new Error(statusData.error||'Error '+statusRes.status);
+      if(statusData.done){
+        if(statusData.error)throw new Error(statusData.error);
+        videoUrl=statusData.videoUrl;
+        break;
+      }
+    }
+    if(!videoUrl)throw new Error('Tiempo de espera agotado generando el video. Intenta de nuevo.');
+
+    // Descargar el MP4 desde la URL firmada y convertirlo en blob local (para descarga directa y ZIP)
+    var vidResp=await fetch(videoUrl);
+    if(!vidResp.ok)throw new Error('No se pudo descargar el video generado.');
+    var vidBlob=await vidResp.blob();
+    var localUrl=URL.createObjectURL(vidBlob);
+
+    vids[idx]={url:localUrl,blob:vidBlob};
+    vidState[idx]='done';
+    cost+=0.05;updCost();chkExport();
+    renderVideoControls(box,idx);
+  }catch(e){
+    vidState[idx]='error';vidErrMsg[idx]=e.message||'Error generando el video.';
+    renderVideoControls(box,idx);
+  }
+}
+
+// Construye el prompt de movimiento de camara/escena para Veo, basado en el mismo
+// momento narrativo que ya tiene la imagen (el prompt original del BLOQUE C), no inventado de nuevo.
+function buildVideoMotionPrompt(idx){
+  var base=lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'';
+  return 'Subtle cinematic motion for this scene, slow and natural movement, slight camera push-in or gentle pan, character breathing and blinking naturally, realistic subtle motion only, no distortion, no warping. Scene context: '+base;
+}
+
 function chkExport(){if(audES||audEN||imgs.length)document.getElementById('expbtn').style.display='flex';}
 
 function fmtSRTTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.round((s%1)*1000);return(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc+','+(ms<100?(ms<10?'00':'0'):'')+ms;}
@@ -826,6 +943,12 @@ async function exportAll(){
         if(b64) zip.file(slug+'-imagen-'+(i+1)+'.png',b64,{base64:true});
       }
     }
+    for(var vi=0;vi<vids.length;vi++){
+      if(vids[vi]&&vids[vi].blob){
+        var vb=await vids[vi].blob.arrayBuffer();
+        zip.file(slug+'-video-'+(vi+1)+'.mp4',vb);
+      }
+    }
     var content=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
     var url=URL.createObjectURL(content);
     var a=document.createElement('a');
@@ -833,9 +956,9 @@ async function exportAll(){
     document.body.appendChild(a);a.click();
     setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},5000);
     btn.innerHTML='✓ ZIP Descargado';
-    setTimeout(function(){btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imágenes)';btn.disabled=false;},3000);
+    setTimeout(function(){btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imágenes + Videos)';btn.disabled=false;},3000);
   }catch(e){
-    btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imágenes)';btn.disabled=false;
+    btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imágenes + Videos)';btn.disabled=false;
     alert('Error ZIP: '+e.message);
   }
 }
@@ -856,7 +979,7 @@ function hideErr(){document.getElementById('ebox').style.display='none';}
 function reset(){
   document.getElementById('ow').style.display='none';
   document.getElementById('conc').value='';updCC();updGBtn();lastRes=null;
-  audES=null;audEN=null;imgs=[];sT='';rfAll();
+  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];sT='';rfAll();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
