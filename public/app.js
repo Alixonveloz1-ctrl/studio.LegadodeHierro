@@ -939,13 +939,13 @@ async function exportAll(){
     for(var i=0;i<imgs.length;i++){
       if(imgs[i]&&imgs[i].src){
         var b64=imgs[i].src.split(',')[1];
-        if(b64) zip.file(slug+'-imagen-'+(i+1)+'.png',b64,{base64:true});
+        if(b64) zip.file('imagenes/'+slug+'-imagen-'+(i+1)+'.png',b64,{base64:true});
       }
     }
     for(var vi=0;vi<vids.length;vi++){
       if(vids[vi]&&vids[vi].blob){
         var vb=await vids[vi].blob.arrayBuffer();
-        zip.file(slug+'-video-'+(vi+1)+'.mp4',vb);
+        zip.file('videos/'+slug+'-video-'+(vi+1)+'.mp4',vb);
       }
     }
     var content=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
