@@ -853,7 +853,7 @@ async function genVideoForSlot(idx,box){
 
     vids[idx]={url:localUrl,blob:vidBlob};
     vidState[idx]='done';
-    cost+=0.05;updCost();chkExport();
+    cost+=0.40;updCost();chkExport(); // Veo 3.1 Lite: $0.05/seg x 8 seg = $0.40 por clip
     renderVideoControls(box,idx);
   }catch(e){
     vidState[idx]='error';vidErrMsg[idx]=e.message||'Error generando el video.';
@@ -863,9 +863,23 @@ async function genVideoForSlot(idx,box){
 
 // Construye el prompt de movimiento de camara/escena para Veo, basado en el mismo
 // momento narrativo que ya tiene la imagen (el prompt original del BLOQUE C), no inventado de nuevo.
+// Movimiento natural y variado segun la escena, pero con control estricto de expresion facial
+// (autoridad financiera, nunca tristeza ni distorsion) y de que cualquier accion tenga sentido real.
 function buildVideoMotionPrompt(idx){
   var base=lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'';
-  return 'Subtle cinematic motion for this scene, slow and natural movement, slight camera push-in or gentle pan, character breathing and blinking naturally, realistic subtle motion only, no distortion, no warping. Scene context: '+base;
+  return 'Natural authentic movement matching exactly what the character is doing in this scene -- '
+    +'if speaking to camera: confident natural hand gestures while talking; '
+    +'if writing or signing: calm deliberate hand movement, pen moves naturally across the page; '
+    +'if pointing or explaining at a whiteboard: natural arm and hand movement while gesturing toward real content; '
+    +'if walking or reviewing documents: smooth realistic body movement. '
+    +'The motion must feel grounded and purposeful, never random or exaggerated.\n\n'
+    +'FACIAL EXPRESSION (strict, do not deviate): serious, focused, professional, confident financial educator and authority figure. '
+    +'NEVER sad, NEVER frowning, NEVER a long or droopy face, NEVER distorted or asymmetrical eyes. '
+    +'Expression stays consistent, composed and authoritative throughout the clip. Only natural subtle blinking and breathing.\n\n'
+    +'IF WRITING OR DRAWING IS VISIBLE: strokes must form real legible numbers, financial charts, graphs, or words -- '
+    +'never random scribbles, never childlike marks, never meaningless lines.\n\n'
+    +'Realistic human anatomy at all times: natural hand and finger movement, no warping, no melting features, no extra or missing fingers, no distortion of the face or body.\n\n'
+    +'Scene context (what is actually happening in this moment of the story): '+base;
 }
 
 function chkExport(){if(audES||audEN||imgs.length)document.getElementById('expbtn').style.display='flex';}
