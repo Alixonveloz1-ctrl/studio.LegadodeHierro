@@ -72,6 +72,7 @@ export default async function handler(req, res) {
           storageUri: GCS_OUTPUT_BUCKET,
           sampleCount: 1,
           personGeneration: 'allow_adult',
+          generateAudio: false,
           negativePrompt: 'deformed hands, extra fingers, missing fingers, merged fingers, bad anatomy, blurry, watermark, text overlay',
         },
       }),
