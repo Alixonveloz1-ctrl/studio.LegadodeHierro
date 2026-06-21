@@ -581,11 +581,27 @@ function combineAlignments(alignments,offsetSeconds){
 var imgRefs=[];
 
 async function loadRefs(){
-  var REFS=['https://i.ibb.co/m5Cqfs5n/IMG-8206.jpg','https://i.ibb.co/3m42CzNf/IMG-8162.jpg','https://i.ibb.co/GvfhKnJ3/IMG-8117.jpg'];
+  var REFS=[
+    'https://i.ibb.co/0pwqL41h/Cu-nto-tiempo-m-s-vas-a-imagen-5.png',
+    'https://i.ibb.co/3yCprb4s/Cu-nto-tiempo-m-s-vas-a-imagen-3.png',
+    'https://i.ibb.co/p61T7v1C/Cu-nto-tiempo-m-s-vas-a-imagen-2.png',
+    'https://i.ibb.co/rKszH22s/Recorr-este-camino-solo-imagen-4.png',
+    'https://i.ibb.co/xSNVwxJK/Recorr-este-camino-solo-imagen-3.png',
+    'https://i.ibb.co/tRqj5z4/La-diferencia-entre-traba-imagen-2.png',
+    'https://i.ibb.co/rKL11gMx/No-necesitas-capital-para-imagen-7.png',
+    'https://i.ibb.co/LX5Xr9pb/C-mo-hacer-que-tu-dinero-imagen-2.png',
+    'https://i.ibb.co/G3sbgP74/Est-s-listo-para-dar-el-p-imagen-4.png',
+    'https://i.ibb.co/6cxRXV6z/Prefiero-intentarlo-mil-v-imagen-7.png',
+    'https://i.ibb.co/JWpq0cL9/Prefiero-intentarlo-mil-v-imagen-4.png'
+  ];
+  // Elige 4 al azar de las 11 (sin repetir) en cada generacion
+  var pool=REFS.slice();
+  for(var pi=pool.length-1;pi>0;pi--){var pj=Math.floor(Math.random()*(pi+1));var ptmp=pool[pi];pool[pi]=pool[pj];pool[pj]=ptmp;}
+  var chosen=pool.slice(0,4);
   var refs=[];
-  for(var ri=0;ri<REFS.length;ri++){
+  for(var ri=0;ri<chosen.length;ri++){
     try{
-      var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
+      var rr=await fetch(chosen[ri]);if(!rr.ok)continue;
       var rb=await rr.blob();
       var rb64=await new Promise(function(res){var rd=new FileReader();rd.onloadend=function(){res(rd.result.split(',')[1]);};rd.readAsDataURL(rb);});
       refs.push(rb64);
