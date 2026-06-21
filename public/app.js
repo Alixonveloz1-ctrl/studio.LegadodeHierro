@@ -526,8 +526,9 @@ async function genAudio(lang){
       }
       blob=audioBufferToWav(out);
       url=URL.createObjectURL(blob);
-      // Combina alignments: a la 2da parte le suma la duracion real de la 1ra
-      combinedAlignment=combineAlignments(alignments,bufs[0].duration);
+      // Combina alignments: cada parte suma el offset acumulado de las duraciones reales anteriores
+      var durations=bufs.map(function(b){return b.duration;});
+      combinedAlignment=combineAlignments(alignments,durations);
     }
     if(isEN){audEN={blob:blob,url:url,alignment:combinedAlignment};}
     else{audES={blob:blob,url:url,alignment:combinedAlignment};}
@@ -564,17 +565,27 @@ function audioBufferToWav(buffer){
 }
 
 // Combina dos alignments de ElevenLabs sumando el offset real a la segunda parte
-function combineAlignments(alignments,offsetSeconds){
-  var a1=alignments[0],a2=alignments[1];
-  if(!a1||!a1.characters)return a2||null;
-  if(!a2||!a2.characters)return a1;
-  var offset=offsetSeconds||0;
-  var characters=a1.characters.concat([' '],a2.characters);
-  var starts=(a1.character_start_times_seconds||[])
-    .concat([offset],(a2.character_start_times_seconds||[]).map(function(t){return t+offset;}));
-  var ends=(a1.character_end_times_seconds||[])
-    .concat([offset],(a2.character_end_times_seconds||[]).map(function(t){return t+offset;}));
-  return {characters:characters,character_start_times_seconds:starts,character_end_times_seconds:ends};
+// Combina N alignments de ElevenLabs, sumando a cada parte el offset acumulado
+// de duracion real de todas las partes anteriores (durations[] = duracion en seg de cada AudioBuffer)
+function combineAlignments(alignments,durations){
+  var allChars=[],allStarts=[],allEnds=[];
+  var offset=0;
+  for(var i=0;i<alignments.length;i++){
+    var a=alignments[i];
+    if(a&&a.characters){
+      if(allChars.length)allChars.push(' '); // separador entre bloques, solo si ya hay contenido previo
+      var starts=a.character_start_times_seconds||[];
+      var ends=a.character_end_times_seconds||[];
+      for(var ci=0;ci<a.characters.length;ci++){
+        allChars.push(a.characters[ci]);
+        allStarts.push((starts[ci]||0)+offset);
+        allEnds.push((ends[ci]||0)+offset);
+      }
+    }
+    offset+=durations[i]||0;
+  }
+  if(!allChars.length)return null;
+  return {characters:allChars,character_start_times_seconds:allStarts,character_end_times_seconds:allEnds};
 }
 
 // IMAGES
@@ -583,10 +594,10 @@ var imgRefs=[];
 async function loadRefs(){
   // 4 referencias FIJAS del personaje -- siempre las mismas, para maxima consistencia de rostro/cuerpo
   var REFS=[
-    'https://i.ibb.co/0pwqL41h/Cu-nto-tiempo-m-s-vas-a-imagen-5.png',
-    'https://i.ibb.co/3yCprb4s/Cu-nto-tiempo-m-s-vas-a-imagen-3.png',
-    'https://i.ibb.co/p61T7v1C/Cu-nto-tiempo-m-s-vas-a-imagen-2.png',
-    'https://i.ibb.co/rKszH22s/Recorr-este-camino-solo-imagen-4.png'
+    'https://i.ibb.co/RGgryDhy/Cu-nto-tiempo-m-s-vas-a-imagen-5.png',
+    'https://i.ibb.co/fzZF6dsK/Prefiero-intentarlo-mil-v-imagen-7.png',
+    'https://i.ibb.co/chTyj7RC/La-diferencia-entre-traba-imagen-2.png',
+    'https://i.ibb.co/mFtmDw1N/Recorr-este-camino-solo-imagen-4.png'
   ];
   var refs=[];
   for(var ri=0;ri<REFS.length;ri++){
@@ -838,19 +849,21 @@ async function genVideoForSlot(idx,box){
 // (autoridad financiera, nunca tristeza ni distorsion) y de que cualquier accion tenga sentido real.
 function buildVideoMotionPrompt(idx){
   var base=lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'';
-  return 'Natural authentic movement matching exactly what the character is doing in this scene -- '
-    +'if speaking to camera: confident natural hand gestures while talking; '
-    +'if writing or signing: calm deliberate hand movement, pen moves naturally across the page; '
-    +'if pointing or explaining at a whiteboard: natural arm and hand movement while gesturing toward real content; '
-    +'if walking or reviewing documents: smooth realistic body movement. '
-    +'The motion must feel grounded and purposeful, never random or exaggerated.\n\n'
+  return 'MANDATORY ACTION FOR THIS CLIP (the character MUST actively perform this action throughout the entire clip, not just stand still): '+base+'\n\n'
+    +'This is not optional and not a static pose -- the character is actively DOING this action with continuous natural motion for the full duration of the clip. '
+    +'A slow zoom toward a motionless character is NOT acceptable and must be avoided entirely.\n\n'
+    +'Match the action type to natural physical motion: '
+    +'if signing or writing on paper -- hand and pen move continuously across the page with deliberate natural strokes; '
+    +'if writing or pointing on a whiteboard -- arm and hand move actively, tracing real legible numbers, charts, or words, never static, never paused; '
+    +'if speaking to camera -- natural confident hand gestures accompany the speech, mouth and expression are animated as if talking; '
+    +'if walking or reviewing documents -- continuous realistic body and hand movement throughout. '
+    +'The motion must feel grounded, purposeful, and continuous from the first frame to the last -- never random, never exaggerated, never reduced to just camera movement.\n\n'
     +'FACIAL EXPRESSION (strict, do not deviate): serious, focused, professional, confident financial educator and authority figure. '
     +'NEVER sad, NEVER frowning, NEVER a long or droopy face, NEVER distorted or asymmetrical eyes. '
-    +'Expression stays consistent, composed and authoritative throughout the clip. Only natural subtle blinking and breathing.\n\n'
+    +'Expression stays consistent, composed and authoritative throughout the clip. Natural subtle blinking and breathing only.\n\n'
     +'IF WRITING OR DRAWING IS VISIBLE: strokes must form real legible numbers, financial charts, graphs, or words -- '
     +'never random scribbles, never childlike marks, never meaningless lines.\n\n'
-    +'Realistic human anatomy at all times: natural hand and finger movement, no warping, no melting features, no extra or missing fingers, no distortion of the face or body.\n\n'
-    +'Scene context (what is actually happening in this moment of the story): '+base;
+    +'Realistic human anatomy at all times: natural hand and finger movement, no warping, no melting features, no extra or missing fingers, no distortion of the face or body.';
 }
 
 function chkExport(){if(audES||audEN||imgs.length)document.getElementById('expbtn').style.display='flex';}
