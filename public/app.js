@@ -581,27 +581,17 @@ function combineAlignments(alignments,offsetSeconds){
 var imgRefs=[];
 
 async function loadRefs(){
+  // 4 referencias FIJAS del personaje -- siempre las mismas, para maxima consistencia de rostro/cuerpo
   var REFS=[
     'https://i.ibb.co/0pwqL41h/Cu-nto-tiempo-m-s-vas-a-imagen-5.png',
     'https://i.ibb.co/3yCprb4s/Cu-nto-tiempo-m-s-vas-a-imagen-3.png',
     'https://i.ibb.co/p61T7v1C/Cu-nto-tiempo-m-s-vas-a-imagen-2.png',
-    'https://i.ibb.co/rKszH22s/Recorr-este-camino-solo-imagen-4.png',
-    'https://i.ibb.co/xSNVwxJK/Recorr-este-camino-solo-imagen-3.png',
-    'https://i.ibb.co/tRqj5z4/La-diferencia-entre-traba-imagen-2.png',
-    'https://i.ibb.co/rKL11gMx/No-necesitas-capital-para-imagen-7.png',
-    'https://i.ibb.co/LX5Xr9pb/C-mo-hacer-que-tu-dinero-imagen-2.png',
-    'https://i.ibb.co/G3sbgP74/Est-s-listo-para-dar-el-p-imagen-4.png',
-    'https://i.ibb.co/6cxRXV6z/Prefiero-intentarlo-mil-v-imagen-7.png',
-    'https://i.ibb.co/JWpq0cL9/Prefiero-intentarlo-mil-v-imagen-4.png'
+    'https://i.ibb.co/rKszH22s/Recorr-este-camino-solo-imagen-4.png'
   ];
-  // Elige 4 al azar de las 11 (sin repetir) en cada generacion
-  var pool=REFS.slice();
-  for(var pi=pool.length-1;pi>0;pi--){var pj=Math.floor(Math.random()*(pi+1));var ptmp=pool[pi];pool[pi]=pool[pj];pool[pj]=ptmp;}
-  var chosen=pool.slice(0,4);
   var refs=[];
-  for(var ri=0;ri<chosen.length;ri++){
+  for(var ri=0;ri<REFS.length;ri++){
     try{
-      var rr=await fetch(chosen[ri]);if(!rr.ok)continue;
+      var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
       var rb=await rr.blob();
       var rb64=await new Promise(function(res){var rd=new FileReader();rd.onloadend=function(){res(rd.result.split(',')[1]);};rd.readAsDataURL(rb);});
       refs.push(rb64);
@@ -654,9 +644,7 @@ function setSlotOk(slot,src,idx){
   rb.addEventListener('click',function(){
     setSlotLoading(slot,iidx);
     var p=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    var prevSrc=iidx>0&&imgs[iidx-1]?imgs[iidx-1].src:null;
-    var chainedRefs=buildChainedRefs(prevSrc,imgRefs);
-    genOneImage('9:16 vertical portrait format, tall image not square. '+p,chainedRefs).then(function(s){
+    genOneImage('9:16 vertical portrait format, tall image not square. '+p,imgRefs).then(function(s){
       imgs[iidx]={src:s,idx:iidx+1};setSlotOk(slot,s,iidx);cost+=0.068;updCost();chkExport();
     }).catch(function(e){setSlotError(slot,iidx,e.message);});
   });
@@ -681,9 +669,7 @@ function setSlotError(slot,idx,msg){
   rbtn.addEventListener('click',function(){
     setSlotLoading(slot,iidx);
     var prompt=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    var prevSrc=iidx>0&&imgs[iidx-1]?imgs[iidx-1].src:null;
-    var chainedRefs=buildChainedRefs(prevSrc,imgRefs);
-    genOneImage(prompt,chainedRefs).then(function(src){
+    genOneImage(prompt,imgRefs).then(function(src){
       imgs[iidx]={src:src,idx:iidx+1};
       setSlotOk(slot,src,iidx);
       cost+=0.068;updCost();chkExport();
@@ -700,18 +686,6 @@ function dataUrlToB64(dataUrl){
   if(!dataUrl)return null;
   var idx=dataUrl.indexOf(',');
   return idx>-1?dataUrl.slice(idx+1):dataUrl;
-}
-
-// Arma las referencias para la imagen N: la imagen anterior ya generada (si existe) + 2 referencias originales del personaje
-function buildChainedRefs(prevImageDataUrl,baseRefs){
-  var refs=[];
-  if(prevImageDataUrl){
-    var prevB64=dataUrlToB64(prevImageDataUrl);
-    if(prevB64)refs.push(prevB64);
-  }
-  // 2 referencias originales del personaje para anclar cara/cuerpo (las primeras 2 del set ya cargado)
-  for(var i=0;i<Math.min(2,baseRefs.length);i++)refs.push(baseRefs[i]);
-  return refs;
 }
 
 async function genImages(){
@@ -736,15 +710,12 @@ async function genImages(){
     slots.push(slot);
   }
   var gen=0;
-  var prevImg=null; // imagen anterior ya generada, para encadenar continuidad
   for(var i=0;i<totalImgs;i++){
     st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
     try{
-      var chainedRefs=buildChainedRefs(prevImg,imgRefs);
-      var src=await genOneImage('9:16 vertical portrait format, tall image not square. '+lastRes.c[i],chainedRefs);
+      var src=await genOneImage('9:16 vertical portrait format, tall image not square. '+lastRes.c[i],imgRefs);
       imgs[i]={src:src,idx:i+1};
       setSlotOk(slots[i],src,i);
-      prevImg=src; // la siguiente imagen se encadena a esta
       gen++;cost+=0.068;updCost();chkExport();
     }catch(e){
       setSlotError(slots[i],i,e.message);
