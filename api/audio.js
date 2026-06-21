@@ -23,26 +23,56 @@ module.exports = async (req, res) => {
   const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'IRHApOXLvnW57QJPQH2P';
   if (!EL_KEY) return res.status(500).json({ error: 'ELEVENLABS_API_KEY no configurada' });
 
-  // Divide el texto en dos mitades por un punto cercano al centro (sin cortar frases)
-  function splitInHalf(t) {
+  // Velocidad de habla estimada en espanol (ritmo natural locucion): ~150 palabras/minuto = 2.5 palabras/segundo
+  const WORDS_PER_SECOND = 2.5;
+  const TARGET_SECONDS_PER_BLOCK = 40;
+  const TARGET_WORDS_PER_BLOCK = TARGET_SECONDS_PER_BLOCK * WORDS_PER_SECOND; // ~100 palabras
+
+  // Divide el texto en bloques de ~40 segundos de habla estimada, cortando siempre
+  // en el punto (.) mas cercano al objetivo para no partir una oracion a la mitad.
+  function splitByDuration(t) {
     const clean = t.trim();
-    if (clean.length < 400) return [clean]; // corto: una sola llamada
-    const mid = Math.floor(clean.length / 2);
-    let best = -1, bestDist = Infinity;
+    const totalWords = clean.split(/\s+/).filter(Boolean).length;
+    if (totalWords <= TARGET_WORDS_PER_BLOCK) return [clean]; // corto: una sola llamada
+
+    const sentenceEnds = [];
     for (let i = 0; i < clean.length; i++) {
-      if (clean[i] === '.') {
-        const dist = Math.abs(i - mid);
-        if (dist < bestDist) { bestDist = dist; best = i; }
+      if (clean[i] === '.') sentenceEnds.push(i);
+    }
+    if (sentenceEnds.length === 0) return [clean];
+
+    const blocks = [];
+    let wordsAccum = 0;
+    let lastCut = 0;
+    const words = clean.split(/\s+/);
+    let charPos = 0;
+    let target = TARGET_WORDS_PER_BLOCK;
+
+    for (let wi = 0; wi < words.length; wi++) {
+      charPos += words[wi].length + 1;
+      wordsAccum++;
+      if (wordsAccum >= target) {
+        let best = -1, bestDist = Infinity;
+        for (const sePos of sentenceEnds) {
+          if (sePos <= lastCut) continue;
+          const dist = Math.abs(sePos - charPos);
+          if (dist < bestDist) { bestDist = dist; best = sePos; }
+        }
+        if (best !== -1 && best > lastCut) {
+          const block = clean.slice(lastCut, best + 1).trim();
+          if (block) blocks.push(block);
+          lastCut = best + 1;
+          wordsAccum = 0;
+          target = TARGET_WORDS_PER_BLOCK;
+        }
       }
     }
-    if (best === -1) return [clean];
-    const first = clean.slice(0, best + 1).trim();
-    const second = clean.slice(best + 1).trim();
-    if (!first || !second) return [clean];
-    return [first, second];
+    const remainder = clean.slice(lastCut).trim();
+    if (remainder) blocks.push(remainder);
+
+    return blocks.length > 0 ? blocks : [clean];
   }
 
-  // Llama a ElevenLabs para un fragmento, con contexto opcional para continuidad de voz
   async function generatePart(partText, prevText, nextText) {
     const url = 'https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID + '/with-timestamps';
     const body = {
@@ -85,9 +115,8 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const parts = splitInHalf(text);
+    const parts = splitByDuration(text);
 
-    // Caso simple: una sola llamada (texto corto). Devuelve un solo fragmento.
     if (parts.length === 1) {
       const data = await generatePart(parts[0], '', '');
       return res.json({
@@ -97,16 +126,20 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Dos llamadas con contexto cruzado para que la voz suene continua.
-    // IMPORTANTE: devolvemos las dos partes POR SEPARADO. El navegador las une
-    // a nivel de audio real (Web Audio API), evitando el MP3 con cabecera intermedia.
-    const first = await generatePart(parts[0], '', parts[1]);
-    const second = await generatePart(parts[1], parts[0], '');
+    const audioParts = [];
+    const alignParts = [];
+    for (let i = 0; i < parts.length; i++) {
+      const prevText = i > 0 ? parts[i - 1] : '';
+      const nextText = i < parts.length - 1 ? parts[i + 1] : '';
+      const data = await generatePart(parts[i], prevText, nextText);
+      audioParts.push(data.audio_base64);
+      alignParts.push(data.alignment || null);
+    }
 
     return res.json({
       success: true,
-      parts: [ first.audio_base64, second.audio_base64 ],
-      alignments: [ first.alignment || null, second.alignment || null ]
+      parts: audioParts,
+      alignments: alignParts
     });
 
   } catch (e) {
