@@ -872,7 +872,18 @@ function buildVideoMotionPrompt(idx){
     +'HEAD AND NECK MOVEMENT (strict): head movements must be minimal and slow -- slight forward nod or minor downward tilt toward the work only. '
     +'NO neck rotation, NO side-to-side head turning, NO looking up then down dramatically, NO head tilting. '
     +'Keeping the head relatively stable prevents anatomy distortion in the 2D comic style.\n\n'
-    +'Realistic human anatomy proportions at all times (within the 2D comic style): natural hand and finger movement, no warping, no melting features, no extra or missing fingers, no distortion of the face or body.';
+    +'Realistic human anatomy proportions at all times (within the 2D comic style): natural hand and finger movement, no warping, no melting features, no extra or missing fingers, no distortion of the face or body.\n\n'
+    +'CINEMATIC CAMERA MOVEMENT (mandatory): choose ONE of the following based on the scene action and apply it dynamically and intentionally throughout the entire clip -- '
+    +'LOW ANGLE PUSH-IN: camera starts low looking up at the character with authority and slowly pushes forward -- use for power, decision-making, or speaking to camera; '
+    +'TRACKING FOLLOW: camera follows the character hands or body movement fluidly -- use for signing, writing, or pointing at whiteboard; '
+    +'DRAMATIC PUSH-IN: camera starts at medium distance and pushes in decisively toward the face or hands -- use for moments of confrontation or revelation; '
+    +'SLOW ORBIT: camera moves laterally around the character in a slow deliberate arc -- use for reviewing documents, thinking, or surveying the scene; '
+    +'HIGH-TO-LOW: camera starts slightly above eye level and slowly descends to a commanding low angle -- use for establishing authority. '
+    +'NO static camera. NO simple mechanical zoom. NO forward drift with no direction. The camera must feel like a human cinematographer chose this shot intentionally for this specific scene.\n\n'
+    +'CLIP START AND END (strict): the clip must start and end cleanly on a fully opaque, fully visible frame. '
+    +'NO fade in, NO fade out, NO dissolve, NO cross-fade, NO transition effect of any kind at the beginning or end of the clip. '
+    +'NO double image, NO ghosting, NO transparency effect, NO overlapping frames. '
+    +'The last frame must be as solid and clear as the first frame -- cut clean, no blending.';
 }
 
 function chkExport(){if(audES||audEN||imgs.length)document.getElementById('expbtn').style.display='flex';}
