@@ -863,8 +863,15 @@ function buildVideoMotionPrompt(idx){
     +'FACIAL EXPRESSION ONLY (this controls the face, never the body posture or head direction, which are governed entirely by the action above): serious, focused, professional, concentrated on the task at hand. '
     +'NEVER sad, NEVER frowning, NEVER a long or droopy face, NEVER distorted or asymmetrical eyes, NEVER a flirtatious or seductive look, NEVER a modeling or beauty-pageant expression. '
     +'Expression stays consistent and composed throughout the clip. Natural subtle blinking only.\n\n'
-    +'IF WRITING OR DRAWING IS VISIBLE: strokes must form real legible numbers, financial charts, graphs, or words -- '
-    +'never random scribbles, never childlike marks, never meaningless lines.\n\n'
+    +'IF WRITING OR DRAWING ON A WHITEBOARD OR PAPER IS VISIBLE: every stroke must have clear visible purpose -- '
+    +'single digits (1, 5, 10, 100), short words (PLAN, META, ROI, ACTIVO), simple arrows pointing somewhere, '
+    +'straight lines connecting two labeled points, or basic bar/line chart shapes. '
+    +'Strokes are slow, deliberate, and directional -- never random, never circular scribbles, never meaningless zigzag lines. '
+    +'The hand moves with intention, as if writing something the character means to communicate. '
+    +'Complexity is NOT required -- a single number written clearly is better than a complex formula written messily.\n\n'
+    +'HEAD AND NECK MOVEMENT (strict): head movements must be minimal and slow -- slight forward nod or minor downward tilt toward the work only. '
+    +'NO neck rotation, NO side-to-side head turning, NO looking up then down dramatically, NO head tilting. '
+    +'Keeping the head relatively stable prevents anatomy distortion in the 2D comic style.\n\n'
     +'Realistic human anatomy proportions at all times (within the 2D comic style): natural hand and finger movement, no warping, no melting features, no extra or missing fingers, no distortion of the face or body.';
 }
 
