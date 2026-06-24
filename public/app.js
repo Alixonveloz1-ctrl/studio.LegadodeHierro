@@ -354,8 +354,15 @@ async function generate(){
     }
     var txt=d.text;
     if(!txt)throw new Error('Sin respuesta de texto.');
+    console.log('=== RAW API RESPONSE ===\n'+txt+'\n=== END RAW ===');
     var p=parseBlocks(txt);
+    console.log('=== PARSED ===','posC encontrado:'+(txt.indexOf('BLOQUE C')),'prompts:',p.c.length,'subtitulo:',p.subtitulo);
     if(!p.a||p.a.length<20)throw new Error('No se pudo leer el guion ES. Intenta de nuevo.');
+    // Si no hay prompts, mostrar el raw para diagnóstico
+    if(!p.c||p.c.length===0){
+      var debugMsg='Sin prompts. Respuesta del modelo (primeros 800 chars):\n\n'+txt.slice(0,800);
+      throw new Error(debugMsg);
+    }
     lastRes=Object.assign({},p,{raw:txt,topic:topic,tO:tO,dO:dO,hO:hO,modo:sMode});
     genCount++;cost+=0.015;updCost();
     audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
