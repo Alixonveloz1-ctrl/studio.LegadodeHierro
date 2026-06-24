@@ -332,8 +332,15 @@ async function generate(){
     modoInstruccion='\n\nMODO HISTORIA: BLOQUE C sigue el arco TRABAJADOR (prompt1) → CRISIS (prompt2) → HERRAMIENTA (prompt3) → OBJETO SIMBÓLICO (prompt4) → ALPHA EN MOVIMIENTO (prompt5). Después del prompt 5, incluye: SUBTÍTULO PANTALLA: [frase de cierre máximo 10 palabras en mayúsculas].';
   }
 
-  var numPrompts=sMode==='impacto'?'2 prompts de imagen':'5 prompts de imagen';
-  var msg=SP+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(sMode==='impacto'?'25-35 segundos':(dO?dO.label:'60 segundos'))+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[sH]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+modoInstruccion+'\n\nRecuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son los '+numPrompts+'. BLOQUE F es el guion en ingles sin prompts.';
+  var msg;
+  if(sMode==='impacto'){
+    // El SP de impacto ya contiene todas las instrucciones de formato, arquetipos y bloques.
+    // Solo se añaden los datos del episodio para no duplicar instrucciones y confundir al modelo.
+    msg=SP+'\\n\\n---\\n\\nDATOS DEL EPISODIO:\\nPILAR: '+(tO?tO.label+' — '+tO.desc:'Independencia Financiera')+'\\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' — '+(hi[sH]||hi.dato)+'\\nCONCEPTO: '+topic+'\\n\\nAhora genera los 3 bloques exactamente como se indica arriba.';
+  } else {
+    var numPrompts='5 prompts de imagen';
+    msg=SP+'\\n\\n---\\n\\nGenera un episodio COMPLETO:\\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\\nDURACION: '+(dO?dO.label:'60 segundos')+'\\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[sH]||hi.dato)+'\\nCONCEPTO: '+topic+'\\n\\n'+identidad+modoInstruccion+'\\n\\nRecuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son los '+numPrompts+'. BLOQUE F es el guion en ingles sin prompts.';
+  }
   try{
     var r=await fetch('/api/generate',{
       method:'POST',
@@ -780,7 +787,10 @@ function dataUrlToB64(dataUrl){
 
 async function genImages(){
   if(!lastRes||!lastRes.c||!lastRes.c.length){alert('No hay prompts. Regenera el episodio.');return;}
-  while(lastRes.c.length<5){lastRes.c.push(lastRes.c[lastRes.c.length-1]);}
+  // Modo Impacto: 2 prompts. Resto: completar hasta 5 si faltan.
+  if(lastRes.modo!=='impacto'){
+    while(lastRes.c.length<5){lastRes.c.push(lastRes.c[lastRes.c.length-1]);}
+  }
   var btn=document.getElementById('bimg');
   var st=document.getElementById('ist');
   var grid=document.getElementById('igrid');
