@@ -354,15 +354,8 @@ async function generate(){
     }
     var txt=d.text;
     if(!txt)throw new Error('Sin respuesta de texto.');
-    console.log('=== RAW API RESPONSE ===\n'+txt+'\n=== END RAW ===');
     var p=parseBlocks(txt);
-    console.log('=== PARSED ===','posC encontrado:'+(txt.indexOf('BLOQUE C')),'prompts:',p.c.length,'subtitulo:',p.subtitulo);
     if(!p.a||p.a.length<20)throw new Error('No se pudo leer el guion ES. Intenta de nuevo.');
-    // Si no hay prompts, mostrar el raw para diagnóstico
-    if(!p.c||p.c.length===0){
-      var debugMsg='Sin prompts. Respuesta del modelo (primeros 800 chars):\n\n'+txt.slice(0,800);
-      throw new Error(debugMsg);
-    }
     lastRes=Object.assign({},p,{raw:txt,topic:topic,tO:tO,dO:dO,hO:hO,modo:sMode});
     genCount++;cost+=0.015;updCost();
     audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
@@ -424,9 +417,22 @@ function parseBlocks(raw){
   var posA=-1,posC=-1,posF=-1;
   for(var i=0;i<cleanLines.length;i++){
     var upper=cleanLines[i].trim().toUpperCase().replace(/[*#_`:]/g,'').trim();
-    if(posA===-1&&upper.indexOf('BLOQUE A')===0){posA=i;}
-    else if(posC===-1&&upper.indexOf('BLOQUE C')===0){posC=i;}
-    else if(posF===-1&&upper.indexOf('BLOQUE F')===0){posF=i;}
+    if(posA===-1&&upper.indexOf('BLOQUE A')===0){
+      // Si el modelo puso texto en la misma línea que BLOQUE A, separarlo
+      var afterA=cleanLines[i].trim().replace(/^[*#_`]*\s*BLOQUE\s*A\s*[:\-]?\s*/i,'');
+      if(afterA.length>5){cleanLines.splice(i+1,0,afterA);}
+      posA=i;
+    }
+    else if(posC===-1&&upper.indexOf('BLOQUE C')===0){
+      var afterC=cleanLines[i].trim().replace(/^[*#_`]*\s*BLOQUE\s*C\s*[:\-]?\s*/i,'');
+      if(afterC.length>5){cleanLines.splice(i+1,0,afterC);}
+      posC=i;
+    }
+    else if(posF===-1&&upper.indexOf('BLOQUE F')===0){
+      var afterF=cleanLines[i].trim().replace(/^[*#_`]*\s*BLOQUE\s*F\s*[:\-]?\s*/i,'');
+      if(afterF.length>5){cleanLines.splice(i+1,0,afterF);}
+      posF=i;
+    }
   }
   function extract(start,others){
     if(start===-1)return'';
