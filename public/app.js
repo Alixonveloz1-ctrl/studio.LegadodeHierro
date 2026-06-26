@@ -288,6 +288,7 @@ function buildSched(){
 
 function buildAll(){
   buildSched();
+  setTimeout(updImgLabel,100);
   // Selector de modo: Reel o Historia
   var modeWrap=document.getElementById('modeSelector');
   if(modeWrap){
@@ -299,7 +300,7 @@ function buildAll(){
       b.style.background=sMode===m.id?'#f0e8d8':'';
       b.querySelector('.om').style.color=sMode===m.id?'#b8975a':'';
       b.addEventListener('click',function(){
-        sMode=m.id;SP=buildSP();
+        sMode=m.id;SP=buildSP();updImgLabel();
         modeWrap.querySelectorAll('.oc').forEach(function(x){
           var s=x.dataset.id===sMode;
           x.classList.toggle('sel',s);x.style.borderColor=s?'#b8975a':'';
@@ -321,7 +322,7 @@ function buildAll(){
   DURS.forEach(function(d){
     var b=document.createElement('button');b.className='oc';b.dataset.id=d.id;
     b.innerHTML='<span class="om">'+d.label+'</span><span class="os">'+d.sub+'</span>';
-    b.addEventListener('click',function(){sD=d.id;rfAll();});
+    b.addEventListener('click',function(){sD=d.id;rfAll();updImgLabel();});
     dg.appendChild(b);
   });
   var hg=document.getElementById('hookGrid');
@@ -350,6 +351,12 @@ function rfAll(){
 }
 
 function updCC(){document.getElementById('cc').textContent=document.getElementById('conc').value.length;}
+function updImgLabel(){
+  var el=document.getElementById('imgCountLabel');if(!el)return;
+  var n=sMode==='impacto'?3:sD==='90'?8:sD==='30'?3:5;
+  el.textContent=n+' imágenes · Personaje en acción acorde al guion';
+}
+
 function updGBtn(){
   var b=document.getElementById('gbtn'),has=document.getElementById('conc').value.trim().length>0;
   b.disabled=loading||!has;b.classList.toggle('on',!loading&&has);
@@ -515,6 +522,17 @@ function renderOut(r){
   rfTabs(r);
   document.getElementById('audioCard').style.display='block';
   document.getElementById('imgCard').style.display='block';
+  // Botón generar todos los videos
+  var ballvids=document.getElementById('ballvids');
+  if(!ballvids){
+    ballvids=document.createElement('button');
+    ballvids.id='ballvids';
+    ballvids.textContent='🎬 Generar todos los videos';
+    ballvids.style.cssText='width:100%;margin-top:10px;padding:13px;background:#fff;border:2px solid #7a9ec4;border-radius:10px;font-size:13px;font-weight:700;color:#7a9ec4;cursor:pointer;font-family:inherit;display:none';
+    ballvids.addEventListener('click',genAllVideos);
+    document.getElementById('imgCard').appendChild(ballvids);
+  }
+  ballvids.style.display='none';
   document.getElementById('rES').style.display='none';
   document.getElementById('rEN').style.display='none';
   document.getElementById('ast').style.display='none';
@@ -791,7 +809,10 @@ function dataUrlToB64(dataUrl){
 
 async function genImages(){
   if(!lastRes||!lastRes.c||!lastRes.c.length){alert('No hay prompts. Regenera el episodio.');return;}
-  if(lastRes.modo!=='impacto'){while(lastRes.c.length<5){lastRes.c.push(lastRes.c[lastRes.c.length-1]);}}
+  // Determinar cuántas imágenes según modo y duración
+  var totalImgsTarget=lastRes.modo==='impacto'?3:lastRes.dO&&lastRes.dO.id==='90'?8:lastRes.dO&&lastRes.dO.id==='30'?3:5;
+  while(lastRes.c.length<totalImgsTarget){lastRes.c.push(lastRes.c[lastRes.c.length-1]);}
+  if(lastRes.c.length>totalImgsTarget){lastRes.c=lastRes.c.slice(0,totalImgsTarget);}
   var btn=document.getElementById('bimg');
   var st=document.getElementById('ist');
   var grid=document.getElementById('igrid');
@@ -802,7 +823,7 @@ async function genImages(){
   st.textContent='Cargando referencias del personaje...';
   imgRefs=await loadRefs();
   imgs=[];
-  var totalImgs=Math.min(lastRes.c.length,5);
+  var totalImgs=Math.min(lastRes.c.length,totalImgsTarget);
   var slots=[];
   for(var i=0;i<totalImgs;i++){
     var slot=document.createElement('div');
@@ -824,6 +845,7 @@ async function genImages(){
     if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,10000);});
   }
   st.textContent=gen+'/'+totalImgs+' imagenes generadas.';
+  if(gen>0){var bv=document.getElementById('ballvids');if(bv)bv.style.display='block';}
   btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
   chkExport();
 }
@@ -974,6 +996,20 @@ function buildVideoMotionPrompt(idx){
     +'NO fade in, NO fade out, NO dissolve, NO cross-fade, NO transition effect of any kind at the beginning or end of the clip. '
     +'NO double image, NO ghosting, NO transparency effect, NO overlapping frames. '
     +'The last frame must be as solid and clear as the first frame -- cut clean, no blending.';
+}
+
+async function genAllVideos(){
+  if(!imgs||!imgs.length){alert('Genera las imágenes primero.');return;}
+  var btn=document.getElementById('ballvids');
+  btn.disabled=true;btn.textContent='Generando videos...';
+  // Buscar todos los vboxes en orden
+  var slots=document.getElementById('igrid').querySelectorAll('.vbox');
+  for(var i=0;i<slots.length;i++){
+    if(!imgs[i]||!imgs[i].src){continue;}
+    if(vidState[i]==='done'){continue;} // ya tiene video, saltar
+    await genVideoForSlot(i,slots[i]);
+  }
+  btn.disabled=false;btn.textContent='🎬 Generar todos los videos';
 }
 
 function chkExport(){if(audES||audEN||imgs.length)document.getElementById('expbtn').style.display='flex';}
