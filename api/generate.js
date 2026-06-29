@@ -96,8 +96,9 @@ module.exports = async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        system_instruction: { parts: [{ text: 'Eres un asistente de guiones. Responde SIEMPRE en texto plano sin markdown, sin **, sin ##, sin encabezados, sin listas con guiones. Usa exactamente el formato de bloques que se te indica en el prompt.' }] },
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 3500 },
+        generationConfig: { maxOutputTokens: 3500, temperature: 0.9 },
       }),
     });
     const d = await r.json();
