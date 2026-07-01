@@ -116,7 +116,12 @@ module.exports = async (req, res) => {
     if (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0]) {
       text = d.candidates[0].content.parts[0].text;
     }
-    if (!text) return res.status(500).json({ error: 'Sin respuesta de texto' });
+    if (!text) {
+      console.error('Vertex empty text. Full response:', JSON.stringify(d).slice(0, 500));
+      return res.status(500).json({ error: 'Sin respuesta de texto' });
+    }
+    // Log first 300 chars to verify format
+    console.log('Vertex text preview:', text.slice(0, 300));
     return res.json({ success: true, text: text });
   } catch (e) {
     return res.status(500).json({ error: e.message });
