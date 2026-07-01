@@ -88,20 +88,26 @@ module.exports = async (req, res) => {
     const PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
     const token = await getGCPToken();
     const url = 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'X-Goog-User-Project': PROJECT_ID,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: 'Eres un asistente de guiones. Responde SIEMPRE en texto plano sin markdown, sin **, sin ##, sin encabezados, sin listas con guiones. Usa exactamente el formato de bloques que se te indica en el prompt.' }] },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 3500, temperature: 0.9 },
-      }),
-    });
-    const d = await r.json();
+    let r, d;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'X-Goog-User-Project': PROJECT_ID,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: 'Eres un asistente de guiones. Responde SIEMPRE en texto plano sin markdown, sin **, sin ##, sin encabezados, sin listas con guiones. Usa exactamente el formato de bloques que se te indica en el prompt.' }] },
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 3500, temperature: 0.9 },
+        }),
+      });
+      d = await r.json();
+      if (r.ok) break;
+      console.warn('Vertex attempt ' + (attempt+1) + ' failed:', JSON.stringify(d).slice(0,150));
+      if (attempt < 2) await new Promise(res => setTimeout(res, 2000));
+    }
     if (!r.ok) {
       const errMsg = (d && d.error && d.error.message) ? d.error.message : ('Vertex Error ' + r.status);
       return res.status(r.status).json({ error: errMsg });
