@@ -612,9 +612,11 @@ function renderOut(r){
     tr.appendChild(btn);
   });
   rfTabs(r);
+  document.getElementById('capCard').style.display='block';
   document.getElementById('audioCard').style.display='block';
   document.getElementById('imgCard').style.display='block';
   wireGenSettings();
+  genCaption();
   // Botón generar todos los videos
   var ballvids=document.getElementById('ballvids');
   if(!ballvids){
@@ -663,6 +665,70 @@ function rfTabs(r){
     body.appendChild(div);
   });
   blk.appendChild(body);ct.appendChild(blk);
+}
+
+// CAPTION + HASHTAGS (Facebook) — llamada SEPARADA a Gemini, no toca el guion.
+var lastCaption='',lastTags='';
+
+async function genCaption(){
+  if(!lastRes||!lastRes.a){return;}
+  var st=document.getElementById('capSt');
+  var er=document.getElementById('capErr');
+  var box=document.getElementById('capBox');
+  var rb=document.getElementById('bcap');
+  if(!st)return;
+  st.style.display='block';st.textContent='Generando caption y hashtags...';
+  er.style.display='none';box.style.display='none';
+  if(rb){rb.disabled=true;rb.style.opacity='.6';}
+  var tema=lastRes.topic||(lastRes.tO?lastRes.tO.label:'');
+  var pilar=lastRes.tO?lastRes.tO.label:'';
+  var prompt='Eres el community manager de LEGADO DE HIERRO, un canal en espanol para hombres hispanos sobre libertad financiera, disciplina, mentalidad y emprendimiento. Voz cruda, directa, sin motivacion vacia, sin frases de coach, sin calcos del ingles.\n\n'
+    +'A partir de este reel, escribe el texto para publicarlo en Facebook.\n\n'
+    +'PILAR: '+pilar+'\nTEMA: '+tema+'\nGUION:\n'+lastRes.a+'\n\n'
+    +'Devuelve EXACTAMENTE este formato en texto plano, sin markdown, sin ** ni ##:\n\n'
+    +'CAPTION:\n[1 a 3 frases cortas y potentes que enganchen, en la voz de la marca, en espanol neutro. Puedes cerrar invitando a seguir el canal o a comentar. NO pongas hashtags aqui. Maximo 1 emoji, o ninguno.]\n\n'
+    +'HASHTAGS:\n[Entre 14 y 20 hashtags en UNA sola linea separados por espacios. El PRIMERO debe ser SIEMPRE #LegadoDeHierro. Los demas relevantes al tema del reel y al nicho (finanzas, disciplina, mentalidad, dinero, libertad financiera, emprendimiento, exito, negocios, inversion). Mezcla espanol y algunos universales. Sin repetir, sin numerar. Solo los hashtags, nada mas.]';
+  try{
+    var r=await fetch('/api/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:prompt}),
+    });
+    var d=await r.json();
+    if(!r.ok||!d.text)throw new Error(d.error||'No se pudo generar');
+    var parsed=parseCaption(d.text);
+    lastCaption=parsed.caption;lastTags=parsed.tags;
+    document.getElementById('capText').textContent=lastCaption;
+    document.getElementById('capTags').textContent=lastTags;
+    box.style.display='block';st.style.display='none';
+  }catch(e){
+    er.textContent='Error: '+e.message;er.style.display='block';st.style.display='none';
+  }finally{
+    if(rb){rb.disabled=false;rb.style.opacity='1';}
+  }
+}
+
+// Separa CAPTION / HASHTAGS y garantiza #LegadoDeHierro como primer hashtag.
+function parseCaption(txt){
+  var caption='',tags='';
+  var t=(txt||'').replace(/\r/g,'').replace(/\*/g,'').replace(/#{2,}/g,'');
+  var mC=t.match(/CAPTION\s*:\s*([\s\S]*?)(?:HASHTAGS\s*:|$)/i);
+  var mH=t.match(/HASHTAGS\s*:\s*([\s\S]*)$/i);
+  if(mC)caption=mC[1].trim();
+  if(mH)tags=mH[1].trim();
+  if(!caption&&!tags)caption=t.trim();
+  tags=tags.replace(/\n+/g,' ').replace(/\s{2,}/g,' ').trim();
+  if(tags){
+    var lower=tags.toLowerCase();
+    if(lower.indexOf('#legadodehierro')===-1){
+      tags='#LegadoDeHierro '+tags;
+    }else if(lower.indexOf('#legadodehierro')>0){
+      tags=tags.replace(/#legadodehierro/ig,'').replace(/\s{2,}/g,' ').trim();
+      tags='#LegadoDeHierro '+tags;
+    }
+  }else{
+    tags='#LegadoDeHierro';
+  }
+  return {caption:caption,tags:tags};
 }
 
 // AUDIO
@@ -1402,6 +1468,14 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('baes').addEventListener('click',function(){genAudio('es');});
   document.getElementById('baen').addEventListener('click',function(){genAudio('en');});
   document.getElementById('bimg').addEventListener('click',genImages);
+  document.getElementById('bcap').addEventListener('click',genCaption);
+  document.getElementById('bcapcopy').addEventListener('click',function(){
+    if(lastCaption||lastTags){
+      var todo=(lastCaption?lastCaption+'\n\n':'')+(lastTags||'');
+      navigator.clipboard.writeText(todo);
+      var b=document.getElementById('bcapcopy');var o=b.textContent;b.textContent='Copiado ✓';setTimeout(function(){b.textContent=o;},1500);
+    }
+  });
   document.getElementById('expbtn').addEventListener('click',exportAll);
   document.getElementById('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
   document.getElementById('rp2').addEventListener('keydown',function(e){if(e.key==='Enter')doRegister();});
