@@ -98,17 +98,32 @@ export default async function handler(req) {
 
     const GCP_SERVICE_ACCOUNT = process.env.GCP_SERVICE_ACCOUNT;
     const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
-    const REGION = 'us-central1';
-    const MODEL = 'veo-3.1-lite-generate-001';
 
     if (!GCP_SERVICE_ACCOUNT) {
       return new Response(JSON.stringify({ error: 'GCP_SERVICE_ACCOUNT no configurado' }), { status: 500, headers: corsHeaders });
     }
 
+    // El operationName tiene la forma:
+    //   projects/{p}/locations/{region}/publishers/google/models/{model}/operations/{id}
+    // Derivamos region y ruta-del-modelo de ahi para que el polling funcione con
+    // CUALQUIER modelo de Veo elegido (no solo veo-3.1-lite). Si no se puede
+    // parsear, usamos el modelo enviado por el frontend o el valor por defecto.
+    let REGION = 'us-central1';
+    let modelResource = null;
+    const opIdx = operationName.indexOf('/operations/');
+    if (operationName.indexOf('projects/') === 0 && opIdx > -1) {
+      modelResource = operationName.slice(0, opIdx); // projects/.../models/{model}
+      const lm = operationName.match(/\/locations\/([^/]+)\//);
+      if (lm && lm[1]) REGION = lm[1];
+    } else {
+      const fallbackModel = (body.model && String(body.model)) || 'veo-3.1-lite-generate-001';
+      modelResource = `projects/${GCP_PROJECT_ID}/locations/${REGION}/publishers/google/models/${fallbackModel}`;
+    }
+
     const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
     const accessToken = await getAccessToken(serviceAccount);
 
-    const url = `https://${REGION}-aiplatform.googleapis.com/v1/projects/${GCP_PROJECT_ID}/locations/${REGION}/publishers/google/models/${MODEL}:fetchPredictOperation`;
+    const url = `https://${REGION}-aiplatform.googleapis.com/v1/${modelResource}:fetchPredictOperation`;
 
     const opResponse = await fetch(url, {
       method: 'POST',
