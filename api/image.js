@@ -1,10 +1,19 @@
-// api/generate.js
-// Generador de TEXTO (guiones) — Gemini como generador UNICO via Vertex AI.
-// Modelo principal: gemini-3.1-pro-preview (el mas potente disponible).
-// IMPORTANTE: los modelos Gemini 3.x SOLO responden en el endpoint GLOBAL
-// (https://aiplatform.googleapis.com/.../locations/global/...). En us-central1
-// devuelven 404. Los modelos 2.5 si funcionan en global, por eso el fallback
-// tambien usa global salvo el ultimo recurso 2.5-flash.
+// api/image.js
+// Generador de IMAGEN — Gemini nativo ("Nano Banana") via Vertex AI.
+// (Imagen clasico quedo deprecado / apagandose desde 2026-06-30; se usa Gemini.)
+//
+// Acepta en el body:
+//   prompt      (obligatorio)
+//   refImages   (array base64, opcional — referencias del personaje)
+//   model       (opcional) uno de:
+//                 gemini-2.5-flash-image      (Nano Banana, estable — DEFECTO)
+//                 gemini-3.1-flash-image      (Nano Banana 2, rapido)
+//                 gemini-3-pro-image          (Nano Banana Pro, maxima calidad)
+//   aspectRatio (opcional) 1:1 | 2:3 | 3:2 | 3:4 | 4:3 | 4:5 | 5:4 | 9:16 | 16:9 | 21:9
+//                 El formato se controla con generationConfig.imageConfig.aspectRatio
+//                 (no con texto en el prompt).
+//
+// Endpoint: los modelos Gemini 3.x SOLO responden en GLOBAL; 2.5 en us-central1.
 
 async function getGCPToken() {
   const sa = JSON.parse(process.env.GCP_SERVICE_ACCOUNT);
@@ -35,9 +44,16 @@ async function getGCPToken() {
   return data.access_token;
 }
 
-// Devuelve el endpoint correcto segun el modelo:
-//  - Gemini 3.x  -> endpoint GLOBAL (obligatorio, si no da 404)
-//  - Gemini 2.5  -> region us-central1
+const ALLOWED_IMAGE_MODELS = {
+  'gemini-2.5-flash-image': true,
+  'gemini-3.1-flash-image': true,
+  'gemini-3-pro-image': true,
+};
+const ALLOWED_RATIOS = {
+  '1:1': true, '2:3': true, '3:2': true, '3:4': true, '4:3': true,
+  '4:5': true, '5:4': true, '9:16': true, '16:9': true, '21:9': true,
+};
+
 function endpointFor(model, projectId) {
   if (/^gemini-3/.test(model)) {
     return 'https://aiplatform.googleapis.com/v1/projects/' + projectId +
@@ -65,92 +81,102 @@ module.exports = async (req, res) => {
     } catch(e) { req.body = {}; }
   }
 
-  const prompt = req.body && req.body.prompt ? req.body.prompt : null;
-  if (!prompt) return res.status(400).json({ error: 'Prompt requerido' });
+  const userPrompt = req.body && req.body.prompt ? req.body.prompt : null;
+  const refImages = req.body && req.body.refImages ? req.body.refImages : [];
+  if (!userPrompt) return res.status(400).json({ error: 'Prompt requerido' });
+
+  let model = req.body && req.body.model ? String(req.body.model) : 'gemini-2.5-flash-image';
+  if (!ALLOWED_IMAGE_MODELS[model]) model = 'gemini-2.5-flash-image';
+  let aspectRatio = req.body && req.body.aspectRatio ? String(req.body.aspectRatio) : '9:16';
+  if (!ALLOWED_RATIOS[aspectRatio]) aspectRatio = '9:16';
 
   if (!process.env.GCP_SERVICE_ACCOUNT) {
     return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
   }
 
-  const PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
-
-  // Cadena de modelos Gemini: principal + respaldos (todos Gemini).
-  // Se puede sobreescribir el principal enviando { model } en el body.
-  const requested = req.body && req.body.model ? String(req.body.model) : null;
-  const MODELS = requested
-    ? [requested, 'gemini-3.1-pro-preview', 'gemini-3-pro-preview', 'gemini-2.5-flash']
-    : ['gemini-3.1-pro-preview', 'gemini-3-pro-preview', 'gemini-2.5-flash'];
-  // Quitar duplicados conservando orden
-  const CHAIN = MODELS.filter((m, i) => MODELS.indexOf(m) === i);
-
-  const SYSTEM_TEXT = 'Eres un asistente de guiones. Responde SIEMPRE en texto plano sin markdown, sin **, sin ##, sin encabezados, sin listas con guiones. Usa exactamente el formato de bloques que se te indica en el prompt.';
-
   try {
+    const PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
     const token = await getGCPToken();
-    let lastErr = 'Error desconocido';
+    const url = endpointFor(model, PROJECT_ID);
 
-    for (let mi = 0; mi < CHAIN.length; mi++) {
-      const model = CHAIN[mi];
-      const url = endpointFor(model, PROJECT_ID);
-      let r, d, ok = false;
+    const parts = [{ text: userPrompt }];
 
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          r = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + token,
-              'X-Goog-User-Project': PROJECT_ID,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: SYSTEM_TEXT }] },
-              contents: [{ role: 'user', parts: [{ text: prompt }] }],
-              // maxOutputTokens alto: los modelos Gemini 3 usan "thinking"
-              // dinamico y ese razonamiento consume presupuesto de salida.
-              generationConfig: { maxOutputTokens: 8192, temperature: 1.0 },
-            }),
-          });
-          d = await r.json();
-          if (r.ok) { ok = true; break; }
-          lastErr = (d && d.error && d.error.message) ? d.error.message : ('Error ' + r.status);
-          // 404 = modelo no disponible en ese endpoint/proyecto -> pasar al siguiente modelo sin reintentar
-          if (r.status === 404) break;
-          if (attempt < 1) await new Promise(rs => setTimeout(rs, 1500));
-        } catch (e) {
-          lastErr = e.message;
-          if (attempt < 1) await new Promise(rs => setTimeout(rs, 1500));
-        }
-      }
-
-      if (!ok) {
-        console.warn('Modelo ' + model + ' fallo: ' + String(lastErr).slice(0, 160));
-        continue; // probar siguiente modelo de la cadena
-      }
-
-      // Extraer texto de la respuesta (puede haber varias parts)
-      let text = null;
-      if (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) {
-        const parts = d.candidates[0].content.parts;
-        for (let i = 0; i < parts.length; i++) {
-          if (parts[i] && typeof parts[i].text === 'string' && parts[i].text.trim()) {
-            text = (text ? text + '\n' : '') + parts[i].text;
-          }
-        }
-      }
-      if (text && text.trim()) {
-        console.log('Texto generado con ' + model + ' (preview): ' + text.slice(0, 200));
-        return res.json({ success: true, text: text, model: model });
-      }
-
-      // Respondio 200 pero sin texto (p.ej. MAX_TOKENS consumido por thinking) -> siguiente modelo
-      const fr = d && d.candidates && d.candidates[0] ? d.candidates[0].finishReason : '';
-      lastErr = 'Sin texto' + (fr ? ' (' + fr + ')' : '') + ' con ' + model;
-      console.warn(lastErr + '. Respuesta: ' + JSON.stringify(d).slice(0, 300));
+    function detectMime(b64) {
+      if (!b64 || typeof b64 !== 'string' || b64.length < 100) return null;
+      if (b64.startsWith('/9j/')) return 'image/jpeg';
+      if (b64.startsWith('iVBOR')) return 'image/png';
+      if (b64.startsWith('R0lGOD')) return 'image/gif';
+      if (b64.startsWith('UklGR')) return 'image/webp';
+      return null; // No es imagen valida — se omite
     }
 
-    return res.status(502).json({ error: 'Gemini no devolvio texto. ' + lastErr });
+    if (Array.isArray(refImages) && refImages.length > 0) {
+      for (let i = 0; i < refImages.length; i++) {
+        const mime = detectMime(refImages[i]);
+        if (!mime) continue;
+        parts.push({ inlineData: { mimeType: mime, data: refImages[i] } });
+      }
+    }
+
+    // Los modelos Gemini 3.x esperan TEXT+IMAGE; 2.5-flash-image usa solo IMAGE.
+    const modalities = /^gemini-3/.test(model) ? ['TEXT', 'IMAGE'] : ['IMAGE'];
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(function() { controller.abort(); }, 58000);
+
+    let r;
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'X-Goog-User-Project': PROJECT_ID,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: parts }],
+          generationConfig: {
+            responseModalities: modalities,
+            imageConfig: { aspectRatio: aspectRatio },
+            temperature: 1.0
+          },
+        }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    const d = await r.json();
+    if (!r.ok) {
+      const errMsg = (d && d.error && d.error.message) ? d.error.message : ('Vertex Error ' + r.status);
+      return res.status(r.status).json({ error: errMsg });
+    }
+
+    let imageB64 = null;
+    if (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) {
+      const partsRes = d.candidates[0].content.parts;
+      for (let i = 0; i < partsRes.length; i++) {
+        if (partsRes[i].inlineData && partsRes[i].inlineData.data) {
+          imageB64 = partsRes[i].inlineData.data;
+          break;
+        }
+      }
+    }
+    if (!imageB64) {
+      let reason = '';
+      if (d && d.candidates && d.candidates[0]) {
+        if (d.candidates[0].finishReason) reason = ' (' + d.candidates[0].finishReason + ')';
+        if (d.candidates[0].content && d.candidates[0].content.parts) {
+          const tp = d.candidates[0].content.parts.find(function(p){ return p.text; });
+          if (tp) reason += ' ' + tp.text.slice(0, 80);
+        }
+      }
+      return res.status(500).json({ error: 'Sin imagen generada' + reason });
+    }
+    return res.json({ success: true, image: imageB64, model: model });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    const msg = e.name === 'AbortError' ? 'Generacion tardo demasiado. Usa Regenerar.' : e.message;
+    return res.status(500).json({ error: msg });
   }
 };
