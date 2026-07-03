@@ -244,6 +244,15 @@ section{margin-bottom:20px}
             <label style="font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:6px">Tema del Post <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
             <input class="fi" id="postTema" type="text" placeholder="Ej: disciplina financiera, mentalidad ganadora..." style="width:100%">
           </div>
+          <div style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
+            <label class="genLbl">Modelo de imagen
+              <select id="selPostImgModel" class="genSel">
+                <option value="gemini-2.5-flash-image" selected>Nano Banana (2.5 Flash) · estable</option>
+                <option value="gemini-3.1-flash-image">Nano Banana 2 (3.1 Flash) · rápido</option>
+                <option value="gemini-3-pro-image">Nano Banana Pro (3 Pro) · máxima calidad</option>
+              </select>
+            </label>
+          </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
             <button class="oc" id="pfmt1" onclick="selPostFmt('cuadrado')" style="flex:1;min-width:80px;padding:8px;text-align:center">
               <span style="font-size:16px">⬛</span><br><span class="os" style="font-size:10px">Cuadrado 1:1</span>
