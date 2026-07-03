@@ -1,7 +1,22 @@
 // api/video-start.js
-// Inicia la generacion de UN clip de video con Veo 3.1 Lite (imagen-a-video).
+// Inicia la generacion de UN clip de video con Veo (imagen-a-video) via Vertex AI.
 // Responde en segundos con un "operationName" -- NO espera a que el video termine.
 // El frontend usa ese operationName con /api/video-status para hacer polling.
+//
+// Acepta en el body:
+//   imageBase64 (obligatorio)
+//   prompt      (obligatorio)
+//   model       (opcional) veo-3.1-lite-generate-001 (DEFECTO) |
+//                          veo-3.1-fast-generate-001 | veo-3.1-generate-001 |
+//                          veo-2.0-generate-001
+//   aspectRatio (opcional) 9:16 (DEFECTO) | 16:9   (Veo solo admite estos dos)
+
+const ALLOWED_VIDEO_MODELS = {
+  'veo-3.1-lite-generate-001': true,
+  'veo-3.1-fast-generate-001': true,
+  'veo-3.1-generate-001': true,
+  'veo-2.0-generate-001': true,
+};
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,11 +42,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Faltan parametros: imageBase64, prompt' });
     }
 
+    let model = body.model ? String(body.model) : 'veo-3.1-lite-generate-001';
+    if (!ALLOWED_VIDEO_MODELS[model]) model = 'veo-3.1-lite-generate-001';
+    let aspectRatio = body.aspectRatio === '16:9' ? '16:9' : '9:16';
+
     const GCP_SERVICE_ACCOUNT = process.env.GCP_SERVICE_ACCOUNT;
     const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
     const GCS_OUTPUT_BUCKET = (process.env.GCS_OUTPUT_BUCKET || 'gs://legado-videos').trim();
     const REGION = 'us-central1';
-    const MODEL = 'veo-3.1-lite-generate-001';
 
     if (!GCP_SERVICE_ACCOUNT) {
       return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
@@ -39,7 +57,6 @@ export default async function handler(req, res) {
 
     const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
 
-    // Autenticacion -- misma libreria que ya usa el proyecto (google-auth-library)
     const { GoogleAuth } = await import('google-auth-library');
     const auth = new GoogleAuth({
       credentials: serviceAccount,
@@ -48,7 +65,7 @@ export default async function handler(req, res) {
     const client = await auth.getClient();
     const accessToken = await client.getAccessToken();
 
-    const url = `https://${REGION}-aiplatform.googleapis.com/v1/projects/${GCP_PROJECT_ID}/locations/${REGION}/publishers/google/models/${MODEL}:predictLongRunning`;
+    const url = `https://${REGION}-aiplatform.googleapis.com/v1/projects/${GCP_PROJECT_ID}/locations/${REGION}/publishers/google/models/${model}:predictLongRunning`;
 
     const instance = {
       prompt: prompt,
@@ -57,6 +74,16 @@ export default async function handler(req, res) {
         mimeType: 'image/png',
       },
     };
+
+    const parameters = {
+      aspectRatio: aspectRatio,
+      storageUri: GCS_OUTPUT_BUCKET,
+      sampleCount: 1,
+      personGeneration: 'allow_adult',
+      negativePrompt: 'deformed hands, extra fingers, missing fingers, merged fingers, bad anatomy, blurry, watermark, text overlay',
+    };
+    // generateAudio solo existe en Veo 3.x; en Veo 2 el parametro no aplica.
+    if (/^veo-3/.test(model)) parameters.generateAudio = false;
 
     const veoResponse = await fetch(url, {
       method: 'POST',
@@ -67,14 +94,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         instances: [instance],
-        parameters: {
-          aspectRatio: '9:16',
-          storageUri: GCS_OUTPUT_BUCKET,
-          sampleCount: 1,
-          personGeneration: 'allow_adult',
-          generateAudio: false,
-          negativePrompt: 'deformed hands, extra fingers, missing fingers, merged fingers, bad anatomy, blurry, watermark, text overlay',
-        },
+        parameters: parameters,
       }),
     });
 
@@ -93,7 +113,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Veo no devolvio un operationName valido' });
     }
 
-    return res.status(200).json({ operationName: veoData.name });
+    // Devolvemos tambien el modelo para que el polling lo use como respaldo.
+    return res.status(200).json({ operationName: veoData.name, model: model });
 
   } catch (err) {
     console.error('Error en /api/video-start:', err);
