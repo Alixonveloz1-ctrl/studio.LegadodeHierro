@@ -315,10 +315,12 @@ function wireGenSettings(){
   var iff=document.getElementById('selImgFmt');
   var vm=document.getElementById('selVidModel');
   var vf=document.getElementById('selVidFmt');
+  var pim=document.getElementById('selPostImgModel');
   if(im&&!im.dataset.wired){im.dataset.wired='1';im.value=imgModel;im.addEventListener('change',function(){imgModel=im.value;});}
   if(iff&&!iff.dataset.wired){iff.dataset.wired='1';iff.value=imgFmt;iff.addEventListener('change',function(){imgFmt=iff.value;});}
   if(vm&&!vm.dataset.wired){vm.dataset.wired='1';vm.value=vidModel;vm.addEventListener('change',function(){vidModel=vm.value;});}
   if(vf&&!vf.dataset.wired){vf.dataset.wired='1';vf.value=vidFmt;vf.addEventListener('change',function(){vidFmt=vf.value;});}
+  if(pim&&!pim.dataset.wired){pim.dataset.wired='1';pim.value=postImgModel;pim.addEventListener('change',function(){postImgModel=pim.value;});}
 }
 
 function showPills(){
@@ -1235,6 +1237,7 @@ function reset(){
 
 // POST FACEBOOK
 var postFmt='cuadrado';
+var postImgModel='gemini-2.5-flash-image';
 
 function selPostFmt(fmt){
   postFmt=fmt;
@@ -1301,7 +1304,7 @@ async function genPost(){
     if(refsResp&&refsResp.ok){var rd2=await refsResp.json().catch(function(){return{};});refs=(rd2&&rd2.refs)?rd2.refs:[];}
     var ri2=await fetch('/api/image',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt,refImages:refs}),
+      body:JSON.stringify({prompt:prompt,refImages:refs,model:postImgModel}),
     });
     var di=await ri2.json();
     if(!ri2.ok||!di.image)throw new Error(di.error||'Error generando imagen');
@@ -1309,7 +1312,7 @@ async function genPost(){
     await composePost(di.image,fraseObj,isVertical);
     result.style.display='block';
     st.textContent='Post listo para publicar.';
-    cost+=(IMG_COST['gemini-2.5-flash-image']||0.039);updCost();
+    cost+=(IMG_COST[postImgModel]||0.039);updCost();
   }catch(e){
     err.textContent='Error: '+e.message;err.style.display='block';st.style.display='none';
   }finally{
