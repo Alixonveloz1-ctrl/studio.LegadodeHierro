@@ -41,6 +41,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .fi{width:100%;background:var(--warm);border:1.5px solid var(--border);border-radius:10px;color:var(--tx);padding:11px 14px;font-size:14px;font-family:inherit;outline:none;-webkit-appearance:none}
 .fi:focus{border-color:var(--gold)}
 .fi::placeholder{color:var(--tx3)}
+.genSel{width:100%;margin-top:4px;background:#fff;border:1.5px solid var(--border);border-radius:8px;color:var(--tx);padding:8px 10px;font-size:12px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none}
+.genSel:focus{border-color:var(--sage)}
+.genLbl{font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;display:block}
 .lbtn{width:100%;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px;-webkit-appearance:none}
 .lbtn:active{opacity:.9}
 .lerr{background:var(--rose-p);border:1px solid var(--rose);border-radius:8px;padding:9px 12px;font-size:12px;color:#8a4a3a;margin-top:9px;display:none}
@@ -300,6 +303,43 @@ section{margin-bottom:20px}
           <button class="cbtn" id="bimg" style="border-color:#7a9b8a;color:#7a9b8a">🖼 Generar</button>
         </div>
         <div class="sbody">
+          <div id="genSettings" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:9px">⚙ Modelo y formato de generación</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <label class="genLbl">Modelo de imagen
+                <select id="selImgModel" class="genSel">
+                  <option value="gemini-2.5-flash-image" selected>Nano Banana (2.5 Flash) · estable</option>
+                  <option value="gemini-3.1-flash-image">Nano Banana 2 (3.1 Flash) · rápido</option>
+                  <option value="gemini-3-pro-image">Nano Banana Pro (3 Pro) · máxima calidad</option>
+                </select>
+              </label>
+              <label class="genLbl">Formato de imagen
+                <select id="selImgFmt" class="genSel">
+                  <option value="9:16" selected>9:16 Vertical (Reel)</option>
+                  <option value="4:5">4:5 Retrato</option>
+                  <option value="1:1">1:1 Cuadrado</option>
+                  <option value="16:9">16:9 Horizontal</option>
+                  <option value="3:4">3:4 Retrato</option>
+                  <option value="2:3">2:3 Retrato</option>
+                  <option value="21:9">21:9 Cine</option>
+                </select>
+              </label>
+              <label class="genLbl">Modelo de video
+                <select id="selVidModel" class="genSel">
+                  <option value="veo-3.1-lite-generate-001" selected>Veo 3.1 Lite · bajo costo</option>
+                  <option value="veo-3.1-fast-generate-001">Veo 3.1 Fast · rápido</option>
+                  <option value="veo-3.1-generate-001">Veo 3.1 · máxima calidad</option>
+                  <option value="veo-2.0-generate-001">Veo 2 · económico (sin audio)</option>
+                </select>
+              </label>
+              <label class="genLbl">Formato de video
+                <select id="selVidFmt" class="genSel">
+                  <option value="9:16" selected>9:16 Vertical (Reel)</option>
+                  <option value="16:9">16:9 Horizontal</option>
+                </select>
+              </label>
+            </div>
+          </div>
           <div class="stxt" id="ist"></div>
           <div class="serr" id="ie"></div>
           <div class="igrid" id="igrid"></div>
@@ -318,6 +358,5 @@ section{margin-bottom:20px}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="/app.js"></script>
-<script src="/assembler-section.js"></script>
 </body>
 </html>
