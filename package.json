@@ -1,12 +1,11 @@
 {
   "name": "legado-de-hierro",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sistema de Produccion Facebook Reels",
   "engines": {
     "node": "24.x"
   },
   "dependencies": {
-    "@google-cloud/storage": "^7.0.0",
     "google-auth-library": "^9.0.0"
   }
 }
