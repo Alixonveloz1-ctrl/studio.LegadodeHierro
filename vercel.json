@@ -3,6 +3,7 @@
   "functions": {
     "api/image.js": { "maxDuration": 60 },
     "api/generate.js": { "maxDuration": 60 },
-    "api/audio.js": { "maxDuration": 60 }
+    "api/audio.js": { "maxDuration": 60 },
+    "api/video-start.js": { "maxDuration": 60 }
   }
 }
