@@ -280,11 +280,46 @@ var sT='',sD='60',sH='dato',sMode='reel'; // sMode: 'reel' | 'historia'
 var loading=false,lastRes=null,activeTab='a';
 var genCount=0,cost=0;
 var audES=null,audEN=null,imgs=[];
+// Modelo y formato elegibles (Gemini / Veo via Vertex AI)
+var imgModel='gemini-2.5-flash-image',imgFmt='9:16';
+var vidModel='veo-3.1-lite-generate-001',vidFmt='9:16';
+// Costo estimado por imagen segun modelo (solo para el contador $ estimado)
+var IMG_COST={'gemini-2.5-flash-image':0.039,'gemini-3.1-flash-image':0.067,'gemini-3-pro-image':0.134};
+// Costo estimado por clip de 8s segun modelo de video
+var VID_COST={'veo-3.1-lite-generate-001':0.30,'veo-3.1-fast-generate-001':0.40,'veo-3.1-generate-001':0.60,'veo-2.0-generate-001':0.40};
+function imgCost(){return IMG_COST[imgModel]||0.05;}
+function vidCost(){return VID_COST[vidModel]||0.40;}
+// Pista de orientacion en el prompt (refuerza el aspectRatio real de imageConfig).
+function aspectHint(fmt){
+  var m={
+    '9:16':'Vertical 9:16 portrait composition, tall image not square. ',
+    '4:5':'Vertical 4:5 portrait composition. ',
+    '3:4':'Vertical 3:4 portrait composition. ',
+    '2:3':'Vertical 2:3 portrait composition. ',
+    '1:1':'Square 1:1 composition. ',
+    '16:9':'Horizontal 16:9 landscape composition, wide image. ',
+    '21:9':'Ultra-wide 21:9 cinematic composition. '
+  };
+  return m[fmt]||m['9:16'];
+}
+// Conecta los <select> de modelo/formato con el estado global.
+function wireGenSettings(){
+  var im=document.getElementById('selImgModel');
+  var iff=document.getElementById('selImgFmt');
+  var vm=document.getElementById('selVidModel');
+  var vf=document.getElementById('selVidFmt');
+  if(im&&!im.dataset.wired){im.dataset.wired='1';im.value=imgModel;im.addEventListener('change',function(){imgModel=im.value;});}
+  if(iff&&!iff.dataset.wired){iff.dataset.wired='1';iff.value=imgFmt;iff.addEventListener('change',function(){imgFmt=iff.value;});}
+  if(vm&&!vm.dataset.wired){vm.dataset.wired='1';vm.value=vidModel;vm.addEventListener('change',function(){vidModel=vm.value;});}
+  if(vf&&!vf.dataset.wired){vf.dataset.wired='1';vf.value=vidFmt;vf.addEventListener('change',function(){vidFmt=vf.value;});}
+}
 
 function showPills(){
   var el=document.getElementById('apipills');
-  function mk(lbl,ok){return '<span class="api-pill" style="color:'+(ok?'#7a9b8a':'#c4897a')+';background:'+(ok?'#eaf2ee':'#f8ede8')+'">'+(ok?'●':'○')+' '+lbl+'</span>';}
-  el.innerHTML=mk('Anthropic',!!ANT)+mk('ElevenLabs',!!EL)+mk('Google AI',!!NB);
+  if(!el)return;
+  function mk(lbl){return '<span class="api-pill" style="color:#7a9b8a;background:#eaf2ee">● '+lbl+'</span>';}
+  // El stack corre con las llaves en el servidor (variables de entorno de Vercel).
+  el.innerHTML=mk('Gemini · texto·imagen·video')+mk('ElevenLabs · audio');
 }
 
 function refreshSched(){
@@ -560,6 +595,7 @@ function renderOut(r){
   rfTabs(r);
   document.getElementById('audioCard').style.display='block';
   document.getElementById('imgCard').style.display='block';
+  wireGenSettings();
   // Botón generar todos los videos
   var ballvids=document.getElementById('ballvids');
   if(!ballvids){
@@ -762,7 +798,7 @@ async function genOneImage(prompt,refs){
   try{
     ir=await fetch('/api/image',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt,refImages:refs}),
+      body:JSON.stringify({prompt:prompt,refImages:refs,model:imgModel,aspectRatio:imgFmt}),
     });
   }catch(e){
     throw new Error('Error de conexion. Usa Regenerar.');
@@ -801,8 +837,8 @@ function setSlotOk(slot,src,idx){
   rb.addEventListener('click',function(){
     setSlotLoading(slot,iidx);
     var p=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    genOneImage('9:16 vertical portrait format, tall image not square. '+p,imgRefs).then(function(s){
-      imgs[iidx]={src:s,idx:iidx+1};setSlotOk(slot,s,iidx);cost+=0.068;updCost();chkExport();
+    genOneImage(aspectHint(imgFmt)+p,imgRefs).then(function(s){
+      imgs[iidx]={src:s,idx:iidx+1};setSlotOk(slot,s,iidx);cost+=imgCost();updCost();chkExport();
     }).catch(function(e){setSlotError(slot,iidx,e.message);});
   });
   rd.appendChild(rb);imWrap.appendChild(rd);
@@ -826,10 +862,10 @@ function setSlotError(slot,idx,msg){
   rbtn.addEventListener('click',function(){
     setSlotLoading(slot,iidx);
     var prompt=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    genOneImage(prompt,imgRefs).then(function(src){
+    genOneImage(aspectHint(imgFmt)+prompt,imgRefs).then(function(src){
       imgs[iidx]={src:src,idx:iidx+1};
       setSlotOk(slot,src,iidx);
-      cost+=0.068;updCost();chkExport();
+      cost+=imgCost();updCost();chkExport();
     }).catch(function(e){
       setSlotError(slot,iidx,e.message);
     });
@@ -873,10 +909,10 @@ async function genImages(){
   for(var i=0;i<totalImgs;i++){
     st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
     try{
-      var src=await genOneImage('9:16 vertical portrait format, tall image not square. '+lastRes.c[i],imgRefs);
+      var src=await genOneImage(aspectHint(imgFmt)+lastRes.c[i],imgRefs);
       imgs[i]={src:src,idx:i+1};
       setSlotOk(slots[i],src,i);
-      gen++;cost+=0.068;updCost();chkExport();
+      gen++;cost+=imgCost();updCost();chkExport();
     }catch(e){
       setSlotError(slots[i],i,e.message);
     }
@@ -953,7 +989,7 @@ async function genVideoForSlot(idx,box){
     var imgInfo=dataUrlMimeAndB64(imgs[idx].src);
     var startRes=await fetch('/api/video-start',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({imageBase64:imgInfo.b64,prompt:movePrompt}),
+      body:JSON.stringify({imageBase64:imgInfo.b64,prompt:movePrompt,model:vidModel,aspectRatio:vidFmt}),
     });
     var startData=await startRes.json();
     if(!startRes.ok)throw new Error(startData.error||'Error '+startRes.status);
@@ -965,7 +1001,7 @@ async function genVideoForSlot(idx,box){
       attempts++;
       var statusRes=await fetch('/api/video-status',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({operationName:startData.operationName}),
+        body:JSON.stringify({operationName:startData.operationName,model:vidModel}),
       });
       var statusData=await statusRes.json();
       if(!statusRes.ok)throw new Error(statusData.error||'Error '+statusRes.status);
@@ -985,7 +1021,7 @@ async function genVideoForSlot(idx,box){
 
     vids[idx]={url:localUrl,blob:vidBlob};
     vidState[idx]='done';
-    cost+=0.40;updCost();chkExport(); // Veo 3.1 Lite: $0.05/seg x 8 seg = $0.40 por clip
+    cost+=vidCost();updCost();chkExport(); // costo estimado por clip de 8s segun modelo Veo
     renderVideoControls(box,idx);
   }catch(e){
     vidState[idx]='error';vidErrMsg[idx]=e.message||'Error generando el video.';
@@ -1241,7 +1277,7 @@ async function genPost(){
     await composePost(di.image,fraseObj,isVertical);
     result.style.display='block';
     st.textContent='Post listo para publicar.';
-    cost+=0.068;updCost();
+    cost+=(IMG_COST['gemini-2.5-flash-image']||0.039);updCost();
   }catch(e){
     err.textContent='Error: '+e.message;err.style.display='block';st.style.display='none';
   }finally{
@@ -1307,6 +1343,7 @@ function wrapText(ctx,text,maxW){
 // INIT
 document.addEventListener('DOMContentLoaded',function(){
   buildAll();
+  wireGenSettings();
   document.getElementById('schedBtn').addEventListener('click',function(){
     var o=document.getElementById('schedPanel').classList.toggle('on');
     document.getElementById('sa').textContent=o?'▲':'▼';
