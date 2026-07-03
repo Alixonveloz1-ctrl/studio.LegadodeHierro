@@ -302,6 +302,13 @@ function aspectHint(fmt){
   };
   return m[fmt]||m['9:16'];
 }
+// Ancla de estilo por TEXTO: se antepone a TODO prompt de imagen como respaldo.
+// Sin esto, el estilo 2D comic dependia 100% de que las 4 referencias del personaje
+// cargaran bien desde ibb.co en el navegador -- si una fallaba, esa imagen salia
+// fotorrealista por defecto. Con esta ancla, el render se mantiene en comic 2D
+// incluso si alguna referencia no llega a tiempo.
+var STYLE_ANCHOR='American 2D comic book illustration, clean bold ink outlines, flat cel-shading with hard color blocks, hand-drawn graphic novel style. STRICTLY NOT photorealistic, NOT a photograph, NOT 3D render, NOT CGI, NOT realistic skin texture or lighting. ';
+function imgPromptPrefix(fmt){return STYLE_ANCHOR+aspectHint(fmt);}
 // Conecta los <select> de modelo/formato con el estado global.
 function wireGenSettings(){
   var im=document.getElementById('selImgModel');
@@ -773,8 +780,24 @@ function combineAlignments(alignments,durations){
 // IMAGES
 var imgRefs=[];
 
+var loadedRefsCount=0; // cuantas de las 4 referencias del personaje cargaron en el ultimo intento
+
+async function fetchRefOnce(url){
+  var rr=await fetch(url);
+  if(!rr.ok)throw new Error('HTTP '+rr.status);
+  var rb=await rr.blob();
+  return await new Promise(function(res,rej){
+    var rd=new FileReader();
+    rd.onloadend=function(){res(rd.result.split(',')[1]);};
+    rd.onerror=function(){rej(new Error('FileReader error'));};
+    rd.readAsDataURL(rb);
+  });
+}
+
 async function loadRefs(){
-  // 4 referencias FIJAS del personaje -- siempre las mismas, para maxima consistencia de rostro/cuerpo
+  // 4 referencias FIJAS del personaje -- siempre las mismas, para maxima consistencia de rostro/cuerpo.
+  // Se reintenta 1 vez cada una: una referencia que falla en silencio deja a esa imagen
+  // sin ancla visual y el modelo cae a fotorrealismo por defecto (en vez de 2D comic).
   var REFS=[
     'https://i.ibb.co/RGgryDhy/Cu-nto-tiempo-m-s-vas-a-imagen-5.png',
     'https://i.ibb.co/fzZF6dsK/Prefiero-intentarlo-mil-v-imagen-7.png',
@@ -783,13 +806,18 @@ async function loadRefs(){
   ];
   var refs=[];
   for(var ri=0;ri<REFS.length;ri++){
-    try{
-      var rr=await fetch(REFS[ri]);if(!rr.ok)continue;
-      var rb=await rr.blob();
-      var rb64=await new Promise(function(res){var rd=new FileReader();rd.onloadend=function(){res(rd.result.split(',')[1]);};rd.readAsDataURL(rb);});
-      refs.push(rb64);
-    }catch(e){console.warn('Ref '+ri+' failed:',e);}
+    var ok=false;
+    for(var attempt=0;attempt<2&&!ok;attempt++){
+      try{
+        var rb64=await fetchRefOnce(REFS[ri]);
+        refs.push(rb64);ok=true;
+      }catch(e){
+        console.warn('Ref '+ri+' intento '+(attempt+1)+' fallo:',e.message);
+        if(attempt===0)await new Promise(function(r){setTimeout(r,700);});
+      }
+    }
   }
+  loadedRefsCount=refs.length;
   return refs;
 }
 
@@ -837,7 +865,7 @@ function setSlotOk(slot,src,idx){
   rb.addEventListener('click',function(){
     setSlotLoading(slot,iidx);
     var p=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    genOneImage(aspectHint(imgFmt)+p,imgRefs).then(function(s){
+    genOneImage(imgPromptPrefix(imgFmt)+p,imgRefs).then(function(s){
       imgs[iidx]={src:s,idx:iidx+1};setSlotOk(slot,s,iidx);cost+=imgCost();updCost();chkExport();
     }).catch(function(e){setSlotError(slot,iidx,e.message);});
   });
@@ -862,7 +890,7 @@ function setSlotError(slot,idx,msg){
   rbtn.addEventListener('click',function(){
     setSlotLoading(slot,iidx);
     var prompt=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    genOneImage(aspectHint(imgFmt)+prompt,imgRefs).then(function(src){
+    genOneImage(imgPromptPrefix(imgFmt)+prompt,imgRefs).then(function(src){
       imgs[iidx]={src:src,idx:iidx+1};
       setSlotOk(slot,src,iidx);
       cost+=imgCost();updCost();chkExport();
@@ -896,6 +924,10 @@ async function genImages(){
   vids=[];vidState=[];vidErrMsg=[];
   st.textContent='Cargando referencias del personaje...';
   imgRefs=await loadRefs();
+  if(loadedRefsCount<4){
+    st.textContent='Atención: solo '+loadedRefsCount+'/4 referencias del personaje cargaron. Continuando con ancla de estilo por texto...';
+    await new Promise(function(r){setTimeout(r,1400);});
+  }
   imgs=[];
   var totalImgs=Math.min(lastRes.c.length,totalImgsTarget);
   var slots=[];
@@ -909,7 +941,7 @@ async function genImages(){
   for(var i=0;i<totalImgs;i++){
     st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
     try{
-      var src=await genOneImage(aspectHint(imgFmt)+lastRes.c[i],imgRefs);
+      var src=await genOneImage(imgPromptPrefix(imgFmt)+lastRes.c[i],imgRefs);
       imgs[i]={src:src,idx:i+1};
       setSlotOk(slots[i],src,i);
       gen++;cost+=imgCost();updCost();chkExport();
