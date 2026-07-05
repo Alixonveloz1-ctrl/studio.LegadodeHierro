@@ -23,54 +23,49 @@ module.exports = async (req, res) => {
   const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'IRHApOXLvnW57QJPQH2P';
   if (!EL_KEY) return res.status(500).json({ error: 'ELEVENLABS_API_KEY no configurada' });
 
-  // Velocidad de habla estimada en espanol (ritmo natural locucion): ~150 palabras/minuto = 2.5 palabras/segundo
+  // Velocidad de habla estimada en espanol (locucion natural): ~2.5 palabras/segundo.
   const WORDS_PER_SECOND = 2.5;
   const TARGET_SECONDS_PER_BLOCK = 40;
-  const TARGET_WORDS_PER_BLOCK = TARGET_SECONDS_PER_BLOCK * WORDS_PER_SECOND; // ~100 palabras
+  // Objetivo ~38s y TOPE DURO ~42s: ningun bloque puede pasar de ~40s reales,
+  // porque ElevenLabs pierde calidad (volumen/velocidad) en generaciones largas.
+  const TARGET_WORDS = Math.round((TARGET_SECONDS_PER_BLOCK - 2) * WORDS_PER_SECOND); // ~95
+  const MAX_WORDS = Math.round((TARGET_SECONDS_PER_BLOCK + 2) * WORDS_PER_SECOND);    // ~105
 
-  // Divide el texto en bloques de ~40 segundos de habla estimada, cortando siempre
-  // en el punto (.) mas cercano al objetivo para no partir una oracion a la mitad.
+  // Divide el texto en bloques de <= ~40s. Corta preferentemente al final de una
+  // oracion cerca del objetivo; si una oracion es demasiado larga, corta en la
+  // ultima coma; si no hay coma, corta por palabra en el tope. La ultima llamada
+  // se queda con la diferencia. REGLA FIJA: nunca una sola llamada larga.
   function splitByDuration(t) {
-    const clean = t.trim();
-    const totalWords = clean.split(/\s+/).filter(Boolean).length;
-    if (totalWords <= TARGET_WORDS_PER_BLOCK) return [clean]; // corto: una sola llamada
-
-    const sentenceEnds = [];
-    for (let i = 0; i < clean.length; i++) {
-      if (clean[i] === '.') sentenceEnds.push(i);
-    }
-    if (sentenceEnds.length === 0) return [clean];
+    const clean = t.replace(/\s+/g, ' ').trim();
+    const words = clean.split(' ').filter(Boolean);
+    if (words.length <= MAX_WORDS) return [clean]; // suficientemente corto: una sola llamada
 
     const blocks = [];
-    let wordsAccum = 0;
-    let lastCut = 0;
-    const words = clean.split(/\s+/);
-    let charPos = 0;
-    let target = TARGET_WORDS_PER_BLOCK;
-
-    for (let wi = 0; wi < words.length; wi++) {
-      charPos += words[wi].length + 1;
-      wordsAccum++;
-      if (wordsAccum >= target) {
-        let best = -1, bestDist = Infinity;
-        for (const sePos of sentenceEnds) {
-          if (sePos <= lastCut) continue;
-          const dist = Math.abs(sePos - charPos);
-          if (dist < bestDist) { bestDist = dist; best = sePos; }
+    let cur = [];
+    for (let i = 0; i < words.length; i++) {
+      cur.push(words[i]);
+      const endsSentence = /[.!?…]["')]?$/.test(words[i]);
+      if (cur.length >= TARGET_WORDS && endsSentence) {
+        blocks.push(cur.join(' ')); cur = [];
+        continue;
+      }
+      if (cur.length >= MAX_WORDS) {
+        // Oracion demasiado larga: forzar corte en la ultima coma/;/: dentro del bloque
+        let cut = -1;
+        for (let j = cur.length - 1; j >= Math.floor(TARGET_WORDS * 0.5); j--) {
+          if (/[,;:]$/.test(cur[j])) { cut = j; break; }
         }
-        if (best !== -1 && best > lastCut) {
-          const block = clean.slice(lastCut, best + 1).trim();
-          if (block) blocks.push(block);
-          lastCut = best + 1;
-          wordsAccum = 0;
-          target = TARGET_WORDS_PER_BLOCK;
+        if (cut > 0) {
+          blocks.push(cur.slice(0, cut + 1).join(' '));
+          cur = cur.slice(cut + 1);
+        } else {
+          blocks.push(cur.join(' '));
+          cur = [];
         }
       }
     }
-    const remainder = clean.slice(lastCut).trim();
-    if (remainder) blocks.push(remainder);
-
-    return blocks.length > 0 ? blocks : [clean];
+    if (cur.length) blocks.push(cur.join(' '));
+    return blocks.length ? blocks : [clean];
   }
 
   async function generatePart(partText, prevText, nextText) {
