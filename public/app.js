@@ -106,6 +106,10 @@ function buildSP(){
 
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés — escribe español natural de hispanohablante nativo.
 
+NÚCLEO (obligatorio): este canal ENSEÑA a lograr libertad financiera de verdad. Incluso en 30 segundos, el reel debe entregar sustancia REAL y concreta: un dato verificable, una cifra, un activo, una táctica puntual que el espectador pueda aplicar — no solo una frase que golpea y se queda en el aire. Crudeza + enseñanza específica, nunca filosofía motivacional vacía.
+
+ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
+
 MODO IMPACTO — 30 segundos, máximo 75 palabras:
 Una sola verdad que golpea. El gancho destruye una creencia, nombra la situación exacta del espectador, o divide opiniones. Primera frase es una bala — sin calentamiento.
 
@@ -134,6 +138,10 @@ BLOQUE F
   if(sMode==='historia')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos. Sin calcos del inglés — español natural de hispanohablante nativo.
+
+NÚCLEO (obligatorio): la historia ENSEÑA cómo se logra la libertad financiera con hechos reales. No basta con narrar la lucha y el triunfo: cada historia muestra QUÉ hizo concretamente el personaje para avanzar — la decisión exacta, el primer negocio o activo, el número, el método. El espectador debe terminar sabiendo qué haría él en su lugar. Crudeza + enseñanza específica, nunca solo emoción o motivación vacía.
+
+ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
 
 MODO HISTORIA — arco narrativo de emprendimiento:
 (1) Situación difícil inicial sin romantizarla
@@ -168,20 +176,24 @@ BLOQUE F
 
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos ("el 90%", "la mayoría"). Sin calcos del inglés — español natural de hispanohablante nativo.
 
+NÚCLEO (obligatorio): este canal ENSEÑA a lograr libertad financiera de verdad, con datos y proyectos reales, al estilo crudo de Legado de Hierro. Cada reel debe ENSEÑAR algo concreto y accionable, no solo motivar ni nombrar el problema: una estrategia real, una cifra o dato verificable, un activo, un método paso a paso, o un ejemplo de negocio real. El espectador debe terminar el video sabiendo QUÉ HACER, no solo sintiéndose inspirado. Prohibido quedarse en filosofía general, frases motivacionales sin sustancia o generalidades vacías.
+
+ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
+
 GANCHO obligatorio: primera frase destruye una creencia, nombra la situación exacta del espectador, o divide opiniones. Sin porcentajes. Sin coach. Sin calentamiento. Máximo 2 frases.
 
 PROHIBIDO siempre: porcentajes genéricos, "sigues esperando", "la gente piensa", "el mejor secreto guardado" o cualquier variante, calcos del inglés, motivación vacía, frases de coach de Instagram.
 
-INSTRUCCIONES POR PILAR:
-- LIBERTAD FINANCIERA: tiempo vs dinero, trampa del salario, independencia real.
-- MENTALIDAD Y DISCIPLINA: decisiones difíciles, hábitos concretos, no motivación.
-- SISTEMAS Y AUTOMATIZACIÓN: procesos específicos, trabajar para los que tienen sistemas.
-- HERRAMIENTAS DEL CAMINO: primera persona — YO construí lo que me faltó. Cierra empujando al enlace del video. Sin precios ni nombres de productos.
-- MARCA PERSONAL: visibilidad = dinero. Documenta desde el día uno.
-- INVERSIÓN Y CAPITAL: activos reales, números concretos, dinero parado pierde valor.
-- NEGOCIO Y VENTAS: sin ventas no hay negocio, estructura comercial real.
-- NEGOCIOS CON POCO CAPITAL: acción sobre capital, ideas ejecutables hoy.
-- NEGOCIOS MILLONARIOS: escala, sistemas, visión a largo plazo.
+INSTRUCCIONES POR PILAR (enseña siempre algo APLICABLE, con un ejemplo, un número o un paso real — nunca solo el concepto):
+- LIBERTAD FINANCIERA: un mecanismo concreto para separar tiempo de ingreso (un activo, una fuente de ingreso, un cálculo real), no solo la idea.
+- MENTALIDAD Y DISCIPLINA: un hábito o sistema específico y cómo ejecutarlo paso a paso, no motivación.
+- SISTEMAS Y AUTOMATIZACIÓN: un proceso concreto que el espectador pueda montar, con el paso clave explicado.
+- HERRAMIENTAS DEL CAMINO: primera persona — YO construí lo que me faltó. Enseña el principio detrás. Cierra empujando al enlace del video. Sin precios ni nombres de productos.
+- MARCA PERSONAL: una acción concreta de visibilidad y cómo empezarla hoy.
+- INVERSIÓN Y CAPITAL: un activo o estrategia concreta con números reales, nunca generalidades.
+- NEGOCIO Y VENTAS: una táctica de ventas o una estructura comercial específica que se pueda copiar.
+- NEGOCIOS CON POCO CAPITAL: una idea ejecutable hoy y su primer paso real.
+- NEGOCIOS MILLONARIOS: un principio de escala o de sistemas con un ejemplo real.
 
 RITMO: comas para conectar, puntos para pausas. Nunca el mismo cierre dos veces. Termina con: Legado de Hierro.
 FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
@@ -457,7 +469,7 @@ async function generate(){
   var hO=HOOKS.find(function(h){return h.id===sH;});
   var dO=DURS.find(function(d){return d.id===sD;});
   var hi={dato:'Empieza con dato/cifra impactante.',pregunta:'Empieza con pregunta disruptiva.',afirmacion:'Empieza con verdad incomoda directa.',historia:'Empieza en primera persona con experiencia cruda.',pasos:'Desarrolla con Primero, Segundo, Tercero.'};
-  var identidadBase='PERSONAJE FIJO — el MISMO hombre en TODAS las imagenes, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO: robots, futurismo, sci-fi, cadenas rotas, magia, fantasia, lluvia, gotas de agua, superficies mojadas. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad y sombras, nunca clima. MIRADA (obligatorio): el personaje mira lo que exige la accion (el documento, la pantalla, la ciudad, el trato), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
+  var identidadBase='PERSONAJE FIJO — el MISMO hombre en TODAS las imagenes, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO EN TODA IMAGEN: lluvia, cualquier clima (nieve, tormenta, gotas de agua), cielos lluviosos, superficies mojadas, charcos -- NUNCA, ni dentro ni fuera del edificio; el clima es fuente de errores graves al animar. Tampoco robots, futurismo, sci-fi, cadenas rotas, magia ni fantasia. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad, contraste y sombras, jamas clima. ESCENAS LIMPIAS: incluye solo los objetos que la accion necesita; evita objetos sueltos irrelevantes (tazas de cafe, vasos, adornos) que no formen parte de la accion, porque al animar se deforman o se transforman en otra cosa. MIRADA (obligatorio): el personaje mira lo que exige la accion (el documento, la pantalla, la ciudad, el trato), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
   var sceneDir;
   if(sMode==='historia'){
     sceneDir='DIRECCION VISUAL — MODO HISTORIA: los prompts forman UNA sola historia continua que avanza escena por escena, como paneles de comic de la MISMA narrativa. Cada prompt es el siguiente momento del arco de ESTE guion: realidad dificil inicial donde el espectador se reconoce, luego el punto de quiebre por una decision, luego primeros pasos concretos, luego traccion, luego el primer resultado. El entorno y el vestuario EVOLUCIONAN con la historia, de humilde a poder. Deriva cada escena del CONTENIDO del guion; NO uses una lista fija de escenas. Escenas distintas pero coherentes entre si, cada una se siente continuacion de la anterior. ';
@@ -1146,7 +1158,8 @@ async function genVideoForSlot(idx,box){
 function buildVideoMotionPrompt(idx){
   var base=lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'';
   return 'ANIMATION STYLE (strict, must match the input image exactly): American 2D comic book illustration style, clean ink outlines, flat cel-shading with hard color blocks and visible shading edges -- NOT 3D, NOT 3D render, NOT CGI, NOT photorealistic, NOT realistic rendering, NOT Pixar style, NOT smooth 3D shading. The animation must preserve the flat 2D comic look of the source image throughout the entire clip.\n\n'
-    +'WEATHER AND ENVIRONMENT (strict): if the scene shows rain, snow, or any weather outside a window or in the background, that weather effect stays OUTSIDE. It must NEVER bleed, extend, or appear inside the indoor space where the character is. Interior spaces remain completely dry, clean, and unaffected by any exterior weather at all times.\n\n'
+    +'NO WEATHER AT ALL (strict): there is NO rain, NO snow, NO storm, NO raindrops, NO water on any surface, NO wet floors, anywhere in the clip -- not outside the window, not in the background, and absolutely never indoors. Skies stay clear or neutral. Never add any weather effect that was not clearly in the source image, and never let anything look wet.\n\n'
+    +'OBJECT AND HAND REALISM (strict): every object stays the SAME object for the whole clip -- it never morphs, transforms, changes type, multiplies, or turns into a different thing (a cup stays a cup, a paper stays a paper, a pen stays a pen). The character ONLY touches and interacts with the object the action requires; he does NOT reach for or pick up unrelated objects (coffee cups, glasses, decorations). Hands are steady and calm -- NO trembling, NO shaking, NO jitter. When signing or writing, ONE hand holds ONE pen; the other hand rests naturally -- never two pens, never writing with both hands at once. Papers and objects on the desk stay in place -- they do NOT jump, fly, flip, or scatter on their own. Correct human anatomy: exactly five fingers per hand, no extra or missing fingers, no merging.\n\n'
     +'MANDATORY ACTION FOR THIS CLIP (this single action drives the body, hands, and gaze direction for the ENTIRE clip): '+base+'\n\n'
     +'EYE LINE AND BODY DIRECTION (strict, this is not optional): the character looks at and engages with WHATEVER THE ACTION DESCRIBES -- the document being signed, the paper being written on, the whiteboard being drawn on. The character does NOT look at the camera, does NOT pose for the camera, does NOT turn the head toward the viewer, UNLESS the action explicitly says the character is speaking directly to camera. There is no head tilting, no modeling pose, no fashion-style head turn, no posing of any kind -- only the working posture that the action requires.\n\n'
     +'This is not a static pose and not a frozen stance with arms crossed -- the character is actively, physically DOING the described action with continuous natural motion for the full duration of the clip. A slow zoom toward a motionless or posing character is NOT acceptable.\n\n'
