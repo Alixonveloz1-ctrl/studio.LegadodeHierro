@@ -95,7 +95,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
+    const PROJECT_ID = process.env.GCP_PROJECT_ID || 'creacion-de-contenido1';
     const token = await getGCPToken();
     const url = endpointFor(model, PROJECT_ID);
 
