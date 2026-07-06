@@ -97,7 +97,7 @@ export default async function handler(req) {
     }
 
     const GCP_SERVICE_ACCOUNT = process.env.GCP_SERVICE_ACCOUNT;
-    const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
+    const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'creacion-de-contenido1';
 
     if (!GCP_SERVICE_ACCOUNT) {
       return new Response(JSON.stringify({ error: 'GCP_SERVICE_ACCOUNT no configurado' }), { status: 500, headers: corsHeaders });
