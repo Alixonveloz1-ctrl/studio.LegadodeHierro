@@ -108,6 +108,8 @@ VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coac
 
 NÚCLEO (obligatorio): este canal ENSEÑA a lograr libertad financiera de verdad. Incluso en 30 segundos, el reel debe entregar sustancia REAL y concreta: un dato verificable, una cifra, un activo, una táctica puntual que el espectador pueda aplicar — no solo una frase que golpea y se queda en el aire. Crudeza + enseñanza específica, nunca filosofía motivacional vacía.
 
+EJEMPLOS CLAROS (obligatorio): si mencionas un negocio, activo o dato, debe entenderse al instante para alguien SIN conocimientos técnicos ni financieros, y tener lógica económica real. Nada vago ni dudoso, nada que no resista la pregunta "¿y eso por qué genera dinero?".
+
 ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
 
 MODO IMPACTO — 30 segundos, máximo 75 palabras:
@@ -140,6 +142,8 @@ BLOQUE F
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos. Sin calcos del inglés — español natural de hispanohablante nativo.
 
 NÚCLEO (obligatorio): la historia ENSEÑA cómo se logra la libertad financiera con hechos reales. No basta con narrar la lucha y el triunfo: cada historia muestra QUÉ hizo concretamente el personaje para avanzar — la decisión exacta, el primer negocio o activo, el número, el método. El espectador debe terminar sabiendo qué haría él en su lugar. Crudeza + enseñanza específica, nunca solo emoción o motivación vacía.
+
+EJEMPLOS CLAROS Y CREÍBLES (obligatorio): cualquier negocio, activo o estrategia que menciones debe entenderlo alguien SIN conocimientos técnicos ni financieros. Cuando uses un ejemplo, explícalo en pocas palabras: QUÉ es, PARA QUIÉN y POR QUÉ pagarían — el problema real que resuelve — y cómo se aplica en un caso cotidiano concreto (por ejemplo, cómo le sirve a una tienda de barrio). Debe tener lógica económica: que el espectador entienda por qué genera dinero y por qué alguien pagaría por eso. Ningún ejemplo puede quedar en el aire ni fallar ante la pregunta "¿y eso quién lo paga y por qué?"; evita casos que compitan con algo gratuito obvio sin explicar el diferencial. Ni manual de producto (sin exceso de detalles técnicos) ni vaguedad: lo justo para que sea claro y creíble. Prefiere negocios y casos que la gente común reconozca.
 
 ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
 
@@ -177,6 +181,8 @@ BLOQUE F
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos ("el 90%", "la mayoría"). Sin calcos del inglés — español natural de hispanohablante nativo.
 
 NÚCLEO (obligatorio): este canal ENSEÑA a lograr libertad financiera de verdad, con datos y proyectos reales, al estilo crudo de Legado de Hierro. Cada reel debe ENSEÑAR algo concreto y accionable, no solo motivar ni nombrar el problema: una estrategia real, una cifra o dato verificable, un activo, un método paso a paso, o un ejemplo de negocio real. El espectador debe terminar el video sabiendo QUÉ HACER, no solo sintiéndose inspirado. Prohibido quedarse en filosofía general, frases motivacionales sin sustancia o generalidades vacías.
+
+EJEMPLOS CLAROS Y CREÍBLES (obligatorio): cualquier negocio, activo o estrategia que menciones debe entenderlo alguien SIN conocimientos técnicos ni financieros. Al usar un ejemplo, explícalo en pocas palabras: QUÉ es, PARA QUIÉN y POR QUÉ pagarían — el problema real que resuelve — y cómo se aplica en un caso cotidiano concreto. Debe tener lógica económica clara: que se entienda por qué genera dinero y por qué alguien pagaría por eso. Ningún ejemplo puede quedar en el aire ni fallar ante la pregunta "¿y eso quién lo paga y por qué?"; evita casos que compitan con algo gratuito obvio sin explicar el diferencial. Ni manual de producto ni vaguedad: lo justo para ser claro y creíble. Prefiere negocios y casos que la gente común reconozca.
 
 ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
 
