@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
   }
 
-  const PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
+  const PROJECT_ID = process.env.GCP_PROJECT_ID || 'creacion-de-contenido1';
   const url = 'https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
     '/locations/global/publishers/google/models/' + MODEL + ':generateContent';
 
