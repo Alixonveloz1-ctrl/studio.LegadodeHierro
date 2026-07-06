@@ -47,8 +47,8 @@ export default async function handler(req, res) {
     let aspectRatio = body.aspectRatio === '16:9' ? '16:9' : '9:16';
 
     const GCP_SERVICE_ACCOUNT = process.env.GCP_SERVICE_ACCOUNT;
-    const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'anime-ai-studio-497502';
-    const GCS_OUTPUT_BUCKET = (process.env.GCS_OUTPUT_BUCKET || 'gs://legado-videos').trim();
+    const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'creacion-de-contenido1';
+    const GCS_OUTPUT_BUCKET = (process.env.GCS_OUTPUT_BUCKET || 'gs://legado-hierro').trim();
     const REGION = 'us-central1';
 
     if (!GCP_SERVICE_ACCOUNT) {
