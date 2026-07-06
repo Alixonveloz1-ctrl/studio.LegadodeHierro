@@ -80,7 +80,7 @@ export default async function handler(req, res) {
       storageUri: GCS_OUTPUT_BUCKET,
       sampleCount: 1,
       personGeneration: 'allow_adult',
-      negativePrompt: 'deformed hands, extra fingers, missing fingers, merged fingers, bad anatomy, blurry, watermark, text overlay, hopping, skipping, bouncing, little jumps, stutter-stepping, moonwalking, floating, childish scribbles, scribbling, random squiggles, meaningless zigzag lines, crayon marks',
+      negativePrompt: 'deformed hands, extra fingers, missing fingers, merged fingers, bad anatomy, blurry, watermark, text overlay, hopping, skipping, bouncing, little jumps, stutter-stepping, moonwalking, floating, childish scribbles, scribbling, random squiggles, meaningless zigzag lines, crayon marks, rain, raindrops, snow, storm, wet floor, water on surfaces, indoor rain, weather indoors, morphing objects, transforming objects, object turning into another object, two pens, writing with both hands, trembling hands, shaking hands, jittering, papers flying, papers jumping',
     };
     // generateAudio solo existe en Veo 3.x; en Veo 2 el parametro no aplica.
     if (/^veo-3/.test(model)) parameters.generateAudio = false;
