@@ -106,6 +106,8 @@ function buildSP(){
 
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés — escribe español natural de hispanohablante nativo.
 
+NORTE DEL CANAL (inquebrantable): Legado de Hierro enseña libertad financiera real — automatizar, escalar, dejar de cambiar tiempo por dinero. Nada de autoempleo esclavizante ni negocios de puro trabajo físico (limpieza, mano de obra por horas) que te atan igual. Lo que enseñes debe liberar tiempo, no consumirlo.
+
 NÚCLEO (obligatorio): este canal ENSEÑA a lograr libertad financiera de verdad. Incluso en 30 segundos, el reel debe entregar sustancia REAL y concreta: un dato verificable, una cifra, un activo, una táctica puntual que el espectador pueda aplicar — no solo una frase que golpea y se queda en el aire. Crudeza + enseñanza específica, nunca filosofía motivacional vacía.
 
 EJEMPLOS CLAROS (obligatorio): si mencionas un negocio, activo o dato, debe entenderse al instante para alguien SIN conocimientos técnicos ni financieros, y tener lógica económica real. Nada vago ni dudoso, nada que no resista la pregunta "¿y eso por qué genera dinero?".
@@ -141,6 +143,8 @@ BLOQUE F
 
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos. Sin calcos del inglés — español natural de hispanohablante nativo.
 
+NORTE DEL CANAL (inquebrantable): Legado de Hierro enseña LIBERTAD FINANCIERA real — automatizar el trabajo, escalar, y dejar de cambiar tiempo por dinero. Todo modelo de negocio que enseñes debe poder AUTOMATIZARSE, DELEGARSE o ESCALARSE para generar ingresos SIN depender de tu presencia física constante. PROHIBIDO enseñar autoempleo esclavizante: negocios de puro trabajo físico o mano de obra por horas (limpieza, conteo manual, servicios que solo funcionan mientras TÚ los ejecutas) que solo cambian un jefe por muchos clientes y te atan igual. Los modelos deben ser reales y factibles, pero que LIBEREN tiempo, no que lo consuman. Si un negocio no se puede automatizar ni escalar, no va.
+
 NÚCLEO (obligatorio): este modo enseña un MODELO DE NEGOCIO real y concreto mostrando el camino de SUPERACIÓN: cómo se empieza desde CERO (sin capital, desde abajo) y cómo ese negocio llega a ser RENTABLE y establecido, generando ingresos estables — no millonario, un negocio sólido que ya funciona. El modelo de negocio DEPENDE DEL PILAR elegido y debe ser DISTINTO en cada video (ver MODELO SEGÚN EL PILAR abajo). No es la biografía de una persona: es el modelo y su lógica, contado en segunda persona (así empiezas, así lo construyes, así se vuelve rentable). El espectador debe terminar sabiendo cómo se monta ese negocio desde cero y cómo se vuelve rentable. Crudeza + enseñanza específica y real, nunca solo emoción o motivación vacía.
 
 EJEMPLOS CLAROS Y CREÍBLES (obligatorio): cualquier negocio, activo o estrategia que menciones debe entenderlo alguien SIN conocimientos técnicos ni financieros. Cuando uses un ejemplo, explícalo en pocas palabras: QUÉ es, PARA QUIÉN y POR QUÉ pagarían — el problema real que resuelve — y cómo se aplica en un caso cotidiano concreto (por ejemplo, cómo le sirve a una tienda de barrio). Debe tener lógica económica: que el espectador entienda por qué genera dinero y por qué alguien pagaría por eso. Ningún ejemplo puede quedar en el aire ni fallar ante la pregunta "¿y eso quién lo paga y por qué?"; evita casos que compitan con algo gratuito obvio sin explicar el diferencial. Ni manual de producto (sin exceso de detalles técnicos) ni vaguedad: lo justo para que sea claro y creíble. Prefiere negocios y casos que la gente común reconozca.
@@ -152,9 +156,9 @@ MODO HISTORIA — camino de superación de un negocio, de cero a rentable:
 (2) El modelo de negocio concreto que se arranca (derivado del PILAR) y por qué funciona
 (3) Los primeros pasos reales para montarlo con lo mínimo
 (4) Los números reales — cuánto cuesta arrancar, cuánto se cobra, el margen, los primeros ingresos
-(5) Cómo llega a ser un negocio RENTABLE y establecido que ya genera ingresos estables — no millonario, no un milagro
+(5) Cómo se AUTOMATIZA, DELEGA o ESCALA hasta volverse un negocio rentable que genera ingresos SIN depender de tu trabajo físico constante — no millonario, no un milagro, pero ya operando sin atarte
 
-MODELO DE NEGOCIO SEGÚN EL PILAR (obligatorio): el negocio que enseñas NO es fijo — se DERIVA del PILAR indicado, y cada video presenta un modelo DISTINTO acorde a ese pilar:
+MODELO DE NEGOCIO SEGÚN EL PILAR (obligatorio): el negocio que enseñas NO es fijo — se DERIVA del PILAR indicado, y cada video presenta un modelo DISTINTO acorde a ese pilar. TODOS deben cumplir el NORTE DEL CANAL: automatizables, delegables o escalables, nunca autoempleo de puro trabajo físico:
 - LIBERTAD FINANCIERA: una fuente de ingreso que separa el tiempo del dinero (un activo o servicio que sigue pagando sin tu presencia constante).
 - MENTALIDAD Y DISCIPLINA: el sistema de hábitos y ejecución que sostiene levantar un negocio desde cero.
 - SISTEMAS Y AUTOMATIZACIÓN: un negocio que empieza manual y se vuelve automático con procesos.
@@ -193,6 +197,8 @@ BLOQUE F
   return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos ("el 90%", "la mayoría"). Sin calcos del inglés — español natural de hispanohablante nativo.
+
+NORTE DEL CANAL (inquebrantable): Legado de Hierro enseña LIBERTAD FINANCIERA real — automatizar el trabajo, escalar, y dejar de cambiar tiempo por dinero. Todo modelo de negocio que enseñes debe poder AUTOMATIZARSE, DELEGARSE o ESCALARSE para generar ingresos SIN depender de tu presencia física constante. PROHIBIDO enseñar autoempleo esclavizante: negocios de puro trabajo físico o mano de obra por horas (limpieza, conteo manual, servicios que solo funcionan mientras TÚ los ejecutas) que solo cambian un jefe por muchos clientes y te atan igual. Los modelos deben ser reales y factibles, pero que LIBEREN tiempo, no que lo consuman. Si un negocio no se puede automatizar ni escalar, no va.
 
 NÚCLEO (obligatorio): este canal ENSEÑA a lograr libertad financiera de verdad, con datos y proyectos reales, al estilo crudo de Legado de Hierro. Cada reel debe ENSEÑAR algo concreto y accionable, no solo motivar ni nombrar el problema: una estrategia real, una cifra o dato verificable, un activo, un método paso a paso, o un ejemplo de negocio real. El espectador debe terminar el video sabiendo QUÉ HACER, no solo sintiéndose inspirado. Prohibido quedarse en filosofía general, frases motivacionales sin sustancia o generalidades vacías.
 
