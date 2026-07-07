@@ -141,17 +141,31 @@ BLOQUE F
 
 VOZ: cruda, directa, segunda persona. Sin motivación vacía. Sin frases de coach. Sin porcentajes genéricos. Sin calcos del inglés — español natural de hispanohablante nativo.
 
-NÚCLEO (obligatorio): la historia ENSEÑA cómo se logra la libertad financiera con hechos reales. No basta con narrar la lucha y el triunfo: cada historia muestra QUÉ hizo concretamente el personaje para avanzar — la decisión exacta, el primer negocio o activo, el número, el método. El espectador debe terminar sabiendo qué haría él en su lugar. Crudeza + enseñanza específica, nunca solo emoción o motivación vacía.
+NÚCLEO (obligatorio): este modo enseña un MODELO DE NEGOCIO real y concreto mostrando el camino de SUPERACIÓN: cómo se empieza desde CERO (sin capital, desde abajo) y cómo ese negocio llega a ser RENTABLE y establecido, generando ingresos estables — no millonario, un negocio sólido que ya funciona. El modelo de negocio DEPENDE DEL PILAR elegido y debe ser DISTINTO en cada video (ver MODELO SEGÚN EL PILAR abajo). No es la biografía de una persona: es el modelo y su lógica, contado en segunda persona (así empiezas, así lo construyes, así se vuelve rentable). El espectador debe terminar sabiendo cómo se monta ese negocio desde cero y cómo se vuelve rentable. Crudeza + enseñanza específica y real, nunca solo emoción o motivación vacía.
 
 EJEMPLOS CLAROS Y CREÍBLES (obligatorio): cualquier negocio, activo o estrategia que menciones debe entenderlo alguien SIN conocimientos técnicos ni financieros. Cuando uses un ejemplo, explícalo en pocas palabras: QUÉ es, PARA QUIÉN y POR QUÉ pagarían — el problema real que resuelve — y cómo se aplica en un caso cotidiano concreto (por ejemplo, cómo le sirve a una tienda de barrio). Debe tener lógica económica: que el espectador entienda por qué genera dinero y por qué alguien pagaría por eso. Ningún ejemplo puede quedar en el aire ni fallar ante la pregunta "¿y eso quién lo paga y por qué?"; evita casos que compitan con algo gratuito obvio sin explicar el diferencial. Ni manual de producto (sin exceso de detalles técnicos) ni vaguedad: lo justo para que sea claro y creíble. Prefiere negocios y casos que la gente común reconozca.
 
 ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
 
-MODO HISTORIA — arco narrativo de emprendimiento:
-(1) Situación difícil inicial sin romantizarla
-(2) Punto de quiebre — una decisión, no suerte
-(3-4) Primeros pasos reales, acciones concretas
-(5) Primera señal de que algo funciona — no el éxito final
+MODO HISTORIA — camino de superación de un negocio, de cero a rentable:
+(1) El punto de partida desde CERO — sin capital, sin contactos, la situación real de quien empieza de abajo
+(2) El modelo de negocio concreto que se arranca (derivado del PILAR) y por qué funciona
+(3) Los primeros pasos reales para montarlo con lo mínimo
+(4) Los números reales — cuánto cuesta arrancar, cuánto se cobra, el margen, los primeros ingresos
+(5) Cómo llega a ser un negocio RENTABLE y establecido que ya genera ingresos estables — no millonario, no un milagro
+
+MODELO DE NEGOCIO SEGÚN EL PILAR (obligatorio): el negocio que enseñas NO es fijo — se DERIVA del PILAR indicado, y cada video presenta un modelo DISTINTO acorde a ese pilar:
+- LIBERTAD FINANCIERA: una fuente de ingreso que separa el tiempo del dinero (un activo o servicio que sigue pagando sin tu presencia constante).
+- MENTALIDAD Y DISCIPLINA: el sistema de hábitos y ejecución que sostiene levantar un negocio desde cero.
+- SISTEMAS Y AUTOMATIZACIÓN: un negocio que empieza manual y se vuelve automático con procesos.
+- HERRAMIENTAS DEL CAMINO (especial): aquí el modelo NO es un negocio ajeno. En primera persona, cuenta que recorriste el camino desde cero, que solo te costó años, y que reuniste todo lo que te faltó en la guía que ofreces en el ENLACE del video; dirige al espectador a ese enlace para no tardar años como tú. Sin precios ni nombre de producto.
+- MARCA PERSONAL: un negocio construido sobre audiencia y presencia (contenido, autoridad, y cómo se monetiza esa atención).
+- INVERSIÓN Y CAPITAL: construir un activo o portafolio que genere ingresos, empezando con poco.
+- NEGOCIO Y VENTAS: una estructura comercial concreta que se arranca y se hace rentable.
+- NEGOCIOS CON POCO CAPITAL: un negocio que arranca casi sin dinero y se vuelve rentable.
+- NEGOCIOS MILLONARIOS: un modelo con potencial de escala grande, pero mostrado desde el arranque desde cero, sin prometer millones.
+
+PROHIBIDO — HISTORIA FICTICIA: NO inventes un protagonista ni le pongas nombre propio (nada de "Marcos", "Carlos", "Pedro", "Juan", "Lucas" ni similares), y NO uses la fórmula de biografía inventada tipo "[Nombre] vivía en un barrio... un día entendió... decidió...". Este modo NO cuenta la vida de una persona inventada: expone un CASO o MODELO REAL de negocio, finanzas o emprendimiento y su lógica. Los ejemplos deben ser reales y verificables, negocios que de verdad existen y funcionan — nunca inventados solo por rellenar. Habla en segunda persona (tú) o describe el modelo mismo y cómo funciona. El camino de superación de cero a rentable se narra sobre el NEGOCIO en segunda persona, NUNCA como la biografía de un personaje con nombre.
 
 GANCHO obligatorio: primera frase destruye una creencia o nombra la situación exacta del espectador. Sin porcentajes. Sin coach. Sin calentamiento.
 
@@ -164,15 +178,15 @@ BLOQUE A
 [Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
 
 BLOQUE C
-[Prompts siguiendo el arco: inicio opresivo → quiebre → acción → avance → resultado. Cada prompt: acción concreta + entorno específico + ángulo + luz. Sin describir al personaje. Entorno diferente en cada prompt.]
-PROMPT 1: [punto más bajo — acción + entorno + ángulo + luz]
-PROMPT 2: [momento de quiebre — acción + entorno diferente + ángulo + luz]
-PROMPT 3: [primer paso — acción + entorno diferente + ángulo + luz]
-PROMPT 4: [avanzando — acción + entorno diferente + ángulo + luz]
-PROMPT 5: [primer resultado — acción + entorno diferente + ángulo + luz]
-PROMPT 6: [acción + entorno diferente + ángulo + luz]
-PROMPT 7: [acción + entorno diferente + ángulo + luz]
-PROMPT 8: [llegada — acción + entorno de poder + ángulo + luz]
+[Prompts que ILUSTRAN en orden las partes del caso real que enseña el guion (sincronización guion-imagen). Cada prompt: acción concreta + entorno específico + ángulo + luz. Sin describir al personaje. Entorno diferente en cada prompt, coherente con lo que narra esa parte.]
+PROMPT 1: [ilustra la parte 1 del guion — acción + entorno + ángulo + luz]
+PROMPT 2: [ilustra la parte 2 del guion — acción + entorno diferente + ángulo + luz]
+PROMPT 3: [ilustra la parte 3 del guion — acción + entorno diferente + ángulo + luz]
+PROMPT 4: [ilustra la parte 4 del guion — acción + entorno diferente + ángulo + luz]
+PROMPT 5: [ilustra la parte 5 del guion — acción + entorno diferente + ángulo + luz]
+PROMPT 6: [ilustra la parte 6 del guion — acción + entorno diferente + ángulo + luz]
+PROMPT 7: [ilustra la parte 7 del guion — acción + entorno diferente + ángulo + luz]
+PROMPT 8: [ilustra la parte 8 del guion — acción + entorno diferente + ángulo + luz]
 
 BLOQUE F
 [Traducción natural al inglés. Sin calcos. Termina con: Iron Legacy.]`;
@@ -478,7 +492,7 @@ async function generate(){
   var identidadBase='PERSONAJE FIJO — el MISMO hombre en TODAS las imagenes, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO EN TODA IMAGEN: lluvia, cualquier clima (nieve, tormenta, gotas de agua), cielos lluviosos, superficies mojadas, charcos -- NUNCA, ni dentro ni fuera del edificio; el clima es fuente de errores graves al animar. Tampoco robots, futurismo, sci-fi, cadenas rotas, magia ni fantasia. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad, contraste y sombras, jamas clima. ESCENAS LIMPIAS: incluye solo los objetos que la accion necesita; evita objetos sueltos irrelevantes (tazas de cafe, vasos, adornos) que no formen parte de la accion, porque al animar se deforman o se transforman en otra cosa. MIRADA (obligatorio): el personaje mira lo que exige la accion (el documento, la pantalla, la ciudad, el trato), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
   var sceneDir;
   if(sMode==='historia'){
-    sceneDir='DIRECCION VISUAL — MODO HISTORIA: cada prompt es UNA sola imagen, una sola escena, un unico plano que llena todo el cuadro — NUNCA una imagen dividida en vinetas, cuadros o collage. Vistas EN SECUENCIA (imagen 1, luego 2, luego 3), las imagenes cuentan UNA sola historia continua que avanza escena por escena. Cada prompt es el siguiente momento del arco de ESTE guion: realidad dificil inicial donde el espectador se reconoce, luego el punto de quiebre por una decision, luego primeros pasos concretos, luego traccion, luego el primer resultado. El entorno y el vestuario EVOLUCIONAN con la historia, de humilde a poder. Deriva cada escena del CONTENIDO del guion; NO uses una lista fija de escenas. Escenas distintas pero coherentes entre si, cada una se siente continuacion de la anterior. ';
+    sceneDir='DIRECCION VISUAL — MODO HISTORIA: cada prompt es UNA sola imagen, una sola escena, un unico plano que llena todo el cuadro — NUNCA una imagen dividida en vinetas, cuadros o collage. Vistas EN SECUENCIA (imagen 1, luego 2, luego 3), las imagenes muestran al PROTAGONISTA de la marca CONSTRUYENDO y TRABAJANDO en el negocio que enseña el guion, e ILUSTRAN en orden la parte del guion que a cada una le toca (sincronizacion guion-imagen). La secuencia sigue el arco de SUPERACION del negocio: empieza desde abajo (montandolo desde cero, entorno humilde y modesto, trabajo duro con lo minimo) y avanza hasta el negocio ya RENTABLE y establecido (operando con solidez, mas recursos, el resultado logrado) — no millonario ostentoso, un negocio solido. El protagonista siempre esta DENTRO de ese negocio concreto, haciendo el trabajo real de esa etapa, en entornos coherentes con lo que se narra (el local, la bodega, la calle comercial, la reunion, el puesto de trabajo). NO es la biografia personal de un personaje: es el negocio creciendo de cero a rentable con el protagonista trabajandolo. Deriva cada escena del CONTENIDO de su parte del guion; NO uses una lista fija de escenas. Escenas distintas pero coherentes entre si, cada una continuacion de la anterior. ';
   }else if(sMode==='impacto'){
     sceneDir='DIRECCION VISUAL — MODO IMPACTO: 3 imagenes de alto impacto, cada una ilustra un golpe distinto del mensaje de ESTE guion. Entornos completamente diferentes entre si, potentes y cinematograficos. Deriva las escenas del guion; NO uses una lista fija de escenas. ';
   }else{
