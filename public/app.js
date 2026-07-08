@@ -1376,6 +1376,8 @@ async function exportAll(){
     var zip=new JSZip();
     if(lastRes&&lastRes.a) zip.file(slug+'-guion-es.txt',lastRes.a);
     if(lastRes&&lastRes.f) zip.file(slug+'-guion-en.txt',lastRes.f);
+    var capFull=(lastCaption||'')+(lastTags?(lastCaption?'\n\n':'')+lastTags:'');
+    if(capFull) zip.file(slug+'-caption.txt',capFull);
     var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'');
     var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'');
     if(srtES) zip.file(slug+'-subtitulos-es.srt',srtES);
