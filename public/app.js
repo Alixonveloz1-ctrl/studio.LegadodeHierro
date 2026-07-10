@@ -193,6 +193,8 @@ NÚCLEO (obligatorio): este canal ENSEÑA a lograr libertad financiera de verdad
 
 EJEMPLOS CLAROS (obligatorio): si mencionas un negocio, activo o dato, debe entenderse al instante para alguien SIN conocimientos técnicos ni financieros, y tener lógica económica real. Nada vago ni dudoso, nada que no resista la pregunta "¿y eso por qué genera dinero?".
 
+FILTRO DE NEGOCIO REAL (obligatorio): si mencionas un negocio o activo, tiene que (1) tener clientes que lleguen por un sistema que escala (audiencia, contenido, distribución de producto), no por perseguirlos uno por uno; (2) estar vigente en 2026, no revender lo que hoy la IA o las apps gratuitas ya hacen; (3) seguir generando sin tu presencia diaria. SÍ: productos digitales, una marca o audiencia que vende por ti, software, activos, marca de producto propio. NUNCA: agencias, consultorías, freelance ni ningún rebusque de cliente en cliente.
+
 ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
 
 MODO IMPACTO — 30 segundos, máximo 75 palabras:
@@ -228,7 +230,7 @@ NORTE DEL CANAL (inquebrantable): Legado de Hierro enseña LIBERTAD FINANCIERA r
 
 NÚCLEO (obligatorio): este modo enseña un MODELO DE NEGOCIO real y concreto mostrando el camino de SUPERACIÓN: cómo se empieza desde CERO (sin capital, desde abajo) y cómo ese negocio llega a ser RENTABLE y establecido, generando ingresos estables — no millonario, un negocio sólido que ya funciona. El modelo de negocio DEPENDE DEL PILAR elegido y debe ser DISTINTO en cada video (ver MODELO SEGÚN EL PILAR abajo). No es la biografía de una persona: es el modelo y su lógica, contado en segunda persona (así empiezas, así lo construyes, así se vuelve rentable). El espectador debe terminar sabiendo cómo se monta ese negocio desde cero y cómo se vuelve rentable. Crudeza + enseñanza específica y real, nunca solo emoción o motivación vacía.
 
-EJEMPLOS CLAROS Y CREÍBLES (obligatorio): cualquier negocio, activo o estrategia que menciones debe entenderlo alguien SIN conocimientos técnicos ni financieros. Cuando uses un ejemplo, explícalo en pocas palabras: QUÉ es, PARA QUIÉN y POR QUÉ pagarían — el problema real que resuelve — y cómo se aplica en un caso cotidiano concreto (por ejemplo, cómo le sirve a una tienda de barrio). Debe tener lógica económica: que el espectador entienda por qué genera dinero y por qué alguien pagaría por eso. Ningún ejemplo puede quedar en el aire ni fallar ante la pregunta "¿y eso quién lo paga y por qué?"; evita casos que compitan con algo gratuito obvio sin explicar el diferencial. Ni manual de producto (sin exceso de detalles técnicos) ni vaguedad: lo justo para que sea claro y creíble. Prefiere negocios y casos que la gente común reconozca.
+EJEMPLOS CLAROS Y CREÍBLES (obligatorio): cualquier negocio, activo o estrategia que menciones debe entenderlo alguien SIN conocimientos técnicos ni financieros. Cuando uses un ejemplo, explícalo en pocas palabras: QUÉ es, PARA QUIÉN y POR QUÉ pagarían — el problema real que resuelve — y cómo se aplica en un caso concreto y entendible. Debe tener lógica económica: que el espectador entienda por qué genera dinero y por qué alguien pagaría por eso. Ningún ejemplo puede quedar en el aire ni fallar ante la pregunta "¿y eso quién lo paga y por qué?"; evita casos que compitan con algo gratuito obvio sin explicar el diferencial. Ni manual de producto (sin exceso de detalles técnicos) ni vaguedad: lo justo para que sea claro y creíble. Que sea fácil de entender NO significa que sea un negocio local de servicio: el modelo siempre debe pasar el FILTRO DE NEGOCIO REAL.
 
 ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
 
@@ -240,15 +242,21 @@ MODO HISTORIA — camino de superación de un negocio, de cero a rentable:
 (5) Cómo se AUTOMATIZA, DELEGA o ESCALA hasta volverse un negocio rentable que genera ingresos SIN depender de tu trabajo físico constante — no millonario, no un milagro, pero ya operando sin atarte
 
 MODELO DE NEGOCIO SEGÚN EL PILAR (obligatorio): el negocio que enseñas NO es fijo — se DERIVA del PILAR indicado, y cada video presenta un modelo DISTINTO acorde a ese pilar. TODOS deben cumplir el NORTE DEL CANAL: automatizables, delegables o escalables, nunca autoempleo de puro trabajo físico:
-- LIBERTAD FINANCIERA: una fuente de ingreso que separa el tiempo del dinero (un activo o servicio que sigue pagando sin tu presencia constante).
+- LIBERTAD FINANCIERA: una fuente de ingreso que separa el tiempo del dinero — un activo o un producto que sigue pagando sin tu presencia constante (no un servicio que tienes que prestar tú).
 - MENTALIDAD Y DISCIPLINA: el sistema de hábitos y ejecución que sostiene levantar un negocio desde cero.
-- SISTEMAS Y AUTOMATIZACIÓN: un negocio que empieza manual y se vuelve automático con procesos.
+- SISTEMAS Y AUTOMATIZACIÓN: NO es montar un negocio de venderle automatización a otros. Es cómo un negocio propio (un producto, una marca, un software) se construye desde el inicio como una máquina que opera con sistemas y sigue vendiendo sin ti.
 - HERRAMIENTAS DEL CAMINO (especial): aquí el modelo NO es un negocio ajeno. En primera persona, cuenta que recorriste el camino desde cero, que solo te costó años, y que reuniste todo lo que te faltó en la guía que ofreces en el ENLACE del video; dirige al espectador a ese enlace para no tardar años como tú. Sin precios ni nombre de producto.
 - MARCA PERSONAL: un negocio construido sobre audiencia y presencia (contenido, autoridad, y cómo se monetiza esa atención).
 - INVERSIÓN Y CAPITAL: construir un activo o portafolio que genere ingresos, empezando con poco.
 - NEGOCIO Y VENTAS: una estructura comercial concreta que se arranca y se hace rentable.
 - NEGOCIOS CON POCO CAPITAL: un negocio que arranca casi sin dinero y se vuelve rentable.
-- NEGOCIOS MILLONARIOS: un modelo con potencial de escala grande, pero mostrado desde el arranque desde cero, sin prometer millones.
+- NEGOCIOS MILLONARIOS: modelos de APALANCAMIENTO REAL que escalan a miles de clientes SIN venta uno a uno ni perseguir clientes a diario — un producto digital que se vende repetido a gran volumen, un software o app con suscripción masiva, una marca de producto propio que se distribuye a escala, o contenido/propiedad intelectual que se monetiza sin límite de horas. NO agencias de servicio ni consultorías que dependen de cerrar cliente por cliente (eso es rebusque, no escala millonaria); mostrado desde cómo se arranca, sin prometer que TÚ te harás millonario.
+
+FILTRO DE NEGOCIO REAL (obligatorio en todo modelo que propongas, sea cual sea el pilar): antes de enseñar un negocio, tiene que pasar las TRES pruebas:
+1. ADQUISICIÓN QUE ESCALA: los clientes llegan por un sistema que crece solo (una audiencia, contenido que se difunde, un producto que se distribuye), NUNCA persiguiéndolos uno por uno. Si el negocio te obliga a buscar clientes todos los días, es rebusque disfrazado de emprendimiento: NO va.
+2. VIGENTE EN 2026: nada de estructuras obsoletas ni de revender o intermediar algo que hoy se hace gratis con inteligencia artificial o herramientas no-code. Si una app gratuita ya lo resuelve, el negocio no es vender eso: es USAR esas herramientas para crear algo propio y difícil de copiar.
+3. INGRESO SIN TU PRESENCIA: debe seguir generando aunque dejes de trabajar un mes (un producto que se replica, un activo, un software, una audiencia monetizada). Si se detiene sin tu esfuerzo diario, es un empleo disfrazado: NO va.
+LO QUE SÍ ENSEÑAMOS: productos digitales que se venden repetidos, una marca o audiencia que vende por ti, software o apps, activos que rinden, marcas de producto propio que se distribuyen a escala. LO QUE NUNCA: agencias de servicios, consultorías, freelance por encargo, ni ningún modelo que viva de cerrar cliente por cliente. Y NO repitas el mismo modelo en cada video: varía el tipo de negocio.
 
 PROHIBIDO — HISTORIA FICTICIA: NO inventes un protagonista ni le pongas nombre propio (nada de "Marcos", "Carlos", "Pedro", "Juan", "Lucas" ni similares), y NO uses la fórmula de biografía inventada tipo "[Nombre] vivía en un barrio... un día entendió... decidió...". Este modo NO cuenta la vida de una persona inventada: expone un CASO o MODELO REAL de negocio, finanzas o emprendimiento y su lógica. Los ejemplos deben ser reales y verificables, negocios que de verdad existen y funcionan — nunca inventados solo por rellenar. Habla en segunda persona (tú) o describe el modelo mismo y cómo funciona. El camino de superación de cero a rentable se narra sobre el NEGOCIO en segunda persona, NUNCA como la biografía de un personaje con nombre.
 
@@ -283,7 +291,7 @@ NORTE DEL CANAL (inquebrantable): Legado de Hierro enseña LIBERTAD FINANCIERA r
 
 NÚCLEO (obligatorio): este canal ENSEÑA a lograr libertad financiera de verdad, con datos y proyectos reales, al estilo crudo de Legado de Hierro. Cada reel debe ENSEÑAR algo concreto y accionable, no solo motivar ni nombrar el problema: una estrategia real, una cifra o dato verificable, un activo, un método paso a paso, o un ejemplo de negocio real. El espectador debe terminar el video sabiendo QUÉ HACER, no solo sintiéndose inspirado. Prohibido quedarse en filosofía general, frases motivacionales sin sustancia o generalidades vacías.
 
-EJEMPLOS CLAROS Y CREÍBLES (obligatorio): cualquier negocio, activo o estrategia que menciones debe entenderlo alguien SIN conocimientos técnicos ni financieros. Al usar un ejemplo, explícalo en pocas palabras: QUÉ es, PARA QUIÉN y POR QUÉ pagarían — el problema real que resuelve — y cómo se aplica en un caso cotidiano concreto. Debe tener lógica económica clara: que se entienda por qué genera dinero y por qué alguien pagaría por eso. Ningún ejemplo puede quedar en el aire ni fallar ante la pregunta "¿y eso quién lo paga y por qué?"; evita casos que compitan con algo gratuito obvio sin explicar el diferencial. Ni manual de producto ni vaguedad: lo justo para ser claro y creíble. Prefiere negocios y casos que la gente común reconozca.
+EJEMPLOS CLAROS Y CREÍBLES (obligatorio): cualquier negocio, activo o estrategia que menciones debe entenderlo alguien SIN conocimientos técnicos ni financieros. Al usar un ejemplo, explícalo en pocas palabras: QUÉ es, PARA QUIÉN y POR QUÉ pagarían — el problema real que resuelve — y cómo se aplica en un caso cotidiano concreto. Debe tener lógica económica clara: que se entienda por qué genera dinero y por qué alguien pagaría por eso. Ningún ejemplo puede quedar en el aire ni fallar ante la pregunta "¿y eso quién lo paga y por qué?"; evita casos que compitan con algo gratuito obvio sin explicar el diferencial. Ni manual de producto ni vaguedad: lo justo para ser claro y creíble. Que sea fácil de entender NO significa que sea un negocio local de servicio: el modelo siempre debe pasar el FILTRO DE NEGOCIO REAL.
 
 ESPAÑOL: gramática impecable. Concordancia correcta de número (singular/plural) y de género en cada sustantivo, verbo y adjetivo. Revisa cada frase; una palabra en plural donde va singular arruina el audio.
 
@@ -294,13 +302,19 @@ PROHIBIDO siempre: porcentajes genéricos, "sigues esperando", "la gente piensa"
 INSTRUCCIONES POR PILAR (enseña siempre algo APLICABLE, con un ejemplo, un número o un paso real — nunca solo el concepto):
 - LIBERTAD FINANCIERA: un mecanismo concreto para separar tiempo de ingreso (un activo, una fuente de ingreso, un cálculo real), no solo la idea.
 - MENTALIDAD Y DISCIPLINA: un hábito o sistema específico y cómo ejecutarlo paso a paso, no motivación.
-- SISTEMAS Y AUTOMATIZACIÓN: un proceso concreto que el espectador pueda montar, con el paso clave explicado.
+- SISTEMAS Y AUTOMATIZACIÓN: cómo hacer que TU propio negocio o activo opere con sistemas y siga vendiendo sin ti — NO montar un negocio de venderle automatización a terceros.
 - HERRAMIENTAS DEL CAMINO: primera persona — YO construí lo que me faltó. Enseña el principio detrás. Cierra empujando al enlace del video. Sin precios ni nombres de productos.
 - MARCA PERSONAL: una acción concreta de visibilidad y cómo empezarla hoy.
 - INVERSIÓN Y CAPITAL: un activo o estrategia concreta con números reales, nunca generalidades.
 - NEGOCIO Y VENTAS: una táctica de ventas o una estructura comercial específica que se pueda copiar.
 - NEGOCIOS CON POCO CAPITAL: una idea ejecutable hoy y su primer paso real.
-- NEGOCIOS MILLONARIOS: un principio de escala o de sistemas con un ejemplo real.
+- NEGOCIOS MILLONARIOS: un modelo de APALANCAMIENTO REAL que escala a miles sin venta uno a uno (producto digital masivo, software o app de suscripción, marca de producto propio, contenido o propiedad intelectual), NO una agencia o consultoría de rebusque cliente por cliente.
+
+FILTRO DE NEGOCIO REAL (obligatorio en todo modelo que propongas, sea cual sea el pilar): antes de enseñar un negocio, tiene que pasar las TRES pruebas:
+1. ADQUISICIÓN QUE ESCALA: los clientes llegan por un sistema que crece solo (una audiencia, contenido que se difunde, un producto que se distribuye), NUNCA persiguiéndolos uno por uno. Si el negocio te obliga a buscar clientes todos los días, es rebusque disfrazado de emprendimiento: NO va.
+2. VIGENTE EN 2026: nada de estructuras obsoletas ni de revender o intermediar algo que hoy se hace gratis con inteligencia artificial o herramientas no-code. Si una app gratuita ya lo resuelve, el negocio no es vender eso: es USAR esas herramientas para crear algo propio y difícil de copiar.
+3. INGRESO SIN TU PRESENCIA: debe seguir generando aunque dejes de trabajar un mes (un producto que se replica, un activo, un software, una audiencia monetizada). Si se detiene sin tu esfuerzo diario, es un empleo disfrazado: NO va.
+LO QUE SÍ ENSEÑAMOS: productos digitales que se venden repetidos, una marca o audiencia que vende por ti, software o apps, activos que rinden, marcas de producto propio que se distribuyen a escala. LO QUE NUNCA: agencias de servicios, consultorías, freelance por encargo, ni ningún modelo que viva de cerrar cliente por cliente. Y NO repitas el mismo modelo en cada video: varía el tipo de negocio.
 
 RITMO: comas para conectar, puntos para pausas. Nunca el mismo cierre dos veces. Termina con: Legado de Hierro.
 FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
