@@ -6,7 +6,6 @@ var THEMES=[
   {id:'marca',      label:'Marca Personal & Autoridad',icon:'🎯',desc:'Tu nombre, tu presencia, tu dinero',c:'#b87a8a',p:'#f8e8ee'},
   {id:'inversion',  label:'Inversión & Capital',      icon:'📈',desc:'Activos, portafolio, dinero',      c:'#7a9ec4',p:'#e8f0f8'},
   {id:'negocio',    label:'Negocio & Ventas',         icon:'🏗️',desc:'Estructura comercial, escala',     c:'#9ab47a',p:'#eef4e8'},
-  {id:'poco',       label:'Negocios con Poco Capital',icon:'💡',desc:'Empieza desde cero, escala rápido', c:'#c4a85a',p:'#f8f0d8'},
   {id:'millonario', label:'Negocios Millonarios',     icon:'🏆',desc:'Construcción de riqueza a largo plazo',c:'#8a7ac4',p:'#eceaf8'},
 ];
 var DURS=[
@@ -29,15 +28,28 @@ var TABS=[
 // para forzar variedad real (el modelo de IA siempre cae en su ejemplo favorito si se le deja elegir).
 // Todos cumplen el FILTRO DE NEGOCIO REAL: adquisicion que escala, vigentes en 2026, ingreso sin presencia.
 var MODEL_SEEDS=[
-  'una MARCA DE PRODUCTO FÍSICO propia vendida por internet con producción y envíos tercerizados: la riqueza está en la MARCA, un activo que crece en valor y que puede venderse como empresa completa',
-  'un NEGOCIO DE AUDIENCIA: contenido de nicho que construye una audiencia propia y se monetiza con TUS productos — la audiencia es el activo que multiplica todo lo que lances después',
-  'un SOFTWARE O APP PROPIA para consumidores o para un nicho desatendido (construida con IA o no-code): suscripciones que escalan a miles y una empresa con valor de venta',
-  'CONOCIMIENTO EMPAQUETADO: un método propio convertido en producto digital que se vende en automático a miles — se crea una vez y se vende sin límite de copias',
-  'REPLICAR UN MODELO PROBADO en un nicho, idioma o mercado desatendido: tomar un negocio que YA está funcionando en otro lugar y ejecutarlo mejor donde todavía falta — los millonarios casi nunca inventan, ejecutan mejor lo probado',
-  'BIENES RAÍCES CON GESTIÓN DELEGADA: propiedades de renta que los inquilinos pagan solas, con administración tercerizada — la riqueza viene de la plusvalía y el apalancamiento, no de tu trabajo',
-  'un CATÁLOGO DE PROPIEDAD INTELECTUAL: activos creativos (libros, plantillas, música, diseños) que acumulan regalías año tras año — la riqueza es el catálogo completo, no una venta',
-  'el PORTAFOLIO COMPUESTO: un negocio que genera ingresos altos y cuyo excedente se invierte constante en activos que se capitalizan por años — la vía silenciosa de la mayoría de los millonarios reales',
-  'una MARCA QUE SE MULTIPLICA: un negocio propio ya sistematizado que se expande con gerentes, sucursales o franquicias — tú eres el dueño del sistema, nunca el operador',
+  'un SOFTWARE PROPIO de nicho (micro-SaaS) construido con IA o no-code que resuelve UN problema concreto y recurrente de un grupo específico (NO gestión ni inventario para pequeñas empresas): suscripción mensual que escala a miles y una empresa que crece en valor y se puede vender',
+  'una MARCA DE PRODUCTO FÍSICO de nicho vendida por internet, donde la IA produce todo el marketing (anuncios, fotos, videos, textos) que antes exigía un equipo entero; producción y envíos tercerizados — la MARCA es el activo que se vende como empresa',
+  'un CANAL o MARCA DE CONTENIDO en video producido con IA a escala en un nicho rentable, monetizado con la publicidad de la plataforma, patrocinios y productos propios — la audiencia y la marca son el activo que multiplica todo lo que lances (el modelo de este mismo canal)',
+  'un CATÁLOGO DE ACTIVOS DIGITALES por regalías creados con IA generativa (música, diseños, fotos, plantillas, recursos para creadores o videojuegos) vendidos en marketplaces: se crean una vez y cobran con cada descarga sin tu presencia',
+  'COMPRAR un negocio pequeño que YA factura y cuyo dueño se retira, y modernizarlo con IA para bajar costos y subir el margen: ya tiene clientes e ingresos, tú lo conviertes en una máquina — no inventas nada, tomas lo que ya funciona',
+  'BIENES RAÍCES con gestión delegada: propiedades de renta que los inquilinos pagan solas y que administra un tercero — la riqueza viene de la plusvalía y del apalancamiento con deuda buena, no de tu trabajo',
+  'una APP para consumidores o para un nicho desatendido, construida con IA o no-code, monetizada por suscripción y distribuida por las tiendas de aplicaciones y el contenido — escala a miles de usuarios y es una empresa vendible',
+  'un PRODUCTO DIGITAL que es una HERRAMIENTA o un activo útil (NO un curso ni información: la IA ya regala la información) — un sistema, una plantilla que trabaja sola, un recurso que la gente USA; se crea una vez con IA y se vende repetido',
+  'una MARCA DE SERVICIO PRODUCTIZADO donde la IA hace la entrega (contenido, diseño, edición, media) empaquetado como un producto de precio fijo y suscripción, con clientes que llegan por contenido y distribución — NO una agencia que persigue clientes uno por uno',
+];
+
+// Angulos rotativos para el pilar HERRAMIENTAS DEL CAMINO -- el codigo asigna uno al azar
+// para que cada guion ensene algo distinto y solo el cierre apunte al enlace (fin de la repeticion).
+var HERRAM_ANGLES=[
+  'Enseña UN error concreto y costoso que se comete al empezar sin guía (elige uno distinto: precio mal puesto, nicho mal elegido, meses construyendo algo que nadie pidió, seguir consejos contradictorios de internet, empezar sin sistema de ventas), desarrolla por qué frena todo y cómo se evita.',
+  'Enseña UNA lección real del camino a la libertad financiera (el orden correcto de los pasos, por qué la mayoría del tiempo se pierde en lo que no genera, cómo saber si un negocio vale la pena antes de meterle meses) con sustancia aplicable.',
+  'Compara los dos caminos: el que avanza con un sistema probado contra el que improvisa a golpes — qué hace distinto cada uno en sus primeros meses y a dónde llega cada uno en un año.',
+  'Responde la objeción de que se puede solo: dale la razón — sí se puede — y muestra el precio real en años y errores de hacerlo sin mapa, con un ejemplo concreto del tipo de error que cuesta meses.',
+  'Cuenta en primera persona UNA situación específica del camino (un estancamiento, una decisión equivocada, el día que entendiste el orden correcto de las cosas) y la lección exacta que dejó.',
+  'Enseña a identificar en qué etapa está el espectador (empezando sin rumbo, atascado repitiendo errores, avanzando sin sistema) y qué necesita cada etapa para pasar a la siguiente.',
+  'Destruye UN mito que retrasa a los que empiezan (que se necesita capital, que hay que esperar la idea perfecta, que consumir más información es avanzar) con argumentos concretos.',
+  'Enseña el costo real de la información suelta: por qué acumular videos y consejos gratis sin un orden lleva años de vueltas, y qué cambia cuando el camino tiene estructura.',
 ];
 
 var SCHED_POOL=[
@@ -156,21 +168,6 @@ var SCHED_POOL=[
   {t:'negocio',concept:'¿Tu negocio escala o solo escala tu cansancio?',h:'pregunta'},
   {t:'negocio',concept:'La estructura comercial que convierte un servicio en una máquina',h:'afirmacion'},
   {t:'negocio',concept:'Cómo pasar de vender horas a vender un sistema que resuelve',h:'pasos'},
-  {t:'poco',concept:'Cómo validar si tu idea vende antes de gastar un centavo',h:'pasos'},
-  {t:'poco',concept:'Un negocio digital que arrancas con tu teléfono y escalas sin inventario',h:'dato'},
-  {t:'poco',concept:'Lo que te falta no es capital, es el primer sistema',h:'afirmacion'},
-  {t:'poco',concept:'Cómo convertir una habilidad que ya tienes en un producto que se vende solo',h:'pasos'},
-  {t:'poco',concept:'Empecé sin dinero, con conocimiento; lo empaqueté y se vendió repetido',h:'historia'},
-  {t:'poco',concept:'El mejor negocio de poco capital es el que no requiere tu presencia',h:'afirmacion'},
-  {t:'poco',concept:'¿Vas a esperar a tener capital o a construir un activo con lo que sabes?',h:'pregunta'},
-  {t:'poco',concept:'Tres modelos que arrancan con casi nada y no dependen de tu tiempo',h:'pasos'},
-  {t:'poco',concept:'El negocio de conocimiento: creas una vez, cobras muchas veces',h:'dato'},
-  {t:'poco',concept:'Cómo empezar con poco sin caer en la trampa de venderte por horas',h:'pasos'},
-  {t:'poco',concept:'Poco capital no significa negocio pequeño, significa empezar inteligente',h:'afirmacion'},
-  {t:'poco',concept:'¿Tu idea de negocio escala o solo te compra otro empleo?',h:'pregunta'},
-  {t:'poco',concept:'Empaqueta lo que sabes en algo que se venda mientras duermes',h:'pasos'},
-  {t:'poco',concept:'Un producto digital vence a un servicio manual desde el primer mes',h:'dato'},
-  {t:'poco',concept:'Cómo usar herramientas gratuitas para montar un sistema que cobre solo',h:'pasos'},
   {t:'millonario',concept:'La mentalidad que separa al que construye millones del que solo trabaja',h:'afirmacion'},
   {t:'millonario',concept:'Cómo piensan los que construyen negocios que no dependen de ellos',h:'pregunta'},
   {t:'millonario',concept:'Los tres pilares que comparten todos los negocios que escalan',h:'pasos'},
@@ -260,11 +257,10 @@ MODELO DE NEGOCIO SEGÚN EL PILAR (obligatorio): el negocio que enseñas NO es f
 - LIBERTAD FINANCIERA: una fuente de ingreso que separa el tiempo del dinero — un activo o un producto que sigue pagando sin tu presencia constante (no un servicio que tienes que prestar tú).
 - MENTALIDAD Y DISCIPLINA: el sistema de hábitos y ejecución que sostiene levantar un negocio desde cero.
 - SISTEMAS Y AUTOMATIZACIÓN: NO es montar un negocio de venderle automatización a otros. Es cómo un negocio propio (un producto, una marca, un software) se construye desde el inicio como una máquina que opera con sistemas y sigue vendiendo sin ti.
-- HERRAMIENTAS DEL CAMINO (especial): aquí el modelo NO es un negocio ajeno. En primera persona, cuenta que recorriste el camino desde cero, que solo te costó años, y que reuniste todo lo que te faltó en la guía que ofreces en el ENLACE del video; dirige al espectador a ese enlace para no tardar años como tú. Sin precios ni nombre de producto.
+- HERRAMIENTAS DEL CAMINO (especial): primera persona, y el guion ENSEÑA de verdad algo del camino según el ÁNGULO ASIGNADO en el mensaje (un error real, una lección, un principio con sustancia) — nunca es solo un anuncio. SOLO el cierre dirige al enlace del video como el camino completo, con palabras DISTINTAS en cada guion. PROHIBIDA la fórmula repetida tipo "recorrí el camino, me costó años, ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
 - MARCA PERSONAL: un negocio construido sobre audiencia y presencia (contenido, autoridad, y cómo se monetiza esa atención).
 - INVERSIÓN Y CAPITAL: construir un activo o portafolio que genere ingresos, empezando con poco.
 - NEGOCIO Y VENTAS: una estructura comercial concreta que se arranca y se hace rentable.
-- NEGOCIOS CON POCO CAPITAL: un negocio que arranca casi sin dinero y se vuelve rentable.
 - NEGOCIOS MILLONARIOS: modelos de APALANCAMIENTO REAL que escalan a miles de clientes SIN venta uno a uno ni perseguir clientes a diario — un producto digital que se vende repetido a gran volumen, un software o app con suscripción masiva, una marca de producto propio que se distribuye a escala, o contenido/propiedad intelectual que se monetiza sin límite de horas. NO agencias de servicio ni consultorías que dependen de cerrar cliente por cliente (eso es rebusque, no escala millonaria); mostrado desde cómo se arranca, sin prometer que TÚ te harás millonario.
 
 FILTRO DE NEGOCIO REAL (obligatorio en todo modelo que propongas, sea cual sea el pilar): antes de enseñar un negocio, tiene que pasar las TRES pruebas:
@@ -273,7 +269,7 @@ FILTRO DE NEGOCIO REAL (obligatorio en todo modelo que propongas, sea cual sea e
 3. INGRESO SIN TU PRESENCIA: debe seguir generando aunque dejes de trabajar un mes (un producto que se replica, un activo, un software, una audiencia monetizada). Si se detiene sin tu esfuerzo diario, es un empleo disfrazado: NO va.
 LO QUE SÍ ENSEÑAMOS: productos digitales que se venden repetidos, una marca o audiencia que vende por ti, software o apps, activos que rinden, marcas de producto propio que se distribuyen a escala. LO QUE NUNCA: agencias de servicios, consultorías, freelance por encargo, ni ningún modelo que viva de cerrar cliente por cliente. VETADO POR REPETICIÓN: software o app de gestión, inventario, citas o recordatorios para pequeños comercios o pequeñas empresas — ese ejemplo ya se repitió demasiado; NO lo uses, usa el TIPO DE MODELO ASIGNADO en el mensaje. Y NO repitas el mismo modelo en cada video: varía el tipo de negocio.
 
-CÓMO SE HACEN LOS MILLONARIOS DE VERDAD: siendo DUEÑOS de activos que crecen en valor — una marca, un software, una audiencia, un catálogo, un portafolio, una empresa que se puede vender — no cobrando más por su tiempo. Casi nunca inventan: replican modelos PROBADOS con mejor ejecución o en nichos desatendidos. Y diseñan el negocio con sistemas y delegación desde el inicio, para lograr la libertad sin matarse trabajando. Enseña siempre desde esa realidad.
+CÓMO SE CONSTRUYE RIQUEZA HOY (2026): la riqueza real viene de ser DUEÑO de un activo que crece en valor — una marca, un software, una audiencia, un catálogo, una empresa que se puede vender — no de cobrar más por tu tiempo. Y estamos en un momento único: la inteligencia artificial hace el trabajo de un equipo entero por unos pocos dólares al mes, así que hoy UNA persona construye lo que antes exigía toda una empresa. El negocio ganador de hoy toma un problema real y concreto de un grupo específico, lo resuelve USANDO la IA como motor, y vende el RESULTADO — nunca información suelta, porque eso la IA ya lo regala gratis. Casi nunca se inventa algo nuevo: se replica un modelo que YA funciona, ejecutándolo mejor o llevándolo donde todavía no existe. No es de la noche a la mañana, cuesta trabajo y constancia, pero el camino es concreto y hoy está más al alcance que nunca. Enseña siempre desde esta realidad actual, con ejemplos concretos de HOY, jamás modelos de hace diez años.
 
 PROHIBIDO — HISTORIA FICTICIA: NO inventes un protagonista ni le pongas nombre propio (nada de "Marcos", "Carlos", "Pedro", "Juan", "Lucas" ni similares), y NO uses la fórmula de biografía inventada tipo "[Nombre] vivía en un barrio... un día entendió... decidió...". Este modo NO cuenta la vida de una persona inventada: expone un CASO o MODELO REAL de negocio, finanzas o emprendimiento y su lógica. Los ejemplos deben ser reales y verificables, negocios que de verdad existen y funcionan — nunca inventados solo por rellenar. Habla en segunda persona (tú) o describe el modelo mismo y cómo funciona. El camino de superación de cero a rentable se narra sobre el NEGOCIO en segunda persona, NUNCA como la biografía de un personaje con nombre.
 
@@ -320,11 +316,10 @@ INSTRUCCIONES POR PILAR (enseña siempre algo APLICABLE, con un ejemplo, un núm
 - LIBERTAD FINANCIERA: un mecanismo concreto para separar tiempo de ingreso (un activo, una fuente de ingreso, un cálculo real), no solo la idea.
 - MENTALIDAD Y DISCIPLINA: un hábito o sistema específico y cómo ejecutarlo paso a paso, no motivación.
 - SISTEMAS Y AUTOMATIZACIÓN: cómo hacer que TU propio negocio o activo opere con sistemas y siga vendiendo sin ti — NO montar un negocio de venderle automatización a terceros.
-- HERRAMIENTAS DEL CAMINO: primera persona — YO construí lo que me faltó. Enseña el principio detrás. Cierra empujando al enlace del video. Sin precios ni nombres de productos.
+- HERRAMIENTAS DEL CAMINO: primera persona, y el guion ENSEÑA de verdad el contenido del ÁNGULO ASIGNADO en el mensaje (un error, una lección, un principio del camino) con sustancia aplicable — nunca es solo un anuncio. SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDA la fórmula repetida "yo ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombres de productos.
 - MARCA PERSONAL: una acción concreta de visibilidad y cómo empezarla hoy.
 - INVERSIÓN Y CAPITAL: un activo o estrategia concreta con números reales, nunca generalidades.
 - NEGOCIO Y VENTAS: una táctica de ventas o una estructura comercial específica que se pueda copiar.
-- NEGOCIOS CON POCO CAPITAL: una idea ejecutable hoy y su primer paso real.
 - NEGOCIOS MILLONARIOS: un modelo de APALANCAMIENTO REAL que escala a miles sin venta uno a uno (producto digital masivo, software o app de suscripción, marca de producto propio, contenido o propiedad intelectual), NO una agencia o consultoría de rebusque cliente por cliente.
 
 FILTRO DE NEGOCIO REAL (obligatorio en todo modelo que propongas, sea cual sea el pilar): antes de enseñar un negocio, tiene que pasar las TRES pruebas:
@@ -333,7 +328,7 @@ FILTRO DE NEGOCIO REAL (obligatorio en todo modelo que propongas, sea cual sea e
 3. INGRESO SIN TU PRESENCIA: debe seguir generando aunque dejes de trabajar un mes (un producto que se replica, un activo, un software, una audiencia monetizada). Si se detiene sin tu esfuerzo diario, es un empleo disfrazado: NO va.
 LO QUE SÍ ENSEÑAMOS: productos digitales que se venden repetidos, una marca o audiencia que vende por ti, software o apps, activos que rinden, marcas de producto propio que se distribuyen a escala. LO QUE NUNCA: agencias de servicios, consultorías, freelance por encargo, ni ningún modelo que viva de cerrar cliente por cliente. VETADO POR REPETICIÓN: software o app de gestión, inventario, citas o recordatorios para pequeños comercios o pequeñas empresas — ese ejemplo ya se repitió demasiado; NO lo uses, usa el TIPO DE MODELO ASIGNADO en el mensaje. Y NO repitas el mismo modelo en cada video: varía el tipo de negocio.
 
-CÓMO SE HACEN LOS MILLONARIOS DE VERDAD: siendo DUEÑOS de activos que crecen en valor — una marca, un software, una audiencia, un catálogo, un portafolio, una empresa que se puede vender — no cobrando más por su tiempo. Casi nunca inventan: replican modelos PROBADOS con mejor ejecución o en nichos desatendidos. Y diseñan el negocio con sistemas y delegación desde el inicio, para lograr la libertad sin matarse trabajando. Enseña siempre desde esa realidad.
+CÓMO SE CONSTRUYE RIQUEZA HOY (2026): la riqueza real viene de ser DUEÑO de un activo que crece en valor — una marca, un software, una audiencia, un catálogo, una empresa que se puede vender — no de cobrar más por tu tiempo. Y estamos en un momento único: la inteligencia artificial hace el trabajo de un equipo entero por unos pocos dólares al mes, así que hoy UNA persona construye lo que antes exigía toda una empresa. El negocio ganador de hoy toma un problema real y concreto de un grupo específico, lo resuelve USANDO la IA como motor, y vende el RESULTADO — nunca información suelta, porque eso la IA ya lo regala gratis. Casi nunca se inventa algo nuevo: se replica un modelo que YA funciona, ejecutándolo mejor o llevándolo donde todavía no existe. No es de la noche a la mañana, cuesta trabajo y constancia, pero el camino es concreto y hoy está más al alcance que nunca. Enseña siempre desde esta realidad actual, con ejemplos concretos de HOY, jamás modelos de hace diez años.
 
 RITMO: comas para conectar, puntos para pausas. Nunca el mismo cierre dos veces. Termina con: Legado de Hierro.
 FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
@@ -484,10 +479,53 @@ function showPills(){
   el.innerHTML=mk('Gemini · texto·imagen·video')+mk('ElevenLabs · audio');
 }
 
-function refreshSched(){
-  SCHED_CURRENT=getRandomSuggestions();
-  document.getElementById('schedGrid').innerHTML='';
+function buildSuggestPrompt(){
+  var pilares=THEMES.map(function(t){return t.id;}).join(', ');
+  return 'Eres el estratega de contenido de LEGADO DE HIERRO, canal de Facebook Reels en español para hombres hispanos sobre libertad financiera real. Voz cruda y directa, sin motivación vacía ni frases de coach.\n\n'
+    +'NORTE: la riqueza viene de ser DUEÑO de activos que crecen (marca, software, audiencia, catálogo, empresa vendible), de automatizar y escalar con la inteligencia artificial como palanca, nunca de cambiar tiempo por dinero. Estamos en 2026: nada de modelos obsoletos, nada de autoempleo esclavizante, nada de vender información suelta (la IA la regala), nada de agencias ni rebusque de perseguir clientes.\n\n'
+    +'Genera EXACTAMENTE 7 conceptos NUEVOS y variados para reels. Cada concepto es una idea potente y concreta de máximo 15 palabras, en la voz cruda del canal. No repitas ideas típicas ya vistas mil veces; sorpréndeme con ángulos frescos y actuales. Usa pilares variados (máximo 2 conceptos por pilar).\n\n'
+    +'PILARES válidos: '+pilares+'\nGANCHOS válidos: dato, pregunta, afirmacion, historia, pasos\n\n'
+    +'FORMATO EXACTO — devuelve SOLO 7 líneas, sin numeración, sin texto extra, cada línea así:\npilar|gancho|concepto\n\nVariación aleatoria: '+Math.random().toString(36).slice(2,8);
+}
+
+function parseSuggestions(txt){
+  var validT={},validH={dato:1,pregunta:1,afirmacion:1,historia:1,pasos:1};
+  THEMES.forEach(function(t){validT[t.id]=1;});
+  var out=[];
+  (txt||'').replace(/\r/g,'').split('\n').forEach(function(ln){
+    var p=ln.split('|');
+    if(p.length<3)return;
+    var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');};
+    var t=norm(p[0]),h=norm(p[1]),c=p.slice(2).join('|').trim();
+    c=c.replace(/^[-–—\d.\s"']+/,'').replace(/["']+$/,'').trim();
+    if(validT[t]&&validH[h]&&c.length>8&&c.length<200)out.push({t:t,concept:c,h:h});
+  });
+  return out;
+}
+
+var schedLoading=false;
+async function refreshSched(){
+  if(schedLoading)return;
+  schedLoading=true;
+  var sg=document.getElementById('schedGrid');
+  sg.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:18px;color:var(--tx3);font-size:12px"><span class="spin"></span> Generando ideas nuevas con IA...</div>';
+  try{
+    var r=await fetch('/api/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:buildSuggestPrompt()}),
+    });
+    var d=await r.json();
+    if(!r.ok||!d.text)throw new Error(d.error||'sin texto');
+    var parsed=parseSuggestions(d.text);
+    if(parsed.length<4)throw new Error('respuesta invalida');
+    SCHED_CURRENT=parsed.slice(0,7);
+  }catch(e){
+    // Fallback: pool local si la IA falla, para que el boton nunca quede muerto.
+    SCHED_CURRENT=getRandomSuggestions();
+  }
+  sg.innerHTML='';
   buildSched();
+  schedLoading=false;
 }
 
 function buildSched(){
@@ -629,7 +667,10 @@ async function generate(){
   // Variedad mecánica: el código asigna el tipo de modelo al azar (el modelo de IA no elige).
   // Se omite en impacto (muy corto), herramientas (el modelo es la guía del enlace) e inversión (el pilar ya define: activos).
   var seedRule='';
-  if(sMode!=='impacto'&&sT!=='herramientas'&&sT!=='inversion'){
+  if(sMode!=='impacto'&&sT==='herramientas'){
+    var ang=HERRAM_ANGLES[Math.floor(Math.random()*HERRAM_ANGLES.length)];
+    seedRule='ÁNGULO ASIGNADO PARA ESTE GUION (variedad obligatoria): '+ang+' Desarrolla ESE contenido con sustancia real; SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDO repetir la fórmula de siempre.\n\n';
+  } else if(sMode!=='impacto'&&sT!=='inversion'){
     var seed=MODEL_SEEDS[Math.floor(Math.random()*MODEL_SEEDS.length)];
     seedRule='TIPO DE MODELO ASIGNADO PARA ESTE GUION (variedad obligatoria): si este guion enseña o ejemplifica un negocio, el modelo debe ser de este tipo: '+seed+'. Adáptalo al PILAR y al CONCEPTO del episodio, cumpliendo el FILTRO DE NEGOCIO REAL. PROHIBIDO ignorar esta asignación para volver a software de gestión para pequeños comercios o a cualquier otro modelo repetido.\n\n';
   }
