@@ -56,6 +56,24 @@ var HERRAM_ANGLES=[
 ];
 
 var SCHED_POOL=[
+  {t:'libertad',concept:'Tu finca te da de comer, pero te tiene preso; así se cambia eso',h:'afirmacion'},
+  {t:'libertad',concept:'El día que tu negocio facturó sin que tú abrieras la puerta',h:'historia'},
+  {t:'libertad',concept:'¿Tu local sobrevive una semana si tú no apareces?',h:'pregunta'},
+  {t:'mentalidad',concept:'Trabajar con las manos no es el problema; no soltar nunca sí lo es',h:'afirmacion'},
+  {t:'mentalidad',concept:'El dueño que no se deja reemplazar nunca deja de ser empleado',h:'afirmacion'},
+  {t:'sistema',concept:'Escribe cómo haces tu trabajo y acabas de crear tu primer activo',h:'pasos'},
+  {t:'sistema',concept:'Cómo entrenar a alguien para que haga tu oficio igual que tú',h:'pasos'},
+  {t:'sistema',concept:'El manual de operaciones: el papel que convierte tu local en empresa',h:'dato'},
+  {t:'sistema',concept:'Deja de ser el mejor empleado de tu propio taller',h:'afirmacion'},
+  {t:'marca',concept:'Vendes el grano barato; tostado y con tu marca vale cinco veces más',h:'dato'},
+  {t:'marca',concept:'Por qué el intermediario gana más que tú con tu propio trabajo',h:'pregunta'},
+  {t:'inversion',concept:'La tierra que trabajas puede pagarte sin que la trabajes',h:'afirmacion'},
+  {t:'negocio',concept:'Vender directo al cliente final: el margen que el intermediario te roba',h:'pasos'},
+  {t:'negocio',concept:'Cómo pasar de vender tu cosecha a vender tu producto',h:'pasos'},
+  {t:'negocio',concept:'El primer empleado no es un gasto, es tu salida',h:'afirmacion'},
+  {t:'millonario',concept:'Un local que funciona solo se convierte en diez; tú solo eres el dueño',h:'afirmacion'},
+  {t:'millonario',concept:'Cómo se replica un negocio físico con gerentes en vez de tus horas',h:'pasos'},
+  {t:'millonario',concept:'Las cadenas no crecieron con más horas del dueño, sino con procesos',h:'dato'},
   {t:'libertad',concept:'Por qué tu salario tiene un techo y tu tiempo jamás va a escalar',h:'dato'},
   {t:'libertad',concept:'La cuenta exacta: cuánto ingreso pasivo necesitas para renunciar sin miedo',h:'pasos'},
   {t:'libertad',concept:'El empleo te paga una vez por un trabajo; un activo te paga para siempre',h:'afirmacion'},
@@ -491,7 +509,9 @@ function showPills(){
 function buildSuggestPrompt(){
   var pilares=THEMES.map(function(t){return t.id;}).join(', ');
   return 'Eres el estratega de contenido de LEGADO DE HIERRO, canal de Facebook Reels en español para hombres hispanos sobre libertad financiera real. Voz cruda y directa, sin motivación vacía ni frases de coach.\n\n'
-    +'NORTE: la riqueza viene de ser DUEÑO de activos que crecen (marca, software, audiencia, catálogo, empresa vendible), de automatizar y escalar con la inteligencia artificial como palanca, nunca de cambiar tiempo por dinero. Estamos en 2026: nada de modelos obsoletos, nada de autoempleo esclavizante, nada de vender información suelta (la IA la regala), nada de agencias ni rebusque de perseguir clientes.\n\n'
+    +'NORTE: la libertad financiera es que tu negocio funcione SIN TI. FÍSICO O DIGITAL DA IGUAL — lo único que decide es que llegue a operar sin tu presencia diaria, con procesos escritos y gente entrenada. El camino es honesto: al principio se suda y se hace todo uno mismo, eso es normal; lo prohibido es quedarte siendo el producto para siempre, sin salida.\n\n'
+    +'TU AUDIENCIA: no son solo gente de tecnología. Te escriben campesinos que labran la tierra, cafeteros, dueños de cafeterías, gente de oficios y de trabajo físico. A ellos NO se les dice que abandonen lo suyo ni que se inventen un producto digital: se les enseña a sistematizar y delegar lo que ya tienen.\n\n'
+    +'VARIEDAD OBLIGATORIA — esto es lo más importante: NO todos los conceptos pueden ser sobre productos digitales, software ni audiencias. De los 7 conceptos, AL MENOS 4 deben tratar de negocios FÍSICOS o tradicionales que se sistematizan y delegan: fincas y cultivos, café, cafeterías, talleres, manufactura, distribución, locales que se replican, oficios convertidos en empresa, comprar un negocio que ya factura. Los otros 3 pueden ser digitales o de activos. Ojo: los productos digitales de pura información se están saturando porque cualquiera los fabrica en una tarde con IA — no los pongas como la única salida.\n\n'
     +'Genera EXACTAMENTE 7 conceptos NUEVOS y variados para reels. Cada concepto es una idea potente y concreta de máximo 15 palabras, en la voz cruda del canal. No repitas ideas típicas ya vistas mil veces; sorpréndeme con ángulos frescos y actuales. Usa pilares variados (máximo 2 conceptos por pilar).\n\n'
     +'PILARES válidos: '+pilares+'\nGANCHOS válidos: dato, pregunta, afirmacion, historia, pasos\n\n'
     +'FORMATO EXACTO — devuelve SOLO 7 líneas, sin numeración, sin texto extra, cada línea así:\npilar|gancho|concepto\n\nVariación aleatoria: '+Math.random().toString(36).slice(2,8);
