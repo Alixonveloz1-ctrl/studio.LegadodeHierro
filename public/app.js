@@ -941,11 +941,13 @@ async function genCaption(){
   var tema=lastRes.topic||(lastRes.tO?lastRes.tO.label:'');
   var pilar=lastRes.tO?lastRes.tO.label:'';
   var prompt='Eres el community manager de LEGADO DE HIERRO, un canal en espanol para hombres hispanos sobre libertad financiera, disciplina, mentalidad y emprendimiento. Voz cruda, directa, sin motivacion vacia, sin frases de coach, sin calcos del ingles.\n\n'
-    +'A partir de este reel, escribe el texto para publicarlo en Facebook.\n\n'
+    +'A partir de este reel, escribe el texto para publicarlo en TRES plataformas distintas. Mismo mensaje, distinto formato segun los limites de cada una.\n\n'
     +'PILAR: '+pilar+'\nTEMA: '+tema+'\nGUION:\n'+lastRes.a+'\n\n'
     +'Devuelve EXACTAMENTE este formato en texto plano, sin markdown, sin ** ni ##:\n\n'
-    +'CAPTION:\n[1 a 3 frases cortas y potentes que enganchen, en la voz de la marca, en espanol neutro. Puedes cerrar invitando a seguir el canal o a comentar. NO pongas hashtags aqui. Maximo 1 emoji, o ninguno.]\n\n'
-    +'HASHTAGS:\n[Entre 14 y 20 hashtags en UNA sola linea separados por espacios. El PRIMERO debe ser SIEMPRE #LegadoDeHierro. Los demas relevantes al tema del reel y al nicho (finanzas, disciplina, mentalidad, dinero, libertad financiera, emprendimiento, exito, negocios, inversion). Mezcla espanol y algunos universales. Sin repetir, sin numerar. Solo los hashtags, nada mas.]';
+    +'CAPTION:\n[Para Facebook. 1 a 3 frases cortas y potentes que enganchen, en la voz de la marca, en espanol neutro. Puedes cerrar invitando a seguir el canal o a comentar. NO pongas hashtags aqui. Maximo 1 emoji, o ninguno.]\n\n'
+    +'HASHTAGS:\n[Para Facebook. Entre 14 y 20 hashtags en UNA sola linea separados por espacios. El PRIMERO debe ser SIEMPRE #LegadoDeHierro. Los demas relevantes al tema del reel y al nicho (finanzas, disciplina, mentalidad, dinero, libertad financiera, emprendimiento, exito, negocios, inversion). Mezcla espanol y algunos universales. Sin repetir, sin numerar. Solo los hashtags, nada mas.]\n\n'
+    +'TIKTOK:\n[Para TikTok. EXACTAMENTE 5 hashtags en una sola linea, ni uno mas, empezando SIEMPRE por #LegadoDeHierro. Elige los 5 mas relevantes de los que ya usaste arriba. Solo los hashtags, nada mas: NO repitas el caption aqui.]\n\n'
+    +'YOUTUBE:\n[Para YouTube Shorts. NO es una descripcion: es un TITULO corto y potente mas los hashtags que quepan, todo en UNA sola linea de MAXIMO 100 caracteres contando titulo, espacios y hashtags. Empieza por #LegadoDeHierro si cabe. Cuenta los caracteres antes de responder: si pasa de 100, acortalo. Sin comillas.]';
   try{
     var r=await fetch('/api/generate',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -969,10 +971,20 @@ async function genCaption(){
 function parseCaption(txt){
   var caption='',tags='';
   var t=(txt||'').replace(/\r/g,'').replace(/\*/g,'').replace(/#{2,}/g,'');
-  var mC=t.match(/CAPTION\s*:\s*([\s\S]*?)(?:HASHTAGS\s*:|$)/i);
-  var mH=t.match(/HASHTAGS\s*:\s*([\s\S]*)$/i);
+  var mC=t.match(/CAPTION\s*:\s*([\s\S]*?)(?:HASHTAGS\s*:|TIKTOK\s*:|YOUTUBE\s*:|$)/i);
+  var mH=t.match(/HASHTAGS\s*:\s*([\s\S]*?)(?:TIKTOK\s*:|YOUTUBE\s*:|$)/i);
+  var mT=t.match(/TIKTOK\s*:\s*([\s\S]*?)(?:YOUTUBE\s*:|$)/i);
+  var mY=t.match(/YOUTUBE\s*:\s*([\s\S]*)$/i);
   if(mC)caption=mC[1].trim();
   if(mH)tags=mH[1].trim();
+  lastTikTok=mT?mT[1].trim():'';
+  lastYouTube=mY?mY[1].replace(/\n+/g,' ').trim():'';
+  if(lastYouTube.length>100){
+    // Cortar en el ultimo espacio antes de 100 para no partir una palabra ni un hashtag.
+    var cut=lastYouTube.slice(0,100);
+    var sp=cut.lastIndexOf(' ');
+    lastYouTube=(sp>60?cut.slice(0,sp):cut).trim();
+  }
   if(!caption&&!tags)caption=t.trim();
   tags=tags.replace(/\n+/g,' ').replace(/\s{2,}/g,' ').trim();
   if(tags){
@@ -1116,6 +1128,7 @@ function combineAlignments(alignments,durations){
 // IMAGES
 var imgRefs=[];
 
+var lastTikTok='',lastYouTube='';
 var loadedRefsCount=0; // cuantas de las 4 referencias del personaje cargaron en el ultimo intento
 
 async function fetchRefOnce(url){
@@ -1510,8 +1523,17 @@ async function exportAll(){
     var zip=new JSZip();
     if(lastRes&&lastRes.a) zip.file(slug+'-guion-es.txt',lastRes.a);
     if(lastRes&&lastRes.f) zip.file(slug+'-guion-en.txt',lastRes.f);
-    var capFull=(lastCaption||'')+(lastTags?(lastCaption?'\n\n':'')+lastTags:'');
-    if(capFull) zip.file(slug+'-caption.txt',capFull);
+    var capFull='';
+    if(lastCaption||lastTags){
+      capFull+='===== FACEBOOK =====\n\n'+(lastCaption||'')+(lastTags?(lastCaption?'\n\n':'')+lastTags:'')+'\n\n\n';
+    }
+    if(lastTikTok){
+      capFull+='===== TIKTOK =====\n\n'+(lastCaption||'')+(lastCaption?'\n\n':'')+lastTikTok+'\n\n\n';
+    }
+    if(lastYouTube){
+      capFull+='===== YOUTUBE ('+lastYouTube.length+'/100 caracteres) =====\n\n'+lastYouTube+'\n';
+    }
+    if(capFull) zip.file(slug+'-caption.txt',capFull.trim()+'\n');
     var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'');
     var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'');
     if(srtES) zip.file(slug+'-subtitulos-es.srt',srtES);
