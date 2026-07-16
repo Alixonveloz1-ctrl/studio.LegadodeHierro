@@ -28,18 +28,18 @@ var TABS=[
 // para forzar variedad real (el modelo de IA siempre cae en su ejemplo favorito si se le deja elegir).
 // Todos cumplen el FILTRO DE NEGOCIO REAL: adquisicion que escala, vigentes en 2026, ingreso sin presencia.
 var MODEL_SEEDS=[
-  'una FINCA O CULTIVO que deja de depender de tus manos: empiezas labrando tú y sudando, pero escribes el proceso, entrenas un encargado y pasas a supervisar — y el salto de ganancia viene de vender directo al comprador final en vez de regalarle el margen al intermediario',
-  'TRANSFORMAR TU PROPIA MATERIA PRIMA EN MARCA: dejas de vender el grano, la fruta o el producto crudo barato y lo procesas, empacas y vendes con marca propia — el mismo cultivo vale varias veces más, y la marca es un activo que crece y se puede vender',
-  'un NEGOCIO LOCAL (cafetería, taller, restaurante, tienda) convertido en máquina: manual de operaciones escrito, un encargado entrenado y cuentas claras — cuando funciona sin ti, ese mismo manual abre el segundo local',
-  'un OFICIO CONVERTIDO EN EMPRESA: dejas de ser el que ejecuta el trabajo y montas una cuadrilla entrenada con TU método — tú organizas y supervisas, ellos ejecutan; el activo es el método y el equipo, no tus manos',
-  'COMPRAR UN NEGOCIO QUE YA FACTURA y cuyo dueño se retira, y sistematizarlo: ya tiene clientes e ingresos desde el día uno, tú le montas los procesos y lo delegas — no inventas nada, tomas lo que ya funciona',
-  'MANUFACTURA O PRODUCCIÓN PROPIA con marca: diseñas el producto, la producción va con empleados entrenados o tercerizada, y tú te quedas con la marca y la distribución, que es donde está el valor que crece',
-  'DISTRIBUCIÓN EN TU ZONA: consigues la representación de un producto y montas la ruta con empleados y clientes fijos — el activo es la ruta y los procesos, no tu presencia en el camión',
-  'BIENES RAÍCES con gestión delegada: propiedades de renta que los inquilinos pagan solas y que administra un tercero — la riqueza viene de la plusvalía y del apalancamiento, no de tu trabajo',
-  'una MARCA DE PRODUCTO FÍSICO vendida por internet, con producción y envíos tercerizados: tú construyes la marca y la demanda, nunca tocas una caja',
+  'un NEGOCIO FÍSICO QUE YA EXISTE — el tuyo, o uno que compras a un dueño que se retira — convertido en máquina: proceso escrito, encargado entrenado, cuentas claras, y tú pasas de ejecutar a supervisar',
+  'TRANSFORMAR LA MATERIA PRIMA EN MARCA: dejar de vender el producto crudo barato y procesarlo, empacarlo y venderlo con marca propia — el mismo trabajo vale varias veces más y la marca queda como activo',
+  'un OFICIO CONVERTIDO EN EMPRESA: dejas de ser el que ejecuta el trabajo y montas una cuadrilla entrenada con TU método — el activo es el método y el equipo, no tus manos',
+  'REPLICAR UNA OPERACIÓN QUE YA FUNCIONA: cuando el proceso está escrito y probado, se abre el segundo y el tercero con gerentes entrenados — creces con gente y sistemas, no con tus horas',
+  'MANUFACTURA O PRODUCCIÓN con marca propia: producción con empleados entrenados o tercerizada, y el valor que crece queda en la marca y la distribución',
+  'DISTRIBUCIÓN: la representación de un producto en una zona, con ruta fija, clientes fijos y empleados — el activo es la ruta y los procesos, no tu presencia',
+  'BIENES RAÍCES con gestión delegada: renta que los inquilinos pagan sola y que administra un tercero — la riqueza viene de la plusvalía y del apalancamiento',
+  'una MARCA DE PRODUCTO vendida por internet, con producción y envíos tercerizados: tú construyes la marca y la demanda, nunca tocas una caja',
   'un SOFTWARE O APP de nicho construido con IA o no-code que resuelve UN problema concreto y recurrente (NO gestión ni inventario para pequeñas empresas): suscripción que escala y una empresa que crece en valor',
-  'un CANAL O MARCA DE CONTENIDO producido con sistema y a escala en un nicho rentable, monetizado con la publicidad de la plataforma, patrocinios y productos propios — la audiencia es el activo que multiplica todo lo que lances',
-  'un CATÁLOGO DE ACTIVOS POR REGALÍAS (música, diseños, fotos, plantillas, recursos) que se crean una vez y cobran con cada uso — la riqueza es el catálogo completo acumulando años, no una venta',
+  'un CANAL O MARCA DE CONTENIDO producido con sistema en un nicho rentable, monetizado con publicidad, patrocinios y productos propios — la audiencia es el activo que multiplica lo que lances',
+  'un CATÁLOGO DE ACTIVOS POR REGALÍAS (música, diseños, plantillas, recursos) que se crean una vez y cobran con cada uso — la riqueza es el catálogo acumulando años',
+  'un PRODUCTO DIGITAL que es una HERRAMIENTA o un sistema que la gente USA de verdad — no información suelta — creado una vez y vendido repetido',
 ];
 
 // Angulos rotativos para el pilar HERRAMIENTAS DEL CAMINO -- el codigo asigna uno al azar
@@ -509,10 +509,11 @@ function showPills(){
 function buildSuggestPrompt(){
   var pilares=THEMES.map(function(t){return t.id;}).join(', ');
   return 'Eres el estratega de contenido de LEGADO DE HIERRO, canal de Facebook Reels en español para hombres hispanos sobre libertad financiera real. Voz cruda y directa, sin motivación vacía ni frases de coach.\n\n'
-    +'NORTE: la libertad financiera es que tu negocio funcione SIN TI. FÍSICO O DIGITAL DA IGUAL — lo único que decide es que llegue a operar sin tu presencia diaria, con procesos escritos y gente entrenada. El camino es honesto: al principio se suda y se hace todo uno mismo, eso es normal; lo prohibido es quedarte siendo el producto para siempre, sin salida.\n\n'
-    +'TU AUDIENCIA: no son solo gente de tecnología. Te escriben campesinos que labran la tierra, cafeteros, dueños de cafeterías, gente de oficios y de trabajo físico. A ellos NO se les dice que abandonen lo suyo ni que se inventen un producto digital: se les enseña a sistematizar y delegar lo que ya tienen.\n\n'
-    +'VARIEDAD OBLIGATORIA — esto es lo más importante: NO todos los conceptos pueden ser sobre productos digitales, software ni audiencias. De los 7 conceptos, AL MENOS 4 deben tratar de negocios FÍSICOS o tradicionales que se sistematizan y delegan: fincas y cultivos, café, cafeterías, talleres, manufactura, distribución, locales que se replican, oficios convertidos en empresa, comprar un negocio que ya factura. Los otros 3 pueden ser digitales o de activos. Ojo: los productos digitales de pura información se están saturando porque cualquiera los fabrica en una tarde con IA — no los pongas como la única salida.\n\n'
-    +'Genera EXACTAMENTE 7 conceptos NUEVOS y variados para reels. Cada concepto es una idea potente y concreta de máximo 15 palabras, en la voz cruda del canal. No repitas ideas típicas ya vistas mil veces; sorpréndeme con ángulos frescos y actuales. Usa pilares variados (máximo 2 conceptos por pilar).\n\n'
+    +'NORTE: la libertad financiera es que tu negocio funcione SIN TI. Al principio se suda y se hace todo uno mismo, eso es normal; lo prohibido es quedarte siendo el producto para siempre, sin salida.\n\n'
+    +'LA ESENCIA — no la traiciones: el canal NO le dice a la gente qué negocio montar. Enseña el PRINCIPIO de la libertad: que lo que tengas o construyas llegue a operar sin tu presencia, con procesos escritos y gente entrenada. Al que ya tiene una cafetería o una finca se le enseña a convertirla en algo grande que funcione sin él — jamás se le propone que abra una cafetería.\n\n'
+    +'FÍSICO Y DIGITAL VALEN IGUAL: ninguno es superior, ninguno se ataca, ninguno puede ser el único. Alterna los conceptos entre los dos mundos con naturalidad. Nunca insinúes que los productos digitales, el software o las apps sean malos o inferiores.\n\n'
+    +'Genera EXACTAMENTE 7 conceptos NUEVOS y variados para reels. Cada concepto es una idea potente y concreta de máximo 15 palabras. No repitas ideas típicas ya vistas mil veces; sorpréndeme con ángulos frescos y actuales. Usa pilares variados (máximo 2 conceptos por pilar).\n\n'
+    +'CRUDEZA (obligatoria): voz dura, directa, que incomode. Le hablas a un hombre que lleva años estancado y necesita que le digan la verdad de frente, sin adornos ni consuelo. Nada de motivación vacía, frases de coach ni positividad barata. Español impecable: mayúsculas al inicio y tildes correctas.\n\n'
     +'PILARES válidos: '+pilares+'\nGANCHOS válidos: dato, pregunta, afirmacion, historia, pasos\n\n'
     +'FORMATO EXACTO — devuelve SOLO 7 líneas, sin numeración, sin texto extra, cada línea así:\npilar|gancho|concepto\n\nVariación aleatoria: '+Math.random().toString(36).slice(2,8);
 }
