@@ -27,25 +27,34 @@ var TABS=[
 // Arquetipos de modelo de negocio -- el codigo elige UNO al azar por generacion
 // para forzar variedad real (el modelo de IA siempre cae en su ejemplo favorito si se le deja elegir).
 // Todos cumplen el FILTRO DE NEGOCIO REAL: adquisicion que escala, vigentes en 2026, ingreso sin presencia.
+// Sectores, NO negocios. Se asigna uno al azar para variar el terreno, pero el negocio
+// concreto lo elige el modelo: una lista cerrada de negocios convierte el prompt en un
+// menu y todos los guiones terminan hablando de lo mismo.
 var MODEL_SEEDS=[
-  'CORRETAJE DE CARGA: no tienes un solo camión. Conectas a la empresa que necesita mover mercancía con el transportista que tiene los camiones, y te quedas con el margen. Arrancas con teléfono y laptop; el activo son los contratos y tu agenda de transportistas',
-  'OPERADOR LOGÍSTICO: almacenas, empacas y despachas la mercancía de otras empresas. Con diez clientes fijos —marcas grandes que te confían su bodega— ya es un negocio de millones, y sin una sola publicidad: el contrato es el activo',
-  'MAQUILA O MARCA BLANCA: fabricas el producto que otras marcas venden con su nombre. Tú nunca apareces en la etiqueta, y un solo cliente grande puede sostener toda la planta',
-  'RENTA DE EQUIPO INDUSTRIAL (andamios, montacargas, maquinaria, generadores): compras el activo una vez y cobra renta durante años. El fierro trabaja, tú no',
-  'INSPECCIÓN Y MANTENIMIENTO OBLIGATORIO POR LEY (extintores, elevadores, calderas, tanques): la norma obliga a revisarlos cada año. Contratos que se renuevan solos, porque no renovarlos es ilegal',
-  'SUMINISTRO DE PERSONAL: colocas trabajadores en empresas y cobras por cada hora trabajada. Tú no ejecutas el trabajo: administras el sistema que consigue, coloca y controla a la gente',
-  'DISTRIBUCIÓN EXCLUSIVA de una marca en un territorio: consigues la representación y montas la ruta con empleados. El activo es el contrato de exclusividad, no tu presencia',
-  'RECICLAJE INDUSTRIAL (tarimas, chatarra, cartón, aceite usado): recoges lo que a las fábricas les estorba y lo vendes procesado. Feo, invisible, y con márgenes que nadie imagina',
-  'BODEGAS DE AUTOALMACENAJE: terreno, puertas y un portón automático. Casi sin empleados y con renta mensual que se repite sola',
-  'LAVANDERÍA INDUSTRIAL Y UNIFORMES: hoteles, hospitales y fábricas no lavan su propia ropa. Contratos fijos, ruta de recolección y una planta que corre por turnos',
-  'EMPAQUE Y ETIQUETADO PARA TERCEROS: las marcas te mandan el producto a granel y tú lo empacas listo para el anaquel. Nadie sabe que existes, y sin ti no llegan a la tienda',
-  'COMISARIATO O CATERING INDUSTRIAL: alimentas a los mil trabajadores de una fábrica. Un contrato, mil comidas diarias, ingreso fijo cada mes',
-  'CONTROL DE PLAGAS COMERCIAL POR CONTRATO: restaurantes, bodegas y hospitales lo necesitan por norma sanitaria. Visita mensual, contrato anual, cuadrilla entrenada',
-  'FINANCIAMIENTO DE FACTURAS: le adelantas el dinero de sus facturas al proveedor que no puede esperar noventa días a que su cliente le pague, y cobras la comisión. El capital trabaja, tú administras el riesgo',
-  'FABRICACIÓN DE EMPAQUE (cajas, corrugado, bolsas, etiquetas): todo lo que se vende va dentro de algo. Cliente industrial fijo y pedido recurrente para siempre',
-  'IMPORTACIÓN Y DISTRIBUCIÓN DE REFACCIONES O INSUMOS: traes la pieza que aquí nadie tiene y se la vendes a todos los talleres o fábricas de la región',
-  'una MARCA DE PRODUCTO vendida por internet con producción y envíos tercerizados: tú construyes la marca y la demanda, nunca tocas una caja',
-  'un SOFTWARE de nicho construido con IA o no-code que resuelve UN problema concreto y recurrente (NO gestión ni inventario para pequeños comercios): suscripción que escala y una empresa que crece en valor',
+  'del mundo de la salud, las clínicas o el bienestar',
+  'del mundo de la construcción o la infraestructura',
+  'del campo, la agricultura o los alimentos',
+  'del transporte, la carga o la logística',
+  'del textil, la ropa o la moda',
+  'de la educación o la formación',
+  'del sector automotor',
+  'de la energía o los servicios públicos',
+  'del sector inmobiliario',
+  'de las finanzas o los seguros',
+  'de la tecnología o el software',
+  'del entretenimiento, los medios o el contenido',
+  'de la industria o la manufactura',
+  'del turismo, los hoteles o los viajes',
+  'de los servicios profesionales a empresas',
+  'del mundo de las mascotas',
+  'del deporte o el fitness',
+  'de la belleza o el cuidado personal',
+  'de los residuos, el reciclaje o el medioambiente',
+  'de la seguridad',
+  'de los eventos',
+  'de la minería o la extracción',
+  'del comercio o la distribución',
+  'del mundo digital o las plataformas',
 ];
 
 // Angulos rotativos para el pilar HERRAMIENTAS DEL CAMINO -- el codigo asigna uno al azar
@@ -239,7 +248,8 @@ FUERZA EMOCIONAL (obligatoria — esto decide si el video se ve completo o se pa
 La crudeza y la emoción no pelean: la frase más dura es la que más mueve. Enseña con sustancia, pero que duela y que encienda.
 
 CÓMO ELEGIR EL EJEMPLO (si el guion necesita un negocio concreto):
-- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Casi nadie conoce el corretaje de carga sin tener camiones, el operador logístico que guarda la mercancía de las marcas grandes, la maquila que fabrica lo que otras marcas venden con su nombre, la renta de equipo industrial, la inspección obligatoria por ley, el suministro de personal o el reciclaje industrial. Son invisibles porque le venden a OTRAS EMPRESAS: con diez clientes fijos ya están hechos y nunca hacen publicidad. Enganchan diez veces más.
+- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que la gente jamás ha oído nombrar, casi siempre porque no le venden al público sino a otras empresas: con unos pocos clientes fijos ya están hechos y nunca hacen publicidad. Ese tipo engancha diez veces más.
+  TÚ ELIGES CUÁL — ahí está tu libertad: conoces miles de negocios reales de todos los sectores. Descarta el primero que se te venga a la cabeza, que siempre es el obvio. Busca uno distinto en cada guion y jamás repitas el ejemplo del guion anterior. Si el ejemplo se siente predecible, cámbialo.
 - TRES PRUEBAS: (1) puede llegar a operar sin tu presencia diaria; (2) vigente en 2026 — nada que hoy resuelva gratis una IA o una herramienta no-code, y ojo que los productos digitales de pura información se saturan por lo mismo; (3) los números cierran, con margen real. Físico o digital da igual. Lo único que descalifica es que dependa de tus manos para siempre.
 - EXPLÍCALO CLARO: qué es, para quién y por qué pagarían, con lógica económica que resista "¿y eso quién lo paga y por qué?". Ni manual técnico ni vaguedad.
 - Cómo consigue clientes depende del nicho — puertas, anuncios, contenido o distribución. No impongas ninguna vía.
@@ -289,7 +299,8 @@ FUERZA EMOCIONAL (obligatoria — esto decide si el video se ve completo o se pa
 La crudeza y la emoción no pelean: la frase más dura es la que más mueve. Enseña con sustancia, pero que duela y que encienda.
 
 CÓMO ELEGIR EL EJEMPLO (si el guion necesita un negocio concreto):
-- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Casi nadie conoce el corretaje de carga sin tener camiones, el operador logístico que guarda la mercancía de las marcas grandes, la maquila que fabrica lo que otras marcas venden con su nombre, la renta de equipo industrial, la inspección obligatoria por ley, el suministro de personal o el reciclaje industrial. Son invisibles porque le venden a OTRAS EMPRESAS: con diez clientes fijos ya están hechos y nunca hacen publicidad. Enganchan diez veces más.
+- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que la gente jamás ha oído nombrar, casi siempre porque no le venden al público sino a otras empresas: con unos pocos clientes fijos ya están hechos y nunca hacen publicidad. Ese tipo engancha diez veces más.
+  TÚ ELIGES CUÁL — ahí está tu libertad: conoces miles de negocios reales de todos los sectores. Descarta el primero que se te venga a la cabeza, que siempre es el obvio. Busca uno distinto en cada guion y jamás repitas el ejemplo del guion anterior. Si el ejemplo se siente predecible, cámbialo.
 - TRES PRUEBAS: (1) puede llegar a operar sin tu presencia diaria; (2) vigente en 2026 — nada que hoy resuelva gratis una IA o una herramienta no-code, y ojo que los productos digitales de pura información se saturan por lo mismo; (3) los números cierran, con margen real. Físico o digital da igual. Lo único que descalifica es que dependa de tus manos para siempre.
 - EXPLÍCALO CLARO: qué es, para quién y por qué pagarían, con lógica económica que resista "¿y eso quién lo paga y por qué?". Ni manual técnico ni vaguedad.
 - Cómo consigue clientes depende del nicho — puertas, anuncios, contenido o distribución. No impongas ninguna vía.
@@ -354,7 +365,8 @@ FUERZA EMOCIONAL (obligatoria — esto decide si el video se ve completo o se pa
 La crudeza y la emoción no pelean: la frase más dura es la que más mueve. Enseña con sustancia, pero que duela y que encienda.
 
 CÓMO ELEGIR EL EJEMPLO (si el guion necesita un negocio concreto):
-- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Casi nadie conoce el corretaje de carga sin tener camiones, el operador logístico que guarda la mercancía de las marcas grandes, la maquila que fabrica lo que otras marcas venden con su nombre, la renta de equipo industrial, la inspección obligatoria por ley, el suministro de personal o el reciclaje industrial. Son invisibles porque le venden a OTRAS EMPRESAS: con diez clientes fijos ya están hechos y nunca hacen publicidad. Enganchan diez veces más.
+- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que la gente jamás ha oído nombrar, casi siempre porque no le venden al público sino a otras empresas: con unos pocos clientes fijos ya están hechos y nunca hacen publicidad. Ese tipo engancha diez veces más.
+  TÚ ELIGES CUÁL — ahí está tu libertad: conoces miles de negocios reales de todos los sectores. Descarta el primero que se te venga a la cabeza, que siempre es el obvio. Busca uno distinto en cada guion y jamás repitas el ejemplo del guion anterior. Si el ejemplo se siente predecible, cámbialo.
 - TRES PRUEBAS: (1) puede llegar a operar sin tu presencia diaria; (2) vigente en 2026 — nada que hoy resuelva gratis una IA o una herramienta no-code, y ojo que los productos digitales de pura información se saturan por lo mismo; (3) los números cierran, con margen real. Físico o digital da igual. Lo único que descalifica es que dependa de tus manos para siempre.
 - EXPLÍCALO CLARO: qué es, para quién y por qué pagarían, con lógica económica que resista "¿y eso quién lo paga y por qué?". Ni manual técnico ni vaguedad.
 - Cómo consigue clientes depende del nicho — puertas, anuncios, contenido o distribución. No impongas ninguna vía.
@@ -528,11 +540,15 @@ function showPills(){
 
 function buildSuggestPrompt(){
   var pilares=THEMES.map(function(t){return t.id;}).join(', ');
+  // Sectores al azar en cada tanda: sin esto el modelo repite siempre los mismos ejemplos.
+  var mez=MODEL_SEEDS.slice().sort(function(){return Math.random()-0.5;}).slice(0,7);
+  var sectores=mez.join('; ');
   return 'Eres el estratega de contenido de LEGADO DE HIERRO, canal de Facebook Reels en español para hombres hispanos sobre libertad financiera real. Voz cruda y directa, sin motivación vacía ni frases de coach.\n\n'
     +'NORTE: la libertad financiera es que tu negocio funcione SIN TI. Al principio se suda y se hace todo uno mismo, eso es normal; lo prohibido es quedarte siendo el producto para siempre, sin salida.\n\n'
     +'LA ESENCIA — no la traiciones: el canal NO le dice a la gente qué negocio montar. Enseña el PRINCIPIO de la libertad: que lo que tengas o construyas llegue a operar sin tu presencia, con procesos escritos y gente entrenada. Al que ya tiene una cafetería o una finca se le enseña a convertirla en algo grande que funcione sin él — jamás se le propone que abra una cafetería.\n\n'
     +'FÍSICO Y DIGITAL VALEN IGUAL: ninguno es superior, ninguno se ataca, ninguno puede ser el único. Alterna los conceptos entre los dos mundos con naturalidad. Nunca insinúes que los productos digitales, el software o las apps sean malos o inferiores.\n\n'
-    +'NEGOCIOS INVISIBLES (lo más potente que puedes usar): la gente común solo conoce cafeterías, restaurantes, ferreterías, talleres y fincas — legítimos, pero todos los conocen y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que nadie ha oído nombrar: corretaje de carga sin tener camiones, operadores logísticos que almacenan la mercancía de marcas grandes, maquilas que fabrican lo que otras marcas venden con su nombre, renta de equipo industrial, inspección obligatoria por ley (extintores, elevadores, calderas), suministro de personal, reciclaje industrial, lavandería de uniformes para hoteles y hospitales, empaque para terceros, comisariato industrial, financiamiento de facturas. Son invisibles porque no le venden al público: le venden a OTRAS EMPRESAS, y con diez clientes fijos ya están hechos, así que nunca hacen publicidad. PREFIERE ESOS por encima del negocio obvio: enganchan muchísimo más. Un concepto sobre un negocio del que el espectador jamás ha oído hablar vale por diez sobre una cafetería.\n\n'
+    +'NEGOCIOS INVISIBLES: la gente común solo conoce cafeterías, restaurantes, ferreterías y talleres — legítimos, pero todos los conocen y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que nadie ha oído nombrar, casi siempre porque no le venden al público sino a otras empresas. Prefiere ESOS: un concepto sobre un negocio del que el espectador jamás ha oído hablar vale por diez sobre una cafetería. TÚ eliges cuáles — conoces miles de negocios reales; descarta el primero que se te ocurra, que siempre es el obvio.\n\n'
+    +'SECTORES DE ESTA TANDA (para que no te repitas): si un concepto necesita un negocio, saca cada uno de un sector distinto de esta lista, eligiendo TÚ el negocio dentro de cada sector: '+sectores+'.\n\n'
     +'Genera EXACTAMENTE 7 conceptos NUEVOS y variados para reels. Cada concepto es una idea potente y concreta de máximo 15 palabras. No repitas ideas típicas ya vistas mil veces; sorpréndeme con ángulos frescos y actuales. Usa pilares variados (máximo 2 conceptos por pilar).\n\n'
     +'CRUDEZA (obligatoria): voz dura, directa, que incomode. Le hablas a un hombre que lleva años estancado y necesita que le digan la verdad de frente, sin adornos ni consuelo. Nada de motivación vacía, frases de coach ni positividad barata. Español impecable: mayúsculas al inicio y tildes correctas.\n\n'
     +'PILARES válidos: '+pilares+'\nGANCHOS válidos: dato, pregunta, afirmacion, historia, pasos\n\n'
@@ -725,7 +741,7 @@ async function generate(){
     // Solo los pilares DE NEGOCIO reciben ejemplo asignado. Mentalidad, Marca Personal,
     // Inversion y Herramientas quedan libres: ahi manda el pilar, no un negocio sorteado.
     var seed=MODEL_SEEDS[Math.floor(Math.random()*MODEL_SEEDS.length)];
-    seedRule='EJEMPLO ASIGNADO PARA ESTE GUION (solo para variar, no es el tema): si necesitas un negocio concreto para ilustrar la lección, usa este: '+seed+'. Es el VEHÍCULO, no el tema — la enseñanza sigue siendo el sistema, y debe servirle igual a alguien con otro negocio completamente distinto. Adáptalo al PILAR y al CONCEPTO del episodio. PROHIBIDO ignorar esta asignación para volver a software de gestión para pequeños comercios o a cualquier otro ejemplo repetido.\n\n';
+    seedRule='SECTOR ASIGNADO PARA ESTE GUION (solo para que no repitas terreno): si el guion necesita un negocio concreto para ilustrar la lección, búscalo '+seed+'. TÚ eliges cuál — no te doy el negocio, te doy el terreno. Elige uno que la gente no conozca y descarta el más obvio de ese sector. Es el VEHÍCULO, no el tema.\n\n';
   }
   var msg=SP+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[sH]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
   try{
