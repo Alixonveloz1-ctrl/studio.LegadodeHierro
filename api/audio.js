@@ -19,6 +19,22 @@ module.exports = async (req, res) => {
   const text = req.body && req.body.text ? req.body.text : null;
   if (!text) return res.status(400).json({ error: 'Texto requerido' });
 
+  // Ajustes de voz enviados desde la UI. Se validan y se acotan a los rangos
+  // reales de ElevenLabs: fuera de rango la API rechaza o degrada el audio.
+  function clamp(v, lo, hi, def) {
+    const n = Number(v);
+    if (!isFinite(n)) return def;
+    return Math.min(hi, Math.max(lo, n));
+  }
+  const vIn = (req.body && req.body.voice) || {};
+  const VOICE_SETTINGS = {
+    stability:        clamp(vIn.stability,        0,   1,   0.5),
+    similarity_boost: clamp(vIn.similarity_boost, 0,   1,   0.75),
+    style:            clamp(vIn.style,            0,   1,   0),
+    speed:            clamp(vIn.speed,            0.7, 1.2, 1),
+    use_speaker_boost: vIn.use_speaker_boost === false ? false : true,
+  };
+
   const EL_KEY = process.env.ELEVENLABS_API_KEY;
   const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'IRHApOXLvnW57QJPQH2P';
   if (!EL_KEY) return res.status(500).json({ error: 'ELEVENLABS_API_KEY no configurada' });
@@ -73,12 +89,7 @@ module.exports = async (req, res) => {
     const body = {
       text: partText,
       model_id: 'eleven_multilingual_v2',
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75,
-        style: 0.0,
-        use_speaker_boost: true
-      }
+      voice_settings: VOICE_SETTINGS
     };
     if (prevText) body.previous_text = prevText;
     if (nextText) body.next_text = nextText;
