@@ -860,6 +860,7 @@ function renderOut(r){
   document.getElementById('audioCard').style.display='block';
   document.getElementById('imgCard').style.display='block';
   wireGenSettings();
+  wireVox();
   genCaption();
   // Botón generar todos los videos
   var ballvids=document.getElementById('ballvids');
@@ -988,6 +989,46 @@ function parseCaption(txt){
 }
 
 // AUDIO
+// Ajustes de voz: sliders, presets y persistencia en el navegador.
+function wireVox(){
+  var map=[['vStab','vStabV','stability'],['vSim','vSimV','similarity_boost'],['vSty','vStyV','style'],['vSpd','vSpdV','speed']];
+  try{
+    var saved=localStorage.getItem('lh_vox');
+    if(saved){var o=JSON.parse(saved);for(var k in o){if(VOX.hasOwnProperty(k))VOX[k]=o[k];}}
+  }catch(e){}
+  function save(){ try{localStorage.setItem('lh_vox',JSON.stringify(VOX));}catch(e){} }
+  function paint(){
+    map.forEach(function(m){
+      var r=document.getElementById(m[0]),v=document.getElementById(m[1]);
+      if(r)r.value=VOX[m[2]];
+      if(v)v.textContent=Number(VOX[m[2]]).toFixed(2);
+    });
+    var b=document.getElementById('vBoost');
+    if(b)b.checked=!!VOX.use_speaker_boost;
+  }
+  map.forEach(function(m){
+    var r=document.getElementById(m[0]);
+    if(!r)return;
+    r.addEventListener('input',function(){
+      VOX[m[2]]=parseFloat(r.value);
+      var v=document.getElementById(m[1]);
+      if(v)v.textContent=parseFloat(r.value).toFixed(2);
+      save();
+    });
+  });
+  var bx=document.getElementById('vBoost');
+  if(bx)bx.addEventListener('change',function(){VOX.use_speaker_boost=bx.checked;save();});
+  Array.prototype.forEach.call(document.querySelectorAll('.voxP'),function(btn){
+    btn.addEventListener('click',function(){
+      var p=btn.getAttribute('data-p').split(',');
+      VOX.stability=parseFloat(p[0]);VOX.similarity_boost=parseFloat(p[1]);
+      VOX.style=parseFloat(p[2]);VOX.speed=parseFloat(p[3]);
+      paint();save();
+    });
+  });
+  paint();
+}
+
 async function genAudio(lang){
   var isEN=lang==='en';
   var text=isEN?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
@@ -1006,7 +1047,7 @@ async function genAudio(lang){
     var r=await fetch('/api/audio',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:text}),
+      body:JSON.stringify({text:text,voice:VOX}),
     });
     if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||'Error '+r.status);}
     var data=await r.json();
@@ -1115,6 +1156,9 @@ function combineAlignments(alignments,durations){
 var imgRefs=[];
 
 var lastTikTok='',lastYouTube='';
+// Ajustes de voz de ElevenLabs. Rangos reales de la API: stability/similarity/style 0-1;
+// speed 0.7-1.2 (fuera de ese rango la calidad se degrada).
+var VOX={stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true};
 var loadedRefsCount=0; // cuantas de las 4 referencias del personaje cargaron en el ultimo intento
 
 async function fetchRefOnce(url){
