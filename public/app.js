@@ -24,39 +24,6 @@ var TABS=[
   {id:'a',label:'⚔ Guion ES',c:'#b8975a',p:'#f0e8d8'},
   {id:'f',label:'🇺🇸 Guion EN',c:'#c4897a',p:'#f8ede8'},
 ];
-// Arquetipos de modelo de negocio -- el codigo elige UNO al azar por generacion
-// para forzar variedad real (el modelo de IA siempre cae en su ejemplo favorito si se le deja elegir).
-// Todos cumplen el FILTRO DE NEGOCIO REAL: adquisicion que escala, vigentes en 2026, ingreso sin presencia.
-// Sectores, NO negocios. Se asigna uno al azar para variar el terreno, pero el negocio
-// concreto lo elige el modelo: una lista cerrada de negocios convierte el prompt en un
-// menu y todos los guiones terminan hablando de lo mismo.
-var MODEL_SEEDS=[
-  'del mundo de la salud, las clínicas o el bienestar',
-  'del mundo de la construcción o la infraestructura',
-  'del campo, la agricultura o los alimentos',
-  'del transporte, la carga o la logística',
-  'del textil, la ropa o la moda',
-  'de la educación o la formación',
-  'del sector automotor',
-  'de la energía o los servicios públicos',
-  'del sector inmobiliario',
-  'de las finanzas o los seguros',
-  'de la tecnología o el software',
-  'del entretenimiento, los medios o el contenido',
-  'de la industria o la manufactura',
-  'del turismo, los hoteles o los viajes',
-  'de los servicios profesionales a empresas',
-  'del mundo de las mascotas',
-  'del deporte o el fitness',
-  'de la belleza o el cuidado personal',
-  'de los residuos, el reciclaje o el medioambiente',
-  'de la seguridad',
-  'de los eventos',
-  'de la minería o la extracción',
-  'del comercio o la distribución',
-  'del mundo digital o las plataformas',
-];
-
 // Angulos rotativos para el pilar HERRAMIENTAS DEL CAMINO -- el codigo asigna uno al azar
 // para que cada guion ensene algo distinto y solo el cierre apunte al enlace (fin de la repeticion).
 var HERRAM_ANGLES=[
@@ -233,47 +200,53 @@ var SCHED_CURRENT=getRandomSuggestions();
 function buildSP(){
   if(sMode==='impacto')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
-VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"), sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género — un plural donde va singular arruina el audio.
+VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
 
-NORTE: el canal enseña libertad financiera real: que tu negocio funcione SIN TI. Físico o digital da igual — lo que decide es que llegue a operar sin tu presencia, con procesos y gente entrenada. Lo prohibido es el negocio donde TÚ eres el producto para siempre y no hay salida.
+A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
 
-NÚCLEO: incluso en 30 segundos entrega sustancia REAL — un dato verificable, una cifra, un activo, una táctica aplicable. Nunca una frase que golpea y se queda en el aire.
+NORTE: el canal empuja a UNA sola cosa — que deje de esperar y construya lo suyo. Libertad financiera, legado, disciplina, no rendirse, dejar de cambiar su vida por un sueldo, montar su propio negocio. Tu trabajo es encender la decisión, no dar recetas.
 
-FUERZA EMOCIONAL (obligatoria — esto decide si el video se ve completo o se pasa): el guion tiene que MOVER, no solo informar. Quien te ve está cansado, atrapado y buscando una salida; si no siente nada en los primeros segundos, se va, y sin retención no hay nada. Pero la emoción NO sale de frases de coach ni de motivación de cartel: sale de la PRECISIÓN. Nombra su vida real con detalle exacto y va a sentir que lo estás mirando a los ojos.
-- RECONOCIMIENTO ("ese soy yo"): detalles concretos, jamás abstracciones — el turno que se alarga, el jefe más joven que él, el hijo que ya solo lo ve llegar cansado, la quincena que se acaba antes de llegar, los años apilados sin nada construido.
-- LA HERIDA: nombra lo que él no dice en voz alta — el miedo a haber perdido diez años, a ser reemplazable, a morirse sin dejar nada, a que su hijo repita su misma vida.
-- LO QUE CUESTA QUEDARSE: no es dinero, es tiempo y dignidad. La vida que no vuelve.
-- EL GIRO: que sienta que hay salida REAL — no un "tú puedes", sino algo concreto que existe y funciona hoy.
-- EL CIERRE: déjalo con fuego, no con un dato. La última frase se le tiene que quedar clavada.
-La crudeza y la emoción no pelean: la frase más dura es la que más mueve. Enseña con sustancia, pero que duela y que encienda.
+RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
+- EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
+- UNA SOLA IDEA: el guion desarrolla UNA idea, no tres. El espectador tiene que poder contarle el video a otro en una frase. Si no puede, no lo comparte — y compartir es lo que lo hace estallar.
+- LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
+- EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
 
-CÓMO ELEGIR EL EJEMPLO (si el guion necesita un negocio concreto):
-- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que la gente jamás ha oído nombrar, casi siempre porque no le venden al público sino a otras empresas: con unos pocos clientes fijos ya están hechos y nunca hacen publicidad. Ese tipo engancha diez veces más.
-  TÚ ELIGES CUÁL — ahí está tu libertad: conoces miles de negocios reales de todos los sectores. Descarta el primero que se te venga a la cabeza, que siempre es el obvio. Busca uno distinto en cada guion y jamás repitas el ejemplo del guion anterior. Si el ejemplo se siente predecible, cámbialo.
-- TRES PRUEBAS: (1) puede llegar a operar sin tu presencia diaria; (2) vigente en 2026 — nada que hoy resuelva gratis una IA o una herramienta no-code, y ojo que los productos digitales de pura información se saturan por lo mismo; (3) los números cierran, con margen real. Físico o digital da igual. Lo único que descalifica es que dependa de tus manos para siempre.
-- EXPLÍCALO CLARO: qué es, para quién y por qué pagarían, con lógica económica que resista "¿y eso quién lo paga y por qué?". Ni manual técnico ni vaguedad.
-- Cómo consigue clientes depende del nicho — puertas, anuncios, contenido o distribución. No impongas ninguna vía.
+FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Nombra su vida real con detalle exacto y va a sentir que lo estás mirando a los ojos. Mientras más específico, más golpea: "trabajas mucho" no le hace nada, "tu hijo ya solo te ve llegar cansado" lo detiene.
+- RECONOCIMIENTO ("ese soy yo"): el turno que se alarga, el jefe más joven que él, la quincena que se acaba antes de llegar, los años apilados sin nada construido.
+- LA HERIDA: lo que no dice en voz alta — el miedo a haber perdido diez años, a ser reemplazable, a morirse sin dejar nada, a que su hijo repita su misma vida.
+- LO QUE CUESTA QUEDARSE: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
+- EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
+La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
+
+PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. El espectador ya sabe qué quiere montar; lo que le falta es arrancar. Habla de construir LO TUYO, en general, nunca en particular. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
+
+EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cambies por otro. Máximo 12 palabras en la primera frase.
+- Dato Crudo: entra con una cifra o un hecho concreto que destruya una creencia. Los datos que más retienen son los que muestran lo que él está PERDIENDO, no lo que podría ganar.
+- Pregunta Disruptiva: entra con una pregunta que no pueda ignorar ni responder cómodamente. Que lo obligue a revisarse a sí mismo.
+- Afirmación Polémica: entra con una verdad incómoda que divida opiniones y contradiga de frente lo que él cree. Es la fórmula más viral que existe.
+- Historia Personal: entra en primera persona con una confesión concreta. Nadie se salta un secreto que alguien está a punto de contar.
+- Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
 
 MODO IMPACTO — 30 segundos, máximo 75 palabras:
-Una sola verdad que golpea. El gancho destruye una creencia, nombra la situación exacta del espectador, o divide opiniones. Primera frase es una bala — sin calentamiento.
+Una sola verdad que golpea, sin desarrollo ni rodeos. Este formato es el que mejor rinde en el algoritmo: úsalo como una bofetada.
 
-PROHIBIDO en el gancho: porcentajes genéricos, "sigues esperando", "la mayoría de la gente", frases de coach, calcos del inglés.
-
-EJEMPLOS de nivel de crudeza (no copiar, solo referencia):
+EJEMPLOS de nivel de crudeza (no copiar, solo referencia del tono):
 - "Tu trabajo te va a reemplazar. Tu jefe ya lo sabe."
 - "No tienes un negocio. Tienes un pasatiempo que te cobra."
-- "Llevas años construyendo el sueño de otro."
+- "Llevas años construyendo el sueño de otro." 
 
-VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otro ejemplo, otro ángulo de entrada, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se escribió mil veces, cámbialo.
+VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra entrada, otras imágenes, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se ha visto mil veces, cámbialo.
 
-CIERRE: duro y con fuego. Sin promesas falsas ni consuelo barato, pero la última frase debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
+PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
+CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
 FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Máximo 75 palabras. Termina con: Legado de Hierro.]
 
 BLOQUE C
-[3 prompts. Cada uno describe UNA acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje — solo qué hace y dónde. Entorno diferente en cada prompt.]
+[3 prompts. Cada uno: UNA acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje — solo qué hace y dónde. Entorno diferente en cada prompt.]
 PROMPT 1: [acción + entorno + ángulo + luz]
 PROMPT 2: [acción + entorno diferente + ángulo + luz]
 PROMPT 3: [acción + entorno diferente + ángulo + luz]
@@ -283,119 +256,127 @@ BLOQUE F
 
   if(sMode==='historia')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
-VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"), sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género — un plural donde va singular arruina el audio.
+VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
 
-NORTE: el canal enseña libertad financiera real: que tu negocio funcione SIN TI. Físico o digital da igual — lo que decide es que llegue a operar sin tu presencia, con procesos escritos y gente entrenada. Lo único prohibido es el autoempleo sin salida: el negocio donde TÚ eres el producto para siempre y sin tus manos no hay ingreso.
-TU AUDIENCIA ES REAL: te escriben campesinos, cafeteros, dueños de cafeterías, gente de oficios; muchos solo saben trabajo físico y no manejan tecnología. A ellos no se les dice que abandonen lo suyo ni que se inventen un negocio digital: se les enseña a sistematizar y delegar lo que ya tienen.
+A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
 
-LO QUE ENSEÑAS ES EL SISTEMA, NO EL NEGOCIO: sacar lo que sabes de tu cabeza y ponerlo en un proceso escrito, entrenar a alguien con él, medir sin estar presente, salirte de la operación. El negocio que menciones es SOLO el vehículo que hace entendible la lección. La prueba: lo que enseñes tiene que servirle igual al que tiene una cocina, un taller, una finca o una agencia. Si solo sirve para ese negocio, no es una lección: es un folleto. Nunca le digas al espectador qué negocio montar.
+NORTE: el canal empuja a UNA sola cosa — que deje de esperar y construya lo suyo. Libertad financiera, legado, disciplina, no rendirse, dejar de cambiar su vida por un sueldo, montar su propio negocio. Tu trabajo es encender la decisión, no dar recetas.
 
-FUERZA EMOCIONAL (obligatoria — esto decide si el video se ve completo o se pasa): el guion tiene que MOVER, no solo informar. Quien te ve está cansado, atrapado y buscando una salida; si no siente nada en los primeros segundos, se va, y sin retención no hay nada. Pero la emoción NO sale de frases de coach ni de motivación de cartel: sale de la PRECISIÓN. Nombra su vida real con detalle exacto y va a sentir que lo estás mirando a los ojos.
-- RECONOCIMIENTO ("ese soy yo"): detalles concretos, jamás abstracciones — el turno que se alarga, el jefe más joven que él, el hijo que ya solo lo ve llegar cansado, la quincena que se acaba antes de llegar, los años apilados sin nada construido.
-- LA HERIDA: nombra lo que él no dice en voz alta — el miedo a haber perdido diez años, a ser reemplazable, a morirse sin dejar nada, a que su hijo repita su misma vida.
-- LO QUE CUESTA QUEDARSE: no es dinero, es tiempo y dignidad. La vida que no vuelve.
-- EL GIRO: que sienta que hay salida REAL — no un "tú puedes", sino algo concreto que existe y funciona hoy.
-- EL CIERRE: déjalo con fuego, no con un dato. La última frase se le tiene que quedar clavada.
-La crudeza y la emoción no pelean: la frase más dura es la que más mueve. Enseña con sustancia, pero que duela y que encienda.
+RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
+- EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
+- UNA SOLA IDEA: el guion desarrolla UNA idea, no tres. El espectador tiene que poder contarle el video a otro en una frase. Si no puede, no lo comparte — y compartir es lo que lo hace estallar.
+- LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
+- EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
 
-CÓMO ELEGIR EL EJEMPLO (si el guion necesita un negocio concreto):
-- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que la gente jamás ha oído nombrar, casi siempre porque no le venden al público sino a otras empresas: con unos pocos clientes fijos ya están hechos y nunca hacen publicidad. Ese tipo engancha diez veces más.
-  TÚ ELIGES CUÁL — ahí está tu libertad: conoces miles de negocios reales de todos los sectores. Descarta el primero que se te venga a la cabeza, que siempre es el obvio. Busca uno distinto en cada guion y jamás repitas el ejemplo del guion anterior. Si el ejemplo se siente predecible, cámbialo.
-- TRES PRUEBAS: (1) puede llegar a operar sin tu presencia diaria; (2) vigente en 2026 — nada que hoy resuelva gratis una IA o una herramienta no-code, y ojo que los productos digitales de pura información se saturan por lo mismo; (3) los números cierran, con margen real. Físico o digital da igual. Lo único que descalifica es que dependa de tus manos para siempre.
-- EXPLÍCALO CLARO: qué es, para quién y por qué pagarían, con lógica económica que resista "¿y eso quién lo paga y por qué?". Ni manual técnico ni vaguedad.
-- Cómo consigue clientes depende del nicho — puertas, anuncios, contenido o distribución. No impongas ninguna vía.
+FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Nombra su vida real con detalle exacto y va a sentir que lo estás mirando a los ojos. Mientras más específico, más golpea: "trabajas mucho" no le hace nada, "tu hijo ya solo te ve llegar cansado" lo detiene.
+- RECONOCIMIENTO ("ese soy yo"): el turno que se alarga, el jefe más joven que él, la quincena que se acaba antes de llegar, los años apilados sin nada construido.
+- LA HERIDA: lo que no dice en voz alta — el miedo a haber perdido diez años, a ser reemplazable, a morirse sin dejar nada, a que su hijo repita su misma vida.
+- LO QUE CUESTA QUEDARSE: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
+- EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
+La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
 
-MODO HISTORIA — el arco de un negocio, de abajo hasta que camina solo:
-Cuenta cómo se levanta desde el punto de partida real, sin capital ni contactos, hasta que es rentable y opera sin su dueño: los pasos concretos, los números que importan (cuánto cuesta arrancar, cuánto se cobra, el margen), y cómo se documenta el proceso, se entrena gente y se delega hasta pasar de ejecutar a supervisar. No millonario, no un milagro: un negocio sólido que ya camina solo.
-Esto es el esqueleto, NO una plantilla: entra por donde quieras, dale la vuelta al orden, sorprende. Lo único fijo es el arco; todo lo demás es tuyo.
+PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. El espectador ya sabe qué quiere montar; lo que le falta es arrancar. Habla de construir LO TUYO, en general, nunca en particular. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
 
-NUNCA UN PERSONAJE INVENTADO: nada de "Marcos", "Carlos", "Pedro" ni la fórmula "[Nombre] vivía en un barrio... un día entendió... decidió...". Nada de biografías ficticias. Habla en segunda persona (tú) o describe el modelo y su lógica.
+EL PILAR MANDA: el guion trata de lo que dice el PILAR que te dan, y de nada más.
+- LIBERTAD FINANCIERA: el tiempo contra el dinero, la trampa del sueldo, lo que cuesta seguir esperando, la independencia real.
+- MENTALIDAD Y DISCIPLINA: la cabeza del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va.
+- SISTEMAS Y AUTOMATIZACIÓN: que lo tuyo funcione sin ti. Dejar de ser la pieza que sostiene todo, delegar, salir de la operación.
+- HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO que viene en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
+- MARCA PERSONAL: tu nombre, tu presencia, tu autoridad. Que te conozcan es dinero.
+- INVERSIÓN Y CAPITAL: que tu dinero trabaje por ti. Activos, reinversión, lo que cuesta tenerlo parado.
+- NEGOCIO Y VENTAS: arrancar lo tuyo, vender sin miedo, la estructura que lo sostiene.
+- NEGOCIOS MILLONARIOS: pensar en grande. Escalar con gente y sistemas, construir algo que valga y que te sobreviva. Una sola unidad no te hace millonario; multiplicarla sí. Visión de largo plazo, sin prometer millones.
 
-EL PILAR MANDA — el guion trata de lo que dice el pilar, no de otra cosa:
-- LIBERTAD FINANCIERA: una fuente de ingreso que separa el tiempo del dinero.
-- MENTALIDAD Y DISCIPLINA: el sistema de hábitos, decisiones y ejecución que sostiene construir algo. Este pilar va sobre la CABEZA del que construye — no metas un modelo de negocio a la fuerza.
-- SISTEMAS Y AUTOMATIZACIÓN: cómo TU propio negocio se vuelve una máquina de procesos escritos y gente entrenada que produce sin ti. No es venderle automatización a otros.
-- HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
-- MARCA PERSONAL: audiencia, contenido y autoridad como activo, y cómo se monetiza esa atención.
-- INVERSIÓN Y CAPITAL: construir un activo o portafolio que genere ingresos.
-- NEGOCIO Y VENTAS: una estructura comercial concreta que se arranca y se hace rentable.
-- NEGOCIOS MILLONARIOS: etapa distinta a los demás. Los otros enseñan a salir de la operación; este enseña lo que viene DESPUÉS: cómo la unidad que ya opera sola SE MULTIPLICA — más unidades con gerentes, más territorio, más contratos, una marca, un activo vendible. Una cafetería no es un negocio millonario; cuarenta con una marca sí, y todas las cadenas empezaron con una. Vive en la etapa de multiplicación, con los números del final. Sé honesto con el capital: sí hace falta dinero, pero no que lo tengas hoy — la primera unidad paga la segunda.
+EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cambies por otro. Máximo 12 palabras en la primera frase.
+- Dato Crudo: entra con una cifra o un hecho concreto que destruya una creencia. Los datos que más retienen son los que muestran lo que él está PERDIENDO, no lo que podría ganar.
+- Pregunta Disruptiva: entra con una pregunta que no pueda ignorar ni responder cómodamente. Que lo obligue a revisarse a sí mismo.
+- Afirmación Polémica: entra con una verdad incómoda que divida opiniones y contradiga de frente lo que él cree. Es la fórmula más viral que existe.
+- Historia Personal: entra en primera persona con una confesión concreta. Nadie se salta un secreto que alguien está a punto de contar.
+- Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
 
-VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otro ejemplo, otro ángulo de entrada, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se escribió mil veces, cámbialo.
+MODO HISTORIA — el arco del que se levanta:
+El camino de alguien que estaba abajo y decidió construir lo suyo: el punto en que se hartó, la decisión, lo que costó sostenerla, y a dónde llegó. No el éxito final ni el millonario: el hombre que dejó de esperar y hoy tiene algo propio. Cuéntalo en segunda persona (tú) o desde la lección, jamás inventando un personaje con nombre.
+Esto es el esqueleto, NO una plantilla: entra por donde quieras, dale la vuelta al orden, sorprende.
 
-GANCHO: primera frase destruye una creencia o nombra la situación exacta del espectador. Sin calentamiento.
-PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés.
-CIERRE: duro y con fuego. Sin promesas falsas ni consuelo barato, pero la última frase debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
+NUNCA UN PERSONAJE INVENTADO: nada de "Marcos", "Carlos", "Pedro" ni la fórmula "[Nombre] vivía en un barrio... un día entendió...". Nada de biografías ficticias.
+
+VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra entrada, otras imágenes, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se ha visto mil veces, cámbialo.
+
+PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
+CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
 FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
 
 BLOQUE C
-[Prompts que ILUSTRAN en orden las partes del guion (sincronización guion-imagen). Cada prompt: acción concreta + entorno específico + ángulo + luz. Sin describir al personaje. Entorno diferente en cada prompt, coherente con lo que narra esa parte.]
-PROMPT 1: [ilustra la parte 1 del guion — acción + entorno + ángulo + luz]
-PROMPT 2: [ilustra la parte 2 del guion — acción + entorno diferente + ángulo + luz]
-PROMPT 3: [ilustra la parte 3 del guion — acción + entorno diferente + ángulo + luz]
-PROMPT 4: [ilustra la parte 4 del guion — acción + entorno diferente + ángulo + luz]
-PROMPT 5: [ilustra la parte 5 del guion — acción + entorno diferente + ángulo + luz]
-PROMPT 6: [ilustra la parte 6 del guion — acción + entorno diferente + ángulo + luz]
-PROMPT 7: [ilustra la parte 7 del guion — acción + entorno diferente + ángulo + luz]
-PROMPT 8: [ilustra la parte 8 del guion — acción + entorno diferente + ángulo + luz]
+[Prompts que ILUSTRAN en orden las partes del guion. Cada prompt: acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje. Entorno diferente en cada prompt.]
+PROMPT 1: [acción + entorno + ángulo + luz]
+PROMPT 2: [acción + entorno diferente + ángulo + luz]
+PROMPT 3: [acción + entorno diferente + ángulo + luz]
+PROMPT 4: [acción + entorno diferente + ángulo + luz]
+PROMPT 5: [acción + entorno diferente + ángulo + luz]
+PROMPT 6: [acción + entorno diferente + ángulo + luz]
+PROMPT 7: [acción + entorno diferente + ángulo + luz]
+PROMPT 8: [acción + entorno diferente + ángulo + luz]
 
 BLOQUE F
 [Traducción natural al inglés. Sin calcos. Termina con: Iron Legacy.]`;
 
   return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
-VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"), sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género — un plural donde va singular arruina el audio.
+VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
 
-NORTE: el canal enseña libertad financiera real: que tu negocio funcione SIN TI. Físico o digital da igual — lo que decide es que llegue a operar sin tu presencia, con procesos escritos y gente entrenada. Lo único prohibido es el autoempleo sin salida: el negocio donde TÚ eres el producto para siempre y sin tus manos no hay ingreso.
-TU AUDIENCIA ES REAL: te escriben campesinos, cafeteros, dueños de cafeterías, gente de oficios; muchos solo saben trabajo físico y no manejan tecnología. A ellos no se les dice que abandonen lo suyo ni que se inventen un negocio digital: se les enseña a sistematizar y delegar lo que ya tienen.
+A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
 
-NÚCLEO: el reel ENSEÑA algo aplicable de verdad — un dato, una cifra, un activo, un método, un paso — y al mismo tiempo hace SENTIR. Lo prohibido no es la emoción: es la generalidad vacía, la frase motivacional sin nada detrás.
+NORTE: el canal empuja a UNA sola cosa — que deje de esperar y construya lo suyo. Libertad financiera, legado, disciplina, no rendirse, dejar de cambiar su vida por un sueldo, montar su propio negocio. Tu trabajo es encender la decisión, no dar recetas.
 
-LO QUE ENSEÑAS ES EL SISTEMA, NO EL NEGOCIO: sacar lo que sabes de tu cabeza y ponerlo en un proceso escrito, entrenar a alguien con él, medir sin estar presente, salirte de la operación. El negocio que menciones es SOLO el vehículo que hace entendible la lección. La prueba: lo que enseñes tiene que servirle igual al que tiene una cocina, un taller, una finca o una agencia. Si solo sirve para ese negocio, no es una lección: es un folleto. Nunca le digas al espectador qué negocio montar.
+RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
+- EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
+- UNA SOLA IDEA: el guion desarrolla UNA idea, no tres. El espectador tiene que poder contarle el video a otro en una frase. Si no puede, no lo comparte — y compartir es lo que lo hace estallar.
+- LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
+- EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
 
-FUERZA EMOCIONAL (obligatoria — esto decide si el video se ve completo o se pasa): el guion tiene que MOVER, no solo informar. Quien te ve está cansado, atrapado y buscando una salida; si no siente nada en los primeros segundos, se va, y sin retención no hay nada. Pero la emoción NO sale de frases de coach ni de motivación de cartel: sale de la PRECISIÓN. Nombra su vida real con detalle exacto y va a sentir que lo estás mirando a los ojos.
-- RECONOCIMIENTO ("ese soy yo"): detalles concretos, jamás abstracciones — el turno que se alarga, el jefe más joven que él, el hijo que ya solo lo ve llegar cansado, la quincena que se acaba antes de llegar, los años apilados sin nada construido.
-- LA HERIDA: nombra lo que él no dice en voz alta — el miedo a haber perdido diez años, a ser reemplazable, a morirse sin dejar nada, a que su hijo repita su misma vida.
-- LO QUE CUESTA QUEDARSE: no es dinero, es tiempo y dignidad. La vida que no vuelve.
-- EL GIRO: que sienta que hay salida REAL — no un "tú puedes", sino algo concreto que existe y funciona hoy.
-- EL CIERRE: déjalo con fuego, no con un dato. La última frase se le tiene que quedar clavada.
-La crudeza y la emoción no pelean: la frase más dura es la que más mueve. Enseña con sustancia, pero que duela y que encienda.
+FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Nombra su vida real con detalle exacto y va a sentir que lo estás mirando a los ojos. Mientras más específico, más golpea: "trabajas mucho" no le hace nada, "tu hijo ya solo te ve llegar cansado" lo detiene.
+- RECONOCIMIENTO ("ese soy yo"): el turno que se alarga, el jefe más joven que él, la quincena que se acaba antes de llegar, los años apilados sin nada construido.
+- LA HERIDA: lo que no dice en voz alta — el miedo a haber perdido diez años, a ser reemplazable, a morirse sin dejar nada, a que su hijo repita su misma vida.
+- LO QUE CUESTA QUEDARSE: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
+- EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
+La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
 
-CÓMO ELEGIR EL EJEMPLO (si el guion necesita un negocio concreto):
-- PREFIERE EL INVISIBLE: todos conocen cafeterías, ferreterías y talleres, y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que la gente jamás ha oído nombrar, casi siempre porque no le venden al público sino a otras empresas: con unos pocos clientes fijos ya están hechos y nunca hacen publicidad. Ese tipo engancha diez veces más.
-  TÚ ELIGES CUÁL — ahí está tu libertad: conoces miles de negocios reales de todos los sectores. Descarta el primero que se te venga a la cabeza, que siempre es el obvio. Busca uno distinto en cada guion y jamás repitas el ejemplo del guion anterior. Si el ejemplo se siente predecible, cámbialo.
-- TRES PRUEBAS: (1) puede llegar a operar sin tu presencia diaria; (2) vigente en 2026 — nada que hoy resuelva gratis una IA o una herramienta no-code, y ojo que los productos digitales de pura información se saturan por lo mismo; (3) los números cierran, con margen real. Físico o digital da igual. Lo único que descalifica es que dependa de tus manos para siempre.
-- EXPLÍCALO CLARO: qué es, para quién y por qué pagarían, con lógica económica que resista "¿y eso quién lo paga y por qué?". Ni manual técnico ni vaguedad.
-- Cómo consigue clientes depende del nicho — puertas, anuncios, contenido o distribución. No impongas ninguna vía.
+PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. El espectador ya sabe qué quiere montar; lo que le falta es arrancar. Habla de construir LO TUYO, en general, nunca en particular. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
+
+EL PILAR MANDA: el guion trata de lo que dice el PILAR que te dan, y de nada más.
+- LIBERTAD FINANCIERA: el tiempo contra el dinero, la trampa del sueldo, lo que cuesta seguir esperando, la independencia real.
+- MENTALIDAD Y DISCIPLINA: la cabeza del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va.
+- SISTEMAS Y AUTOMATIZACIÓN: que lo tuyo funcione sin ti. Dejar de ser la pieza que sostiene todo, delegar, salir de la operación.
+- HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO que viene en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
+- MARCA PERSONAL: tu nombre, tu presencia, tu autoridad. Que te conozcan es dinero.
+- INVERSIÓN Y CAPITAL: que tu dinero trabaje por ti. Activos, reinversión, lo que cuesta tenerlo parado.
+- NEGOCIO Y VENTAS: arrancar lo tuyo, vender sin miedo, la estructura que lo sostiene.
+- NEGOCIOS MILLONARIOS: pensar en grande. Escalar con gente y sistemas, construir algo que valga y que te sobreviva. Una sola unidad no te hace millonario; multiplicarla sí. Visión de largo plazo, sin prometer millones.
+
+EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cambies por otro. Máximo 12 palabras en la primera frase.
+- Dato Crudo: entra con una cifra o un hecho concreto que destruya una creencia. Los datos que más retienen son los que muestran lo que él está PERDIENDO, no lo que podría ganar.
+- Pregunta Disruptiva: entra con una pregunta que no pueda ignorar ni responder cómodamente. Que lo obligue a revisarse a sí mismo.
+- Afirmación Polémica: entra con una verdad incómoda que divida opiniones y contradiga de frente lo que él cree. Es la fórmula más viral que existe.
+- Historia Personal: entra en primera persona con una confesión concreta. Nadie se salta un secreto que alguien está a punto de contar.
+- Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
 
 MODO REEL — consejo directo:
-Una idea, desarrollada con sustancia y llevada hasta el final. Sin rodeos, sin relleno, sin repetir la misma idea con otras palabras.
+UNA idea, desarrollada de verdad y llevada hasta el final. Sin rodeos, sin relleno, sin repetir la misma idea con otras palabras. Que el espectador termine con algo que se le queda clavado: una verdad, un empujón, una decisión.
 
-EL PILAR MANDA — el reel trata de lo que dice el pilar, no de otra cosa. Enseña siempre algo APLICABLE, con un ejemplo, un número o un paso real:
-- LIBERTAD FINANCIERA: un mecanismo concreto para separar tiempo de ingreso.
-- MENTALIDAD Y DISCIPLINA: un hábito o sistema específico y cómo ejecutarlo. Va sobre la CABEZA del que construye — no metas un modelo de negocio a la fuerza.
-- SISTEMAS Y AUTOMATIZACIÓN: cómo TU propio negocio opera con procesos y gente entrenada y produce sin ti. No es venderle automatización a terceros.
-- HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO en el mensaje. Solo el cierre dirige al enlace, con una invitación distinta cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombres de productos.
-- MARCA PERSONAL: una acción concreta de visibilidad y cómo empezarla hoy.
-- INVERSIÓN Y CAPITAL: un activo o estrategia concreta con números reales.
-- NEGOCIO Y VENTAS: una táctica o estructura comercial específica que se pueda copiar.
-- NEGOCIOS MILLONARIOS: etapa distinta. Los demás enseñan a salir de la operación; este enseña cómo la unidad que ya opera sola SE MULTIPLICA — más unidades con gerentes, más territorio, más contratos, una marca, un activo vendible. Una cafetería no es millonaria; cuarenta con una marca sí. Vive en la multiplicación, con los números del final. Sé honesto con el capital: sí hace falta dinero, pero no que lo tengas hoy.
+VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra entrada, otras imágenes, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se ha visto mil veces, cámbialo.
 
-VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otro ejemplo, otro ángulo de entrada, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se escribió mil veces, cámbialo.
-
-GANCHO: primera frase destruye una creencia o nombra la situación exacta del espectador. Sin calentamiento.
-PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés.
-CIERRE: duro y con fuego. Sin promesas falsas ni consuelo barato, pero la última frase debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
+PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
+CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
 FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
 
 BLOQUE C
-[Prompts que ILUSTRAN en orden las partes del guion (sincronización guion-imagen). Cada prompt: acción concreta + entorno específico + ángulo + luz. Sin describir al personaje. Entorno diferente en cada prompt.]
+[Prompts que ILUSTRAN en orden las partes del guion. Cada prompt: acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje. Entorno diferente en cada prompt.]
 PROMPT 1: [acción + entorno + ángulo + luz]
 PROMPT 2: [acción + entorno diferente + ángulo + luz]
 PROMPT 3: [acción + entorno diferente + ángulo + luz]
@@ -540,17 +521,11 @@ function showPills(){
 
 function buildSuggestPrompt(){
   var pilares=THEMES.map(function(t){return t.id;}).join(', ');
-  // Sectores al azar en cada tanda: sin esto el modelo repite siempre los mismos ejemplos.
-  var mez=MODEL_SEEDS.slice().sort(function(){return Math.random()-0.5;}).slice(0,7);
-  var sectores=mez.join('; ');
-  return 'Eres el estratega de contenido de LEGADO DE HIERRO, canal de Facebook Reels en español para hombres hispanos sobre libertad financiera real. Voz cruda y directa, sin motivación vacía ni frases de coach.\n\n'
-    +'NORTE: la libertad financiera es que tu negocio funcione SIN TI. Al principio se suda y se hace todo uno mismo, eso es normal; lo prohibido es quedarte siendo el producto para siempre, sin salida.\n\n'
-    +'LA ESENCIA — no la traiciones: el canal NO le dice a la gente qué negocio montar. Enseña el PRINCIPIO de la libertad: que lo que tengas o construyas llegue a operar sin tu presencia, con procesos escritos y gente entrenada. Al que ya tiene una cafetería o una finca se le enseña a convertirla en algo grande que funcione sin él — jamás se le propone que abra una cafetería.\n\n'
-    +'FÍSICO Y DIGITAL VALEN IGUAL: ninguno es superior, ninguno se ataca, ninguno puede ser el único. Alterna los conceptos entre los dos mundos con naturalidad. Nunca insinúes que los productos digitales, el software o las apps sean malos o inferiores.\n\n'
-    +'NEGOCIOS INVISIBLES: la gente común solo conoce cafeterías, restaurantes, ferreterías y talleres — legítimos, pero todos los conocen y ya nadie se detiene a mirarlos. Existen MILES de negocios que mueven millones y que nadie ha oído nombrar, casi siempre porque no le venden al público sino a otras empresas. Prefiere ESOS: un concepto sobre un negocio del que el espectador jamás ha oído hablar vale por diez sobre una cafetería. TÚ eliges cuáles — conoces miles de negocios reales; descarta el primero que se te ocurra, que siempre es el obvio.\n\n'
-    +'SECTORES DE ESTA TANDA (para que no te repitas): si un concepto necesita un negocio, saca cada uno de un sector distinto de esta lista, eligiendo TÚ el negocio dentro de cada sector: '+sectores+'.\n\n'
-    +'Genera EXACTAMENTE 7 conceptos NUEVOS y variados para reels. Cada concepto es una idea potente y concreta de máximo 15 palabras. No repitas ideas típicas ya vistas mil veces; sorpréndeme con ángulos frescos y actuales. Usa pilares variados (máximo 2 conceptos por pilar).\n\n'
-    +'CRUDEZA (obligatoria): voz dura, directa, que incomode. Le hablas a un hombre que lleva años estancado y necesita que le digan la verdad de frente, sin adornos ni consuelo. Nada de motivación vacía, frases de coach ni positividad barata. Español impecable: mayúsculas al inicio y tildes correctas.\n\n'
+  return 'Eres el estratega de contenido de LEGADO DE HIERRO, canal de Facebook Reels en español. Le hablas a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo: cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo.\n\n'
+    +'NORTE: el canal empuja a UNA sola cosa — que deje de esperar y construya lo suyo. Libertad financiera, legado, disciplina, no rendirse, dejar de cambiar su vida por un sueldo, montar su propio negocio.\n\n'
+    +'PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto" ni "el negocio de aquello". Un negocio nombrado le habla a diez personas; el mensaje general le habla a todos. Habla en general, nunca en particular.\n\n'
+    +'VOZ: cruda, directa, que incomode y que mueva. Sin motivación de cartel ni frases de coach, pero nunca fría: la emoción sale de la PRECISIÓN — nombra su vida real con detalle exacto (el turno que se alarga, el jefe más joven, el hijo que ya solo lo ve cansado, los años apilados sin nada construido) y va a sentir que lo miras a los ojos.\n\n'
+    +'Genera EXACTAMENTE 7 conceptos NUEVOS y variados para reels. Cada uno es una idea potente de máximo 15 palabras que haga que alguien se detenga. Sorpréndeme: nada de ideas típicas vistas mil veces. Usa pilares variados (máximo 2 por pilar). Español impecable, con mayúsculas y tildes.\n\n'
     +'PILARES válidos: '+pilares+'\nGANCHOS válidos: dato, pregunta, afirmacion, historia, pasos\n\n'
     +'FORMATO EXACTO — devuelve SOLO 7 líneas, sin numeración, sin texto extra, cada línea así:\npilar|gancho|concepto\n\nVariación aleatoria: '+Math.random().toString(36).slice(2,8);
 }
@@ -737,11 +712,6 @@ async function generate(){
   if(sMode!=='impacto'&&sT==='herramientas'){
     var ang=HERRAM_ANGLES[Math.floor(Math.random()*HERRAM_ANGLES.length)];
     seedRule='ÁNGULO ASIGNADO PARA ESTE GUION (variedad obligatoria): '+ang+' Desarrolla ESE contenido con sustancia real; SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDO repetir la fórmula de siempre.\n\n';
-  } else if(sMode!=='impacto'&&(sT==='libertad'||sT==='sistema'||sT==='negocio'||sT==='millonario')){
-    // Solo los pilares DE NEGOCIO reciben ejemplo asignado. Mentalidad, Marca Personal,
-    // Inversion y Herramientas quedan libres: ahi manda el pilar, no un negocio sorteado.
-    var seed=MODEL_SEEDS[Math.floor(Math.random()*MODEL_SEEDS.length)];
-    seedRule='SECTOR ASIGNADO PARA ESTE GUION (solo para que no repitas terreno): si el guion necesita un negocio concreto para ilustrar la lección, búscalo '+seed+'. TÚ eliges cuál — no te doy el negocio, te doy el terreno. Elige uno que la gente no conozca y descarta el más obvio de ese sector. Es el VEHÍCULO, no el tema.\n\n';
   }
   var msg=SP+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[sH]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
   try{
