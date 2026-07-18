@@ -138,6 +138,15 @@ section{margin-bottom:20px}
 .oftr{margin-top:22px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .fsig{font-size:10px;color:var(--tx3);letter-spacing:.1em}
 .nbtn{background:#fff;border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.voxLbl{display:block;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:11px}
+.voxV{float:right;font-weight:700;color:#c4897a;font-variant-numeric:tabular-nums}
+.voxR{width:100%;margin:5px 0 2px;accent-color:#c4897a;height:20px}
+.voxH{display:block;font-size:9.5px;font-weight:400;color:var(--tx3);line-height:1.35}
+.voxChk{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:4px}
+.voxChk input{accent-color:#c4897a;width:15px;height:15px}
+.voxP{background:none;border:1.5px solid var(--border);border-radius:7px;color:var(--tx3);padding:5px 9px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit}
+.voxP:active{border-color:#c4897a;color:#c4897a}
+#voxPanel summary::-webkit-details-marker{display:none}
 </style>
 </head>
 <body>
@@ -311,6 +320,34 @@ section{margin-bottom:20px}
           </div>
         </div>
         <div class="sbody">
+          <details id="voxPanel" style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <summary style="padding:9px 11px;cursor:pointer;font-size:11px;font-weight:700;color:var(--tx3);letter-spacing:.04em;background:#faf8f6;list-style:none">⚙ AJUSTES DE VOZ</summary>
+            <div style="padding:12px 11px 4px">
+              <label class="voxLbl">Estabilidad <span class="voxV" id="vStabV">0.50</span>
+                <input type="range" id="vStab" class="voxR" min="0" max="1" step="0.05" value="0.5">
+                <span class="voxH">Bajo: más emoción, más variación entre tomas. Alto: consistente pero monótono.</span>
+              </label>
+              <label class="voxLbl">Claridad / Similitud <span class="voxV" id="vSimV">0.75</span>
+                <input type="range" id="vSim" class="voxR" min="0" max="1" step="0.05" value="0.75">
+                <span class="voxH">Entre 0.75 y 0.90 es lo recomendado. Al máximo sobre-pronuncia.</span>
+              </label>
+              <label class="voxLbl">Estilo <span class="voxV" id="vStyV">0.00</span>
+                <input type="range" id="vSty" class="voxR" min="0" max="1" step="0.05" value="0">
+                <span class="voxH">Exageración del estilo. Subirlo resta estabilidad. Déjalo en 0 salvo que quieras drama.</span>
+              </label>
+              <label class="voxLbl">Velocidad <span class="voxV" id="vSpdV">1.00</span>
+                <input type="range" id="vSpd" class="voxR" min="0.7" max="1.2" step="0.05" value="1">
+                <span class="voxH">0.7 lenta · 1.0 normal · 1.2 rápida. Los extremos degradan la calidad.</span>
+              </label>
+              <label class="voxChk"><input type="checkbox" id="vBoost" checked> Speaker boost <span class="voxH" style="margin:0 0 0 4px">Refuerza el parecido con tu voz. Déjalo activo.</span></label>
+              <div style="display:flex;gap:7px;margin:10px 0 8px;flex-wrap:wrap">
+                <button type="button" class="voxP" data-p="0.5,0.75,0,1">Equilibrado</button>
+                <button type="button" class="voxP" data-p="0.75,0.85,0,1">Firme y consistente</button>
+                <button type="button" class="voxP" data-p="0.4,0.8,0.1,1">Crudo y emocional</button>
+                <button type="button" class="voxP" data-p="0.6,0.8,0,1.1">Ágil</button>
+              </div>
+            </div>
+          </details>
           <div class="stxt" id="ast"></div>
           <div class="serr" id="ae"></div>
           <div class="ares" id="rES">
