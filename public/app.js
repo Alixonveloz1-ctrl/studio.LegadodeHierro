@@ -197,8 +197,9 @@ var SCHED_CURRENT=getRandomSuggestions();
 
 
 
-function buildSP(){
-  if(sMode==='impacto')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
+function buildSP(mode){
+  mode=mode||sMode;
+  if(mode==='impacto')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
 VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
 
@@ -252,7 +253,7 @@ PROMPT 3: [acción + entorno diferente + ángulo + luz]
 BLOQUE F
 [Traducción natural al inglés. Sin calcos. Termina con: Iron Legacy.]`;
 
-  if(sMode==='historia')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
+  if(mode==='historia')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
 VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
 
@@ -680,38 +681,39 @@ function updCost(){document.getElementById('gcost').textContent='$'+cost.toFixed
 
 // GENERATE
 // Construye el mensaje completo de un episodio para /api/generate.
-// Parametrizado por concepto/pilar/gancho para reutilizarlo en el lote de 5;
-// el modo y la duracion siempre son los seleccionados en pantalla (sMode/sD).
-function buildEpisodeMsg(topic,tId,hId){
+// Parametrizado por concepto/pilar/gancho/modo/duracion para que el lote de 5
+// pueda variar TODO entre guiones (la generacion individual usa lo seleccionado).
+function buildEpisodeMsg(topic,tId,hId,mode,dId){
+  mode=mode||sMode;dId=dId||sD;
   var tO=THEMES.find(function(t){return t.id===tId;});
   var hO=HOOKS.find(function(h){return h.id===hId;});
-  var dO=DURS.find(function(d){return d.id===sD;});
+  var dO=DURS.find(function(d){return d.id===dId;});
   var hi={dato:'Empieza con dato/cifra impactante.',pregunta:'Empieza con pregunta disruptiva.',afirmacion:'Empieza con verdad incomoda directa.',historia:'Empieza en primera persona con experiencia cruda.',pasos:'Desarrolla con Primero, Segundo, Tercero.'};
   var identidadBase='PERSONAJE FIJO — el MISMO hombre en TODAS las imagenes, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO EN TODA IMAGEN: lluvia, cualquier clima (nieve, tormenta, gotas de agua), cielos lluviosos, superficies mojadas, charcos -- NUNCA, ni dentro ni fuera del edificio; el clima es fuente de errores graves al animar. Tampoco robots, futurismo, sci-fi, cadenas rotas, magia ni fantasia. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad, contraste y sombras, jamas clima. ESCENAS LIMPIAS: incluye solo los objetos que la accion necesita; evita objetos sueltos irrelevantes (tazas de cafe, vasos, adornos) que no formen parte de la accion, porque al animar se deforman o se transforman en otra cosa. MIRADA (obligatorio): el personaje mira lo que exige la accion (el documento, la pantalla, la ciudad, el trato), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
   var sceneDir;
-  if(sMode==='historia'){
+  if(mode==='historia'){
     sceneDir='DIRECCION VISUAL — MODO HISTORIA: cada prompt es UNA sola imagen, una sola escena, un unico plano que llena todo el cuadro — NUNCA una imagen dividida en vinetas, cuadros o collage. Vistas EN SECUENCIA (imagen 1, luego 2, luego 3), las imagenes muestran al PROTAGONISTA de la marca CONSTRUYENDO y TRABAJANDO en el negocio que enseña el guion, e ILUSTRAN en orden la parte del guion que a cada una le toca (sincronizacion guion-imagen). La secuencia sigue el arco de SUPERACION del negocio: empieza desde abajo (montandolo desde cero, entorno humilde y modesto, trabajo duro con lo minimo) y avanza hasta el negocio ya RENTABLE y establecido (operando con solidez, mas recursos, el resultado logrado) — no millonario ostentoso, un negocio solido. El protagonista siempre esta DENTRO de ese negocio concreto, haciendo el trabajo real de esa etapa, en entornos coherentes con lo que se narra (el local, la bodega, la calle comercial, la reunion, el puesto de trabajo). NO es la biografia personal de un personaje: es el negocio creciendo de cero a rentable con el protagonista trabajandolo. Deriva cada escena del CONTENIDO de su parte del guion; NO uses una lista fija de escenas. Escenas distintas pero coherentes entre si, cada una continuacion de la anterior. ';
-  }else if(sMode==='impacto'){
+  }else if(mode==='impacto'){
     sceneDir='DIRECCION VISUAL — MODO IMPACTO: 3 imagenes de alto impacto, cada una ilustra un golpe distinto del mensaje de ESTE guion. Entornos completamente diferentes entre si, potentes y cinematograficos. Deriva las escenas del guion; NO uses una lista fija de escenas. ';
   }else{
     sceneDir='DIRECCION VISUAL — MODO REEL: el personaje YA LLEGO a la cima; muestralo desde la grandeza, no desde la lucha, con poder tranquilo y estetica de cine. Pero las imagenes NO son escenas sueltas de "dia a dia": cada imagen ILUSTRA lo que la narracion dice en ese momento del guion, siguiendo su ritmo de principio a fin. Muestra al personaje exitoso viviendo o representando exactamente la idea de esa parte del guion (si habla de una decision, lo vemos decidiendo; si habla de un sistema o negocio, lo vemos operandolo; si habla de un resultado, lo vemos en ese resultado). Entornos VARIADOS y coherentes con lo que se dice (auto, casa moderna, reunion, ciudad, azotea, viaje, restaurante), nunca siempre la misma oficina. Deriva cada escena del CONTENIDO de su parte del guion; NO uses una lista fija de escenas. ';
   }
   var identidad=identidadBase+sceneDir;
-  var numPrompts=(sMode==='impacto'||sD==='30')?3:sD==='90'?8:5;
-  var maxPalabras=(sMode==='impacto'||sD==='30')?75:sD==='90'?225:150;
+  var numPrompts=(mode==='impacto'||dId==='30')?3:dId==='90'?8:5;
+  var maxPalabras=(mode==='impacto'||dId==='30')?75:dId==='90'?225:150;
   // Sincronizacion guion-imagen: en historia y reel, cada imagen ilustra su parte del guion.
   // En impacto no aplica (son 3 golpes visuales independientes).
-  var syncRule=(sMode!=='impacto')
+  var syncRule=(mode!=='impacto')
     ? 'SINCRONIZACION GUION-IMAGEN (obligatorio en este modo): divide el BLOQUE A en EXACTAMENTE '+numPrompts+' partes consecutivas de peso similar, en el mismo orden en que se narra. El PROMPT k del BLOQUE C debe ILUSTRAR lo que se dice en la parte k del guion: el PROMPT 1 corresponde al inicio del guion, el PROMPT '+numPrompts+' al cierre, y los del medio en orden. Las imagenes van al ritmo de la narracion, como los fotogramas de lo que se esta diciendo; ninguna imagen puede ser una escena suelta ajena a su parte del guion.\n\n'
     : '';
   // Variedad mecánica: el código asigna el tipo de modelo al azar (el modelo de IA no elige).
   // Se omite en impacto (muy corto), herramientas (el modelo es la guía del enlace) e inversión (el pilar ya define: activos).
   var seedRule='';
-  if(sMode!=='impacto'&&tId==='herramientas'){
+  if(mode!=='impacto'&&tId==='herramientas'){
     var ang=HERRAM_ANGLES[Math.floor(Math.random()*HERRAM_ANGLES.length)];
     seedRule='ÁNGULO ASIGNADO PARA ESTE GUION (variedad obligatoria): '+ang+' Desarrolla ESE contenido con sustancia real; SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDO repetir la fórmula de siempre.\n\n';
   }
-  var msg=SP+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
+  var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
   return {msg:msg,tO:tO,dO:dO,hO:hO};
 }
 
@@ -739,11 +741,11 @@ async function generate(){
   document.getElementById('gnote').style.display='inline';
   document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Generando narrativa Trabajador→Alpha...':'Generando guiones ES + EN y prompts...';
   try{
-    var built=buildEpisodeMsg(topic,sT,sH);
+    var built=buildEpisodeMsg(topic,sT,sH,sMode,sD);
     var p=await fetchEpisode(built.msg);
-    lastRes=Object.assign({},p,{topic:topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:sMode});
+    lastRes=Object.assign({},p,{topic:topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:sMode,uid:nextUid()});
     genCount++;cost+=0.015;updCost();
-    audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;
+    resetReelAssets();
     saveHistory(lastRes);
     renderOut(lastRes);
   }catch(e){
@@ -763,23 +765,58 @@ function firstLine(txt){
   for(var i=0;i<ls.length;i++){if(ls[i].trim())return ls[i].trim();}
   return '';
 }
+function shuffleArr(a){
+  var arr=a.slice();
+  for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}
+  return arr;
+}
+// Identificador unico por reel en esta sesion (para asignar su propia miniatura).
+var uidSeq=0;
+function nextUid(){return ++uidSeq;}
+// Limpia todos los materiales del reel en pantalla (audio, imagenes, videos,
+// miniatura y video final) al pasar a otro guion.
+function resetReelAssets(){
+  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
+  thumbImg=(lastRes&&THUMBS[lastRes.uid])?THUMBS[lastRes.uid]:null;
+  finalVid=null;
+}
 
-// LOTE — 5 guiones de una vez. Las llamadas van una tras otra (no en paralelo)
-// para no chocar con los limites de peticiones de Gemini. Solo se generan los
+// LOTE — 5 guiones de una vez, TODOS DIFERENTES: concepto, pilar, gancho,
+// duracion y modo distintos entre si. Las llamadas van una tras otra (no en
+// paralelo) para no chocar con los limites de Gemini. Solo se generan los
 // GUIONES: imagenes/audio/ZIP se hacen despues, uno por uno, sobre el elegido.
 var batchLoading=false;
 var batchResults=[]; // [{status:'wait'|'loading'|'done'|'error', job, res, err}]
 
 function batchJobs(){
   var topic=document.getElementById('conc').value.trim();
+  // 5 conceptos distintos con pilares lo mas variados posible:
+  // primero las sugerencias en pantalla, completando del pool local si hace falta.
+  var src=shuffleArr((SCHED_CURRENT&&SCHED_CURRENT.length?SCHED_CURRENT:[]).concat(shuffleArr(SCHED_POOL)));
+  var picked=[],usedT={},usedC={};
+  for(var pass=0;pass<2&&picked.length<5;pass++){
+    for(var i=0;i<src.length&&picked.length<5;i++){
+      var it=src[i];
+      if(usedC[it.concept])continue;
+      if(pass===0&&usedT[it.t])continue; // primera pasada: pilares sin repetir
+      picked.push(it);usedT[it.t]=1;usedC[it.concept]=1;
+    }
+  }
+  // Modos variados: los tres modos presentes al menos una vez en el lote.
+  var modes=shuffleArr(['reel','historia','impacto']).concat(shuffleArr(['reel','historia','impacto']).slice(0,2));
+  // Duraciones variadas (impacto siempre es golpe de 30s).
+  var durPool=shuffleArr(['30','60','90','60','90']);
   var jobs=[];
-  if(topic){
-    // Con concepto escrito: 5 variantes de ese concepto con el pilar/gancho elegidos.
-    for(var i=0;i<5;i++)jobs.push({topic:topic,t:sT||'libertad',h:sH});
-  }else{
-    // Sin concepto: 5 ideas distintas (pilares variados) de las sugerencias actuales.
-    var pool=(SCHED_CURRENT&&SCHED_CURRENT.length>=5)?SCHED_CURRENT.slice():getRandomSuggestions();
-    for(var i=0;i<5;i++){var it=pool[i%pool.length];jobs.push({topic:it.concept,t:it.t,h:it.h});}
+  for(var j=0;j<5;j++){
+    var mode=modes[j];
+    var d=mode==='impacto'?'30':durPool[j];
+    if(j===0&&topic){
+      // Si escribiste un concepto, el guion 1 es ese concepto con tu seleccion actual.
+      jobs.push({topic:topic,t:sT||picked[0].t,h:sH,mode:sMode,d:sMode==='impacto'?'30':sD});
+    }else{
+      var idea=picked[(topic?j-1:j)%picked.length];
+      jobs.push({topic:idea.concept,t:idea.t,h:idea.h,mode:mode,d:d});
+    }
   }
   return jobs;
 }
@@ -799,9 +836,9 @@ async function generateBatch(){
   for(var i=0;i<jobs.length;i++){
     batchResults[i].status='loading';renderBatch();
     try{
-      var built=buildEpisodeMsg(jobs[i].topic,jobs[i].t,jobs[i].h);
+      var built=buildEpisodeMsg(jobs[i].topic,jobs[i].t,jobs[i].h,jobs[i].mode,jobs[i].d);
       var p=await fetchEpisode(built.msg);
-      var res=Object.assign({},p,{topic:jobs[i].topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:sMode});
+      var res=Object.assign({},p,{topic:jobs[i].topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:jobs[i].mode,uid:nextUid()});
       batchResults[i]={status:'done',job:jobs[i],res:res};
       genCount++;cost+=0.015;updCost();
       saveHistory(res);
@@ -822,9 +859,9 @@ async function retryBatchItem(i){
   batchLoading=true;loading=true;updGBtn();
   br.status='loading';renderBatch();
   try{
-    var built=buildEpisodeMsg(br.job.topic,br.job.t,br.job.h);
+    var built=buildEpisodeMsg(br.job.topic,br.job.t,br.job.h,br.job.mode,br.job.d);
     var p=await fetchEpisode(built.msg);
-    var res=Object.assign({},p,{topic:br.job.topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:sMode});
+    var res=Object.assign({},p,{topic:br.job.topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:br.job.mode,uid:nextUid()});
     batchResults[i]={status:'done',job:br.job,res:res};
     genCount++;cost+=0.015;updCost();
     saveHistory(res);
@@ -844,7 +881,7 @@ function renderBatch(){
     var el=document.createElement('div');
     el.style.cssText='background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px var(--sh)';
     var head='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
-      +'<span style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+col+';text-transform:uppercase">Guion '+(i+1)+' · '+(th?th.label:'')+(hk?' · '+hk.label.replace(/^[^ ]+ /,''):'')+'</span>'
+      +'<span style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+col+';text-transform:uppercase">Guion '+(i+1)+' · '+(MODE_LABELS[br.job.mode]||br.job.mode)+' · '+(br.job.d||'')+'s · '+(th?th.label:'')+(hk?' · '+hk.label.replace(/^[^ ]+ /,''):'')+'</span>'
       +'<span style="font-size:12px">'+(th?th.icon:'')+'</span></div>';
     if(br.status==='wait'){
       el.innerHTML=head+'<div style="font-size:11px;color:var(--tx3)">En cola...</div>';
@@ -872,15 +909,32 @@ function renderBatch(){
   });
 }
 
+// Aplica en pantalla una seleccion completa (modo, pilar, duracion y gancho),
+// repintando el selector de modo y el resto de controles.
+function applySelection(mode,t,d,h){
+  sMode=mode||'reel';sT=t||'';sD=d||'60';sH=h||'dato';
+  SP=buildSP();updImgLabel();
+  var modeWrap=document.getElementById('modeSelector');
+  if(modeWrap){
+    modeWrap.querySelectorAll('.oc').forEach(function(x){
+      var s=x.dataset.id===sMode;
+      x.classList.toggle('sel',s);x.style.borderColor=s?'#b8975a':'';
+      x.style.background=s?'#f0e8d8':'';x.querySelector('.om').style.color=s?'#b8975a':'';
+    });
+  }
+  rfAll();
+}
+
 // Abre una tarjeta del lote como si se acabara de generar: flujo normal
-// (imagenes, audio, ZIP) desde ahi, uno por uno.
+// (imagenes, audio, ZIP) desde ahi, uno por uno. Cada reel conserva su
+// propia miniatura (THUMBS por uid).
 function openBatchResult(i){
   var br=batchResults[i];
   if(!br||br.status!=='done')return;
-  sT=br.job.t;sH=br.job.h;rfAll();
+  applySelection(br.job.mode,br.job.t,br.job.d,br.job.h);
   document.getElementById('conc').value=br.res.topic;updCC();updGBtn();
   lastRes=br.res;
-  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;
+  resetReelAssets();
   renderOut(lastRes);
 }
 
@@ -947,22 +1001,12 @@ function buildHistory(){
 function restoreHistory(i){
   var h=getHistory();
   var item=h[i];if(!item)return;
-  sMode=item.modo||'reel';sT=item.t||'';sD=item.d||'60';sH=item.h||'dato';
-  SP=buildSP();updImgLabel();
-  var modeWrap=document.getElementById('modeSelector');
-  if(modeWrap){
-    modeWrap.querySelectorAll('.oc').forEach(function(x){
-      var s=x.dataset.id===sMode;
-      x.classList.toggle('sel',s);x.style.borderColor=s?'#b8975a':'';
-      x.style.background=s?'#f0e8d8':'';x.querySelector('.om').style.color=s?'#b8975a':'';
-    });
-  }
-  rfAll();
+  applySelection(item.modo,item.t,item.d,item.h);
   var tO=THEMES.find(function(t){return t.id===item.t;});
   var dO=DURS.find(function(d){return d.id===item.d;});
   var hO=HOOKS.find(function(x){return x.id===item.h;});
-  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,modo:item.modo||'reel'};
-  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;
+  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,modo:item.modo||'reel',uid:nextUid()};
+  resetReelAssets();
   document.getElementById('conc').value=item.topic||'';updCC();updGBtn();
   var hp=document.getElementById('histPanel');
   if(hp)hp.classList.remove('on');
@@ -1087,6 +1131,16 @@ function renderOut(r){
   document.getElementById('capCard').style.display='block';
   document.getElementById('audioCard').style.display='block';
   document.getElementById('imgCard').style.display='block';
+  var uc=document.getElementById('unifyCard');
+  if(uc){
+    uc.style.display='block';
+    document.getElementById('unifyRes').style.display='none';
+    document.getElementById('unifyRes').innerHTML='';
+    document.getElementById('unifySt').style.display='none';
+    document.getElementById('unifyErr').style.display='none';
+    if(finalVid)renderFinalVid();
+    updUnifyCard();
+  }
   wireGenSettings();
   wireVox();
   genCaption();
@@ -1324,13 +1378,15 @@ async function genAudio(lang){
       var durations=bufs.map(function(b){return b.duration;});
       combinedAlignment=combineAlignments(alignments,durations);
     }
-    if(isEN){audEN={blob:blob,url:url,alignment:combinedAlignment};}
-    else{audES={blob:blob,url:url,alignment:combinedAlignment};}
+    // partsB64: los MP3 originales de ElevenLabs, tal como llegaron. El servicio de
+    // unificacion (Cloud Run) los une el mismo; asi no se manda el WAV gigante.
+    if(isEN){audEN={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};}
+    else{audES={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};}
     document.getElementById(isEN?'pEN':'pES').src=url;
     document.getElementById(isEN?'dEN':'dES').href=url;
     document.getElementById(isEN?'rEN':'rES').style.display='block';
     st.textContent=isEN?'Audio EN listo.':'Audio ES listo.';
-    cost+=0.05;updCost();chkExport();
+    cost+=0.05;updCost();chkExport();updUnifyCard();
   }catch(e){
     er.textContent='Error: '+e.message;er.style.display='block';st.style.display='none';
   }finally{
@@ -1562,12 +1618,15 @@ async function genImages(){
   st.textContent=gen+'/'+totalImgs+' imagenes generadas.';
   if(gen>0){var bv=document.getElementById('ballvids');if(bv)bv.style.display='block';}
   btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
-  chkExport();
+  chkExport();updUnifyCard();
 }
 
 // MINIATURA — imagen de portada del reel, aparte de las imagenes numeradas del guion.
 // No ilustra una parte del guion: su unico trabajo es detener el scroll antes del play.
-var thumbImg=null; // data URL de la miniatura generada (o null)
+// CADA REEL tiene su propia miniatura: se guarda por uid del reel (THUMBS), asi al
+// cambiar entre los guiones del lote o del historial ninguna miniatura se mezcla.
+var thumbImg=null; // data URL de la miniatura del reel EN PANTALLA (o null)
+var THUMBS={};     // THUMBS[uid del reel] = data URL de su miniatura
 
 function buildThumbPrompt(){
   var hookLine=lastRes&&lastRes.a?firstLine(lastRes.a):'';
@@ -1595,6 +1654,7 @@ async function genThumb(){
     if(st)st.textContent='Generando miniatura de portada...';
     var src=await genOneImage(buildThumbPrompt(),imgRefs);
     thumbImg=src;
+    if(lastRes&&lastRes.uid)THUMBS[lastRes.uid]=src; // miniatura propia de ESTE reel
     cost+=imgCost();updCost();chkExport();
     renderThumb();
     if(st)st.textContent='Miniatura lista. Se incluye en el ZIP como archivo aparte.';
@@ -1725,8 +1785,11 @@ async function genVideoForSlot(idx,box){
     var vidBlob=await vidResp.blob();
     var localUrl=URL.createObjectURL(vidBlob);
 
-    vids[idx]={url:localUrl,blob:vidBlob};
+    // remoteUrl: URL firmada del clip en GCS; el servicio de unificacion descarga
+    // los clips directo de ahi (no viajan por el navegador ni por Vercel).
+    vids[idx]={url:localUrl,blob:vidBlob,remoteUrl:videoUrl};
     vidState[idx]='done';
+    updUnifyCard();
     cost+=vidCost();updCost();chkExport(); // costo estimado por clip de 8s segun modelo Veo
     renderVideoControls(box,idx);
   }catch(e){
@@ -1791,7 +1854,103 @@ async function genAllVideos(){
   btn.disabled=false;btn.textContent='🎬 Generar todos los videos';
 }
 
-function chkExport(){if(audES||audEN||imgs.length||thumbImg)document.getElementById('expbtn').style.display='flex';}
+// UNIFICACION VIDEO + AUDIO (punto 4 del plan) — el servicio de Cloud Run une los
+// 5 clips en orden, les ajusta la velocidad con UNA sola proporcion para que la
+// suma encaje con el audio de ElevenLabs (afinando el ultimo clip), le pega la
+// narracion encima y devuelve UN solo archivo final. En CapCut solo queda la musica.
+var finalVid=null; // {url, blob} del video final unificado
+
+function updUnifyCard(){
+  var card=document.getElementById('unifyCard');if(!card)return;
+  var sub=document.getElementById('unifySub');
+  var total=imgs.filter(function(x){return x&&x.src;}).length;
+  var listos=0;
+  for(var i=0;i<vids.length;i++)if(vids[i]&&vids[i].remoteUrl)listos++;
+  if(sub){
+    var faltas=[];
+    if(!total)faltas.push('imágenes');
+    else if(listos<total)faltas.push('videos ('+listos+'/'+total+')');
+    if(!(audES&&audES.partsB64&&audES.partsB64.length))faltas.push('audio ES');
+    sub.textContent=faltas.length?('Faltan: '+faltas.join(' · ')):'Todo listo para unificar: '+listos+' clips + narración';
+  }
+}
+
+async function unifyVideo(){
+  if(!lastRes){alert('Genera un reel primero.');return;}
+  var total=imgs.filter(function(x){return x&&x.src;}).length;
+  if(!total){alert('Primero genera las imágenes y sus videos.');return;}
+  var urls=[];
+  for(var i=0;i<total;i++){
+    if(!(vids[i]&&vids[i].remoteUrl)){alert('Falta el video del clip '+(i+1)+'. Genera todos los videos primero.');return;}
+    urls.push(vids[i].remoteUrl);
+  }
+  if(!(audES&&audES.partsB64&&audES.partsB64.length)){alert('Genera el Audio ES primero (la narración que se pega al video).');return;}
+  var btn=document.getElementById('bunify');
+  var st=document.getElementById('unifySt');
+  var er=document.getElementById('unifyErr');
+  var box=document.getElementById('unifyRes');
+  btn.disabled=true;btn.style.opacity='.6';
+  er.style.display='none';box.style.display='none';
+  st.style.display='block';st.textContent='Enviando trabajo al servicio de unificación...';
+  try{
+    var r=await fetch('/api/unify',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({videos:urls,audioParts:audES.partsB64}),
+    });
+    var d=await r.json().catch(function(){return{};});
+    if(!r.ok||!d.jobId)throw new Error(d.error||'Error '+r.status);
+    st.textContent='Uniendo clips y ajustando velocidad... (1 a 3 minutos)';
+    // Polling del estado, igual que con los videos de Veo.
+    var videoUrl=null,attempts=0,maxAttempts=60; // ~7 min a 7s
+    while(attempts<maxAttempts){
+      await new Promise(function(res2){setTimeout(res2,7000);});
+      attempts++;
+      var sres=await fetch('/api/unify-status',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jobId:d.jobId}),
+      });
+      var sd=await sres.json().catch(function(){return{};});
+      if(!sres.ok)throw new Error(sd.error||'Error '+sres.status);
+      if(sd.done){
+        if(sd.error)throw new Error(sd.error);
+        videoUrl=sd.videoUrl;
+        break;
+      }
+      if(sd.stage)st.textContent=sd.stage;
+    }
+    if(!videoUrl)throw new Error('El servicio tardó demasiado. Revisa en unos minutos o vuelve a intentar.');
+    st.textContent='Descargando el video final...';
+    var vr=await fetch(videoUrl);
+    if(!vr.ok)throw new Error('No se pudo descargar el video final.');
+    var vb=await vr.blob();
+    finalVid={url:URL.createObjectURL(vb),blob:vb};
+    renderFinalVid();
+    st.textContent='Video final listo. En CapCut solo falta la música de fondo.';
+    chkExport();
+  }catch(e){
+    st.style.display='none';
+    er.textContent='Error: '+(e.message||'Error de conexión');er.style.display='block';
+  }finally{
+    btn.disabled=false;btn.style.opacity='1';
+  }
+}
+
+function renderFinalVid(){
+  var box=document.getElementById('unifyRes');
+  if(!box||!finalVid)return;
+  box.innerHTML='';box.style.display='block';
+  var vid=document.createElement('video');
+  vid.src=finalVid.url;vid.controls=true;
+  vid.style.cssText='width:100%;max-width:280px;border-radius:10px;display:block;background:#000;margin-bottom:8px';
+  box.appendChild(vid);
+  var slug=(lastRes&&lastRes.topic?lastRes.topic:'reel').slice(0,25).replace(/[^a-zA-Z0-9]/g,'-');
+  var dl=document.createElement('a');
+  dl.href=finalVid.url;dl.download=slug+'-final.mp4';dl.textContent='⬇ Descargar video final';
+  dl.style.cssText='display:inline-block;background:linear-gradient(135deg,#7a9ec4,#9ab8d8);color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none';
+  box.appendChild(dl);
+}
+
+function chkExport(){if(audES||audEN||imgs.length||thumbImg||finalVid)document.getElementById('expbtn').style.display='flex';}
 
 function fmtSRTTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.round((s%1)*1000);return(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc+','+(ms<100?(ms<10?'00':'0'):'')+ms;}
 
@@ -1888,6 +2047,10 @@ async function exportAll(){
         zip.file('videos/'+slug+'-video-'+(vi+1)+'.mp4',vb);
       }
     }
+    if(finalVid&&finalVid.blob){
+      var fb=await finalVid.blob.arrayBuffer();
+      zip.file(slug+'-final.mp4',fb);
+    }
     var content=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
     var url=URL.createObjectURL(content);
     var a=document.createElement('a');
@@ -1918,7 +2081,7 @@ function hideErr(){document.getElementById('ebox').style.display='none';}
 function reset(){
   document.getElementById('ow').style.display='none';
   document.getElementById('conc').value='';updCC();updGBtn();lastRes=null;
-  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;sT='';rfAll();
+  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;finalVid=null;sT='';rfAll();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -2062,6 +2225,41 @@ function wrapText(ctx,text,maxW){
   return lines;
 }
 
+// TENDENCIAS VIRALES (punto 5 del plan) — Gemini busca en Google, en vivo, que esta
+// funcionando AHORA en reels de finanzas y motivacion en español, y resume patrones
+// replicables. No usa lo que el modelo "recuerda": usa resultados actuales de internet.
+async function genTrends(){
+  var btn=document.getElementById('bTrends');
+  var st=document.getElementById('trendSt');
+  var er=document.getElementById('trendErr');
+  var box=document.getElementById('trendBox');
+  var orig=btn.textContent;
+  btn.textContent='Investigando...';btn.disabled=true;btn.style.opacity='.6';
+  st.style.display='block';st.textContent='Buscando en Google qué está funcionando ahora en el nicho... (30-60 segundos)';
+  er.style.display='none';
+  try{
+    var r=await fetch('/api/trends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    var d=await r.json().catch(function(){return{};});
+    if(!r.ok||!d.text)throw new Error(d.error||'Error '+r.status);
+    var html='<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--tx)">'+escHtml(d.text)+'</div>';
+    if(d.sources&&d.sources.length){
+      html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Fuentes consultadas</div>';
+      d.sources.slice(0,8).forEach(function(s2){
+        html+='<a href="'+escHtml(s2.uri||'#')+'" target="_blank" rel="noopener" style="display:block;font-size:11px;color:#7a9ec4;text-decoration:none;margin-bottom:3px">• '+escHtml(s2.title||s2.uri||'fuente')+'</a>';
+      });
+      html+='</div>';
+    }
+    box.innerHTML=html;box.style.display='block';
+    st.style.display='none';
+    cost+=0.02;updCost();
+  }catch(e){
+    st.style.display='none';
+    er.textContent='Error: '+(e.message||'Error de conexión');er.style.display='block';
+  }finally{
+    btn.textContent=orig;btn.disabled=false;btn.style.opacity='1';
+  }
+}
+
 // INIT
 document.addEventListener('DOMContentLoaded',function(){
   buildAll();
@@ -2082,6 +2280,10 @@ document.addEventListener('DOMContentLoaded',function(){
   buildHistory();
   var bt=document.getElementById('bthumb');
   if(bt)bt.addEventListener('click',genThumb);
+  var bu=document.getElementById('bunify');
+  if(bu)bu.addEventListener('click',unifyVideo);
+  var btr=document.getElementById('bTrends');
+  if(btr)btr.addEventListener('click',genTrends);
   document.getElementById('cpall').addEventListener('click',function(){
     if(lastRes){
       var todo=(lastRes.a||'')+'\n\n---\n\n'+(lastRes.f||'');

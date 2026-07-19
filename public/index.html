@@ -217,6 +217,19 @@ section{margin-bottom:20px}
     </section>
 
     <section>
+      <div class="slbl">🔎 Tendencias Virales</div>
+      <div style="background:#fff;border:1.5px solid #7a9ec444;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px var(--sh)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-size:11px;color:var(--tx3);line-height:1.5;flex:1;min-width:200px">La IA busca en Google, ahora mismo, qué ganchos y formatos están funcionando en reels de finanzas y motivación en español — patrones para replicar.</div>
+          <button class="cbtn" id="bTrends" style="border-color:#7a9ec4;color:#7a9ec4">🔎 Investigar tendencias</button>
+        </div>
+        <div class="stxt" id="trendSt" style="margin-top:10px"></div>
+        <div class="serr" id="trendErr" style="margin-top:10px"></div>
+        <div id="trendBox" style="display:none;margin-top:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px;padding:14px"></div>
+      </div>
+    </section>
+
+    <section>
       <div class="slbl">🕘 Historial</div>
       <button class="sbtn" id="histBtn"><span id="histLbl">Historial · 0 reels guardados</span><span id="ha">▼</span></button>
       <div class="spanel" id="histPanel"><div id="histGrid" style="padding:11px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div></div>
@@ -242,7 +255,7 @@ section{margin-bottom:20px}
       <button id="gbtn5" style="background:#fff;border:2px solid var(--gold);color:var(--gold);border-radius:12px;padding:12px 20px;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;gap:8px">⚔ Generar 5</button>
       <span class="gnote" id="gnote" style="display:none">Generando guiones ES + EN y prompts...</span>
     </div>
-    <div style="font-size:10px;color:var(--tx3);margin-top:6px">Generar 5: con concepto escrito forja 5 variantes de ese concepto; sin concepto, 5 ideas distintas de las sugerencias. Luego eliges cuáles llevar a imágenes, audio y ZIP.</div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:6px">Generar 5: forja 5 guiones TODOS DIFERENTES — conceptos, pilares, ganchos, duraciones y modos distintos (si escribiste un concepto, ese será el guion 1). Luego eliges cuáles llevar a imágenes, audio y ZIP.</div>
     <div class="ebox" id="ebox"><div class="etitle" id="etitle"></div></div>
 
     <!-- LOTE DE 5 GUIONES -->
@@ -427,6 +440,19 @@ section{margin-bottom:20px}
           <div class="serr" id="ie"></div>
           <div id="thumbBox"></div>
           <div class="igrid" id="igrid"></div>
+        </div>
+      </div>
+
+      <div class="scard" id="unifyCard" style="border:1.5px solid #7a9ec444;margin-top:14px;display:none">
+        <div class="shdr" style="background:#e8f0f8">
+          <div><div class="stitl" style="color:#7a9ec4">🎞 Video Final — Unificación</div><div class="ssub" id="unifySub">Une los clips, ajusta la velocidad al audio y pega la narración</div></div>
+          <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button>
+        </div>
+        <div class="sbody">
+          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">Necesita: todos los videos de los clips generados + el Audio ES. El resultado es UN solo MP4 con la narración pegada — en CapCut solo agregas la música de fondo.</div>
+          <div class="stxt" id="unifySt"></div>
+          <div class="serr" id="unifyErr"></div>
+          <div id="unifyRes" style="display:none"></div>
         </div>
       </div>
 
