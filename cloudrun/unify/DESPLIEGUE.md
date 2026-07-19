@@ -4,6 +4,20 @@ Este servicio une los clips de Veo, les ajusta la velocidad para que encajen con
 la narración de ElevenLabs, pega el audio y entrega UN solo video final.
 Se despliega UNA sola vez; después la herramienta lo usa sola.
 
+## ⚡ FORMA FÁCIL (recomendada): un solo copiar y pegar
+
+1. Abre **console.cloud.google.com** y toca el botón **`>_`** (arriba a la
+   derecha) para abrir Cloud Shell.
+2. Abre el archivo **`instalar.sh`** de esta carpeta, copia TODO su contenido,
+   pégalo en la ventana negra de Cloud Shell y presiona **Enter**.
+3. Espera 5-8 minutos. Al final te muestra **DOS datos** (una dirección y una
+   clave) con los nombres exactos para pegarlos en Vercel → Settings →
+   Environment Variables. Luego Redeploy. Eso es todo.
+
+Los pasos de abajo son la versión manual, por si prefieres hacerlo a mano.
+
+---
+
 Todo se hace en **Cloud Shell** (el botón `>_` arriba a la derecha en
 console.cloud.google.com), igual que se hizo con el CORS y la cuenta de servicio.
 

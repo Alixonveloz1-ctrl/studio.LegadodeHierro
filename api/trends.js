@@ -45,7 +45,13 @@ const PROMPT = 'Eres el estratega de contenido de LEGADO DE HIERRO, canal de Fac
   + 'GANCHOS QUE ESTÁN FUNCIONANDO\n(5 a 8 patrones de gancho, cada uno con un ejemplo adaptado al nicho)\n\n'
   + 'FORMATOS QUE RETIENEN\n(qué formato y duración están rindiendo mejor y por qué)\n\n'
   + 'TEMAS EN SUBIDA\n(temas del nicho con tracción ahora mismo)\n\n'
-  + 'PARA REPLICAR ESTA SEMANA\n(3 a 5 acciones concretas para los próximos reels del canal, listas para ejecutar)';
+  + 'PARA REPLICAR ESTA SEMANA\n(3 a 5 acciones concretas para los próximos reels del canal, listas para ejecutar)\n\n'
+  + 'CONCEPTOS PARA GENERAR\n'
+  + 'Al final, EXACTAMENTE 5 líneas, una por concepto de reel basado en lo que encontraste viral, con este formato exacto (sin numerar, sin texto extra):\n'
+  + 'pilar|gancho|concepto\n\n'
+  + 'PILARES válidos: libertad, mentalidad, sistema, herramientas, marca, inversion, negocio, millonario\n'
+  + 'GANCHOS válidos: dato, pregunta, afirmacion, historia, pasos\n'
+  + 'Los 5 conceptos deben ser DIFERENTES entre sí, de pilares variados (máximo 2 del mismo pilar), máximo 15 palabras cada uno, en español impecable con tildes.';
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');

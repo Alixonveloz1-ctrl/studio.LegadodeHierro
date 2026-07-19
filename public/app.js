@@ -788,6 +788,22 @@ function resetReelAssets(){
 var batchLoading=false;
 var batchResults=[]; // [{status:'wait'|'loading'|'done'|'error', job, res, err}]
 
+// Convierte 5 ideas (concepto+pilar+gancho) en 5 trabajos de lote con modos y
+// duraciones variados: los tres modos siempre presentes, duraciones mezcladas.
+// firstJob (opcional) ocupa la posicion 1 tal cual (el concepto escrito a mano).
+function jobsFromIdeas(ideas,firstJob){
+  var modes=shuffleArr(['reel','historia','impacto']).concat(shuffleArr(['reel','historia','impacto']).slice(0,2));
+  var durPool=shuffleArr(['30','60','90','60','90']);
+  var jobs=[];
+  for(var j=0;j<5;j++){
+    if(j===0&&firstJob){jobs.push(firstJob);continue;}
+    var idea=ideas[(firstJob?j-1:j)%ideas.length];
+    var mode=modes[j];
+    jobs.push({topic:idea.concept,t:idea.t,h:idea.h,mode:mode,d:mode==='impacto'?'30':durPool[j]});
+  }
+  return jobs;
+}
+
 function batchJobs(){
   var topic=document.getElementById('conc').value.trim();
   // 5 conceptos distintos con pilares lo mas variados posible:
@@ -802,32 +818,20 @@ function batchJobs(){
       picked.push(it);usedT[it.t]=1;usedC[it.concept]=1;
     }
   }
-  // Modos variados: los tres modos presentes al menos una vez en el lote.
-  var modes=shuffleArr(['reel','historia','impacto']).concat(shuffleArr(['reel','historia','impacto']).slice(0,2));
-  // Duraciones variadas (impacto siempre es golpe de 30s).
-  var durPool=shuffleArr(['30','60','90','60','90']);
-  var jobs=[];
-  for(var j=0;j<5;j++){
-    var mode=modes[j];
-    var d=mode==='impacto'?'30':durPool[j];
-    if(j===0&&topic){
-      // Si escribiste un concepto, el guion 1 es ese concepto con tu seleccion actual.
-      jobs.push({topic:topic,t:sT||picked[0].t,h:sH,mode:sMode,d:sMode==='impacto'?'30':sD});
-    }else{
-      var idea=picked[(topic?j-1:j)%picked.length];
-      jobs.push({topic:idea.concept,t:idea.t,h:idea.h,mode:mode,d:d});
-    }
-  }
-  return jobs;
+  // Si escribiste un concepto, el guion 1 es ese concepto con tu seleccion actual.
+  var firstJob=topic?{topic:topic,t:sT||picked[0].t,h:sH,mode:sMode,d:sMode==='impacto'?'30':sD}:null;
+  return jobsFromIdeas(picked,firstJob);
 }
 
-async function generateBatch(){
+async function generateBatch(customJobs){
   if(loading||batchLoading)return;
   batchLoading=true;loading=true;updGBtn();hideErr();
   var b5=document.getElementById('gbtn5');
   if(b5){b5.disabled=true;b5.innerHTML='<span class="spin" style="border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span> Forjando lote...';}
   document.getElementById('ow').style.display='none';
-  var jobs=batchJobs();
+  // customJobs: 5 trabajos ya armados (p.ej. los conceptos de la investigacion
+  // de tendencias). Sin ellos, el lote se arma con las sugerencias/pool local.
+  var jobs=(customJobs&&customJobs.length)?customJobs:batchJobs();
   batchResults=jobs.map(function(j){return {status:'wait',job:j};});
   var sec=document.getElementById('batchSec');
   if(sec)sec.style.display='block';
@@ -1206,6 +1210,14 @@ async function genCaption(){
   var box=document.getElementById('capBox');
   var rb=document.getElementById('bcap');
   if(!st)return;
+  // Mientras el lote sigue forjando guiones no se lanza otra llamada en paralelo
+  // (todo va EN ORDEN para no chocar con los limites). Se pide al terminar con ↻.
+  if(batchLoading){
+    st.style.display='block';
+    st.textContent='El lote sigue generando. Cuando termine, toca ↻ Regenerar para el caption.';
+    er.style.display='none';box.style.display='none';
+    return;
+  }
   st.style.display='block';st.textContent='Generando caption y hashtags...';
   er.style.display='none';box.style.display='none';
   if(rb){rb.disabled=true;rb.style.opacity='.6';}
@@ -1871,7 +1883,9 @@ function updUnifyCard(){
     if(!total)faltas.push('imágenes');
     else if(listos<total)faltas.push('videos ('+listos+'/'+total+')');
     if(!(audES&&audES.partsB64&&audES.partsB64.length))faltas.push('audio ES');
-    sub.textContent=faltas.length?('Faltan: '+faltas.join(' · ')):'Todo listo para unificar: '+listos+' clips + narración';
+    sub.textContent=faltas.length?('Faltan: '+faltas.join(' · '))
+      :(listos===1?'Listo: 1 clip + la narración, en un solo video'
+      :'Listo: se unirán los '+listos+' clips EN ORDEN + la narración, en un solo video');
   }
 }
 
@@ -2228,6 +2242,8 @@ function wrapText(ctx,text,maxW){
 // TENDENCIAS VIRALES (punto 5 del plan) — Gemini busca en Google, en vivo, que esta
 // funcionando AHORA en reels de finanzas y motivacion en español, y resume patrones
 // replicables. No usa lo que el modelo "recuerda": usa resultados actuales de internet.
+var TREND_IDEAS=[]; // los 5 conceptos que salieron de la ultima investigacion
+
 async function genTrends(){
   var btn=document.getElementById('bTrends');
   var st=document.getElementById('trendSt');
@@ -2241,7 +2257,25 @@ async function genTrends(){
     var r=await fetch('/api/trends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
     var d=await r.json().catch(function(){return{};});
     if(!r.ok||!d.text)throw new Error(d.error||'Error '+r.status);
-    var html='<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--tx)">'+escHtml(d.text)+'</div>';
+    // Los conceptos vienen al final en lineas pilar|gancho|concepto: se separan
+    // del analisis y se convierten en el lote de 5 con un solo boton.
+    TREND_IDEAS=parseSuggestions(d.text).slice(0,5);
+    var showText=d.text.replace(/CONCEPTOS PARA GENERAR[\s\S]*$/i,'').trim();
+    var html='<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--tx)">'+escHtml(showText)+'</div>';
+    if(TREND_IDEAS.length){
+      html+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
+        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">'+TREND_IDEAS.length+' conceptos sacados de lo viral — listos para el lote</div>';
+      TREND_IDEAS.forEach(function(it,i){
+        var th=THEMES.find(function(t){return t.id===it.t;});
+        html+='<div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;margin-bottom:6px">'
+          +'<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:'+(th?th.c:'#b8975a')+';text-transform:uppercase">'+(i+1)+' · '+(th?th.icon+' '+th.label:'')+'</span>'
+          +'<div style="font-size:12px;font-weight:600;color:var(--tx);line-height:1.4;margin-top:3px">'+escHtml(it.concept)+'</div></div>';
+      });
+      html+='<button id="bTrendBatch" style="width:100%;margin-top:6px;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar lote de 5 guiones con estos conceptos</button>'
+        +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">Un guion por concepto, con modos y duraciones variados, generados uno tras otro (en orden, sin saturar los límites).</div></div>';
+    }else{
+      html+='<div style="margin-top:10px;font-size:11px;color:var(--tx3)">La investigación no trajo conceptos en formato usable esta vez. Vuelve a intentar con 🔎.</div>';
+    }
     if(d.sources&&d.sources.length){
       html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Fuentes consultadas</div>';
       d.sources.slice(0,8).forEach(function(s2){
@@ -2250,6 +2284,11 @@ async function genTrends(){
       html+='</div>';
     }
     box.innerHTML=html;box.style.display='block';
+    var bb=document.getElementById('bTrendBatch');
+    if(bb)bb.addEventListener('click',function(){
+      if(!TREND_IDEAS.length)return;
+      generateBatch(jobsFromIdeas(TREND_IDEAS,null));
+    });
     st.style.display='none';
     cost+=0.02;updCost();
   }catch(e){
@@ -2271,7 +2310,7 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('conc').addEventListener('input',function(){updCC();updGBtn();});
   document.getElementById('gbtn').addEventListener('click',generate);
   var b5=document.getElementById('gbtn5');
-  if(b5)b5.addEventListener('click',generateBatch);
+  if(b5)b5.addEventListener('click',function(){generateBatch();});
   var hb=document.getElementById('histBtn');
   if(hb)hb.addEventListener('click',function(){
     var o=document.getElementById('histPanel').classList.toggle('on');
