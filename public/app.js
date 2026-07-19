@@ -673,20 +673,18 @@ function updImgLabel(){
 function updGBtn(){
   var b=document.getElementById('gbtn'),has=document.getElementById('conc').value.trim().length>0;
   b.disabled=loading||!has;b.classList.toggle('on',!loading&&has);
+  var b5=document.getElementById('gbtn5');
+  if(b5){b5.disabled=loading;b5.style.opacity=loading?'.55':'1';b5.style.cursor=loading?'not-allowed':'pointer';}
 }
 function updCost(){document.getElementById('gcost').textContent='$'+cost.toFixed(3)+' estimado · '+genCount+' generaciones';}
 
 // GENERATE
-async function generate(){
-  var topic=document.getElementById('conc').value.trim();
-  if(!topic||loading)return;
-  loading=true;updGBtn();hideErr();
-  document.getElementById('ow').style.display='none';
-  document.getElementById('gbtn').innerHTML='<span class="spin"></span> Forjando...';
-  document.getElementById('gnote').style.display='inline';
-  document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Generando narrativa Trabajador→Alpha...':'Generando guiones ES + EN y prompts...';
-  var tO=THEMES.find(function(t){return t.id===sT;});
-  var hO=HOOKS.find(function(h){return h.id===sH;});
+// Construye el mensaje completo de un episodio para /api/generate.
+// Parametrizado por concepto/pilar/gancho para reutilizarlo en el lote de 5;
+// el modo y la duracion siempre son los seleccionados en pantalla (sMode/sD).
+function buildEpisodeMsg(topic,tId,hId){
+  var tO=THEMES.find(function(t){return t.id===tId;});
+  var hO=HOOKS.find(function(h){return h.id===hId;});
   var dO=DURS.find(function(d){return d.id===sD;});
   var hi={dato:'Empieza con dato/cifra impactante.',pregunta:'Empieza con pregunta disruptiva.',afirmacion:'Empieza con verdad incomoda directa.',historia:'Empieza en primera persona con experiencia cruda.',pasos:'Desarrolla con Primero, Segundo, Tercero.'};
   var identidadBase='PERSONAJE FIJO — el MISMO hombre en TODAS las imagenes, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO EN TODA IMAGEN: lluvia, cualquier clima (nieve, tormenta, gotas de agua), cielos lluviosos, superficies mojadas, charcos -- NUNCA, ni dentro ni fuera del edificio; el clima es fuente de errores graves al animar. Tampoco robots, futurismo, sci-fi, cadenas rotas, magia ni fantasia. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad, contraste y sombras, jamas clima. ESCENAS LIMPIAS: incluye solo los objetos que la accion necesita; evita objetos sueltos irrelevantes (tazas de cafe, vasos, adornos) que no formen parte de la accion, porque al animar se deforman o se transforman en otra cosa. MIRADA (obligatorio): el personaje mira lo que exige la accion (el documento, la pantalla, la ciudad, el trato), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
@@ -709,29 +707,44 @@ async function generate(){
   // Variedad mecánica: el código asigna el tipo de modelo al azar (el modelo de IA no elige).
   // Se omite en impacto (muy corto), herramientas (el modelo es la guía del enlace) e inversión (el pilar ya define: activos).
   var seedRule='';
-  if(sMode!=='impacto'&&sT==='herramientas'){
+  if(sMode!=='impacto'&&tId==='herramientas'){
     var ang=HERRAM_ANGLES[Math.floor(Math.random()*HERRAM_ANGLES.length)];
     seedRule='ÁNGULO ASIGNADO PARA ESTE GUION (variedad obligatoria): '+ang+' Desarrolla ESE contenido con sustancia real; SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDO repetir la fórmula de siempre.\n\n';
   }
-  var msg=SP+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[sH]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
+  var msg=SP+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
+  return {msg:msg,tO:tO,dO:dO,hO:hO};
+}
+
+// Llama a /api/generate y devuelve el episodio ya parseado (a, f, c, cRaw, raw).
+async function fetchEpisode(msg){
+  var r=await fetch('/api/generate',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:msg}),
+  });
+  var d=await r.json();
+  if(!r.ok){throw new Error(d&&d.error?d.error:'Error '+r.status);}
+  if(!d.text)throw new Error('Sin respuesta de texto.');
+  var p=parseBlocks(d.text);
+  if(!p.a||p.a.length<20)throw new Error('No se pudo leer el guion ES. Intenta de nuevo.');
+  return Object.assign({},p,{raw:d.text});
+}
+
+async function generate(){
+  var topic=document.getElementById('conc').value.trim();
+  if(!topic||loading)return;
+  loading=true;updGBtn();hideErr();
+  document.getElementById('ow').style.display='none';
+  document.getElementById('gbtn').innerHTML='<span class="spin"></span> Forjando...';
+  document.getElementById('gnote').style.display='inline';
+  document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Generando narrativa Trabajador→Alpha...':'Generando guiones ES + EN y prompts...';
   try{
-    var r=await fetch('/api/generate',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:msg}),
-    });
-    var d=await r.json();
-    if(!r.ok){
-      var m=d&&d.error?d.error:'Error '+r.status;
-      throw new Error(m);
-    }
-    var txt=d.text;
-    if(!txt)throw new Error('Sin respuesta de texto.');
-    var p=parseBlocks(txt);
-    if(!p.a||p.a.length<20)throw new Error('No se pudo leer el guion ES. Intenta de nuevo.');
-    lastRes=Object.assign({},p,{raw:txt,topic:topic,tO:tO,dO:dO,hO:hO,modo:sMode});
+    var built=buildEpisodeMsg(topic,sT,sH);
+    var p=await fetchEpisode(built.msg);
+    lastRes=Object.assign({},p,{topic:topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:sMode});
     genCount++;cost+=0.015;updCost();
-    audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
+    audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;
+    saveHistory(lastRes);
     renderOut(lastRes);
   }catch(e){
     showErr(e.message||'Error de conexion.');
@@ -741,6 +754,221 @@ async function generate(){
     document.getElementById('gnote').style.display='none';
     updGBtn();
   }
+}
+
+// HELPERS de texto compartidos por lote e historial
+function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function firstLine(txt){
+  var ls=(txt||'').split('\n');
+  for(var i=0;i<ls.length;i++){if(ls[i].trim())return ls[i].trim();}
+  return '';
+}
+
+// LOTE — 5 guiones de una vez. Las llamadas van una tras otra (no en paralelo)
+// para no chocar con los limites de peticiones de Gemini. Solo se generan los
+// GUIONES: imagenes/audio/ZIP se hacen despues, uno por uno, sobre el elegido.
+var batchLoading=false;
+var batchResults=[]; // [{status:'wait'|'loading'|'done'|'error', job, res, err}]
+
+function batchJobs(){
+  var topic=document.getElementById('conc').value.trim();
+  var jobs=[];
+  if(topic){
+    // Con concepto escrito: 5 variantes de ese concepto con el pilar/gancho elegidos.
+    for(var i=0;i<5;i++)jobs.push({topic:topic,t:sT||'libertad',h:sH});
+  }else{
+    // Sin concepto: 5 ideas distintas (pilares variados) de las sugerencias actuales.
+    var pool=(SCHED_CURRENT&&SCHED_CURRENT.length>=5)?SCHED_CURRENT.slice():getRandomSuggestions();
+    for(var i=0;i<5;i++){var it=pool[i%pool.length];jobs.push({topic:it.concept,t:it.t,h:it.h});}
+  }
+  return jobs;
+}
+
+async function generateBatch(){
+  if(loading||batchLoading)return;
+  batchLoading=true;loading=true;updGBtn();hideErr();
+  var b5=document.getElementById('gbtn5');
+  if(b5){b5.disabled=true;b5.innerHTML='<span class="spin" style="border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span> Forjando lote...';}
+  document.getElementById('ow').style.display='none';
+  var jobs=batchJobs();
+  batchResults=jobs.map(function(j){return {status:'wait',job:j};});
+  var sec=document.getElementById('batchSec');
+  if(sec)sec.style.display='block';
+  renderBatch();
+  if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});
+  for(var i=0;i<jobs.length;i++){
+    batchResults[i].status='loading';renderBatch();
+    try{
+      var built=buildEpisodeMsg(jobs[i].topic,jobs[i].t,jobs[i].h);
+      var p=await fetchEpisode(built.msg);
+      var res=Object.assign({},p,{topic:jobs[i].topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:sMode});
+      batchResults[i]={status:'done',job:jobs[i],res:res};
+      genCount++;cost+=0.015;updCost();
+      saveHistory(res);
+    }catch(e){
+      batchResults[i]={status:'error',job:jobs[i],err:e.message||'Error'};
+    }
+    renderBatch();
+    // Pausa corta entre llamadas para respetar los limites de Gemini.
+    if(i<jobs.length-1)await new Promise(function(r){setTimeout(r,1500);});
+  }
+  batchLoading=false;loading=false;updGBtn();
+  if(b5){b5.disabled=false;b5.innerHTML='⚔ Generar 5';}
+}
+
+async function retryBatchItem(i){
+  if(loading||batchLoading)return;
+  var br=batchResults[i];if(!br)return;
+  batchLoading=true;loading=true;updGBtn();
+  br.status='loading';renderBatch();
+  try{
+    var built=buildEpisodeMsg(br.job.topic,br.job.t,br.job.h);
+    var p=await fetchEpisode(built.msg);
+    var res=Object.assign({},p,{topic:br.job.topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:sMode});
+    batchResults[i]={status:'done',job:br.job,res:res};
+    genCount++;cost+=0.015;updCost();
+    saveHistory(res);
+  }catch(e){
+    batchResults[i]={status:'error',job:br.job,err:e.message||'Error'};
+  }
+  batchLoading=false;loading=false;updGBtn();renderBatch();
+}
+
+function renderBatch(){
+  var grid=document.getElementById('batchGrid');if(!grid)return;
+  grid.innerHTML='';
+  batchResults.forEach(function(br,i){
+    var th=THEMES.find(function(t){return t.id===br.job.t;});
+    var hk=HOOKS.find(function(h){return h.id===br.job.h;});
+    var col=th?th.c:'#b8975a';
+    var el=document.createElement('div');
+    el.style.cssText='background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px var(--sh)';
+    var head='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+      +'<span style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+col+';text-transform:uppercase">Guion '+(i+1)+' · '+(th?th.label:'')+(hk?' · '+hk.label.replace(/^[^ ]+ /,''):'')+'</span>'
+      +'<span style="font-size:12px">'+(th?th.icon:'')+'</span></div>';
+    if(br.status==='wait'){
+      el.innerHTML=head+'<div style="font-size:11px;color:var(--tx3)">En cola...</div>';
+    }else if(br.status==='loading'){
+      el.innerHTML=head+'<div style="font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:6px"><span class="spin" style="width:11px;height:11px;border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span> Forjando guion...</div>';
+    }else if(br.status==='error'){
+      el.innerHTML=head+'<div style="font-size:11px;color:#8a4a3a;background:#f8ede8;border:1px solid #c4897a;border-radius:8px;padding:7px 9px;margin-bottom:7px">'+escHtml(br.err||'Error')+'</div>';
+      var rb=document.createElement('button');rb.textContent='↺ Reintentar';
+      rb.style.cssText='width:100%;background:#fff;border:1.5px solid #b8975a;border-radius:8px;padding:7px;font-size:11px;font-weight:600;color:#b8975a;cursor:pointer;font-family:inherit';
+      (function(ii){rb.addEventListener('click',function(){retryBatchItem(ii);});})(i);
+      el.appendChild(rb);
+    }else{
+      var hook=firstLine(br.res.a);
+      var rest=(br.res.a||'').split('\n').filter(function(l){return l.trim();}).slice(1).join(' ');
+      el.style.cursor='pointer';
+      el.innerHTML=head
+        +'<div style="font-size:13px;font-weight:700;color:var(--tx);line-height:1.4;margin-bottom:5px">'+escHtml(hook)+'</div>'
+        +'<div style="font-size:11px;color:var(--tx3);line-height:1.45;margin-bottom:7px">'+escHtml(rest.slice(0,110))+(rest.length>110?'...':'')+'</div>'
+        +'<div style="font-size:10px;color:'+col+';font-weight:600">→ Abrir guion completo</div>';
+      el.addEventListener('mouseenter',function(){el.style.borderColor=col+'88';});
+      el.addEventListener('mouseleave',function(){el.style.borderColor='var(--border)';});
+      (function(ii){el.addEventListener('click',function(){openBatchResult(ii);});})(i);
+    }
+    grid.appendChild(el);
+  });
+}
+
+// Abre una tarjeta del lote como si se acabara de generar: flujo normal
+// (imagenes, audio, ZIP) desde ahi, uno por uno.
+function openBatchResult(i){
+  var br=batchResults[i];
+  if(!br||br.status!=='done')return;
+  sT=br.job.t;sH=br.job.h;rfAll();
+  document.getElementById('conc').value=br.res.topic;updCC();updGBtn();
+  lastRes=br.res;
+  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;
+  renderOut(lastRes);
+}
+
+// HISTORIAL — ultimos 10 reels generados, guardados en el navegador para no
+// perder un guion si se cierra la pestana antes de descargar el ZIP.
+var HIST_KEY='lh_hist';
+var HIST_MAX=10;
+var MODE_LABELS={reel:'🎬 Reel',historia:'📖 Historia',impacto:'⚡ Impacto'};
+
+function getHistory(){
+  try{var h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');return Array.isArray(h)?h:[];}
+  catch(e){return [];}
+}
+
+function saveHistory(res){
+  if(!res||!res.a)return;
+  try{
+    var h=getHistory();
+    h.unshift({
+      a:res.a,f:res.f||'',c:res.c||[],cRaw:res.cRaw||'',topic:res.topic||'',
+      t:res.tO?res.tO.id:'',d:res.dO?res.dO.id:'60',h:res.hO?res.hO.id:'dato',
+      modo:res.modo||'reel',fecha:new Date().toISOString()
+    });
+    if(h.length>HIST_MAX)h=h.slice(0,HIST_MAX); // al llegar el 11, se descarta el mas viejo
+    localStorage.setItem(HIST_KEY,JSON.stringify(h));
+  }catch(e){/* almacenamiento lleno o bloqueado: el historial nunca rompe la generacion */}
+  buildHistory();
+}
+
+function buildHistory(){
+  var grid=document.getElementById('histGrid');if(!grid)return;
+  var lbl=document.getElementById('histLbl');
+  var h=getHistory();
+  if(lbl)lbl.textContent='Historial · '+h.length+(h.length===1?' reel guardado':' reels guardados');
+  grid.innerHTML='';
+  if(!h.length){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--tx3);font-size:11px">Aun no hay guiones en el historial. Se guardan solos al generar.</div>';
+    return;
+  }
+  h.forEach(function(item,i){
+    var th=THEMES.find(function(t){return t.id===item.t;});
+    var col=th?th.c:'#b8975a';
+    var fecha='';
+    try{
+      var dt=new Date(item.fecha);
+      fecha=dt.toLocaleDateString('es',{day:'2-digit',month:'short'})+' · '+dt.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){}
+    var el=document.createElement('div');
+    el.style.cssText='background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s';
+    el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+      +'<span style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+col+';text-transform:uppercase">'+(MODE_LABELS[item.modo]||item.modo)+' · '+(th?th.label:'')+'</span>'
+      +'<span style="font-size:9px;color:var(--tx3)">'+fecha+'</span></div>'
+      +'<div style="font-size:11.5px;font-weight:600;color:var(--tx1);line-height:1.4;margin-bottom:5px">'+escHtml(firstLine(item.a).slice(0,90))+'</div>'
+      +'<div style="font-size:10px;color:'+col+';font-weight:600">→ Restaurar este reel</div>';
+    el.addEventListener('mouseenter',function(){el.style.borderColor=col+'88';});
+    el.addEventListener('mouseleave',function(){el.style.borderColor='var(--border)';});
+    (function(ii){el.addEventListener('click',function(){restoreHistory(ii);});})(i);
+    grid.appendChild(el);
+  });
+}
+
+// Restaura un guion del historial en pantalla, como recien generado:
+// desde ahi se pueden retomar imagenes, audio y ZIP.
+function restoreHistory(i){
+  var h=getHistory();
+  var item=h[i];if(!item)return;
+  sMode=item.modo||'reel';sT=item.t||'';sD=item.d||'60';sH=item.h||'dato';
+  SP=buildSP();updImgLabel();
+  var modeWrap=document.getElementById('modeSelector');
+  if(modeWrap){
+    modeWrap.querySelectorAll('.oc').forEach(function(x){
+      var s=x.dataset.id===sMode;
+      x.classList.toggle('sel',s);x.style.borderColor=s?'#b8975a':'';
+      x.style.background=s?'#f0e8d8':'';x.querySelector('.om').style.color=s?'#b8975a':'';
+    });
+  }
+  rfAll();
+  var tO=THEMES.find(function(t){return t.id===item.t;});
+  var dO=DURS.find(function(d){return d.id===item.d;});
+  var hO=HOOKS.find(function(x){return x.id===item.h;});
+  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,modo:item.modo||'reel'};
+  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;
+  document.getElementById('conc').value=item.topic||'';updCC();updGBtn();
+  var hp=document.getElementById('histPanel');
+  if(hp)hp.classList.remove('on');
+  var ha=document.getElementById('ha');
+  if(ha)ha.textContent='▼';
+  renderOut(lastRes);
 }
 
 // PARSE
@@ -878,6 +1106,8 @@ function renderOut(r){
   document.getElementById('ast').style.display='none';
   document.getElementById('ae').style.display='none';
   document.getElementById('igrid').innerHTML='';
+  var tb=document.getElementById('thumbBox');
+  if(tb){tb.innerHTML='';if(thumbImg)renderThumb();}
   document.getElementById('ist').style.display='none';
   document.getElementById('ie').style.display='none';
   document.getElementById('expbtn').style.display='none';
@@ -1335,6 +1565,71 @@ async function genImages(){
   chkExport();
 }
 
+// MINIATURA — imagen de portada del reel, aparte de las imagenes numeradas del guion.
+// No ilustra una parte del guion: su unico trabajo es detener el scroll antes del play.
+var thumbImg=null; // data URL de la miniatura generada (o null)
+
+function buildThumbPrompt(){
+  var hookLine=lastRes&&lastRes.a?firstLine(lastRes.a):'';
+  return CHAR_STYLE_ANCHOR+aspectHint(imgFmt)
+    +'THUMBNAIL COVER IMAGE for a Facebook Reel — this is the COVER of the video, NOT a scene from the story. Its only job: stop the scroll before the viewer taps play. '
+    +'COMPOSITION: the character CENTERED and dominant in the frame, medium close-up, ONE single powerful hooking gesture or intense commanding expression, direct eye contact with the camera. '
+    +'HIGH CONTRAST dramatic cinematic lighting, strong rim light, clean dark uncluttered background. '
+    +'Leave clear EMPTY negative space in the upper third of the image so a title text can be overlaid later (do NOT draw any text yourself). '
+    +'The emotional theme of the cover follows this message: "'+hookLine+'"';
+}
+
+async function genThumb(){
+  if(!lastRes||!lastRes.a){alert('Genera un guion primero.');return;}
+  var btn=document.getElementById('bthumb');
+  var st=document.getElementById('ist');
+  var box=document.getElementById('thumbBox');
+  var orig=btn.textContent;
+  btn.textContent='...';btn.disabled=true;btn.style.opacity='.6';
+  if(st){st.style.display='block';}
+  try{
+    if(!imgRefs||imgRefs.length<1){
+      if(st)st.textContent='Cargando referencias del personaje...';
+      imgRefs=await loadRefs();
+    }
+    if(st)st.textContent='Generando miniatura de portada...';
+    var src=await genOneImage(buildThumbPrompt(),imgRefs);
+    thumbImg=src;
+    cost+=imgCost();updCost();chkExport();
+    renderThumb();
+    if(st)st.textContent='Miniatura lista. Se incluye en el ZIP como archivo aparte.';
+  }catch(e){
+    if(st)st.style.display='none';
+    if(box)box.innerHTML='<div style="background:#f8ede8;border:1px solid #c4897a;border-radius:8px;padding:8px 10px;font-size:11px;color:#8a4a3a;margin-bottom:10px">Miniatura: '+escHtml(e.message||'Error')+'. Vuelve a intentar con + Miniatura.</div>';
+  }finally{
+    btn.textContent=orig;btn.disabled=false;btn.style.opacity='1';
+  }
+}
+
+function renderThumb(){
+  var box=document.getElementById('thumbBox');
+  if(!box||!thumbImg)return;
+  box.innerHTML='';
+  box.style.cssText='margin-bottom:12px';
+  var lbl=document.createElement('div');
+  lbl.style.cssText='font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px';
+  lbl.textContent='🌟 Miniatura · portada del reel';
+  box.appendChild(lbl);
+  var wrap=document.createElement('div');
+  wrap.style.cssText='position:relative;border-radius:10px;overflow:hidden;max-width:190px;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
+  var im=document.createElement('img');im.src=thumbImg;im.style.cssText='width:100%;display:block';
+  wrap.appendChild(im);
+  var dd=document.createElement('div');dd.style.cssText='position:absolute;bottom:6px;right:6px;display:flex;gap:5px';
+  var da=document.createElement('a');da.href=thumbImg;da.download='legado-miniatura.png';da.textContent='⬇';
+  da.style.cssText='background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none';
+  var rb=document.createElement('button');rb.textContent='↺';rb.title='Regenerar miniatura';
+  rb.style.cssText='background:rgba(255,255,255,.93);border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;line-height:1';
+  rb.addEventListener('click',genThumb);
+  dd.appendChild(da);dd.appendChild(rb);
+  wrap.appendChild(dd);
+  box.appendChild(wrap);
+}
+
 // EXPORT
 // VIDEO (Veo) -- un clip de 8s por imagen, generado manualmente uno por uno
 var vids=[]; // vids[idx] = {url: blob url para <video>, downloadUrl: url firmada de GCS}
@@ -1496,7 +1791,7 @@ async function genAllVideos(){
   btn.disabled=false;btn.textContent='🎬 Generar todos los videos';
 }
 
-function chkExport(){if(audES||audEN||imgs.length)document.getElementById('expbtn').style.display='flex';}
+function chkExport(){if(audES||audEN||imgs.length||thumbImg)document.getElementById('expbtn').style.display='flex';}
 
 function fmtSRTTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.round((s%1)*1000);return(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc+','+(ms<100?(ms<10?'00':'0'):'')+ms;}
 
@@ -1582,6 +1877,11 @@ async function exportAll(){
         if(b64) zip.file('imagenes/'+slug+'-imagen-'+(i+1)+'.png',b64,{base64:true});
       }
     }
+    if(thumbImg){
+      var tb64=dataUrlToB64(thumbImg);
+      // Archivo aparte, separado de las imagenes numeradas del guion.
+      if(tb64) zip.file(slug+'-miniatura.png',tb64,{base64:true});
+    }
     for(var vi=0;vi<vids.length;vi++){
       if(vids[vi]&&vids[vi].blob){
         var vb=await vids[vi].blob.arrayBuffer();
@@ -1618,7 +1918,7 @@ function hideErr(){document.getElementById('ebox').style.display='none';}
 function reset(){
   document.getElementById('ow').style.display='none';
   document.getElementById('conc').value='';updCC();updGBtn();lastRes=null;
-  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];sT='';rfAll();
+  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;sT='';rfAll();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1772,6 +2072,16 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   document.getElementById('conc').addEventListener('input',function(){updCC();updGBtn();});
   document.getElementById('gbtn').addEventListener('click',generate);
+  var b5=document.getElementById('gbtn5');
+  if(b5)b5.addEventListener('click',generateBatch);
+  var hb=document.getElementById('histBtn');
+  if(hb)hb.addEventListener('click',function(){
+    var o=document.getElementById('histPanel').classList.toggle('on');
+    document.getElementById('ha').textContent=o?'▲':'▼';
+  });
+  buildHistory();
+  var bt=document.getElementById('bthumb');
+  if(bt)bt.addEventListener('click',genThumb);
   document.getElementById('cpall').addEventListener('click',function(){
     if(lastRes){
       var todo=(lastRes.a||'')+'\n\n---\n\n'+(lastRes.f||'');

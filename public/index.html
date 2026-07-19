@@ -216,6 +216,12 @@ section{margin-bottom:20px}
       <div class="spanel" id="schedPanel"><div class="sgrid" id="schedGrid"></div></div>
     </section>
 
+    <section>
+      <div class="slbl">🕘 Historial</div>
+      <button class="sbtn" id="histBtn"><span id="histLbl">Historial · 0 reels guardados</span><span id="ha">▼</span></button>
+      <div class="spanel" id="histPanel"><div id="histGrid" style="padding:11px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div></div>
+    </section>
+
     <section><div class="slbl">00 · Modo de Reel</div><div class="olist" id="modeSelector"></div></section>
 
     <section><div class="slbl">01 · Pilar Temático</div><div class="tgrid" id="themeGrid"></div></section>
@@ -233,9 +239,17 @@ section{margin-bottom:20px}
 
     <div class="grow">
       <button class="gbtn" id="gbtn" disabled>⚔ Forjar Reel</button>
+      <button id="gbtn5" style="background:#fff;border:2px solid var(--gold);color:var(--gold);border-radius:12px;padding:12px 20px;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;gap:8px">⚔ Generar 5</button>
       <span class="gnote" id="gnote" style="display:none">Generando guiones ES + EN y prompts...</span>
     </div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:6px">Generar 5: con concepto escrito forja 5 variantes de ese concepto; sin concepto, 5 ideas distintas de las sugerencias. Luego eliges cuáles llevar a imágenes, audio y ZIP.</div>
     <div class="ebox" id="ebox"><div class="etitle" id="etitle"></div></div>
+
+    <!-- LOTE DE 5 GUIONES -->
+    <section id="batchSec" style="display:none;margin-top:22px">
+      <div class="slbl">⚔ Lote · 5 Guiones</div>
+      <div id="batchGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px"></div>
+    </section>
 
     <!-- POST FACEBOOK -->
     <div style="margin-top:20px">
@@ -366,7 +380,10 @@ section{margin-bottom:20px}
       <div class="scard" id="imgCard" style="border:1.5px solid #7a9b8a44;margin-top:14px">
         <div class="shdr" style="background:#eaf2ee">
           <div><div class="stitl" style="color:#7a9b8a">🖼 Gemini — Imágenes del Personaje</div><div class="ssub" id="imgCountLabel">5 imágenes · Personaje en acción acorde al guion</div></div>
-          <button class="cbtn" id="bimg" style="border-color:#7a9b8a;color:#7a9b8a">🖼 Generar</button>
+          <div class="sbtns">
+            <button class="cbtn" id="bthumb" style="border-color:#b8975a;color:#b8975a">🌟 + Miniatura</button>
+            <button class="cbtn" id="bimg" style="border-color:#7a9b8a;color:#7a9b8a">🖼 Generar</button>
+          </div>
         </div>
         <div class="sbody">
           <div id="genSettings" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
@@ -408,11 +425,12 @@ section{margin-bottom:20px}
           </div>
           <div class="stxt" id="ist"></div>
           <div class="serr" id="ie"></div>
+          <div id="thumbBox"></div>
           <div class="igrid" id="igrid"></div>
         </div>
       </div>
 
-      <button class="expbtn" id="expbtn" style="display:none">📦 Exportar todo (Guiones + Audio + Imágenes)</button>
+      <button class="expbtn" id="expbtn" style="display:none">📦 Exportar todo (Guiones + Audio + Imágenes + Videos)</button>
 
       <div class="oftr">
         <span class="fsig">⚔ Legado de Hierro · Ejecuta. Calla. Domina.</span>
