@@ -12,7 +12,7 @@ if [ -z "$PROYECTO" ]; then
   exit 1
 fi
 REGION="us-central1"
-BUCKET="legado-hierro"
+BUCKET="creancion-de-contenido"
 echo ""
 echo ">>> Proyecto: $PROYECTO | Region: $REGION | Bucket: $BUCKET"
 echo ">>> Este proceso tarda unos 5-8 minutos. No cierres la ventana."
@@ -86,7 +86,8 @@ const { execFile } = require('child_process');
 const { Storage } = require('@google-cloud/storage');
 
 const PORT = process.env.PORT || 8080;
-const BUCKET = (process.env.BUCKET || 'legado-hierro').replace('gs://', '').replace(/\/.*$/, '');
+// Sin nombres de respaldo: el bucket SIEMPRE viene de la variable BUCKET del despliegue.
+const BUCKET = (process.env.BUCKET || '').replace('gs://', '').replace(/\/.*$/, '');
 const UNIFY_KEY = process.env.UNIFY_KEY || '';
 const storage = new Storage();
 
@@ -240,6 +241,10 @@ const server = http.createServer((req, res) => {
   if (!UNIFY_KEY || req.headers['x-unify-key'] !== UNIFY_KEY) {
     res.statusCode = 401;
     return res.end(JSON.stringify({ error: 'Clave invalida' }));
+  }
+  if (!BUCKET) {
+    res.statusCode = 500;
+    return res.end(JSON.stringify({ error: 'BUCKET no configurado en el servicio' }));
   }
   let body = '';
   let size = 0;

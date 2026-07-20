@@ -64,7 +64,9 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
   }
 
-  const PROJECT_ID = process.env.GCP_PROJECT_ID || 'creacion-de-contenido1';
+  // Sin nombres de respaldo: el proyecto SIEMPRE viene de la configuracion de Vercel.
+  const PROJECT_ID = process.env.GCP_PROJECT_ID;
+  if (!PROJECT_ID) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
   const url = 'https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
     '/locations/global/publishers/google/models/' + MODEL + ':generateContent';
 

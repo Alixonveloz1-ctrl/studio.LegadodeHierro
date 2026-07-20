@@ -47,8 +47,15 @@ export default async function handler(req, res) {
     let aspectRatio = body.aspectRatio === '16:9' ? '16:9' : '9:16';
 
     const GCP_SERVICE_ACCOUNT = process.env.GCP_SERVICE_ACCOUNT;
-    const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'creacion-de-contenido1';
-    const GCS_OUTPUT_BUCKET = (process.env.GCS_OUTPUT_BUCKET || 'gs://legado-hierro').trim();
+    // Sin nombres de respaldo: proyecto y bucket SIEMPRE vienen de la configuracion de Vercel.
+    const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID;
+    const GCS_OUTPUT_BUCKET = (process.env.GCS_OUTPUT_BUCKET || '').trim();
+    if (!GCP_PROJECT_ID) {
+      return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
+    }
+    if (!GCS_OUTPUT_BUCKET) {
+      return res.status(500).json({ error: 'GCS_OUTPUT_BUCKET no configurado en Vercel' });
+    }
     const REGION = 'us-central1';
 
     if (!GCP_SERVICE_ACCOUNT) {

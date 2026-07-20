@@ -91,8 +91,12 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
   }
 
-  const bucket = (process.env.GCS_OUTPUT_BUCKET || 'gs://legado-hierro').trim()
-    .replace('gs://', '').replace(/\/.*$/, '');
+  // Sin nombres de respaldo: el bucket SIEMPRE viene de la configuracion de Vercel.
+  const bucketEnv = (process.env.GCS_OUTPUT_BUCKET || '').trim();
+  if (!bucketEnv) {
+    return res.status(500).json({ error: 'GCS_OUTPUT_BUCKET no configurado en Vercel' });
+  }
+  const bucket = bucketEnv.replace('gs://', '').replace(/\/.*$/, '');
 
   try {
     const token = await getGCPToken();

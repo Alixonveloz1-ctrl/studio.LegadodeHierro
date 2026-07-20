@@ -95,7 +95,8 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const PROJECT_ID = process.env.GCP_PROJECT_ID || 'creacion-de-contenido1';
+    const PROJECT_ID = process.env.GCP_PROJECT_ID;
+    if (!PROJECT_ID) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
     const token = await getGCPToken();
     const url = endpointFor(model, PROJECT_ID);
 

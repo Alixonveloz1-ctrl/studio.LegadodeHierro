@@ -44,14 +44,14 @@ openssl rand -hex 24
 ```bash
 gcloud run deploy legado-unify \
   --source . \
-  --project creacion-de-contenido1 \
+  --project creaciondecontenido1 \
   --region us-central1 \
   --allow-unauthenticated \
   --memory 2Gi --cpu 2 \
   --timeout 600 \
   --no-cpu-throttling \
   --min-instances 0 --max-instances 2 \
-  --set-env-vars BUCKET=legado-hierro,UNIFY_KEY=TU_CLAVE
+  --set-env-vars BUCKET=creancion-de-contenido,UNIFY_KEY=TU_CLAVE
 ```
 
 - Si pregunta por habilitar APIs (Artifact Registry, Cloud Build, Run): responde `y`.
@@ -62,11 +62,11 @@ gcloud run deploy legado-unify \
 
 ## Paso 4 — Darle permiso de escribir en el bucket
 
-El servicio necesita guardar el video final en el bucket `legado-hierro`:
+El servicio necesita guardar el video final en el bucket `creancion-de-contenido`:
 
 ```bash
-PROJECT_NUMBER=$(gcloud projects describe creacion-de-contenido1 --format='value(projectNumber)')
-gcloud storage buckets add-iam-policy-binding gs://legado-hierro \
+PROJECT_NUMBER=$(gcloud projects describe creaciondecontenido1 --format='value(projectNumber)')
+gcloud storage buckets add-iam-policy-binding gs://creancion-de-contenido \
   --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/storage.objectAdmin"
 ```

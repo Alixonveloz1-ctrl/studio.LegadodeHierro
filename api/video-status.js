@@ -97,7 +97,11 @@ export default async function handler(req) {
     }
 
     const GCP_SERVICE_ACCOUNT = process.env.GCP_SERVICE_ACCOUNT;
-    const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || 'creacion-de-contenido1';
+    // Sin nombres de respaldo: el proyecto SIEMPRE viene de la configuracion de Vercel.
+    const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID;
+    if (!GCP_PROJECT_ID) {
+      return new Response(JSON.stringify({ error: 'GCP_PROJECT_ID no configurado en Vercel' }), { status: 500, headers: corsHeaders });
+    }
 
     if (!GCP_SERVICE_ACCOUNT) {
       return new Response(JSON.stringify({ error: 'GCP_SERVICE_ACCOUNT no configurado' }), { status: 500, headers: corsHeaders });
