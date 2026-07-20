@@ -1479,10 +1479,26 @@ async function fetchRefOnce(url){
   });
 }
 
+// Minimo de referencias para permitir generar: con menos, el rostro del
+// personaje sale MAL y la imagen es plata perdida — mejor frenar y reintentar.
+var MIN_REFS=2;
+
 async function loadRefs(){
-  // 4 referencias FIJAS del personaje -- siempre las mismas, para maxima consistencia de rostro/cuerpo.
-  // Se reintenta 1 vez cada una: una referencia que falla en silencio deja a esa imagen
-  // sin ancla visual y el modelo cae a fotorrealismo por defecto (en vez de 2D comic).
+  // 4 referencias FIJAS del personaje -- siempre las mismas, para maxima consistencia.
+  // CAMINO 1 (principal): pedirlas al SERVIDOR (/api/refs?set=personaje), que las
+  // descarga y cachea alla — mucho mas confiable que bajarlas en el navegador
+  // del celular, donde ibb.co a veces falla y el personaje salia con otro rostro.
+  try{
+    var rr=await fetch('/api/refs?set=personaje');
+    if(rr.ok){
+      var dd=await rr.json().catch(function(){return{};});
+      if(dd.refs&&dd.refs.length>=MIN_REFS){
+        loadedRefsCount=dd.refs.length;
+        return dd.refs;
+      }
+    }
+  }catch(e){console.warn('Refs por servidor fallaron:',e.message);}
+  // CAMINO 2 (respaldo): descarga directa desde el navegador, como antes.
   var REFS=[
     'https://i.ibb.co/RGgryDhy/Cu-nto-tiempo-m-s-vas-a-imagen-5.png',
     'https://i.ibb.co/fzZF6dsK/Prefiero-intentarlo-mil-v-imagen-7.png',
@@ -1609,8 +1625,16 @@ async function genImages(){
   vids=[];vidState=[];vidErrMsg=[];
   st.textContent='Cargando referencias del personaje...';
   imgRefs=await loadRefs();
+  if(loadedRefsCount<MIN_REFS){
+    // FRENO DURO: sin referencias el rostro sale MAL. No se genera nada.
+    st.style.display='none';
+    er.textContent='Las referencias del personaje NO cargaron ('+loadedRefsCount+'/4). Sin ellas el rostro sale equivocado, así que no se generó nada. Espera unos segundos y toca 🖼 Generar de nuevo.';
+    er.style.display='block';
+    btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
+    return;
+  }
   if(loadedRefsCount<4){
-    st.textContent='Atención: solo '+loadedRefsCount+'/4 referencias del personaje cargaron. Continuando con ancla de estilo por texto...';
+    st.textContent='Atención: solo '+loadedRefsCount+'/4 referencias del personaje cargaron. El rostro puede variar un poco en este lote.';
     await new Promise(function(r){setTimeout(r,1400);});
   }
   imgs=[];
@@ -1667,9 +1691,12 @@ async function genThumb(){
   btn.textContent='...';btn.disabled=true;btn.style.opacity='.6';
   if(st){st.style.display='block';}
   try{
-    if(!imgRefs||imgRefs.length<1){
+    if(!imgRefs||imgRefs.length<MIN_REFS){
       if(st)st.textContent='Cargando referencias del personaje...';
       imgRefs=await loadRefs();
+    }
+    if(!imgRefs||imgRefs.length<MIN_REFS){
+      throw new Error('Las referencias del personaje no cargaron ('+(imgRefs?imgRefs.length:0)+'/4); sin ellas el rostro sale equivocado. Reintenta en unos segundos');
     }
     if(st)st.textContent='Generando miniatura de portada...';
     var src=await genOneImage(buildThumbPrompt(),imgRefs);
