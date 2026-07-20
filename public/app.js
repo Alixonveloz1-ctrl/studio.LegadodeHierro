@@ -1398,7 +1398,10 @@ async function genAudio(lang){
     // partsB64: los MP3 originales de ElevenLabs, tal como llegaron. El servicio de
     // unificacion (Cloud Run) los une el mismo; asi no se manda el WAV gigante.
     if(isEN){audEN={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};}
-    else{audES={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};}
+    else{
+      audES={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};
+      if(typeof invalidateVoiceMix==='function')invalidateVoiceMix(); // la escucha usara ESTE audio nuevo
+    }
     document.getElementById(isEN?'pEN':'pES').src=url;
     document.getElementById(isEN?'dEN':'dES').href=url;
     document.getElementById(isEN?'rEN':'rES').style.display='block';
@@ -1930,6 +1933,7 @@ async function uploadMusic(){
     inp.value='';
     loadMusicList();
     try{localStorage.setItem('lh_music_sel',d.object);}catch(e){}
+    try{delete MIX.bufs[d.object];}catch(e){} // si reemplazaste un archivo con el mismo nombre, no usar el viejo
   }catch(e){
     if(st)st.textContent='Error subiendo: '+(e.message||'sin conexión');
   }finally{
@@ -1989,6 +1993,16 @@ function stopMix(){
   if(MIX.ctx&&MIX.ctx.state==='running'){try{MIX.ctx.suspend();}catch(e){}}
   var btn=document.getElementById('bMusicPlay');
   if(btn)btn.textContent='▶ Escuchar cómo quedará (narración + música)';
+}
+
+// Al REGENERAR el Audio ES: se corta la mezcla si esta sonando y se borra la
+// narracion vieja decodificada — la proxima escucha usa SIEMPRE el audio nuevo.
+// (La unificacion, subtitulos y ZIP ya usan siempre el mas reciente.)
+function invalidateVoiceMix(){
+  try{
+    stopMix();
+    if(lastRes&&lastRes.uid)delete MIX.bufs['voz-'+lastRes.uid];
+  }catch(e){}
 }
 
 async function toggleMixPreview(objectOverride){
