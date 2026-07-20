@@ -8,10 +8,11 @@ var THEMES=[
   {id:'negocio',    label:'Negocio & Ventas',         icon:'🏗️',desc:'Estructura comercial, escala',     c:'#9ab47a',p:'#eef4e8'},
   {id:'millonario', label:'Negocios Millonarios',     icon:'🏆',desc:'Construcción de riqueza a largo plazo',c:'#8a7ac4',p:'#eceaf8'},
 ];
+// Solo 30 y 60 segundos: 90s consumia demasiadas imagenes y videos por reel.
+// (El modo Impacto siempre es de 30 segundos.)
 var DURS=[
   {id:'30',label:'30 segundos',sub:'Reel express — máximo impacto'},
   {id:'60',label:'60 segundos',sub:'Reel estándar — óptimo algoritmo'},
-  {id:'90',label:'90 segundos',sub:'Reel extendido — enseñanza profunda'},
 ];
 var HOOKS=[
   {id:'dato',      label:'📊 Dato Crudo',         desc:'Cifra que destruye una creencia'},
@@ -549,8 +550,9 @@ function parseSuggestions(txt){
 var schedLoading=false;
 async function refreshSched(){
   if(schedLoading)return;
-  schedLoading=true;
   var sg=document.getElementById('schedGrid');
+  if(!sg)return;
+  schedLoading=true;
   sg.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:18px;color:var(--tx3);font-size:12px"><span class="spin"></span> Generando ideas nuevas con IA...</div>';
   try{
     var r=await fetch('/api/generate',{
@@ -573,6 +575,7 @@ async function refreshSched(){
 
 function buildSched(){
   var sg=document.getElementById('schedGrid');
+  if(!sg)return; // la seccion de sugerencias ya no existe: la reemplazo la investigacion de tendencias
   var lbl=document.getElementById('schedLbl');
   if(lbl)lbl.textContent='Sugerencias de Reels · '+SCHED_CURRENT.length+' ideas';
   SCHED_CURRENT.forEach(function(item){
@@ -793,7 +796,8 @@ var batchResults=[]; // [{status:'wait'|'loading'|'done'|'error', job, res, err}
 // firstJob (opcional) ocupa la posicion 1 tal cual (el concepto escrito a mano).
 function jobsFromIdeas(ideas,firstJob){
   var modes=shuffleArr(['reel','historia','impacto']).concat(shuffleArr(['reel','historia','impacto']).slice(0,2));
-  var durPool=shuffleArr(['30','60','90','60','90']);
+  // Solo 30 y 60 segundos (90s quedo eliminado por costo de imagenes/videos).
+  var durPool=shuffleArr(['30','60','60','30','60']);
   var jobs=[];
   for(var j=0;j<5;j++){
     if(j===0&&firstJob){jobs.push(firstJob);continue;}
@@ -2263,16 +2267,32 @@ async function genTrends(){
     var showText=d.text.replace(/CONCEPTOS PARA GENERAR[\s\S]*$/i,'').trim();
     var html='<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--tx)">'+escHtml(showText)+'</div>';
     if(TREND_IDEAS.length){
+      // Cada concepto trae su propio selector de MODO y DURACION, con valores
+      // sugeridos variados (los tres modos presentes). Impacto fuerza 30s.
+      var defModes=shuffleArr(['reel','historia','impacto']).concat(shuffleArr(['reel','historia','impacto']).slice(0,2));
+      var defDurs=shuffleArr(['30','60','60','30','60']);
       html+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
-        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">'+TREND_IDEAS.length+' conceptos sacados de lo viral — listos para el lote</div>';
+        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">'+TREND_IDEAS.length+' conceptos sacados de lo viral — elige modo y duración de cada uno</div>';
       TREND_IDEAS.forEach(function(it,i){
         var th=THEMES.find(function(t){return t.id===it.t;});
+        var dm=defModes[i],isImp=dm==='impacto';
         html+='<div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;margin-bottom:6px">'
           +'<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:'+(th?th.c:'#b8975a')+';text-transform:uppercase">'+(i+1)+' · '+(th?th.icon+' '+th.label:'')+'</span>'
-          +'<div style="font-size:12px;font-weight:600;color:var(--tx);line-height:1.4;margin-top:3px">'+escHtml(it.concept)+'</div></div>';
+          +'<div style="font-size:12px;font-weight:600;color:var(--tx);line-height:1.4;margin-top:3px">'+escHtml(it.concept)+'</div>'
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
+          +'<label class="genLbl">Modo<select id="trendMode-'+i+'" class="genSel">'
+            +'<option value="reel"'+(dm==='reel'?' selected':'')+'>🎬 Reel</option>'
+            +'<option value="historia"'+(dm==='historia'?' selected':'')+'>📖 Historia</option>'
+            +'<option value="impacto"'+(isImp?' selected':'')+'>⚡ Impacto (30s)</option>'
+          +'</select></label>'
+          +'<label class="genLbl">Duración<select id="trendDur-'+i+'" class="genSel"'+(isImp?' disabled':'')+'>'
+            +'<option value="30"'+((isImp||defDurs[i]==='30')?' selected':'')+'>30 segundos</option>'
+            +'<option value="60"'+(!isImp&&defDurs[i]==='60'?' selected':'')+'>60 segundos</option>'
+          +'</select></label>'
+          +'</div></div>';
       });
       html+='<button id="bTrendBatch" style="width:100%;margin-top:6px;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar lote de 5 guiones con estos conceptos</button>'
-        +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">Un guion por concepto, con modos y duraciones variados, generados uno tras otro (en orden, sin saturar los límites).</div></div>';
+        +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">Un guion por concepto, con el modo y la duración que elegiste arriba, generados uno tras otro (en orden, sin saturar los límites).</div></div>';
     }else{
       html+='<div style="margin-top:10px;font-size:11px;color:var(--tx3)">La investigación no trajo conceptos en formato usable esta vez. Vuelve a intentar con 🔎.</div>';
     }
@@ -2284,10 +2304,26 @@ async function genTrends(){
       html+='</div>';
     }
     box.innerHTML=html;box.style.display='block';
+    // Impacto fuerza la duracion a 30s y bloquea el selector de duracion.
+    TREND_IDEAS.forEach(function(it,i){
+      var ms=document.getElementById('trendMode-'+i);
+      var ds=document.getElementById('trendDur-'+i);
+      if(ms&&ds)ms.addEventListener('change',function(){
+        if(ms.value==='impacto'){ds.value='30';ds.disabled=true;}
+        else{ds.disabled=false;}
+      });
+    });
     var bb=document.getElementById('bTrendBatch');
     if(bb)bb.addEventListener('click',function(){
       if(!TREND_IDEAS.length)return;
-      generateBatch(jobsFromIdeas(TREND_IDEAS,null));
+      // El lote respeta el modo y la duracion elegidos para CADA concepto.
+      var jobs=TREND_IDEAS.map(function(it,i){
+        var ms=document.getElementById('trendMode-'+i);
+        var ds=document.getElementById('trendDur-'+i);
+        var mode=ms?ms.value:'reel';
+        return {topic:it.concept,t:it.t,h:it.h,mode:mode,d:mode==='impacto'?'30':(ds?ds.value:'60')};
+      });
+      generateBatch(jobs);
     });
     st.style.display='none';
     cost+=0.02;updCost();
@@ -2303,7 +2339,8 @@ async function genTrends(){
 document.addEventListener('DOMContentLoaded',function(){
   buildAll();
   wireGenSettings();
-  document.getElementById('schedBtn').addEventListener('click',function(){
+  var sb=document.getElementById('schedBtn');
+  if(sb)sb.addEventListener('click',function(){
     var o=document.getElementById('schedPanel').classList.toggle('on');
     document.getElementById('sa').textContent=o?'▲':'▼';
   });
