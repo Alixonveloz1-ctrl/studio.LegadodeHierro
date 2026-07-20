@@ -1953,12 +1953,36 @@ async function genMusic(){
     if(!r.ok||!d.object)throw new Error(d.error||'Error '+r.status);
     try{localStorage.setItem('lh_music_sel',d.object);}catch(e){}
     loadMusicList();
-    if(st)st.textContent='🎼 "'+d.name+'" lista, guardada en tu biblioteca y seleccionada para este video.';
+    if(st)st.textContent='🎼 "'+d.name+'" lista y seleccionada — sonando ahora. Si no te convence, genera otra.';
     cost+=0.06;updCost();
+    previewMusic(d.object); // suena de una vez para decidir al instante
   }catch(e){
     if(st)st.textContent='Error generando música: '+(e.message||'sin conexión');
   }finally{
     btn.textContent=orig;btn.disabled=false;btn.style.opacity='1';
+  }
+}
+
+// Reproduce una pista de la biblioteca en el navegador (URL firmada de 1 hora)
+// para decidir si es la correcta ANTES de unificar — o generar otra.
+async function previewMusic(objectOverride){
+  var sel=document.getElementById('musicSel');
+  var player=document.getElementById('musicPlayer');
+  var st=document.getElementById('musicSt');
+  var obj=objectOverride||(sel?sel.value:'');
+  if(!obj){alert('Elige una pista primero (o genera una con IA).');return;}
+  try{
+    var r=await fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'link',object:obj})});
+    var d=await r.json();
+    if(!r.ok||!d.url)throw new Error(d.error||'Error '+r.status);
+    if(player){
+      player.src=d.url;
+      player.style.display='block';
+      player.play().catch(function(){/* el navegador puede pedir un toque manual en el reproductor */});
+    }
+  }catch(e){
+    if(st){st.style.display='block';st.textContent='No se pudo cargar la pista: '+(e.message||'sin conexión');}
   }
 }
 
@@ -2462,7 +2486,12 @@ document.addEventListener('DOMContentLoaded',function(){
   var msel=document.getElementById('musicSel');
   if(msel)msel.addEventListener('change',function(){
     try{localStorage.setItem('lh_music_sel',msel.value);}catch(e){}
+    // Al cambiar de pista se oculta el reproductor viejo (para no oir la anterior)
+    var mp=document.getElementById('musicPlayer');
+    if(mp){mp.pause();mp.style.display='none';mp.removeAttribute('src');}
   });
+  var bmp=document.getElementById('bMusicPlay');
+  if(bmp)bmp.addEventListener('click',function(){previewMusic();});
   var mv=document.getElementById('mVol');
   if(mv){
     try{var sv=localStorage.getItem('lh_music_vol');if(sv!==null&&sv!=='')mv.value=sv;}catch(e){}

@@ -446,6 +446,8 @@ section{margin-bottom:20px}
             <label class="genLbl">Pista (se guarda en tu biblioteca para siempre)
               <select id="musicSel" class="genSel"><option value="">Sin música</option></select>
             </label>
+            <button class="cbtn" id="bMusicPlay" style="border-color:#9ab47a;color:#9ab47a;margin-top:8px;width:100%">▶ Escuchar la pista elegida</button>
+            <audio id="musicPlayer" controls style="width:100%;margin-top:8px;display:none;border-radius:8px"></audio>
             <div style="margin-top:10px;padding:10px;background:#fff;border:1px solid var(--border);border-radius:8px">
               <label class="genLbl">🎼 Generar una NUEVA con IA (Lyria de Google · ~30s, en bucle si el video es más largo)
                 <input class="fi" id="musicPrompt" type="text" placeholder="Describe el estilo — Ej: épica oscura con tambores de guerra y cuerdas" style="margin-top:5px;padding:9px 12px;font-size:12px">

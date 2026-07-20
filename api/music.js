@@ -4,7 +4,7 @@
 // Acciones (POST): {action:'list'} | {action:'upload', name, b64} | {action:'delete', object}
 // Limite de subida ~4MB (limite del cuerpo en Vercel): un MP3 de 3-4 minutos cabe bien.
 
-const { createSign } = require('crypto');
+const { createSign, createHash } = require('crypto');
 
 async function getGCPToken() {
   const sa = JSON.parse(process.env.GCP_SERVICE_ACCOUNT);
@@ -35,6 +35,37 @@ async function getGCPToken() {
 }
 
 const EXT_MIME = { '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.wav': 'audio/wav', '.aac': 'audio/aac' };
+
+// URL firmada V4 de LECTURA (1 hora) para escuchar una pista en el navegador.
+function signedReadUrl(sa, bucketName, objectPath) {
+  const host = 'storage.googleapis.com';
+  const now = new Date();
+  const datestamp = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const timestamp = now.toISOString().slice(0, 19).replace(/[-:]/g, '') + 'Z';
+  const credentialScope = `${datestamp}/auto/storage/goog4_request`;
+  const credential = `${sa.client_email}/${credentialScope}`;
+  const canonicalUri = `/${bucketName}/${objectPath.split('/').map(encodeURIComponent).join('/')}`;
+  const queryParams = {
+    'X-Goog-Algorithm': 'GOOG4-RSA-SHA256',
+    'X-Goog-Credential': credential,
+    'X-Goog-Date': timestamp,
+    'X-Goog-Expires': '3600',
+    'X-Goog-SignedHeaders': 'host',
+  };
+  const canonicalQueryString = Object.keys(queryParams).sort()
+    .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(queryParams[k]))
+    .join('&');
+  const canonicalRequest = [
+    'GET', canonicalUri, canonicalQueryString,
+    `host:${host}\n`, 'host', 'UNSIGNED-PAYLOAD',
+  ].join('\n');
+  const canonicalRequestHash = createHash('sha256').update(canonicalRequest).digest('hex');
+  const stringToSign = ['GOOG4-RSA-SHA256', timestamp, credentialScope, canonicalRequestHash].join('\n');
+  const sign = createSign('RSA-SHA256');
+  sign.update(stringToSign);
+  const signatureHex = sign.sign(sa.private_key).toString('hex');
+  return `https://${host}${canonicalUri}?${canonicalQueryString}&X-Goog-Signature=${signatureHex}`;
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -105,6 +136,15 @@ module.exports = async (req, res) => {
       if (!r.ok) throw new Error((d.error && d.error.message) || 'Error ' + r.status);
       console.log('[music] subida: ' + object + ' (' + buf.length + ' bytes)');
       return res.json({ success: true, object: object, name: name });
+    }
+
+    if (action === 'link') {
+      const object = String(req.body.object || '');
+      if (object.indexOf('musica/') !== 0 || object.indexOf('..') > -1) {
+        return res.status(400).json({ error: 'Pista invalida' });
+      }
+      const sa = JSON.parse(process.env.GCP_SERVICE_ACCOUNT);
+      return res.json({ success: true, url: signedReadUrl(sa, bucket, object) });
     }
 
     if (action === 'delete') {
