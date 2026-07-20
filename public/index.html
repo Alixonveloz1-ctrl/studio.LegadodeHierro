@@ -448,10 +448,16 @@ section{margin-bottom:20px}
             </label>
             <button class="cbtn" id="bMusicPlay" style="border-color:#9ab47a;color:#9ab47a;margin-top:8px;width:100%">▶ Escuchar cómo quedará (narración + música)</button>
             <div style="margin-top:10px;padding:10px;background:#fff;border:1px solid var(--border);border-radius:8px">
-              <label class="genLbl">🎼 Generar una NUEVA con IA (Lyria de Google · ~30s, en bucle si el video es más largo)
-                <input class="fi" id="musicPrompt" type="text" placeholder="Escríbelo en español, se traduce solo — Ej: épica oscura con tambores" style="margin-top:5px;padding:9px 12px;font-size:12px">
-              </label>
-              <button class="cbtn" id="bMusicGen" style="border-color:#9a8ac4;color:#9a8ac4;margin-top:8px;width:100%">🎼 Generar música con IA</button>
+              <label class="genLbl">🎼 Generar una NUEVA con IA (Lyria de Google · ~30s, en bucle si el video es más largo)</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">
+                <button type="button" class="voxP musicPre" data-p="piano">🎹 Piano nostálgico</button>
+                <button type="button" class="voxP musicPre" data-p="cuerdas">🎻 Cuerdas inspiradoras</button>
+                <button type="button" class="voxP musicPre" data-p="ambiente">🌫 Ambiente suave</button>
+                <button type="button" class="voxP musicPre" data-p="epica">⚔ Épica del canal</button>
+              </div>
+              <div style="font-size:10px;color:var(--tx3);margin-top:5px">Toca un estilo y se genera directo — son fórmulas ya afinadas. O describe el tuyo abajo:</div>
+              <input class="fi" id="musicPrompt" type="text" placeholder="Estilo propio en español, se convierte solo — Ej: piano triste que se vuelve esperanza" style="margin-top:7px;padding:9px 12px;font-size:12px">
+              <button class="cbtn" id="bMusicGen" style="border-color:#9a8ac4;color:#9a8ac4;margin-top:8px;width:100%">🎼 Generar con mi descripción</button>
             </div>
             <details style="margin-top:8px">
               <summary style="font-size:10px;color:var(--tx3);cursor:pointer">O subir un archivo propio (MP3, máx 4MB)</summary>

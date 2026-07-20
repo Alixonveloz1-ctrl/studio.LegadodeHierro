@@ -1939,17 +1939,22 @@ async function uploadMusic(){
 
 // Genera una pista nueva con Lyria (IA de musica de Google) segun el estilo
 // descrito. Queda guardada en la biblioteca y seleccionada para la unificacion.
-async function genMusic(){
+var PRESET_LABELS={piano:'🎹 Piano nostálgico',cuerdas:'🎻 Cuerdas inspiradoras',ambiente:'🌫 Ambiente suave',epica:'⚔ Épica del canal'};
+
+async function genMusic(preset){
   var inp=document.getElementById('musicPrompt');
   var st=document.getElementById('musicSt');
   var btn=document.getElementById('bMusicGen');
-  var style=inp?inp.value.trim():'';
+  var style=(!preset&&inp)?inp.value.trim():'';
   var orig=btn.textContent;
   btn.textContent='Componiendo...';btn.disabled=true;btn.style.opacity='.6';
-  if(st){st.style.display='block';st.textContent=(style?'Traduciendo "'+style.slice(0,50)+'" y componiendo con Lyria':'Lyria está componiendo (estilo épico del canal)')+'... 30-90 segundos.';}
+  if(st){
+    st.style.display='block';
+    st.textContent=(preset?'Componiendo '+(PRESET_LABELS[preset]||preset)+' con Lyria':(style?'Armando la ficha musical de "'+style.slice(0,50)+'" y componiendo':'Lyria está componiendo (estilo épico del canal)'))+'... 30-90 segundos.';
+  }
   try{
     var r=await fetch('/api/music-gen',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({style:style})});
+      body:JSON.stringify(preset?{preset:preset}:{style:style})});
     var d=await r.json().catch(function(){return{};});
     if(!r.ok||!d.object)throw new Error(d.error||'Error '+r.status);
     try{localStorage.setItem('lh_music_sel',d.object);}catch(e){}
@@ -2541,7 +2546,10 @@ document.addEventListener('DOMContentLoaded',function(){
   var bmu=document.getElementById('bMusicUp');
   if(bmu)bmu.addEventListener('click',uploadMusic);
   var bmg=document.getElementById('bMusicGen');
-  if(bmg)bmg.addEventListener('click',genMusic);
+  if(bmg)bmg.addEventListener('click',function(){genMusic();});
+  Array.prototype.forEach.call(document.querySelectorAll('.musicPre'),function(pb){
+    pb.addEventListener('click',function(){genMusic(pb.getAttribute('data-p'));});
+  });
   var msel=document.getElementById('musicSel');
   if(msel)msel.addEventListener('change',function(){
     try{localStorage.setItem('lh_music_sel',msel.value);}catch(e){}

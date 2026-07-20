@@ -38,7 +38,19 @@ async function getGCPToken() {
 }
 
 // Estilo por defecto, en linea con la marca: epico, oscuro, motivacional.
-const DEFAULT_STYLE = 'Epic dark cinematic motivational instrumental, powerful hybrid orchestral with modern driving percussion, deep braams and strings, building intensity, inspiring and intense';
+const DEFAULT_STYLE = 'Epic dark cinematic motivational instrumental, powerful hybrid orchestral with real strings, brass and modern driving percussion, deep and intense, building energy, high quality studio recording, inspiring';
+
+// ESTILOS AFINADOS (botones en la herramienta): descripciones profesionales ya
+// probadas, en ingles, con instrumentos REALES — sin depender de la traduccion.
+const PRESETS = {
+  piano:    'Emotional nostalgic solo piano with soft warm string pads, slow tempo around 70 BPM, intimate and reflective, cinematic motivational background music, gentle dynamics, warm and heartfelt, high quality studio recording of a real grand piano',
+  cuerdas:  'Inspiring cinematic strings and expressive solo violin over soft piano chords, emotional gradual build, hopeful and uplifting orchestral background music, slow to moderate tempo, warm concert hall reverb, real orchestra recording',
+  ambiente: 'Soft ambient atmospheric pads with sparse gentle piano notes, calm nostalgic dreamy mood, minimalist and warm, very smooth quiet background music, slow evolving textures, emotional and reflective',
+  epica:    DEFAULT_STYLE,
+};
+
+// Lo que NUNCA debe sonar: voces ni sonido de videojuego retro (chiptune/8-bit).
+const NEGATIVE = 'vocals, singing, voice, spoken word, 8-bit, chiptune, video game music, arcade sounds, retro console, bleeps and bloops, cheap MIDI, lo-fi bitcrushed, low quality';
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -75,10 +87,15 @@ module.exports = async (req, res) => {
   try {
     const token = await getGCPToken();
 
-    // Lyria SOLO acepta ingles. La descripcion se escribe en español en la
-    // herramienta y aqui se traduce sola con Gemini antes de componer.
-    let prompt = DEFAULT_STYLE;
-    if (style) {
+    // Prioridad 1: un estilo afinado elegido con boton (ya viene perfecto).
+    // Prioridad 2: descripcion libre en español -> Gemini la convierte en una
+    //   ficha musical PROFESIONAL en ingles (instrumentos reales, tempo, animo),
+    //   con prohibicion explicita de sonido de videojuego (el problema del
+    //   "sonido Atari" venia de descripciones cortas mal interpretadas).
+    // Prioridad 3: sin nada -> estilo epico del canal.
+    const preset = req.body.preset && PRESETS[req.body.preset] ? PRESETS[req.body.preset] : null;
+    let prompt = preset || DEFAULT_STYLE;
+    if (!preset && style) {
       try {
         const tr = await fetch('https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
           '/locations/global/publishers/google/models/gemini-3.1-pro-preview:generateContent', {
@@ -90,25 +107,27 @@ module.exports = async (req, res) => {
           },
           body: JSON.stringify({
             contents: [{ role: 'user', parts: [{ text:
-              'Translate this music style description into a short English prompt for a music generation AI. ' +
-              'If it is already in English, return it unchanged. Reply with ONLY the English description, no quotes, no extra text:\n\n' + style
+              'You are a music prompt engineer for an AI music generator (Lyria). Convert this Spanish (or any language) music idea into ONE detailed English prompt of 30-50 words. ' +
+              'Rules: name SPECIFIC REAL instruments (piano, violin, strings, cello, soft percussion...), the mood, an approximate tempo, and dynamics. It is BACKGROUND music for motivational videos: smooth, emotional, professional. ' +
+              'NEVER describe chiptune, 8-bit, video game, arcade or synth-retro sounds unless the idea explicitly asks for them. Always end with: instrumental only, high quality studio recording, no vocals. ' +
+              'Reply with ONLY the prompt, no quotes, no extra text.\n\nIdea: ' + style
             }] }],
-            generationConfig: { maxOutputTokens: 500, temperature: 0.2, thinkingConfig: { thinkingLevel: 'LOW' } },
+            generationConfig: { maxOutputTokens: 500, temperature: 0.4, thinkingConfig: { thinkingLevel: 'LOW' } },
           }),
         });
         const td = await tr.json();
         const parts = td && td.candidates && td.candidates[0] && td.candidates[0].content && td.candidates[0].content.parts;
-        let translated = '';
-        if (parts) for (const p of parts) if (p && typeof p.text === 'string') translated += p.text;
-        translated = translated.trim().replace(/^["']|["']$/g, '');
-        if (tr.ok && translated && translated.length > 2) {
-          prompt = translated.slice(0, 300) + ', instrumental background music, no vocals';
-          console.log('[music-gen] estilo traducido: "' + style + '" -> "' + translated.slice(0, 120) + '"');
+        let engineered = '';
+        if (parts) for (const p of parts) if (p && typeof p.text === 'string') engineered += p.text;
+        engineered = engineered.trim().replace(/^["']|["']$/g, '');
+        if (tr.ok && engineered && engineered.length > 10) {
+          prompt = engineered.slice(0, 400);
+          console.log('[music-gen] estilo convertido: "' + style + '" -> "' + prompt.slice(0, 150) + '"');
         } else {
-          console.warn('[music-gen] traduccion fallo, se usa el estilo por defecto');
+          console.warn('[music-gen] conversion fallo, se usa el estilo por defecto');
         }
       } catch (e) {
-        console.warn('[music-gen] traduccion fallo (' + e.message + '), se usa el estilo por defecto');
+        console.warn('[music-gen] conversion fallo (' + e.message + '), se usa el estilo por defecto');
       }
     }
     const r = await fetch(url, {
@@ -121,7 +140,7 @@ module.exports = async (req, res) => {
       body: JSON.stringify({
         instances: [{
           prompt: prompt,
-          negative_prompt: 'vocals, singing, spoken word, voice, choir with lyrics',
+          negative_prompt: NEGATIVE,
         }],
       }),
     });
