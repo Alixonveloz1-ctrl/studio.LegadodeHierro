@@ -782,6 +782,7 @@ function resetReelAssets(){
   audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
   thumbImg=(lastRes&&THUMBS[lastRes.uid])?THUMBS[lastRes.uid]:null;
   finalVid=null;
+  if(typeof stopMix==='function')stopMix(); // que no siga sonando la mezcla del reel anterior
 }
 
 // LOTE — 5 guiones de una vez, TODOS DIFERENTES: concepto, pilar, gancho,
@@ -1953,9 +1954,8 @@ async function genMusic(){
     if(!r.ok||!d.object)throw new Error(d.error||'Error '+r.status);
     try{localStorage.setItem('lh_music_sel',d.object);}catch(e){}
     loadMusicList();
-    if(st)st.textContent='🎼 "'+d.name+'" lista y seleccionada — sonando ahora. Si no te convence, genera otra.';
+    if(st)st.textContent='🎼 "'+d.name+'" lista y seleccionada. Toca ▶ Escuchar para oírla al volumen de la barra; si no te convence, genera otra.';
     cost+=0.06;updCost();
-    previewMusic(d.object); // suena de una vez para decidir al instante
   }catch(e){
     if(st)st.textContent='Error generando música: '+(e.message||'sin conexión');
   }finally{
@@ -1963,26 +1963,85 @@ async function genMusic(){
   }
 }
 
-// Reproduce una pista de la biblioteca en el navegador (URL firmada de 1 hora)
-// para decidir si es la correcta ANTES de unificar — o generar otra.
-async function previewMusic(objectOverride){
+// ESCUCHA EN VIVO DE LA MEZCLA — reproduce la musica al volumen de la barrita
+// (graduable MIENTRAS suena, incluso en iPhone gracias a Web Audio) y, si el
+// Audio ES ya existe, suena la narracion al 100% por encima: exactamente la
+// mezcla que va a quedar en el video final. Ese mismo nivel se usa al unificar.
+var MIX={ctx:null,gain:null,srcs:[],playing:false,bufs:{}};
+
+function stopMix(){
+  MIX.srcs.forEach(function(s){try{s.onended=null;s.stop();}catch(e){}});
+  MIX.srcs=[];MIX.gain=null;MIX.playing=false;
+  if(MIX.ctx){try{MIX.ctx.close();}catch(e){}MIX.ctx=null;}
+  var btn=document.getElementById('bMusicPlay');
+  if(btn)btn.textContent='▶ Escuchar cómo quedará (narración + música)';
+}
+
+async function toggleMixPreview(objectOverride){
+  if(MIX.playing){stopMix();return;}
   var sel=document.getElementById('musicSel');
-  var player=document.getElementById('musicPlayer');
   var st=document.getElementById('musicSt');
+  var btn=document.getElementById('bMusicPlay');
+  var mv=document.getElementById('mVol');
   var obj=objectOverride||(sel?sel.value:'');
   if(!obj){alert('Elige una pista primero (o genera una con IA).');return;}
+  var orig=btn?btn.textContent:'';
+  if(btn)btn.textContent='Cargando la pista...';
   try{
-    var r=await fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'link',object:obj})});
-    var d=await r.json();
-    if(!r.ok||!d.url)throw new Error(d.error||'Error '+r.status);
-    if(player){
-      player.src=d.url;
-      player.style.display='block';
-      player.play().catch(function(){/* el navegador puede pedir un toque manual en el reproductor */});
+    var AC=window.AudioContext||window.webkitAudioContext;
+    MIX.ctx=new AC();
+    // Pista de musica (con cache para no descargarla dos veces)
+    var mb=MIX.bufs[obj];
+    if(!mb){
+      var r=await fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'link',object:obj})});
+      var d=await r.json();
+      if(!r.ok||!d.url)throw new Error(d.error||'Error '+r.status);
+      var resp=await fetch(d.url);
+      if(!resp.ok)throw new Error('No se pudo descargar la pista');
+      mb=await MIX.ctx.decodeAudioData(await resp.arrayBuffer());
+      MIX.bufs[obj]=mb;
+    }
+    // Narracion (si ya se genero el Audio ES): la mezcla REAL
+    var vb=null;
+    if(audES&&audES.blob&&lastRes&&lastRes.uid){
+      var vkey='voz-'+lastRes.uid;
+      if(!MIX.bufs[vkey])MIX.bufs[vkey]=await MIX.ctx.decodeAudioData(await audES.blob.arrayBuffer());
+      vb=MIX.bufs[vkey];
+    }
+    var vol=mv?parseInt(mv.value,10)/100:0.18;
+    if(!isFinite(vol)||vol<0)vol=0.18;
+    var g=MIX.ctx.createGain();g.gain.value=vol;g.connect(MIX.ctx.destination);
+    var ms=MIX.ctx.createBufferSource();ms.buffer=mb;ms.loop=true;ms.connect(g);
+    MIX.gain=g;
+    ms.start();MIX.srcs.push(ms);
+    if(vb){
+      var vs=MIX.ctx.createBufferSource();vs.buffer=vb;vs.connect(MIX.ctx.destination);
+      vs.start();MIX.srcs.push(vs);
+      vs.onended=function(){stopMix();};
+    }else{
+      // Sin narracion: la pista suena una sola pasada
+      var durMs=Math.min(mb.duration,35)*1000+300;
+      (function(ctxRef){setTimeout(function(){if(MIX.ctx===ctxRef&&MIX.playing)stopMix();},durMs);})(MIX.ctx);
+    }
+    MIX.playing=true;
+    if(btn)btn.textContent='⏸ Detener';
+    if(MIX.ctx.state==='suspended'){
+      // iPhone puede exigir un toque directo: se detiene y se pide tocar el boton
+      stopMix();
+      if(st){st.style.display='block';st.textContent='Toca ▶ Escuchar para oírla (el iPhone pide que sea con un toque).';}
+      return;
+    }
+    if(st){
+      st.style.display='block';
+      st.textContent=vb
+        ?'Sonando la MEZCLA REAL: narración al 100% + música al '+Math.round(vol*100)+'%. Mueve la barra mientras suena y déjala donde te guste.'
+        :'Sonando la música al '+Math.round(vol*100)+'%. Genera el Audio ES para escuchar la mezcla completa con la narración.';
     }
   }catch(e){
-    if(st){st.style.display='block';st.textContent='No se pudo cargar la pista: '+(e.message||'sin conexión');}
+    stopMix();
+    if(btn)btn.textContent=orig||'▶ Escuchar cómo quedará (narración + música)';
+    if(st){st.style.display='block';st.textContent='No se pudo reproducir: '+(e.message||'sin conexión');}
   }
 }
 
@@ -2486,12 +2545,10 @@ document.addEventListener('DOMContentLoaded',function(){
   var msel=document.getElementById('musicSel');
   if(msel)msel.addEventListener('change',function(){
     try{localStorage.setItem('lh_music_sel',msel.value);}catch(e){}
-    // Al cambiar de pista se oculta el reproductor viejo (para no oir la anterior)
-    var mp=document.getElementById('musicPlayer');
-    if(mp){mp.pause();mp.style.display='none';mp.removeAttribute('src');}
+    stopMix(); // al cambiar de pista se corta la anterior
   });
   var bmp=document.getElementById('bMusicPlay');
-  if(bmp)bmp.addEventListener('click',function(){previewMusic();});
+  if(bmp)bmp.addEventListener('click',function(){toggleMixPreview();});
   var mv=document.getElementById('mVol');
   if(mv){
     try{var sv=localStorage.getItem('lh_music_vol');if(sv!==null&&sv!=='')mv.value=sv;}catch(e){}
@@ -2500,6 +2557,8 @@ document.addEventListener('DOMContentLoaded',function(){
     mv.addEventListener('input',function(){
       if(mvv)mvv.textContent=mv.value+'%';
       try{localStorage.setItem('lh_music_vol',mv.value);}catch(e){}
+      // Graduacion EN VIVO: si la mezcla esta sonando, el cambio se oye al instante
+      if(MIX.gain)MIX.gain.gain.value=parseInt(mv.value,10)/100;
     });
   }
   var btr=document.getElementById('bTrends');
