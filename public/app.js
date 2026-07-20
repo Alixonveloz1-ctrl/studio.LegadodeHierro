@@ -2442,6 +2442,45 @@ async function postImagen(escena,aspect,refs,st,msg){
 
 var POST_VOZ='Eres el estratega de contenido de LEGADO DE HIERRO, canal en español para hombres que trabajan para otro y quieren construir lo suyo. Voz cruda, directa, CONCRETA — nada vago, nada de frases de coach vistas mil veces. Español impecable con tildes. ';
 
+// CAPTION + HASHTAGS del post (igual que en los videos): se genera solo al
+// terminar cada post; el primer hashtag es SIEMPRE #LegadoDeHierro.
+var lastPostCaption='',lastPostTags='',lastPostResumen='';
+
+async function genPostCaption(){
+  var box=document.getElementById('postCapBox');
+  if(!box||!lastPostResumen)return;
+  var stc=document.getElementById('postCapSt');
+  var txt=document.getElementById('postCapText');
+  var tgs=document.getElementById('postCapTags');
+  box.style.display='block';
+  txt.textContent='';tgs.textContent='';
+  stc.style.display='block';stc.textContent='Generando caption y hashtags...';
+  try{
+    var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:'Eres el community manager de LEGADO DE HIERRO, canal en español sobre libertad financiera, disciplina, mentalidad y construir lo propio. Voz cruda y directa, sin motivación vacía ni frases de coach.\n\nEste POST (imagen estática) se va a publicar en Facebook. Su contenido es:\n'+lastPostResumen+'\n\nEscribe el texto de la publicación. Devuelve EXACTAMENTE este formato en texto plano, sin markdown, sin ** ni ##:\n\nCAPTION:\n[2 a 4 frases cortas y potentes que amplíen la idea del post SIN repetirlo palabra por palabra, y cierren invitando a comentar, guardar o seguir el canal. Máximo 1 emoji o ninguno. Sin hashtags aquí.]\n\nHASHTAGS:\n[Entre 12 y 18 hashtags en UNA sola línea separados por espacios. El PRIMERO debe ser SIEMPRE #LegadoDeHierro. Los demás relevantes al tema del post y al nicho (finanzas, disciplina, mentalidad, dinero, libertad financiera, emprendimiento, éxito, negocios). Mezcla español y algunos universales. Sin numerar, solo los hashtags.]'})});
+    var d=await r.json();
+    if(!r.ok||!d.text)throw new Error(d.error||'Error '+r.status);
+    var t=(d.text||'').replace(/\r/g,'').replace(/\*/g,'');
+    var mC=t.match(/CAPTION\s*:\s*([\s\S]*?)(?:HASHTAGS\s*:|TIKTOK\s*:|YOUTUBE\s*:|$)/i);
+    var mH=t.match(/HASHTAGS\s*:\s*([\s\S]*?)(?:TIKTOK\s*:|YOUTUBE\s*:|$)/i);
+    var cap=mC?mC[1].trim():t.trim();
+    var tags=mH?mH[1].replace(/\n+/g,' ').replace(/\s{2,}/g,' ').trim():'';
+    if(tags){
+      var lower=tags.toLowerCase();
+      if(lower.indexOf('#legadodehierro')===-1){tags='#LegadoDeHierro '+tags;}
+      else if(lower.indexOf('#legadodehierro')>0){
+        tags=tags.replace(/#legadodehierro/ig,'').replace(/\s{2,}/g,' ').trim();
+        tags='#LegadoDeHierro '+tags;
+      }
+    }else{tags='#LegadoDeHierro';}
+    lastPostCaption=cap;lastPostTags=tags;
+    txt.textContent=cap;tgs.textContent=tags;
+    stc.style.display='none';
+  }catch(e){
+    stc.textContent='Error generando el caption: '+(e.message||'sin conexión')+' — toca ↻ para reintentar.';
+  }
+}
+
 async function genPost(){
   var btn=document.getElementById('bpost');
   var st=document.getElementById('postSt');
@@ -2452,6 +2491,9 @@ async function genPost(){
   st.style.display='block';st.textContent='Escribiendo el contenido...';
   err.style.display='none';result.style.display='none';
   try{
+    var pcb=document.getElementById('postCapBox');
+    if(pcb)pcb.style.display='none';
+    lastPostResumen='';lastPostCaption='';lastPostTags='';
     var tema=document.getElementById('postTema').value.trim();
     var sobre=tema?('sobre: "'+tema+'"'):'sobre libertad financiera, disciplina, dinero o construir lo propio (elige TÚ un ángulo específico y sorpréndeme)';
     var isVertical=postFmt==='vertical';
@@ -2469,6 +2511,7 @@ async function genPost(){
       var oL=await postTexto(POST_VOZ+'Crea una LISTA para un post viral de Facebook '+sobre+'. Devuelve SOLO un JSON sin markdown: {"titulo1":"primera línea del título, máximo 4 palabras","titulo2":"segunda línea, la FUERTE, máximo 4 palabras","reglas":[{"e":"UN emoji que ilustre la regla","t":"TÍTULO DE 2-3 PALABRAS","d1":"primera línea, máximo 7 palabras","d2":"segunda línea, máximo 7 palabras"}]} con EXACTAMENTE '+n+' reglas accionables y concretas. El título debe incluir el número, ej: "'+n+' REGLAS PARA QUE".',FB_LISTA);
       st.textContent='Componiendo la infografía...';
       composeLista(oL,isVertical);
+      lastPostResumen='Post tipo LISTA: '+(oL.titulo1||'')+' '+(oL.titulo2||'')+'. Reglas: '+((oL.reglas||[]).map(function(g){return (g.t||'')+' ('+(g.d1||'')+' '+(g.d2||'')+')';}).join(' | '));
     }else if(postTpl==='comparacion'){
       var oC=await postTexto(POST_VOZ+'Crea un post viral de COMPARACIÓN (arriba lo correcto, abajo el error) '+sobre+'. Devuelve SOLO un JSON sin markdown: {"titulo1":"primera línea del título, máximo 5 palabras","titulo2":"segunda línea, máximo 5 palabras","a_caption":"leyenda de la escena CORRECTA, máximo 6 palabras","a_sub":"explicación corta, máximo 10 palabras","a_escena_en":"IN ENGLISH: scene showing the winning path, 20-30 words, may feature the brand man","b_caption":"leyenda de la escena del ERROR, máximo 6 palabras","b_sub":"explicación corta, máximo 10 palabras","b_escena_en":"IN ENGLISH: scene showing the losing path, 20-30 words"}',FB_COMP);
       await cargarRefs();
@@ -2476,6 +2519,7 @@ async function genPost(){
       var imgB=await postImagen(oC.b_escena_en||FB_COMP.b_escena_en,'16:9',refs,st,'Generando la escena del error (2 de 2)...');
       st.textContent='Componiendo el post...';
       await composeComparacion(oC,imgA,imgB,isVertical);
+      lastPostResumen='Post de COMPARACIÓN: '+(oC.titulo1||'')+' '+(oC.titulo2||'')+'. Lo correcto: '+(oC.a_caption||'')+' ('+(oC.a_sub||'')+'). El error: '+(oC.b_caption||'')+' ('+(oC.b_sub||'')+').';
       cost+=(IMG_COST[postImgModel]||0.039)*2;updCost();
     }else if(postTpl==='cita'){
       var oQ=await postTexto(POST_VOZ+'Crea una CITA corta para un post viral elegante '+sobre+'. Devuelve SOLO un JSON sin markdown: {"destacada":"las 2-4 palabras INICIALES de la cita (las que van en negrita)","resto":"el resto de la cita; total máximo 14 palabras, que golpee","escena_en":"IN ENGLISH: dark elegant scene for the lower half (desk, money, city, the brand man optional), 20-30 words"}',FB_CITA);
@@ -2483,6 +2527,7 @@ async function genPost(){
       var imgQ=await postImagen(oQ.escena_en||FB_CITA.escena_en,'3:2',refs,st,'Generando la escena...');
       st.textContent='Componiendo el post...';
       await composeCita(oQ,imgQ,isVertical);
+      lastPostResumen='Post de CITA: "'+(oQ.destacada||'')+' '+(oQ.resto||'')+'"';
       cost+=(IMG_COST[postImgModel]||0.039);updCost();
     }else{
       var oF=await postTexto(POST_VOZ+'Crea una FRASE para un post viral de Facebook '+sobre+'. Se muestra en bloques centrados, unas líneas blancas y las CLAVE en dorado. Devuelve SOLO un JSON sin markdown: {"lineas":[{"t":"2-4 palabras","oro":false}]} con 4 a 6 líneas que juntas formen UNA frase dura y concreta; marca "oro":true en las 1-3 líneas más fuertes.',FB_FRASE);
@@ -2491,10 +2536,12 @@ async function genPost(){
       var imgF=await postImagen(estilo+' Keep the middle band of the scene visually calm so a big caption can sit over it.',isVertical?'4:5':'1:1',refs,st,'Generando la escena de fondo...');
       st.textContent='Componiendo el post...';
       await composeFrase(oF,imgF,isVertical);
+      lastPostResumen='Post de FRASE: "'+((oF.lineas||[]).map(function(l){return l.t;}).join(' '))+'"';
       cost+=(IMG_COST[postImgModel]||0.039);updCost();
     }
     result.style.display='block';
     st.textContent='Post listo para publicar.';
+    await genPostCaption(); // caption + hashtags automaticos, #LegadoDeHierro primero
   }catch(e){
     err.textContent='Error: '+e.message;err.style.display='block';st.style.display='none';
   }finally{
@@ -2886,6 +2933,15 @@ document.addEventListener('DOMContentLoaded',function(){
     tb.addEventListener('click',function(){selPostTpl(tb.getAttribute('data-t'));});
   });
   selPostTpl(postTpl); // resaltar la plantilla inicial
+  var pcr=document.getElementById('bPostCapRegen');
+  if(pcr)pcr.addEventListener('click',genPostCaption);
+  var pcc=document.getElementById('bPostCapCopy');
+  if(pcc)pcc.addEventListener('click',function(){
+    if(lastPostCaption||lastPostTags){
+      navigator.clipboard.writeText((lastPostCaption?lastPostCaption+'\n\n':'')+(lastPostTags||''));
+      var o=pcc.textContent;pcc.textContent='Copiado ✓';setTimeout(function(){pcc.textContent=o;},1500);
+    }
+  });
   var msel=document.getElementById('musicSel');
   if(msel)msel.addEventListener('change',function(){
     try{localStorage.setItem('lh_music_sel',msel.value);}catch(e){}

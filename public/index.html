@@ -305,6 +305,18 @@ section{margin-bottom:20px}
               <button onclick="downloadPost()" style="background:linear-gradient(135deg,#9ab47a,#b4cc9a);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">⬇ Descargar Post</button>
               <button onclick="genPost()" style="background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:8px 14px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit">↻ Regenerar</button>
             </div>
+            <div id="postCapBox" style="display:none;margin-top:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px;padding:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase"># Caption + Hashtags del post</span>
+                <div style="display:flex;gap:6px">
+                  <button class="cbtn" id="bPostCapRegen" style="border-color:#9ab47a;color:#9ab47a">↻</button>
+                  <button class="cbtn" id="bPostCapCopy" style="border-color:#9ab47a;color:#9ab47a">Copiar</button>
+                </div>
+              </div>
+              <div class="stxt" id="postCapSt"></div>
+              <div id="postCapText" style="white-space:pre-wrap;font-size:13px;line-height:1.5;color:var(--tx);margin-bottom:10px"></div>
+              <div id="postCapTags" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#7a6a3a;background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px"></div>
+            </div>
           </div>
         </div>
       </div>
