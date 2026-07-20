@@ -2356,20 +2356,23 @@ function selPostFmt(fmt){
   });
 }
 
+// Frases de respaldo (si la IA falla): CORTAS y duras, estilo post viral.
 var POST_FRASES=[
-  {titulo:'El empleo te paga.\nLos activos te liberan.',subtitulo:'Te pagan por tu tiempo, no por tu valor. Cada hora que trabajas para otro es una hora que no invertiste en construirte a ti. El empleado intercambia libertad por seguridad falsa. El que entiende esto empieza a construir algo propio aunque sea pequeño, aunque sea lento. Porque un dia ese algo trabaja sin ti.'},
-  {titulo:'Nadie se hace rico\ntrabajando para otro.',subtitulo:'Lo que te dieron fue un contrato, no un futuro. El salario cubre gastos. Los activos construyen riqueza. Mientras tu dinero duerme en una cuenta, el tiempo pasa y la inflacion come lo poco que guardaste. La diferencia no es suerte. Es que unos entienden como funciona el dinero y otros no.'},
-  {titulo:'Sin disciplina\nno hay salida.',subtitulo:'La motivacion llega y se va. El que espera ganas para ejecutar, nunca ejecuta. Los habitos no se sienten, se construyen. Diez minutos al dia aprendiendo como funciona el dinero valen mas que un fin de semana de cursos que nunca aplicas. Consistencia sin resultados visibles es lo que separa al que llega del que se queda.'},
-  {titulo:'Tu dinero parado\nes dinero perdido.',subtitulo:'La inflacion no descansa. Cada año que no mueves tu capital, pierdes poder adquisitivo en silencio. No necesitas mucho para empezar. Necesitas entender que el dinero es una herramienta, y las herramientas que no se usan se oxidan. Empieza con lo que tienes, donde estas, con lo que sabes hoy.'},
-  {titulo:'El ambiente\ndecide el resultado.',subtitulo:'No puedes pensar como libre si todos a tu alrededor piensan como empleados. Las personas que tienes cerca definen el techo de lo que crees posible. Busca a los que ya construyeron lo que tu quieres construir. Observa como piensan. Como deciden. Como actuan cuando nadie los ve. Eso vale mas que cualquier libro.'},
+  {titulo:'El sueldo te paga\nla jaula',subtitulo:'Los activos te compran la puerta.'},
+  {titulo:'Nadie se hace rico\nobedeciendo',subtitulo:'Construye lo tuyo, aunque empieces pequeño.'},
+  {titulo:'La disciplina pesa gramos.\nEl arrepentimiento, toneladas',subtitulo:''},
+  {titulo:'Estar ocupado\nno es avanzar',subtitulo:'Construye activos, no jornadas.'},
+  {titulo:'Tu tiempo se acaba.\nTu excusa sigue intacta',subtitulo:'Empieza hoy.'},
 ];
 
+// Escenas COMPLETAS (la imagen llena todo el post, como los virales de Facebook).
+// Composicion pensada para dejar aire abajo, donde va la frase.
 var POST_ESTILOS_IMG=[
-  'dramatic portrait, man in dark office at night, single lamp lighting, city lights through tall window behind',
-  'cinematic scene, man standing at rooftop edge overlooking city at dusk, golden hour light',
-  'powerful composition, man at executive desk reviewing financial documents, dramatic side lighting',
-  'atmospheric portrait, man walking through empty corporate hallway, confident stride, dramatic shadows',
-  'editorial scene, man in front of large window with rain, contemplative powerful pose, dark moody lighting',
+  'cinematic full scene, man standing at a rooftop edge at dusk overlooking glowing city lights, three-quarter view, dramatic sky with warm horizon, subject in the upper two thirds of the frame',
+  'cinematic full scene, man in a dark office at night beside a floor-to-ceiling window with city lights behind, single warm lamp glow, powerful calm stance, subject in the upper two thirds of the frame',
+  'cinematic full scene, man walking alone through a grand marble lobby toward camera, long confident stride, dramatic beams of light, subject in the upper two thirds of the frame',
+  'cinematic full scene, man seated at the head of a long dark boardroom table, strong side lighting carving his face, papers and a closed laptop before him, subject in the upper two thirds of the frame',
+  'cinematic full scene, man in a dark tailored suit staring out of a floor-to-ceiling window at sunrise over the city, seen from a low three-quarter angle, golden rim light, subject in the upper two thirds of the frame',
 ];
 
 function downloadPost(){
@@ -2392,28 +2395,31 @@ async function genPost(){
   err.style.display='none';result.style.display='none';
   try{
     var tema=document.getElementById('postTema').value.trim();
+    // La frase SIEMPRE la escribe la IA con la voz del canal (corta, concreta,
+    // nada vago); el pool local queda solo de respaldo si la llamada falla.
     var fraseObj;
-    if(tema){
+    try{
       var rf=await fetch('/api/generate',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:'Eres el guionista del canal Legado de Hierro. Genera el texto de un post de Facebook sobre: "'+tema+'". Usa el mismo vocabulario y tono de los guiones del canal: directo, sin palabras complejas, sin motivacion vacia, verdad cruda sobre dinero y libertad. Oraciones cortas. Sin firma al final. Devuelve SOLO un JSON sin markdown: {"titulo":"MAXIMO 6 PALABRAS\\nSEGUNDA LINEA OPCIONAL","subtitulo":"4 a 6 oraciones cortas con la ensenanza. Sin firma."}'}),
+        body:JSON.stringify({prompt:'Eres el guionista de LEGADO DE HIERRO, canal en español para hombres que trabajan para otro y quieren construir lo suyo. Escribe UNA frase para un post viral de Facebook '+(tema?('sobre: "'+tema+'". '):'sobre libertad financiera, disciplina o construir lo propio — elige TU un ángulo específico y sorpréndeme. ')+'Voz cruda y directa, segunda persona, CONCRETA (un detalle que golpee, nada de motivación vaga ni frases de coach vistas mil veces). Español impecable con tildes.\n\nDevuelve SOLO un JSON sin markdown, sin ``` : {"frase":"máximo 12 palabras, con \\n para partirla en 2 líneas donde respire","remate":"máximo 9 palabras que rematan la idea sin repetir palabras de la frase"}'}),
       });
       var rd=await rf.json();
-      try{fraseObj=JSON.parse(rd.text.replace(/```json|```/g,'').trim());}
-      catch(e){fraseObj=POST_FRASES[Math.floor(Math.random()*POST_FRASES.length)];}
-    }else{
+      var pj=JSON.parse(rd.text.replace(/```json|```/g,'').trim());
+      if(pj&&pj.frase){fraseObj={titulo:pj.frase,subtitulo:pj.remate||''};}
+      else{throw new Error('sin frase');}
+    }catch(e){
       fraseObj=POST_FRASES[Math.floor(Math.random()*POST_FRASES.length)];
     }
     var estilo=POST_ESTILOS_IMG[Math.floor(Math.random()*POST_ESTILOS_IMG.length)];
     var isVertical=postFmt==='vertical';
-    var prompt=estilo+'. Subject: handsome confident man, 35 years old, short black hair slicked back, well-groomed short dark beard, sharp jawline, intense dark brown eyes, serious determined expression never smiling. Wearing impeccably tailored black three-piece suit, dark tie, white pocket square, luxury watch on left wrist. American 2D comic book illustration style, bold ink lines, dramatic cel-shading, rich dark palette, golden accent lighting. Character positioned on RIGHT side of image, LEFT side darker/empty for text overlay. '+(isVertical?'4:5 vertical format':'1:1 square format')+'. No text in image. NO robots, NO futurism, NO sci-fi, NO broken chains, NO magic effects. Real business and finance world only.';
+    var prompt=estilo+'. Subject: handsome confident man, 35 years old, short black hair slicked back, well-groomed short dark beard, sharp jawline, intense dark brown eyes, serious determined expression never smiling. Wearing impeccably tailored dark suit, luxury watch on left wrist. American 2D comic book illustration style, bold ink lines, dramatic cel-shading, rich dark palette, golden accent lighting. ONE single full-bleed scene that fills the ENTIRE frame edge to edge — NOT a split layout, NOT empty half. Keep the lower third of the scene visually calm (floor, shadow, sky) so a caption can be overlaid there. No text in image. NO robots, NO futurism, NO sci-fi, NO broken chains, NO magic effects, NO rain or weather. Real business and finance world only.';
     st.textContent='Cargando referencias del personaje...';
     var refsResp=await fetch('/api/refs').catch(function(){return null;});
     var refs=[];
     if(refsResp&&refsResp.ok){var rd2=await refsResp.json().catch(function(){return{};});refs=(rd2&&rd2.refs)?rd2.refs:[];}
     var ri2=await fetch('/api/image',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt,refImages:refs,model:postImgModel}),
+      body:JSON.stringify({prompt:prompt,refImages:refs,model:postImgModel,aspectRatio:isVertical?'4:5':'1:1'}),
     });
     var di=await ri2.json();
     if(!ri2.ok||!di.image)throw new Error(di.error||'Error generando imagen');
@@ -2429,6 +2435,8 @@ async function genPost(){
   }
 }
 
+// DISEÑO VIRAL: la imagen llena TODO el post, oscurecido cinematografico, frase
+// corta y dura centrada en el tercio inferior, remate pequeño y marca abajo.
 async function composePost(imgBase64,fraseObj,isVertical){
   var canvas=document.getElementById('postCanvas');
   var W=1080,H=isVertical?1350:1080;
@@ -2436,42 +2444,71 @@ async function composePost(imgBase64,fraseObj,isVertical){
   var ctx=canvas.getContext('2d');
   var img=new Image();
   await new Promise(function(res,rej){img.onload=res;img.onerror=rej;img.src='data:image/png;base64,'+imgBase64;});
+  // Imagen a pantalla COMPLETA (cover, centrada)
   ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,W,H);
-  ctx.drawImage(img,W-W*0.62,0,W*0.62,H);
-  var grad=ctx.createLinearGradient(0,0,W,0);
-  grad.addColorStop(0,'rgba(8,8,15,1)');grad.addColorStop(0.45,'rgba(8,8,15,0.97)');
-  grad.addColorStop(0.65,'rgba(8,8,15,0.6)');grad.addColorStop(1,'rgba(8,8,15,0)');
-  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
-  var gradB=ctx.createLinearGradient(0,H*0.7,0,H);
-  gradB.addColorStop(0,'rgba(8,8,15,0)');gradB.addColorStop(1,'rgba(8,8,15,0.85)');
-  ctx.fillStyle=gradB;ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#b8975a';ctx.fillRect(52,80,4,H*0.6);
-  var PAD=72,textW=W*0.56;
-  var titLines=fraseObj.titulo.split('\n');
-  var titleSize=isVertical?82:88;
-  ctx.font='900 '+titleSize+'px Arial Black, Arial';
-  while(titLines.some(function(l){return ctx.measureText(l).width>textW-20;})&&titleSize>48){
-    titleSize-=3;ctx.font='900 '+titleSize+'px Arial Black, Arial';
+  var s=Math.max(W/img.width,H/img.height);
+  var dw=img.width*s,dh=img.height*s;
+  ctx.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh);
+  // Oscurecido cinematografico: sutil arriba, fuerte abajo (donde va la frase)
+  var gTop=ctx.createLinearGradient(0,0,0,H*0.3);
+  gTop.addColorStop(0,'rgba(5,5,10,0.45)');gTop.addColorStop(1,'rgba(5,5,10,0)');
+  ctx.fillStyle=gTop;ctx.fillRect(0,0,W,H*0.3);
+  var gBot=ctx.createLinearGradient(0,H*0.4,0,H);
+  gBot.addColorStop(0,'rgba(5,5,10,0)');
+  gBot.addColorStop(0.55,'rgba(5,5,10,0.62)');
+  gBot.addColorStop(1,'rgba(5,5,10,0.95)');
+  ctx.fillStyle=gBot;ctx.fillRect(0,H*0.4,W,H*0.6);
+  // FRASE PRINCIPAL: grande, en mayusculas, centrada, ultima linea en dorado
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  var maxW=W-130;
+  var rawWords=String(fraseObj.titulo||'').toUpperCase().replace(/\n/g,' \n ').split(/ +/).filter(Boolean);
+  var size=isVertical?96:90,lines=[];
+  while(size>46){
+    ctx.font='900 '+size+'px Arial Black, Arial';
+    lines=[];var cur='';
+    for(var wi=0;wi<rawWords.length;wi++){
+      var w2=rawWords[wi];
+      if(w2==='\n'){if(cur){lines.push(cur);cur='';}continue;}
+      var test=cur?cur+' '+w2:w2;
+      if(ctx.measureText(test).width>maxW&&cur){lines.push(cur);cur=w2;}
+      else cur=test;
+    }
+    if(cur)lines.push(cur);
+    var tooWide=lines.some(function(l){return ctx.measureText(l).width>maxW;});
+    if(lines.length<=4&&!tooWide)break;
+    size-=5;
   }
-  ctx.textBaseline='top';
-  var ty=isVertical?110:100;
-  titLines.forEach(function(line,i){
-    ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=12;
-    ctx.fillStyle=(i===titLines.length-1)?'#b8975a':'#ffffff';
-    ctx.font='900 '+titleSize+'px Arial Black, Arial';
-    ctx.fillText(line,PAD,ty);ty+=titleSize*1.15;
+  var lh=size*1.14;
+  var kicker=String(fraseObj.subtitulo||'').trim();
+  var kickerSize=isVertical?38:36;
+  var brandY=H-56;
+  var kickerY=kicker?brandY-66:0;
+  var titleBottom=(kicker?kickerY-58:brandY-74);
+  var y0=titleBottom-(lines.length-1)*lh;
+  ctx.shadowColor='rgba(0,0,0,0.85)';ctx.shadowBlur=16;ctx.shadowOffsetY=3;
+  lines.forEach(function(line,i){
+    ctx.font='900 '+size+'px Arial Black, Arial';
+    ctx.fillStyle=(i===lines.length-1)?'#e2bd72':'#ffffff';
+    ctx.fillText(line,W/2,y0+i*lh);
   });
-  ctx.shadowBlur=0;ty+=20;
-  ctx.fillStyle='#b8975a';ctx.fillRect(PAD,ty,120,3);ty+=24;
-  ctx.font='400 '+(isVertical?34:36)+'px Arial';
-  ctx.fillStyle='rgba(255,255,255,0.82)';
-  ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=8;
-  var subLines=wrapText(ctx,fraseObj.subtitulo,textW-PAD);
-  subLines.forEach(function(line){ctx.fillText(line,PAD,ty);ty+=isVertical?46:48;});
-  ctx.shadowBlur=0;
-  ctx.fillStyle='#b8975a';ctx.font='700 28px Arial Black';ctx.textBaseline='middle';
-  ctx.fillText('LEGADO DE HIERRO',PAD,H-80);
-  ctx.strokeStyle='rgba(184,151,90,0.3)';ctx.lineWidth=3;ctx.strokeRect(2,2,W-4,H-4);
+  ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  // Divisor dorado sobre la frase
+  ctx.fillStyle='#b8975a';
+  ctx.fillRect(W/2-70,y0-(size*0.92)-34,140,4);
+  // Remate (una linea corta que clava la idea)
+  if(kicker){
+    ctx.font='600 '+kickerSize+'px Georgia, "Times New Roman", serif';
+    ctx.fillStyle='rgba(255,255,255,0.92)';
+    ctx.shadowColor='rgba(0,0,0,0.7)';ctx.shadowBlur=10;
+    var kLines=wrapText(ctx,kicker,maxW);
+    ctx.fillText(kLines[0]||'',W/2,kickerY);
+    ctx.shadowBlur=0;
+  }
+  // Marca discreta centrada abajo
+  ctx.font='700 26px Arial Black, Arial';
+  ctx.fillStyle='#b8975a';
+  ctx.fillText('⚔  L E G A D O  D E  H I E R R O',W/2,brandY);
+  ctx.textAlign='left'; // restaurar para cualquier otro dibujo
 }
 
 function wrapText(ctx,text,maxW){
