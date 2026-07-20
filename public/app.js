@@ -1974,10 +1974,19 @@ async function genMusic(preset){
 // mezcla que va a quedar en el video final. Ese mismo nivel se usa al unificar.
 var MIX={ctx:null,gain:null,srcs:[],playing:false,bufs:{}};
 
+// UNA sola "consola de sonido" (AudioContext) que se abre la primera vez y se
+// REUTILIZA siempre. Cerrarla y abrir otra en cada reproduccion hacia que el
+// iPhone solo dejara sonar cada pista una vez.
+function mixCtx(){
+  var AC=window.AudioContext||window.webkitAudioContext;
+  if(!MIX.ctx||MIX.ctx.state==='closed')MIX.ctx=new AC();
+  return MIX.ctx;
+}
+
 function stopMix(){
   MIX.srcs.forEach(function(s){try{s.onended=null;s.stop();}catch(e){}});
   MIX.srcs=[];MIX.gain=null;MIX.playing=false;
-  if(MIX.ctx){try{MIX.ctx.close();}catch(e){}MIX.ctx=null;}
+  if(MIX.ctx&&MIX.ctx.state==='running'){try{MIX.ctx.suspend();}catch(e){}}
   var btn=document.getElementById('bMusicPlay');
   if(btn)btn.textContent='▶ Escuchar cómo quedará (narración + música)';
 }
@@ -1993,8 +2002,9 @@ async function toggleMixPreview(objectOverride){
   var orig=btn?btn.textContent:'';
   if(btn)btn.textContent='Cargando la pista...';
   try{
-    var AC=window.AudioContext||window.webkitAudioContext;
-    MIX.ctx=new AC();
+    // Desbloquear el audio DENTRO del toque (regla del iPhone), antes de cualquier espera.
+    mixCtx();
+    try{MIX.ctx.resume();}catch(e){}
     // Pista de musica (con cache para no descargarla dos veces)
     var mb=MIX.bufs[obj];
     if(!mb){
@@ -2016,6 +2026,7 @@ async function toggleMixPreview(objectOverride){
     }
     var vol=mv?parseInt(mv.value,10)/100:0.18;
     if(!isFinite(vol)||vol<0)vol=0.18;
+    MIX.gen=(MIX.gen||0)+1;var myGen=MIX.gen; // invalida temporizadores de reproducciones anteriores
     var g=MIX.ctx.createGain();g.gain.value=vol;g.connect(MIX.ctx.destination);
     var ms=MIX.ctx.createBufferSource();ms.buffer=mb;ms.loop=true;ms.connect(g);
     MIX.gain=g;
@@ -2027,15 +2038,19 @@ async function toggleMixPreview(objectOverride){
     }else{
       // Sin narracion: la pista suena una sola pasada
       var durMs=Math.min(mb.duration,35)*1000+300;
-      (function(ctxRef){setTimeout(function(){if(MIX.ctx===ctxRef&&MIX.playing)stopMix();},durMs);})(MIX.ctx);
+      setTimeout(function(){if(MIX.gen===myGen&&MIX.playing)stopMix();},durMs);
     }
     MIX.playing=true;
     if(btn)btn.textContent='⏸ Detener';
     if(MIX.ctx.state==='suspended'){
-      // iPhone puede exigir un toque directo: se detiene y se pide tocar el boton
-      stopMix();
-      if(st){st.style.display='block';st.textContent='Toca ▶ Escuchar para oírla (el iPhone pide que sea con un toque).';}
-      return;
+      // Segundo intento de arranque; si el iPhone insiste, se pide otro toque.
+      try{await MIX.ctx.resume();}catch(e){}
+      if(MIX.ctx.state==='suspended'){
+        stopMix();
+        if(btn)btn.textContent=orig||'▶ Escuchar cómo quedará (narración + música)';
+        if(st){st.style.display='block';st.textContent='Toca ▶ Escuchar una vez más para que arranque el sonido.';}
+        return;
+      }
     }
     if(st){
       st.style.display='block';
