@@ -2384,6 +2384,64 @@ function downloadPost(){
   a.click();
 }
 
+// ==== POSTS VIRALES — 4 plantillas basadas en los formatos que funcionan en Facebook ====
+// 'frase'      -> foto cinematografica completa + frase en bloques blanco/dorado al centro
+// 'cita'       -> fondo negro elegante, cita en serif arriba, escena abajo
+// 'lista'      -> infografia de reglas numeradas con titulo fuerte (sin imagen: rapida)
+// 'comparacion'-> dos escenas: arriba lo correcto, abajo el error, con sus leyendas
+// Todas con la paleta de LEGADO DE HIERRO y el personaje en estilo comic cuando aplica.
+
+var POST_CHAR='Subject when a person appears: handsome confident man, 35 years old, short black hair slicked back, well-groomed short dark beard, sharp jawline, intense dark brown eyes, serious determined expression never smiling, dark tailored suit. American 2D comic book illustration style, bold ink lines, dramatic cel-shading, rich dark palette with golden accent lighting. No text in image. NO robots, NO futurism, NO sci-fi, NO broken chains around people, NO magic effects, NO rain or weather. Real business and finance world only. ';
+
+var POST_ORO='#d9b46a',POST_ORO_CLARO='#e8cd8f',POST_FONDO='#0a0b10';
+
+// Respaldos si la IA de texto falla, uno por plantilla
+var FB_FRASE={lineas:[{t:'EL SUELDO TE PAGA',oro:false},{t:'LA JAULA',oro:true},{t:'LOS ACTIVOS TE COMPRAN',oro:false},{t:'LA PUERTA',oro:true}]};
+var FB_CITA={destacada:'El miedo',resto:'no construye nada que te sobreviva.',escena_en:'dark elegant desk with neat stacks of cash, a laptop showing a rising golden chart, a luxury watch and a fountain pen, moody cinematic lighting'};
+var FB_LISTA={titulo1:'5 REGLAS PARA QUE',titulo2:'EL DINERO TE RINDA',reglas:[
+  {e:'💵',t:'EFECTIVO SOLO',d1:'Lleva solo lo necesario.',d2:'Si no lo tienes, no lo gastas.'},
+  {e:'⏳',t:'REGLA 24H',d1:'Antes de comprar, espera un día.',d2:'El impulso pasará.'},
+  {e:'📝',t:'LISTA BLINDADA',d1:'Si no está en la lista,',d2:'no existe.'},
+  {e:'📅',t:'LÍMITE SEMANAL',d1:'Ponte un tope de gasto',d2:'y cúmplelo a muerte.'},
+  {e:'🫙',t:'CORTA EL GOTEO',d1:'Los gastos pequeños diarios',d2:'arruinan tu cuenta.'}]};
+var FB_COMP={titulo1:'Una vez que lo entiendes',titulo2:'no hay vuelta atrás',
+  a_caption:'El dinero trabaja para ti',a_sub:'El dinero invertido genera más dinero solo',
+  a_escena_en:'the brand man calmly reviewing golden rising charts in an elegant dark office, wealth flowing, warm golden light',
+  b_caption:'Tú trabajas por el dinero',b_sub:'Cambias tiempo y esfuerzo por un salario',
+  b_escena_en:'a tired worker hunched at a cramped desk buried in papers under cold fluorescent light, clock on the wall, exhausted posture'};
+
+var postTpl='frase';
+function selPostTpl(t){
+  postTpl=t;
+  Array.prototype.forEach.call(document.querySelectorAll('.postTpl'),function(b){
+    var s=b.getAttribute('data-t')===t;
+    b.style.borderColor=s?'#b8975a':'';b.style.color=s?'#b8975a':'';b.style.background=s?'#f0e8d8':'';
+  });
+}
+
+// Pide a Gemini el texto de la plantilla en JSON; si falla, usa el respaldo.
+async function postTexto(prompt,fallback){
+  try{
+    var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:prompt})});
+    var d=await r.json();
+    var o=JSON.parse(d.text.replace(/```json|```/g,'').trim());
+    if(o)return o;
+  }catch(e){console.warn('Texto del post fallo, uso respaldo:',e.message);}
+  return fallback;
+}
+
+async function postImagen(escena,aspect,refs,st,msg){
+  if(st)st.textContent=msg||'Generando escena...';
+  var r=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:POST_CHAR+escena+' Single full scene filling the whole frame.',refImages:refs||[],model:postImgModel,aspectRatio:aspect})});
+  var d=await r.json();
+  if(!r.ok||!d.image)throw new Error(d.error||'Error generando la escena');
+  return d.image;
+}
+
+var POST_VOZ='Eres el estratega de contenido de LEGADO DE HIERRO, canal en español para hombres que trabajan para otro y quieren construir lo suyo. Voz cruda, directa, CONCRETA — nada vago, nada de frases de coach vistas mil veces. Español impecable con tildes. ';
+
 async function genPost(){
   var btn=document.getElementById('bpost');
   var st=document.getElementById('postSt');
@@ -2391,43 +2449,52 @@ async function genPost(){
   var result=document.getElementById('postResult');
   var orig=btn.textContent;
   btn.textContent='Generando...';btn.style.opacity='.6';btn.disabled=true;
-  st.style.display='block';st.textContent='Generando personaje con IA...';
+  st.style.display='block';st.textContent='Escribiendo el contenido...';
   err.style.display='none';result.style.display='none';
   try{
     var tema=document.getElementById('postTema').value.trim();
-    // La frase SIEMPRE la escribe la IA con la voz del canal (corta, concreta,
-    // nada vago); el pool local queda solo de respaldo si la llamada falla.
-    var fraseObj;
-    try{
-      var rf=await fetch('/api/generate',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:'Eres el guionista de LEGADO DE HIERRO, canal en español para hombres que trabajan para otro y quieren construir lo suyo. Escribe UNA frase para un post viral de Facebook '+(tema?('sobre: "'+tema+'". '):'sobre libertad financiera, disciplina o construir lo propio — elige TU un ángulo específico y sorpréndeme. ')+'Voz cruda y directa, segunda persona, CONCRETA (un detalle que golpee, nada de motivación vaga ni frases de coach vistas mil veces). Español impecable con tildes.\n\nDevuelve SOLO un JSON sin markdown, sin ``` : {"frase":"máximo 12 palabras, con \\n para partirla en 2 líneas donde respire","remate":"máximo 9 palabras que rematan la idea sin repetir palabras de la frase"}'}),
-      });
-      var rd=await rf.json();
-      var pj=JSON.parse(rd.text.replace(/```json|```/g,'').trim());
-      if(pj&&pj.frase){fraseObj={titulo:pj.frase,subtitulo:pj.remate||''};}
-      else{throw new Error('sin frase');}
-    }catch(e){
-      fraseObj=POST_FRASES[Math.floor(Math.random()*POST_FRASES.length)];
-    }
-    var estilo=POST_ESTILOS_IMG[Math.floor(Math.random()*POST_ESTILOS_IMG.length)];
+    var sobre=tema?('sobre: "'+tema+'"'):'sobre libertad financiera, disciplina, dinero o construir lo propio (elige TÚ un ángulo específico y sorpréndeme)';
     var isVertical=postFmt==='vertical';
-    var prompt=estilo+'. Subject: handsome confident man, 35 years old, short black hair slicked back, well-groomed short dark beard, sharp jawline, intense dark brown eyes, serious determined expression never smiling. Wearing impeccably tailored dark suit, luxury watch on left wrist. American 2D comic book illustration style, bold ink lines, dramatic cel-shading, rich dark palette, golden accent lighting. ONE single full-bleed scene that fills the ENTIRE frame edge to edge — NOT a split layout, NOT empty half. Keep the lower third of the scene visually calm (floor, shadow, sky) so a caption can be overlaid there. No text in image. NO robots, NO futurism, NO sci-fi, NO broken chains, NO magic effects, NO rain or weather. Real business and finance world only.';
-    st.textContent='Cargando referencias del personaje...';
-    var refsResp=await fetch('/api/refs').catch(function(){return null;});
     var refs=[];
-    if(refsResp&&refsResp.ok){var rd2=await refsResp.json().catch(function(){return{};});refs=(rd2&&rd2.refs)?rd2.refs:[];}
-    var ri2=await fetch('/api/image',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt,refImages:refs,model:postImgModel,aspectRatio:isVertical?'4:5':'1:1'}),
-    });
-    var di=await ri2.json();
-    if(!ri2.ok||!di.image)throw new Error(di.error||'Error generando imagen');
-    st.textContent='Componiendo diseno editorial...';
-    await composePost(di.image,fraseObj,isVertical);
+    async function cargarRefs(){
+      if(refs.length)return refs;
+      st.textContent='Cargando referencias del personaje...';
+      var rr=await fetch('/api/refs?set=personaje').catch(function(){return null;});
+      if(rr&&rr.ok){var rd=await rr.json().catch(function(){return{};});refs=(rd&&rd.refs)?rd.refs:[];}
+      return refs;
+    }
+
+    if(postTpl==='lista'){
+      var n=isVertical?6:5;
+      var oL=await postTexto(POST_VOZ+'Crea una LISTA para un post viral de Facebook '+sobre+'. Devuelve SOLO un JSON sin markdown: {"titulo1":"primera línea del título, máximo 4 palabras","titulo2":"segunda línea, la FUERTE, máximo 4 palabras","reglas":[{"e":"UN emoji que ilustre la regla","t":"TÍTULO DE 2-3 PALABRAS","d1":"primera línea, máximo 7 palabras","d2":"segunda línea, máximo 7 palabras"}]} con EXACTAMENTE '+n+' reglas accionables y concretas. El título debe incluir el número, ej: "'+n+' REGLAS PARA QUE".',FB_LISTA);
+      st.textContent='Componiendo la infografía...';
+      composeLista(oL,isVertical);
+    }else if(postTpl==='comparacion'){
+      var oC=await postTexto(POST_VOZ+'Crea un post viral de COMPARACIÓN (arriba lo correcto, abajo el error) '+sobre+'. Devuelve SOLO un JSON sin markdown: {"titulo1":"primera línea del título, máximo 5 palabras","titulo2":"segunda línea, máximo 5 palabras","a_caption":"leyenda de la escena CORRECTA, máximo 6 palabras","a_sub":"explicación corta, máximo 10 palabras","a_escena_en":"IN ENGLISH: scene showing the winning path, 20-30 words, may feature the brand man","b_caption":"leyenda de la escena del ERROR, máximo 6 palabras","b_sub":"explicación corta, máximo 10 palabras","b_escena_en":"IN ENGLISH: scene showing the losing path, 20-30 words"}',FB_COMP);
+      await cargarRefs();
+      var imgA=await postImagen(oC.a_escena_en||FB_COMP.a_escena_en,'16:9',refs,st,'Generando la escena correcta (1 de 2)...');
+      var imgB=await postImagen(oC.b_escena_en||FB_COMP.b_escena_en,'16:9',refs,st,'Generando la escena del error (2 de 2)...');
+      st.textContent='Componiendo el post...';
+      await composeComparacion(oC,imgA,imgB,isVertical);
+      cost+=(IMG_COST[postImgModel]||0.039)*2;updCost();
+    }else if(postTpl==='cita'){
+      var oQ=await postTexto(POST_VOZ+'Crea una CITA corta para un post viral elegante '+sobre+'. Devuelve SOLO un JSON sin markdown: {"destacada":"las 2-4 palabras INICIALES de la cita (las que van en negrita)","resto":"el resto de la cita; total máximo 14 palabras, que golpee","escena_en":"IN ENGLISH: dark elegant scene for the lower half (desk, money, city, the brand man optional), 20-30 words"}',FB_CITA);
+      await cargarRefs();
+      var imgQ=await postImagen(oQ.escena_en||FB_CITA.escena_en,'3:2',refs,st,'Generando la escena...');
+      st.textContent='Componiendo el post...';
+      await composeCita(oQ,imgQ,isVertical);
+      cost+=(IMG_COST[postImgModel]||0.039);updCost();
+    }else{
+      var oF=await postTexto(POST_VOZ+'Crea una FRASE para un post viral de Facebook '+sobre+'. Se muestra en bloques centrados, unas líneas blancas y las CLAVE en dorado. Devuelve SOLO un JSON sin markdown: {"lineas":[{"t":"2-4 palabras","oro":false}]} con 4 a 6 líneas que juntas formen UNA frase dura y concreta; marca "oro":true en las 1-3 líneas más fuertes.',FB_FRASE);
+      var estilo=POST_ESTILOS_IMG[Math.floor(Math.random()*POST_ESTILOS_IMG.length)];
+      await cargarRefs();
+      var imgF=await postImagen(estilo+' Keep the middle band of the scene visually calm so a big caption can sit over it.',isVertical?'4:5':'1:1',refs,st,'Generando la escena de fondo...');
+      st.textContent='Componiendo el post...';
+      await composeFrase(oF,imgF,isVertical);
+      cost+=(IMG_COST[postImgModel]||0.039);updCost();
+    }
     result.style.display='block';
     st.textContent='Post listo para publicar.';
-    cost+=(IMG_COST[postImgModel]||0.039);updCost();
   }catch(e){
     err.textContent='Error: '+e.message;err.style.display='block';st.style.display='none';
   }finally{
@@ -2435,80 +2502,252 @@ async function genPost(){
   }
 }
 
-// DISEÑO VIRAL: la imagen llena TODO el post, oscurecido cinematografico, frase
-// corta y dura centrada en el tercio inferior, remate pequeño y marca abajo.
-async function composePost(imgBase64,fraseObj,isVertical){
+// ---- utilidades de lienzo ----
+function postCanvas(isVertical){
   var canvas=document.getElementById('postCanvas');
   var W=1080,H=isVertical?1350:1080;
   canvas.width=W;canvas.height=H;
-  var ctx=canvas.getContext('2d');
-  var img=new Image();
-  await new Promise(function(res,rej){img.onload=res;img.onerror=rej;img.src='data:image/png;base64,'+imgBase64;});
-  // Imagen a pantalla COMPLETA (cover, centrada)
-  ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,W,H);
-  var s=Math.max(W/img.width,H/img.height);
+  return {c:canvas,x:canvas.getContext('2d'),W:W,H:H};
+}
+function cargarImg(b64){
+  return new Promise(function(res,rej){
+    var img=new Image();
+    img.onload=function(){res(img);};
+    img.onerror=function(){rej(new Error('No se pudo leer la imagen'));};
+    img.src='data:image/png;base64,'+b64;
+  });
+}
+function coverDraw(ctx,img,x,y,w,h){
+  var s=Math.max(w/img.width,h/img.height);
   var dw=img.width*s,dh=img.height*s;
-  ctx.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh);
-  // Oscurecido cinematografico: sutil arriba, fuerte abajo (donde va la frase)
-  var gTop=ctx.createLinearGradient(0,0,0,H*0.3);
-  gTop.addColorStop(0,'rgba(5,5,10,0.45)');gTop.addColorStop(1,'rgba(5,5,10,0)');
-  ctx.fillStyle=gTop;ctx.fillRect(0,0,W,H*0.3);
-  var gBot=ctx.createLinearGradient(0,H*0.4,0,H);
-  gBot.addColorStop(0,'rgba(5,5,10,0)');
-  gBot.addColorStop(0.55,'rgba(5,5,10,0.62)');
-  gBot.addColorStop(1,'rgba(5,5,10,0.95)');
-  ctx.fillStyle=gBot;ctx.fillRect(0,H*0.4,W,H*0.6);
-  // FRASE PRINCIPAL: grande, en mayusculas, centrada, ultima linea en dorado
-  ctx.textAlign='center';ctx.textBaseline='alphabetic';
-  var maxW=W-130;
-  var rawWords=String(fraseObj.titulo||'').toUpperCase().replace(/\n/g,' \n ').split(/ +/).filter(Boolean);
-  var size=isVertical?96:90,lines=[];
-  while(size>46){
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+  ctx.restore();
+}
+function marcaLdH(ctx,W,y){
+  ctx.textAlign='center';
+  ctx.font='700 26px Arial Black, Arial';
+  ctx.fillStyle=POST_ORO;
+  ctx.fillText('⚔  L E G A D O  D E  H I E R R O',W/2,y);
+  ctx.textAlign='left';
+}
+function esquinasOro(ctx,W,H){
+  ctx.strokeStyle='rgba(217,180,106,0.55)';ctx.lineWidth=3;
+  var m=34,l=64;
+  [[m,m,1,1],[W-m,m,-1,1],[m,H-m,1,-1],[W-m,H-m,-1,-1]].forEach(function(p){
+    ctx.beginPath();ctx.moveTo(p[0]+l*p[2],p[1]);ctx.lineTo(p[0],p[1]);ctx.lineTo(p[0],p[1]+l*p[3]);ctx.stroke();
+  });
+}
+
+// PLANTILLA 1 — FRASE dura sobre foto completa (bloques blanco/dorado, divisores)
+async function composeFrase(o,imgB64,isVertical){
+  var pc=postCanvas(isVertical),ctx=pc.x,W=pc.W,H=pc.H;
+  var img=await cargarImg(imgB64);
+  ctx.fillStyle=POST_FONDO;ctx.fillRect(0,0,W,H);
+  coverDraw(ctx,img,0,0,W,H);
+  ctx.fillStyle='rgba(5,5,10,0.38)';ctx.fillRect(0,0,W,H);
+  var lineas=(o.lineas||FB_FRASE.lineas).slice(0,6);
+  var maxW=W-150,size=isVertical?84:80;
+  while(size>44){
     ctx.font='900 '+size+'px Arial Black, Arial';
-    lines=[];var cur='';
-    for(var wi=0;wi<rawWords.length;wi++){
-      var w2=rawWords[wi];
-      if(w2==='\n'){if(cur){lines.push(cur);cur='';}continue;}
-      var test=cur?cur+' '+w2:w2;
-      if(ctx.measureText(test).width>maxW&&cur){lines.push(cur);cur=w2;}
-      else cur=test;
-    }
-    if(cur)lines.push(cur);
-    var tooWide=lines.some(function(l){return ctx.measureText(l).width>maxW;});
-    if(lines.length<=4&&!tooWide)break;
-    size-=5;
+    var ancha=lineas.some(function(l){return ctx.measureText(String(l.t||'').toUpperCase()).width>maxW;});
+    if(!ancha)break;size-=4;
   }
-  var lh=size*1.14;
-  var kicker=String(fraseObj.subtitulo||'').trim();
-  var kickerSize=isVertical?38:36;
-  var brandY=H-56;
-  var kickerY=kicker?brandY-66:0;
-  var titleBottom=(kicker?kickerY-58:brandY-74);
-  var y0=titleBottom-(lines.length-1)*lh;
-  ctx.shadowColor='rgba(0,0,0,0.85)';ctx.shadowBlur=16;ctx.shadowOffsetY=3;
-  lines.forEach(function(line,i){
+  var lh=size*1.16,bloqueH=lineas.length*lh;
+  var y0=H/2-bloqueH/2+size*0.8;
+  // banda oscura tras el texto para lectura
+  var g=ctx.createLinearGradient(0,y0-size*1.6,0,y0+bloqueH);
+  g.addColorStop(0,'rgba(5,5,10,0)');g.addColorStop(0.2,'rgba(5,5,10,0.55)');
+  g.addColorStop(0.8,'rgba(5,5,10,0.55)');g.addColorStop(1,'rgba(5,5,10,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,y0-size*1.9,W,bloqueH+size*2.2);
+  // divisores dorados arriba y abajo del bloque
+  ctx.fillStyle=POST_ORO;
+  ctx.fillRect(W/2-W*0.29,y0-size-46,W*0.58,7);
+  ctx.fillRect(W/2-W*0.29,y0+bloqueH-size+52,W*0.58,7);
+  ctx.textAlign='center';
+  ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=14;ctx.shadowOffsetY=3;
+  lineas.forEach(function(l,i){
     ctx.font='900 '+size+'px Arial Black, Arial';
-    ctx.fillStyle=(i===lines.length-1)?'#e2bd72':'#ffffff';
-    ctx.fillText(line,W/2,y0+i*lh);
+    ctx.fillStyle=l.oro?POST_ORO_CLARO:'#ffffff';
+    ctx.fillText(String(l.t||'').toUpperCase(),W/2,y0+i*lh);
   });
   ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-  // Divisor dorado sobre la frase
-  ctx.fillStyle='#b8975a';
-  ctx.fillRect(W/2-70,y0-(size*0.92)-34,140,4);
-  // Remate (una linea corta que clava la idea)
-  if(kicker){
-    ctx.font='600 '+kickerSize+'px Georgia, "Times New Roman", serif';
-    ctx.fillStyle='rgba(255,255,255,0.92)';
-    ctx.shadowColor='rgba(0,0,0,0.7)';ctx.shadowBlur=10;
-    var kLines=wrapText(ctx,kicker,maxW);
-    ctx.fillText(kLines[0]||'',W/2,kickerY);
-    ctx.shadowBlur=0;
+  var gB=ctx.createLinearGradient(0,H-190,0,H);
+  gB.addColorStop(0,'rgba(5,5,10,0)');gB.addColorStop(1,'rgba(5,5,10,0.9)');
+  ctx.fillStyle=gB;ctx.fillRect(0,H-190,W,190);
+  marcaLdH(ctx,W,H-52);
+}
+
+// PLANTILLA 2 — CITA elegante (serif arriba, escena abajo)
+async function composeCita(o,imgB64,isVertical){
+  var pc=postCanvas(isVertical),ctx=pc.x,W=pc.W,H=pc.H;
+  var img=await cargarImg(imgB64);
+  ctx.fillStyle='#050507';ctx.fillRect(0,0,W,H);
+  var imgY=H*0.46;
+  coverDraw(ctx,img,0,imgY,W,H-imgY);
+  var gT=ctx.createLinearGradient(0,imgY,0,imgY+220);
+  gT.addColorStop(0,'rgba(5,5,7,1)');gT.addColorStop(1,'rgba(5,5,7,0)');
+  ctx.fillStyle=gT;ctx.fillRect(0,imgY,W,220);
+  // comillas doradas
+  ctx.textAlign='left';
+  ctx.font='900 150px Georgia, serif';
+  ctx.fillStyle=POST_ORO;
+  ctx.fillText('\u201C',110,H*0.20);
+  // cita con arranque en negrita: se dibuja palabra por palabra centrando cada linea
+  var size=isVertical?66:62;
+  var maxW=W-220;
+  var palabras=[];
+  String(o.destacada||'').split(/\s+/).filter(Boolean).forEach(function(w){palabras.push({w:w,b:true});});
+  String(o.resto||'').split(/\s+/).filter(Boolean).forEach(function(w){palabras.push({w:w,b:false});});
+  function fuente(b){return (b?'700 ':'400 ')+size+'px Georgia, serif';}
+  while(size>40){
+    var lineasQ=[],cur=[],curW=0,esp;
+    ctx.font=fuente(false);esp=ctx.measureText(' ').width;
+    palabras.forEach(function(p){
+      ctx.font=fuente(p.b);
+      var pw=ctx.measureText(p.w).width;
+      if(curW+pw>maxW&&cur.length){lineasQ.push(cur);cur=[];curW=0;}
+      cur.push({w:p.w,b:p.b,pw:pw});curW+=pw+esp;
+    });
+    if(cur.length)lineasQ.push(cur);
+    if(lineasQ.length<=4)
+      {var yq=H*0.185;
+      lineasQ.forEach(function(ln){
+        var total=0;ln.forEach(function(p){total+=p.pw;});total+=esp*(ln.length-1);
+        var xq=(W-total)/2;
+        ln.forEach(function(p){
+          ctx.font=fuente(p.b);
+          ctx.fillStyle='#f5efe4';
+          ctx.fillText(p.w,xq,yq);
+          xq+=p.pw+esp;
+        });
+        yq+=size*1.35;
+      });
+      // arroba
+      ctx.textAlign='center';
+      ctx.font='400 30px Arial';
+      ctx.fillStyle='rgba(255,255,255,0.45)';
+      ctx.fillText('@legadodehierro',W/2,yq+8);
+      break;}
+    size-=4;
   }
-  // Marca discreta centrada abajo
-  ctx.font='700 26px Arial Black, Arial';
-  ctx.fillStyle='#b8975a';
-  ctx.fillText('⚔  L E G A D O  D E  H I E R R O',W/2,brandY);
-  ctx.textAlign='left'; // restaurar para cualquier otro dibujo
+  // firma de marca en dorado, italica, sobre la escena
+  ctx.textAlign='right';
+  ctx.font='italic 700 56px Georgia, serif';
+  ctx.fillStyle=POST_ORO;
+  ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=10;
+  ctx.fillText('Legado de Hierro',W-70,imgY+30);
+  ctx.shadowBlur=0;
+  ctx.textAlign='left';
+}
+
+// PLANTILLA 3 — LISTA de reglas (infografia, sin imagen de IA)
+function composeLista(o,isVertical){
+  var pc=postCanvas(isVertical),ctx=pc.x,W=pc.W,H=pc.H;
+  // fondo oscuro con textura sutil
+  ctx.fillStyle='#0a0e12';ctx.fillRect(0,0,W,H);
+  var vg=ctx.createRadialGradient(W/2,H*0.4,100,W/2,H*0.5,H*0.85);
+  vg.addColorStop(0,'rgba(30,40,45,0.35)');vg.addColorStop(1,'rgba(0,0,0,0.5)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  esquinasOro(ctx,W,H);
+  // titulo: linea 1 blanca, linea 2 DORADA y mas grande
+  ctx.textAlign='center';
+  var t1=String(o.titulo1||'').toUpperCase(),t2=String(o.titulo2||'').toUpperCase();
+  var s1=isVertical?58:52,s2=isVertical?86:76;
+  ctx.font='900 '+s1+'px Arial Black, Arial';
+  while(ctx.measureText(t1).width>W-260&&s1>34){s1-=3;ctx.font='900 '+s1+'px Arial Black, Arial';}
+  ctx.font='900 '+s2+'px Arial Black, Arial';
+  while(ctx.measureText(t2).width>W-160&&s2>44){s2-=3;ctx.font='900 '+s2+'px Arial Black, Arial';}
+  var ty=isVertical?108:96;
+  // adornos laterales del titulo
+  ctx.strokeStyle=POST_ORO;ctx.lineWidth=3;
+  ctx.font='900 '+s1+'px Arial Black, Arial';
+  var t1w=ctx.measureText(t1).width;
+  ctx.beginPath();ctx.moveTo(W/2-t1w/2-90,ty-s1*0.35);ctx.lineTo(W/2-t1w/2-20,ty-s1*0.35);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W/2+t1w/2+20,ty-s1*0.35);ctx.lineTo(W/2+t1w/2+90,ty-s1*0.35);ctx.stroke();
+  ctx.fillStyle='#ffffff';
+  ctx.fillText(t1,W/2,ty);
+  ctx.font='900 '+s2+'px Arial Black, Arial';
+  ctx.fillStyle=POST_ORO;
+  ctx.fillText(t2,W/2,ty+s2*1.02);
+  // items
+  var reglas=(o.reglas||FB_LISTA.reglas).slice(0,isVertical?7:5);
+  var topo=ty+s2*1.02+44;
+  var brandY=H-52;
+  var area=brandY-46-topo;
+  var itemH=area/reglas.length;
+  ctx.textAlign='left';
+  reglas.forEach(function(rg,i){
+    var cy=topo+i*itemH+itemH/2;
+    // emoji-icono
+    ctx.font=Math.round(Math.min(72,itemH*0.42))+'px Arial';
+    ctx.textAlign='center';
+    ctx.fillText(rg.e||'•',170,cy+18);
+    // numero en circulo dorado
+    ctx.beginPath();ctx.arc(300,cy-6,27,0,7);
+    ctx.strokeStyle=POST_ORO;ctx.lineWidth=3;ctx.stroke();
+    ctx.font='900 30px Arial Black, Arial';
+    ctx.fillStyle=POST_ORO;
+    ctx.fillText(String(i+1),300,cy+5);
+    // titulo + descripcion
+    ctx.textAlign='left';
+    var tx=360;
+    ctx.font='900 '+(isVertical?38:34)+'px Arial Black, Arial';
+    ctx.fillStyle='#ffffff';
+    ctx.fillText(String(rg.t||'').toUpperCase()+':',tx,cy-14);
+    ctx.font='400 '+(isVertical?30:27)+'px Arial';
+    ctx.fillStyle='rgba(255,255,255,0.82)';
+    ctx.fillText(String(rg.d1||''),tx,cy+26);
+    ctx.fillText(String(rg.d2||''),tx,cy+(isVertical?62:58));
+    // separador
+    if(i<reglas.length-1){
+      ctx.strokeStyle='rgba(217,180,106,0.5)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(280,topo+(i+1)*itemH);ctx.lineTo(W-90,topo+(i+1)*itemH);ctx.stroke();
+    }
+  });
+  marcaLdH(ctx,W,brandY);
+}
+
+// PLANTILLA 4 — COMPARACION (arriba lo correcto, abajo el error)
+async function composeComparacion(o,imgAB64,imgBB64,isVertical){
+  var pc=postCanvas(isVertical),ctx=pc.x,W=pc.W,H=pc.H;
+  var imgA=await cargarImg(imgAB64),imgB=await cargarImg(imgBB64);
+  ctx.fillStyle='#0b0d12';ctx.fillRect(0,0,W,H);
+  esquinasOro(ctx,W,H);
+  // titulo serif dorado de dos lineas
+  ctx.textAlign='center';
+  var ts=isVertical?64:56;
+  ctx.font='700 '+ts+'px Georgia, serif';
+  var t1=String(o.titulo1||''),t2=String(o.titulo2||'');
+  while((ctx.measureText(t1).width>W-140||ctx.measureText(t2).width>W-140)&&ts>36){ts-=3;ctx.font='700 '+ts+'px Georgia, serif';}
+  ctx.fillStyle=POST_ORO_CLARO;
+  ctx.fillText(t1,W/2,isVertical?96:84);
+  ctx.fillText(t2,W/2,(isVertical?96:84)+ts*1.12);
+  var topY=(isVertical?96:84)+ts*1.12+34;
+  var brandY=H-46;
+  // dos paneles con sus leyendas
+  var capH=isVertical?106:96; // espacio de leyenda por panel
+  var libre=brandY-24-topY;
+  var panelH=(libre-2*capH-26)/2;
+  function panel(img,y,caption,sub){
+    coverDraw(ctx,img,70,y,W-140,panelH);
+    ctx.strokeStyle='rgba(217,180,106,0.4)';ctx.lineWidth=2;
+    ctx.strokeRect(70,y,W-140,panelH);
+    ctx.textAlign='center';
+    ctx.font='700 '+(isVertical?48:42)+'px Georgia, serif';
+    ctx.fillStyle=POST_ORO_CLARO;
+    ctx.fillText(caption,W/2,y+panelH+(isVertical?52:46));
+    ctx.font='400 '+(isVertical?29:26)+'px Georgia, serif';
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    ctx.fillText('('+sub+')',W/2,y+panelH+(isVertical?92:82));
+  }
+  panel(imgA,topY,String(o.a_caption||''),String(o.a_sub||''));
+  // divisor
+  var divY=topY+panelH+capH+2;
+  ctx.strokeStyle='rgba(217,180,106,0.6)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(90,divY);ctx.lineTo(W-90,divY);ctx.stroke();
+  panel(imgB,divY+24,String(o.b_caption||''),String(o.b_sub||''));
+  marcaLdH(ctx,W,brandY);
 }
 
 function wrapText(ctx,text,maxW){
@@ -2643,6 +2882,10 @@ document.addEventListener('DOMContentLoaded',function(){
   Array.prototype.forEach.call(document.querySelectorAll('.musicPre'),function(pb){
     pb.addEventListener('click',function(){genMusic(pb.getAttribute('data-p'));});
   });
+  Array.prototype.forEach.call(document.querySelectorAll('.postTpl'),function(tb){
+    tb.addEventListener('click',function(){selPostTpl(tb.getAttribute('data-t'));});
+  });
+  selPostTpl(postTpl); // resaltar la plantilla inicial
   var msel=document.getElementById('musicSel');
   if(msel)msel.addEventListener('change',function(){
     try{localStorage.setItem('lh_music_sel',msel.value);}catch(e){}
