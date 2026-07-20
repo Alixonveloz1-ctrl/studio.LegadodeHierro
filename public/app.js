@@ -1946,7 +1946,7 @@ async function genMusic(){
   var style=inp?inp.value.trim():'';
   var orig=btn.textContent;
   btn.textContent='Componiendo...';btn.disabled=true;btn.style.opacity='.6';
-  if(st){st.style.display='block';st.textContent='Lyria está componiendo tu música'+(style?' ("'+style.slice(0,50)+'")':' (estilo épico del canal)')+'... 20-60 segundos.';}
+  if(st){st.style.display='block';st.textContent=(style?'Traduciendo "'+style.slice(0,50)+'" y componiendo con Lyria':'Lyria está componiendo (estilo épico del canal)')+'... 30-90 segundos.';}
   try{
     var r=await fetch('/api/music-gen',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({style:style})});

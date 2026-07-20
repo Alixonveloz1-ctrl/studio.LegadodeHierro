@@ -68,13 +68,49 @@ module.exports = async (req, res) => {
   const bucket = bucketEnv.replace('gs://', '').replace(/\/.*$/, '');
 
   const style = (req.body.style || '').trim().slice(0, 300);
-  const prompt = style ? style + ', instrumental background music, no vocals' : DEFAULT_STYLE;
 
   const url = 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
     '/locations/us-central1/publishers/google/models/' + MODEL + ':predict';
 
   try {
     const token = await getGCPToken();
+
+    // Lyria SOLO acepta ingles. La descripcion se escribe en español en la
+    // herramienta y aqui se traduce sola con Gemini antes de componer.
+    let prompt = DEFAULT_STYLE;
+    if (style) {
+      try {
+        const tr = await fetch('https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
+          '/locations/global/publishers/google/models/gemini-3.1-pro-preview:generateContent', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'X-Goog-User-Project': PROJECT_ID,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text:
+              'Translate this music style description into a short English prompt for a music generation AI. ' +
+              'If it is already in English, return it unchanged. Reply with ONLY the English description, no quotes, no extra text:\n\n' + style
+            }] }],
+            generationConfig: { maxOutputTokens: 500, temperature: 0.2, thinkingConfig: { thinkingLevel: 'LOW' } },
+          }),
+        });
+        const td = await tr.json();
+        const parts = td && td.candidates && td.candidates[0] && td.candidates[0].content && td.candidates[0].content.parts;
+        let translated = '';
+        if (parts) for (const p of parts) if (p && typeof p.text === 'string') translated += p.text;
+        translated = translated.trim().replace(/^["']|["']$/g, '');
+        if (tr.ok && translated && translated.length > 2) {
+          prompt = translated.slice(0, 300) + ', instrumental background music, no vocals';
+          console.log('[music-gen] estilo traducido: "' + style + '" -> "' + translated.slice(0, 120) + '"');
+        } else {
+          console.warn('[music-gen] traduccion fallo, se usa el estilo por defecto');
+        }
+      } catch (e) {
+        console.warn('[music-gen] traduccion fallo (' + e.message + '), se usa el estilo por defecto');
+      }
+    }
     const r = await fetch(url, {
       method: 'POST',
       headers: {
