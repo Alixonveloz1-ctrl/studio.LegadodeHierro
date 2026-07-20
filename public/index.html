@@ -440,7 +440,22 @@ section{margin-bottom:20px}
           <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button>
         </div>
         <div class="sbody">
-          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">Necesita: todos los videos de los clips generados + el Audio ES. El resultado es UN solo MP4 con la narración pegada — en CapCut solo agregas la música de fondo.</div>
+          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">Necesita: todos los videos de los clips generados + el Audio ES. El resultado es UN solo MP4 con la narración y la música de fondo ya mezcladas — listo para publicar.</div>
+          <div id="musicBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🎵 Música de fondo</div>
+            <label class="genLbl">Pista (se guarda en tu biblioteca para siempre)
+              <select id="musicSel" class="genSel"><option value="">Sin música</option></select>
+            </label>
+            <div style="display:flex;gap:8px;margin-top:9px;align-items:center;flex-wrap:wrap">
+              <input type="file" id="musicFile" accept="audio/*" style="font-size:11px;flex:1;min-width:150px">
+              <button class="cbtn" id="bMusicUp" style="border-color:#7a9ec4;color:#7a9ec4">⬆ Subir a la biblioteca</button>
+            </div>
+            <label class="voxLbl" style="margin-top:12px;margin-bottom:2px">Volumen de la música <span class="voxV" id="mVolV" style="color:#7a9ec4">18%</span>
+              <input type="range" id="mVol" class="voxR" min="0" max="50" step="1" value="18" style="accent-color:#7a9ec4">
+              <span class="voxH">18% es el nivel que usabas en CapCut. La narración siempre va al 100%.</span>
+            </label>
+            <div class="stxt" id="musicSt" style="margin-top:6px"></div>
+          </div>
           <div class="stxt" id="unifySt"></div>
           <div class="serr" id="unifyErr"></div>
           <div id="unifyRes" style="display:none"></div>

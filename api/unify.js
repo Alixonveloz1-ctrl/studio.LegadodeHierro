@@ -31,6 +31,16 @@ module.exports = async (req, res) => {
 
   const videos = Array.isArray(req.body.videos) ? req.body.videos : [];
   const audioParts = Array.isArray(req.body.audioParts) ? req.body.audioParts : [];
+  // Musica de fondo opcional: pista de la biblioteca (musica/...) + volumen (0-1).
+  let music = null;
+  if (req.body.music && typeof req.body.music.object === 'string') {
+    const obj = req.body.music.object;
+    if (obj.indexOf('musica/') === 0 && obj.indexOf('..') === -1 && obj.length < 200) {
+      let vol = Number(req.body.music.volume);
+      if (!isFinite(vol) || vol < 0 || vol > 1) vol = 0.18;
+      music = { object: obj, volume: vol };
+    }
+  }
 
   if (!videos.length) return res.status(400).json({ error: 'Faltan las URLs de los videos (videos[])' });
   if (videos.length > 10) return res.status(400).json({ error: 'Maximo 10 clips' });
@@ -59,7 +69,7 @@ module.exports = async (req, res) => {
         'Content-Type': 'application/json',
         'X-Unify-Key': UNIFY_KEY,
       },
-      body: JSON.stringify({ videos: videos, audioParts: audioParts }),
+      body: JSON.stringify({ videos: videos, audioParts: audioParts, music: music }),
     });
     const text = await r.text();
     let d = {};
@@ -69,7 +79,7 @@ module.exports = async (req, res) => {
       console.error('[unify] fallo al iniciar: ' + msg);
       return res.status(502).json({ error: msg });
     }
-    console.log('[unify] trabajo iniciado: ' + d.jobId + ' (' + videos.length + ' clips, ' + audioParts.length + ' partes de audio)');
+    console.log('[unify] trabajo iniciado: ' + d.jobId + ' (' + videos.length + ' clips, ' + audioParts.length + ' partes de audio' + (music ? ', musica: ' + music.object + ' al ' + Math.round(music.volume * 100) + '%' : ', sin musica') + ')');
     return res.json({ success: true, jobId: d.jobId });
   } catch (e) {
     console.error('[unify] excepcion: ' + e.message);

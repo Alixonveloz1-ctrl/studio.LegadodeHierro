@@ -1876,8 +1876,78 @@ async function genAllVideos(){
 // narracion encima y devuelve UN solo archivo final. En CapCut solo queda la musica.
 var finalVid=null; // {url, blob} del video final unificado
 
+// BIBLIOTECA DE MUSICA — las pistas se suben UNA vez a la carpeta musica/ del
+// bucket y quedan para siempre; en cada reel solo se elige cual va y a que
+// volumen (18% por defecto, el nivel que se usaba a mano en CapCut).
+var musicLoaded=false;
+
+function loadMusicList(){
+  var sel=document.getElementById('musicSel');if(!sel)return;
+  fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.tracks)return;
+      musicLoaded=true;
+      var saved='';
+      try{saved=localStorage.getItem('lh_music_sel')||'';}catch(e){}
+      sel.innerHTML='<option value="">Sin música</option>';
+      d.tracks.forEach(function(t){
+        var o=document.createElement('option');
+        o.value=t.object;o.textContent='🎵 '+t.name;
+        if(t.object===saved)o.selected=true;
+        sel.appendChild(o);
+      });
+    })
+    .catch(function(){/* sin conexion: el selector queda en "Sin música" */});
+}
+
+async function uploadMusic(){
+  var inp=document.getElementById('musicFile');
+  var st=document.getElementById('musicSt');
+  var btn=document.getElementById('bMusicUp');
+  if(!inp||!inp.files||!inp.files.length){alert('Primero elige el archivo de música (MP3).');return;}
+  var f=inp.files[0];
+  if(f.size>4*1024*1024){
+    if(st){st.style.display='block';st.textContent='Ese archivo pesa mas de 4MB. Usa un MP3 mas liviano (o recórtalo).';}
+    return;
+  }
+  var orig=btn.textContent;
+  btn.textContent='Subiendo...';btn.disabled=true;
+  if(st){st.style.display='block';st.textContent='Subiendo "'+f.name+'" a tu biblioteca...';}
+  try{
+    var b64=await new Promise(function(res,rej){
+      var rd=new FileReader();
+      rd.onloadend=function(){res(String(rd.result).split(',')[1]||'');};
+      rd.onerror=function(){rej(new Error('No se pudo leer el archivo'));};
+      rd.readAsDataURL(f);
+    });
+    var r=await fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'upload',name:f.name,b64:b64})});
+    var d=await r.json();
+    if(!r.ok||!d.object)throw new Error(d.error||'Error '+r.status);
+    if(st)st.textContent='"'+d.name+'" quedó guardada en tu biblioteca.';
+    inp.value='';
+    loadMusicList();
+    try{localStorage.setItem('lh_music_sel',d.object);}catch(e){}
+  }catch(e){
+    if(st)st.textContent='Error subiendo: '+(e.message||'sin conexión');
+  }finally{
+    btn.textContent=orig;btn.disabled=false;
+  }
+}
+
+function selectedMusic(){
+  var sel=document.getElementById('musicSel');
+  var vol=document.getElementById('mVol');
+  if(!sel||!sel.value)return null;
+  var v=vol?parseInt(vol.value,10)/100:0.18;
+  if(!isFinite(v)||v<0||v>1)v=0.18;
+  return {object:sel.value,volume:v};
+}
+
 function updUnifyCard(){
   var card=document.getElementById('unifyCard');if(!card)return;
+  if(!musicLoaded)loadMusicList();
   var sub=document.getElementById('unifySub');
   var total=imgs.filter(function(x){return x&&x.src;}).length;
   var listos=0;
@@ -1911,9 +1981,10 @@ async function unifyVideo(){
   er.style.display='none';box.style.display='none';
   st.style.display='block';st.textContent='Enviando trabajo al servicio de unificación...';
   try{
+    var music=selectedMusic();
     var r=await fetch('/api/unify',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({videos:urls,audioParts:audES.partsB64}),
+      body:JSON.stringify({videos:urls,audioParts:audES.partsB64,music:music}),
     });
     var d=await r.json().catch(function(){return{};});
     if(!r.ok||!d.jobId)throw new Error(d.error||'Error '+r.status);
@@ -1943,7 +2014,7 @@ async function unifyVideo(){
     var vb=await vr.blob();
     finalVid={url:URL.createObjectURL(vb),blob:vb};
     renderFinalVid();
-    st.textContent='Video final listo. En CapCut solo falta la música de fondo.';
+    st.textContent=music?'Video final listo, con narración y música mezcladas. Listo para publicar.':'Video final listo (sin música de fondo).';
     chkExport();
   }catch(e){
     st.style.display='none';
@@ -2358,6 +2429,22 @@ document.addEventListener('DOMContentLoaded',function(){
   if(bt)bt.addEventListener('click',genThumb);
   var bu=document.getElementById('bunify');
   if(bu)bu.addEventListener('click',unifyVideo);
+  var bmu=document.getElementById('bMusicUp');
+  if(bmu)bmu.addEventListener('click',uploadMusic);
+  var msel=document.getElementById('musicSel');
+  if(msel)msel.addEventListener('change',function(){
+    try{localStorage.setItem('lh_music_sel',msel.value);}catch(e){}
+  });
+  var mv=document.getElementById('mVol');
+  if(mv){
+    try{var sv=localStorage.getItem('lh_music_vol');if(sv!==null&&sv!=='')mv.value=sv;}catch(e){}
+    var mvv=document.getElementById('mVolV');
+    if(mvv)mvv.textContent=mv.value+'%';
+    mv.addEventListener('input',function(){
+      if(mvv)mvv.textContent=mv.value+'%';
+      try{localStorage.setItem('lh_music_vol',mv.value);}catch(e){}
+    });
+  }
   var btr=document.getElementById('bTrends');
   if(btr)btr.addEventListener('click',genTrends);
   document.getElementById('cpall').addEventListener('click',function(){

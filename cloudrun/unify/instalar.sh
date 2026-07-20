@@ -123,7 +123,7 @@ async function writeStatus(jobId, obj) {
     .save(JSON.stringify(obj), { contentType: 'application/json' });
 }
 
-async function processJob(jobId, videos, audioParts) {
+async function processJob(jobId, videos, audioParts, music) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'unify-'));
   try {
     // 1. Descargar clips y escribir las partes de audio
@@ -196,13 +196,35 @@ async function processJob(jobId, videos, audioParts) {
     const joined = path.join(dir, 'joined.mp4');
     await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', joined]);
 
-    // 7. Pegar la narracion encima
+    // 7. Pegar la narracion encima — y, si se pidio, la MUSICA DE FONDO debajo:
+    //    la pista se toma de la biblioteca del bucket (musica/...), se repite en
+    //    bucle si es mas corta que el video, y se mezcla al volumen indicado
+    //    (0.18 = el 18% que se usaba a mano en CapCut).
     const finalFile = path.join(dir, 'final.mp4');
-    await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull,
-      '-map', '0:v:0', '-map', '1:a:0',
-      '-c:v', 'copy', '-c:a', 'copy',
-      '-movflags', '+faststart', '-shortest', finalFile,
-    ]);
+    if (music && music.object) {
+      const musicFile = path.join(dir, 'musica' + path.extname(music.object || '.mp3'));
+      try {
+        await storage.bucket(BUCKET).file(music.object).download({ destination: musicFile });
+      } catch (e) {
+        throw new Error('No se pudo descargar la musica "' + music.object + '" del bucket: ' + e.message);
+      }
+      let vol = Number(music.volume);
+      if (!isFinite(vol) || vol < 0 || vol > 1) vol = 0.18;
+      await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull,
+        '-stream_loop', '-1', '-i', musicFile,
+        '-filter_complex',
+        '[2:a]volume=' + vol.toFixed(3) + '[m];[1:a][m]amix=inputs=2:duration=first:dropout_transition=3[a]',
+        '-map', '0:v:0', '-map', '[a]',
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+        '-movflags', '+faststart', '-shortest', finalFile,
+      ]);
+    } else {
+      await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull,
+        '-map', '0:v:0', '-map', '1:a:0',
+        '-c:v', 'copy', '-c:a', 'copy',
+        '-movflags', '+faststart', '-shortest', finalFile,
+      ]);
+    }
 
     // 8. Subir el resultado y marcar el trabajo como terminado
     const object = 'unify/' + jobId + '.mp4';
@@ -269,10 +291,19 @@ const server = http.createServer((req, res) => {
       res.statusCode = 400;
       return res.end(JSON.stringify({ error: 'Falta el audio de la narracion' }));
     }
+    // Musica opcional: {object: 'musica/xxx.mp3', volume: 0-1}. Solo se aceptan
+    // pistas de la carpeta musica/ del bucket (nunca rutas arbitrarias).
+    let music = null;
+    if (data.music && typeof data.music.object === 'string') {
+      const obj = data.music.object;
+      if (obj.indexOf('musica/') === 0 && obj.indexOf('..') === -1 && obj.length < 200) {
+        music = { object: obj, volume: data.music.volume };
+      }
+    }
     const jobId = 'job-' + crypto.randomBytes(10).toString('hex');
     // Responder YA y trabajar en segundo plano (requiere --no-cpu-throttling).
     res.end(JSON.stringify({ jobId: jobId }));
-    processJob(jobId, videos, audioParts);
+    processJob(jobId, videos, audioParts, music);
   });
 });
 

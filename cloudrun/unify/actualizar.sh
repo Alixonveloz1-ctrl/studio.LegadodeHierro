@@ -1,3 +1,61 @@
+#!/bin/bash
+# ==============================================================================
+#  ACTUALIZADOR DEL SERVICIO DE UNIFICACION - LEGADO DE HIERRO
+#  Para cuando el servicio YA esta instalado y solo hay que subirle una version
+#  nueva (por ejemplo, la mezcla de musica de fondo). CONSERVA la clave y el
+#  bucket que ya estan configurados: NO hay que tocar nada en Vercel despues.
+#  Copia TODO este archivo, pegalo en Cloud Shell y presiona Enter.
+# ==============================================================================
+set -e
+
+PROYECTO=$(gcloud config get-value project 2>/dev/null)
+if [ -z "$PROYECTO" ]; then
+  echo "No hay proyecto activo. Ejecuta primero:  gcloud config set project TU_PROYECTO"
+  exit 1
+fi
+REGION="us-central1"
+echo ""
+echo ">>> Proyecto: $PROYECTO | Region: $REGION"
+echo ">>> Actualizando el servicio legado-unify (5-8 minutos). No cierres la ventana."
+echo ""
+
+mkdir -p ~/legado-unify && cd ~/legado-unify
+
+cat > package.json <<'ARCHIVO_FIN'
+{
+  "name": "legado-unify",
+  "version": "1.0.0",
+  "description": "Une los clips de Veo, ajusta la velocidad al audio de ElevenLabs y entrega un solo video final",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.0.0"
+  }
+}
+ARCHIVO_FIN
+
+cat > Dockerfile <<'ARCHIVO_FIN'
+# Servicio legado-unify: Node 20 + ffmpeg (para medir, ajustar velocidad, unir y pegar audio)
+FROM node:20-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY package.json ./
+RUN npm install --omit=dev
+COPY index.js ./
+
+ENV NODE_ENV=production
+CMD ["node", "index.js"]
+ARCHIVO_FIN
+
+cat > index.js <<'ARCHIVO_FIN'
 // Servicio de unificacion de video + audio — LEGADO DE HIERRO (punto 4 del plan).
 // Corre en Cloud Run, en el mismo proyecto de Google Cloud que todo lo demas.
 //
@@ -251,3 +309,16 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => console.log('legado-unify escuchando en ' + PORT + ' (bucket: ' + BUCKET + ')'));
+ARCHIVO_FIN
+
+# Sin banderas de variables: el despliegue conserva BUCKET y UNIFY_KEY actuales.
+gcloud run deploy legado-unify \
+  --source . \
+  --region "$REGION" \
+  --quiet
+
+echo ""
+echo "=================================================================="
+echo "  LISTO. Servicio actualizado. La clave y el bucket se conservaron:"
+echo "  NO hay que cambiar nada en Vercel."
+echo "=================================================================="
