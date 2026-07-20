@@ -8,6 +8,7 @@
     "api/trends.js": { "maxDuration": 60 },
     "api/unify.js": { "maxDuration": 60 },
     "api/unify-status.js": { "maxDuration": 30 },
-    "api/music.js": { "maxDuration": 30 }
+    "api/music.js": { "maxDuration": 30 },
+    "api/music-gen.js": { "maxDuration": 60 }
   }
 }

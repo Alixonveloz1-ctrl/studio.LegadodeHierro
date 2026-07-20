@@ -1936,6 +1936,32 @@ async function uploadMusic(){
   }
 }
 
+// Genera una pista nueva con Lyria (IA de musica de Google) segun el estilo
+// descrito. Queda guardada en la biblioteca y seleccionada para la unificacion.
+async function genMusic(){
+  var inp=document.getElementById('musicPrompt');
+  var st=document.getElementById('musicSt');
+  var btn=document.getElementById('bMusicGen');
+  var style=inp?inp.value.trim():'';
+  var orig=btn.textContent;
+  btn.textContent='Componiendo...';btn.disabled=true;btn.style.opacity='.6';
+  if(st){st.style.display='block';st.textContent='Lyria está componiendo tu música'+(style?' ("'+style.slice(0,50)+'")':' (estilo épico del canal)')+'... 20-60 segundos.';}
+  try{
+    var r=await fetch('/api/music-gen',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({style:style})});
+    var d=await r.json().catch(function(){return{};});
+    if(!r.ok||!d.object)throw new Error(d.error||'Error '+r.status);
+    try{localStorage.setItem('lh_music_sel',d.object);}catch(e){}
+    loadMusicList();
+    if(st)st.textContent='🎼 "'+d.name+'" lista, guardada en tu biblioteca y seleccionada para este video.';
+    cost+=0.06;updCost();
+  }catch(e){
+    if(st)st.textContent='Error generando música: '+(e.message||'sin conexión');
+  }finally{
+    btn.textContent=orig;btn.disabled=false;btn.style.opacity='1';
+  }
+}
+
 function selectedMusic(){
   var sel=document.getElementById('musicSel');
   var vol=document.getElementById('mVol');
@@ -2431,6 +2457,8 @@ document.addEventListener('DOMContentLoaded',function(){
   if(bu)bu.addEventListener('click',unifyVideo);
   var bmu=document.getElementById('bMusicUp');
   if(bmu)bmu.addEventListener('click',uploadMusic);
+  var bmg=document.getElementById('bMusicGen');
+  if(bmg)bmg.addEventListener('click',genMusic);
   var msel=document.getElementById('musicSel');
   if(msel)msel.addEventListener('change',function(){
     try{localStorage.setItem('lh_music_sel',msel.value);}catch(e){}
