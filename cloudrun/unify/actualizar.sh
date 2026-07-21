@@ -1,18 +1,19 @@
 #!/bin/bash
 # ==============================================================================
 #  ACTUALIZADOR DEL SERVICIO DE UNIFICACION - LEGADO DE HIERRO
-#  Para cuando el servicio YA esta instalado y solo hay que subirle una version
-#  nueva. CONSERVA la clave y el bucket que ya estan configurados: NO hay que
-#  tocar nada en Vercel despues.
+#  El servicio YA esta instalado; esto solo le sube la version nueva.
+#  CONSERVA la clave y el bucket: NO hay que tocar nada en Vercel.
 #  Copia TODO este archivo, pegalo en Cloud Shell y presiona Enter.
 # ==============================================================================
 set -e
 
+# El proyecto se fija aqui mismo: si ya hay uno activo se respeta, si no, se pone
+# el de Legado de Hierro. Asi el script funciona en cualquier terminal.
 PROYECTO=$(gcloud config get-value project 2>/dev/null)
-if [ -z "$PROYECTO" ]; then
-  echo "No hay proyecto activo. Ejecuta primero:  gcloud config set project TU_PROYECTO"
-  exit 1
+if [ -z "$PROYECTO" ] || [ "$PROYECTO" = "(unset)" ]; then
+  PROYECTO="creaciondecontenido1"
 fi
+gcloud config set project "$PROYECTO" >/dev/null 2>&1 || true
 REGION="us-central1"
 echo ""
 echo ">>> Proyecto: $PROYECTO | Region: $REGION"
@@ -347,11 +348,7 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => console.log('legado-unify escuchando en ' + PORT + ' (bucket: ' + BUCKET + ')'));
 ARCHIVO_FIN
 
-# Sin banderas de variables: el despliegue conserva BUCKET y UNIFY_KEY actuales.
-gcloud run deploy legado-unify \\
-  --source . \\
-  --region "$REGION" \\
-  --quiet
+gcloud run deploy legado-unify --source . --project "$PROYECTO" --region "$REGION" --quiet
 
 echo ""
 echo "=================================================================="

@@ -6,11 +6,13 @@
 # ==============================================================================
 set -e
 
+# El proyecto se fija aqui mismo: si ya hay uno activo se respeta, si no, se pone
+# el de Legado de Hierro. Asi el script funciona en cualquier terminal.
 PROYECTO=$(gcloud config get-value project 2>/dev/null)
-if [ -z "$PROYECTO" ]; then
-  echo "No hay proyecto activo. Ejecuta primero:  gcloud config set project TU_PROYECTO"
-  exit 1
+if [ -z "$PROYECTO" ] || [ "$PROYECTO" = "(unset)" ]; then
+  PROYECTO="creaciondecontenido1"
 fi
+gcloud config set project "$PROYECTO" >/dev/null 2>&1 || true
 REGION="us-central1"
 BUCKET="creancion-de-contenido"
 echo ""
@@ -346,31 +348,19 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => console.log('legado-unify escuchando en ' + PORT + ' (bucket: ' + BUCKET + ')'));
 ARCHIVO_FIN
 
-# Clave secreta que solo conoceran Vercel y este servicio (se genera sola)
 CLAVE=$(openssl rand -hex 24)
 
-echo ">>> Activando los servicios necesarios (si pregunta, ya esta respondido)..."
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --quiet
+echo ">>> Activando los servicios necesarios..."
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project "$PROYECTO" --quiet
 
 echo ">>> Desplegando el servicio legado-unify en Cloud Run..."
-gcloud run deploy legado-unify \\
-  --source . \\
-  --region "$REGION" \\
-  --allow-unauthenticated \\
-  --memory 2Gi --cpu 2 \\
-  --timeout 600 \\
-  --no-cpu-throttling \\
-  --min-instances 0 --max-instances 2 \\
-  --set-env-vars "BUCKET=$BUCKET,UNIFY_KEY=$CLAVE" \\
-  --quiet
+gcloud run deploy legado-unify --source . --project "$PROYECTO" --region "$REGION" --allow-unauthenticated --memory 2Gi --cpu 2 --timeout 600 --no-cpu-throttling --min-instances 0 --max-instances 2 --set-env-vars "BUCKET=$BUCKET,UNIFY_KEY=$CLAVE" --quiet
 
-URL=$(gcloud run services describe legado-unify --region "$REGION" --format='value(status.url)')
+URL=$(gcloud run services describe legado-unify --project "$PROYECTO" --region "$REGION" --format='value(status.url)')
 
 echo ">>> Dando permiso al servicio para guardar el video final en el bucket..."
 PROJECT_NUMBER=$(gcloud projects describe "$PROYECTO" --format='value(projectNumber)')
-gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" \\
-  --member="serviceAccount:${{PROJECT_NUMBER}}-compute@developer.gserviceaccount.com" \\
-  --role="roles/storage.objectAdmin" --quiet >/dev/null
+gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" --member="serviceAccount:${{PROJECT_NUMBER}}-compute@developer.gserviceaccount.com" --role="roles/storage.objectAdmin" --quiet >/dev/null
 
 echo ""
 echo "=================================================================="
