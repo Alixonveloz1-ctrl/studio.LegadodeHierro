@@ -2820,6 +2820,37 @@ function wrapText(ctx,text,maxW){
 // replicables. No usa lo que el modelo "recuerda": usa resultados actuales de internet.
 var TREND_IDEAS=[]; // los 5 conceptos que salieron de la ultima investigacion
 
+// Generar UN SOLO reel de un concepto de la investigacion (boton chiquito de su
+// tarjeta), respetando el modo y la duracion elegidos para ESE concepto.
+async function genTrendOne(i){
+  if(loading||batchLoading)return;
+  var it=TREND_IDEAS[i];if(!it)return;
+  var ms=document.getElementById('trendMode-'+i);
+  var ds=document.getElementById('trendDur-'+i);
+  var mode=ms?ms.value:'reel';
+  var d=mode==='impacto'?'30':(ds?ds.value:'60');
+  var btn=document.getElementById('bTrendOne-'+i);
+  var orig=btn?btn.innerHTML:'';
+  loading=true;updGBtn();hideErr();
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin" style="border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span> Forjando...';}
+  try{
+    applySelection(mode,it.t,d,it.h);
+    document.getElementById('conc').value=it.concept;updCC();updGBtn();
+    var built=buildEpisodeMsg(it.concept,it.t,it.h,mode,d);
+    var p=await fetchEpisode(built.msg);
+    lastRes=Object.assign({},p,{topic:it.concept,tO:built.tO,dO:built.dO,hO:built.hO,modo:mode,uid:nextUid()});
+    genCount++;cost+=0.015;updCost();
+    resetReelAssets();
+    saveHistory(lastRes);
+    renderOut(lastRes);
+  }catch(e){
+    showErr(e.message||'Error de conexion.');
+  }finally{
+    loading=false;updGBtn();
+    if(btn){btn.disabled=false;btn.innerHTML=orig;}
+  }
+}
+
 async function genTrends(){
   var btn=document.getElementById('bTrends');
   var st=document.getElementById('trendSt');
@@ -2861,10 +2892,12 @@ async function genTrends(){
             +'<option value="30"'+((isImp||defDurs[i]==='30')?' selected':'')+'>30 segundos</option>'
             +'<option value="60"'+(!isImp&&defDurs[i]==='60'?' selected':'')+'>60 segundos</option>'
           +'</select></label>'
-          +'</div></div>';
+          +'</div>'
+          +'<button id="bTrendOne-'+i+'" style="width:100%;margin-top:8px;background:#fff;border:1.5px solid var(--gold);color:var(--gold);border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar solo este</button>'
+          +'</div>';
       });
-      html+='<button id="bTrendBatch" style="width:100%;margin-top:6px;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar lote de 5 guiones con estos conceptos</button>'
-        +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">Un guion por concepto, con el modo y la duración que elegiste arriba, generados uno tras otro (en orden, sin saturar los límites).</div></div>';
+      html+='<button id="bTrendBatch" style="width:100%;margin-top:6px;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar los 5 a la vez (lote)</button>'
+        +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">Cada tarjeta tiene su botón para generar solo ese reel; o usa el botón dorado para los 5 de una, uno tras otro (en orden).</div></div>';
     }else{
       html+='<div style="margin-top:10px;font-size:11px;color:var(--tx3)">La investigación no trajo conceptos en formato usable esta vez. Vuelve a intentar con 🔎.</div>';
     }
@@ -2884,6 +2917,8 @@ async function genTrends(){
         if(ms.value==='impacto'){ds.value='30';ds.disabled=true;}
         else{ds.disabled=false;}
       });
+      var b1=document.getElementById('bTrendOne-'+i);
+      if(b1)b1.addEventListener('click',function(){genTrendOne(i);});
     });
     var bb=document.getElementById('bTrendBatch');
     if(bb)bb.addEventListener('click',function(){
