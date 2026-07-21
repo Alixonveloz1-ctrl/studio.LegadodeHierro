@@ -2861,7 +2861,15 @@ async function genTrends(){
   st.style.display='block';st.textContent='Buscando en Google qué está funcionando ahora en el nicho... (30-60 segundos)';
   er.style.display='none';
   try{
-    var r=await fetch('/api/trends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    // Se le mandan los conceptos recientes (historial + la busqueda anterior) para que
+    // NO repita: cada investigacion trae temas nuevos, no siempre los mismos cinco.
+    var avoid=[];
+    try{
+      getHistory().forEach(function(x){if(x&&x.topic)avoid.push(x.topic);});
+      TREND_IDEAS.forEach(function(x){if(x&&x.concept)avoid.push(x.concept);});
+    }catch(e){}
+    avoid=avoid.slice(0,20);
+    var r=await fetch('/api/trends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({avoid:avoid})});
     var d=await r.json().catch(function(){return{};});
     if(!r.ok||!d.text)throw new Error(d.error||'Error '+r.status);
     // Los conceptos vienen al final en lineas pilar|gancho|concepto: se separan
