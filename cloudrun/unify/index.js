@@ -12,6 +12,12 @@
 //   5. Une los clips ya ajustados en orden y les pega la narracion encima.
 //   6. Sube el MP4 final al bucket y escribe unify/<jobId>.json con el estado.
 //
+// CALIDAD DE AUDIO: la narracion se mantiene en WAV sin perdida durante todo el
+// proceso y solo se codifica a AAC UNA vez al final (256k). La voz al 100% y la
+// musica al volumen elegido se suman con amix normalize=0 (sin bajar la voz a la
+// mitad) y un alimiter evita saturacion. Las costuras entre partes MP3 y el loop
+// de la musica van sin "clicks".
+//
 // DISEÑO ANTI-PUNTO-CIEGO: este servicio NUNCA "se cae en silencio". Cualquier
 // error se captura y se escribe como mensaje claro en unify/<jobId>.json, que
 // Vercel lee y registra en SUS logs — los errores siempre se pueden leer desde
@@ -83,18 +89,33 @@ async function processJob(jobId, videos, audioParts, music) {
       partFiles.push(f);
     }
 
-    // 2. Unir las partes de audio en una sola pista AAC
-    const audioFull = path.join(dir, 'narracion.m4a');
+    // 2. Construir la narracion como WAV SIN PERDIDA (nunca AAC intermedio).
+    //    La voz de ElevenLabs solo se codifica una vez (el AAC final del paso 7);
+    //    asi no se apila la degradacion de re-codificar en cada paso.
+    //    Todo a 48000 Hz estereo. Con varias partes, las costuras se unen con un
+    //    crossfade corto que elimina el "click" (priming del MP3) entre partes.
+    const audioFull = path.join(dir, 'narracion.wav');
     if (partFiles.length === 1) {
-      await run('ffmpeg', ['-y', '-i', partFiles[0], '-c:a', 'aac', '-b:a', '192k', audioFull]);
+      await run('ffmpeg', ['-y', '-i', partFiles[0],
+        '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', audioFull]);
     } else {
       const inputs = [];
       partFiles.forEach(f => inputs.push('-i', f));
-      const n = partFiles.length;
-      const filterIn = partFiles.map((_, i) => '[' + i + ':a]').join('');
+      let fc = '';
+      partFiles.forEach((_, i) => {
+        // cada parte a 48k estereo antes de empalmar (evita colapso a mono)
+        fc += '[' + i + ':a]aresample=48000,aformat=channel_layouts=stereo[a' + i + '];';
+      });
+      let prev = '[a0]';
+      for (let i = 1; i < partFiles.length; i++) {
+        const out = (i === partFiles.length - 1) ? '[mix]' : '[x' + i + ']';
+        fc += prev + '[a' + i + ']acrossfade=d=0.05:c1=tri:c2=tri' + out + ';';
+        prev = out;
+      }
+      fc = fc.replace(/;$/, '');
       await run('ffmpeg', ['-y'].concat(inputs, [
-        '-filter_complex', filterIn + 'concat=n=' + n + ':v=0:a=1[a]',
-        '-map', '[a]', '-c:a', 'aac', '-b:a', '192k', audioFull,
+        '-filter_complex', fc,
+        '-map', '[mix]', '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', audioFull,
       ]));
     }
 
@@ -139,34 +160,47 @@ async function processJob(jobId, videos, audioParts, music) {
     const joined = path.join(dir, 'joined.mp4');
     await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', joined]);
 
-    // 7. Pegar la narracion encima — y, si se pidio, la MUSICA DE FONDO debajo:
-    //    la pista se toma de la biblioteca del bucket (musica/...), se repite en
-    //    bucle si es mas corta que el video, y se mezcla al volumen indicado
-    //    (0.18 = el 18% que se usaba a mano en CapCut).
+    // 7. Pegar la narracion encima — y, si se pidio, la MUSICA DE FONDO debajo.
+    //    Codificacion AAC UNA sola vez (256k), a partir del WAV sin perdida.
     const finalFile = path.join(dir, 'final.mp4');
+    // Ajustes de codec de audio compartidos por ambos caminos: un solo encode AAC-LC 256k.
+    const AAC = ['-c:a', 'aac', '-b:a', '256k', '-profile:a', 'aac_low', '-ar', '48000', '-ac', '2'];
     if (music && music.object) {
-      const musicFile = path.join(dir, 'musica' + path.extname(music.object || '.mp3'));
+      const musicSrc = path.join(dir, 'music_src' + path.extname(music.object || '.mp3'));
       try {
-        await storage.bucket(BUCKET).file(music.object).download({ destination: musicFile });
+        await storage.bucket(BUCKET).file(music.object).download({ destination: musicSrc });
       } catch (e) {
         throw new Error('No se pudo descargar la musica "' + music.object + '" del bucket: ' + e.message);
       }
       let vol = Number(music.volume);
       if (!isFinite(vol) || vol < 0 || vol > 1) vol = 0.18;
+      // Pre: musica -> WAV 48k estereo. Al ser PCM, el loop (-stream_loop) ya no
+      // reinserta el priming del MP3 que causaba un "pop" en cada vuelta.
+      const musicLoop = path.join(dir, 'music_loop.wav');
+      await run('ffmpeg', ['-y', '-i', musicSrc,
+        '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', musicLoop]);
+      // Mezcla: voz al 100% + musica a VOL. amix normalize=0 evita que la voz se
+      // baje a la mitad; alimiter (-1 dBFS, con lookahead) impide cualquier
+      // recorte por picos SIN el escalon del hard-clip => sin distorsion ni clicks.
+      const fc =
+        '[1:a]aformat=sample_fmts=fltp:channel_layouts=stereo,volume=1.0[nar];' +
+        '[2:a]aformat=sample_fmts=fltp:channel_layouts=stereo,volume=' + vol.toFixed(3) + '[mus];' +
+        '[nar][mus]amix=inputs=2:duration=first:normalize=0:dropout_transition=0[premix];' +
+        '[premix]alimiter=level=0:limit=0.891:attack=5:release=50:asc=1[a]';
       await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull,
-        '-stream_loop', '-1', '-i', musicFile,
-        '-filter_complex',
-        '[2:a]volume=' + vol.toFixed(3) + '[m];[1:a][m]amix=inputs=2:duration=first:dropout_transition=3[a]',
+        '-stream_loop', '-1', '-i', musicLoop,
+        '-filter_complex', fc,
         '-map', '0:v:0', '-map', '[a]',
-        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+        '-c:v', 'copy'].concat(AAC, [
         '-movflags', '+faststart', '-shortest', finalFile,
-      ]);
+      ]));
     } else {
+      // Sin musica: video + narracion WAV -> UN encode AAC 256k (antes eran 2 encodes).
       await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull,
         '-map', '0:v:0', '-map', '1:a:0',
-        '-c:v', 'copy', '-c:a', 'copy',
+        '-c:v', 'copy'].concat(AAC, [
         '-movflags', '+faststart', '-shortest', finalFile,
-      ]);
+      ]));
     }
 
     // 8. Subir el resultado y marcar el trabajo como terminado

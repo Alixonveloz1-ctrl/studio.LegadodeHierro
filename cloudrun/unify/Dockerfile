@@ -1,5 +1,7 @@
 # Servicio legado-unify: Node 20 + ffmpeg (para medir, ajustar velocidad, unir y pegar audio)
-FROM node:20-slim
+# Base fijada a bookworm (Debian 12): garantiza ffmpeg 5.1+, con soporte de
+# amix normalize=0, acrossfade y alimiter que usa el pipeline de audio.
+FROM node:20-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
   && rm -rf /var/lib/apt/lists/*
