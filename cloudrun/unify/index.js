@@ -174,11 +174,50 @@ async function processJob(jobId, videos, audioParts, music) {
       }
       let vol = Number(music.volume);
       if (!isFinite(vol) || vol < 0 || vol > 1) vol = 0.18;
-      // Pre: musica -> WAV 48k estereo. Al ser PCM, el loop (-stream_loop) ya no
-      // reinserta el priming del MP3 que causaba un "pop" en cada vuelta.
-      const musicLoop = path.join(dir, 'music_loop.wav');
+      // Pre: musica -> WAV 48k estereo (PCM, sin perdida).
+      const musicWav = path.join(dir, 'music_wav.wav');
       await run('ffmpeg', ['-y', '-i', musicSrc,
-        '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', musicLoop]);
+        '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', musicWav]);
+
+      // CAMA DE MUSICA SIN COSTURA. Antes se repetia con -stream_loop, que pega
+      // copia tras copia: en cada vuelta el final chocaba de golpe con el inicio y
+      // se oia un corte seco. Ahora se mide la narracion y se arma la musica al
+      // largo justo, uniendo cada repeticion con un CROSSFADE (fundido cruzado),
+      // asi nunca hay un corte. Al final, un fundido de salida para que no se corte
+      // en seco cuando termina el video.
+      const narDur = await probeDuration(audioFull);
+      const musDur = await probeDuration(musicWav);
+      const musicBed = path.join(dir, 'music_bed.wav');
+      const X = Math.min(2, Math.max(0.5, musDur / 3)); // segundos de crossfade
+      const need = narDur + 1.0;                        // cubrir todo el video con margen
+      const fadeOutD = Math.min(1.5, musDur / 2);
+      const fadeStart = Math.max(0, narDur - fadeOutD);
+      const fadeOut = 'afade=t=out:st=' + fadeStart.toFixed(2) + ':d=' + fadeOutD.toFixed(2);
+
+      if (musDur >= need) {
+        // La pista ya cubre todo el video: no hace falta repetir (cero costuras).
+        await run('ffmpeg', ['-y', '-i', musicWav, '-af', fadeOut,
+          '-c:a', 'pcm_s16le', musicBed]);
+      } else {
+        // Repetir con crossfade en cada union. Cada copia extra aporta (musDur - X).
+        const per = musDur - X;
+        let copies = Math.ceil((need - musDur) / per) + 1;
+        if (copies < 2) copies = 2;
+        if (copies > 12) copies = 12; // tope de seguridad
+        const inputs = [];
+        for (let i = 0; i < copies; i++) inputs.push('-i', musicWav);
+        let fc = '';
+        let prev = '[0:a]';
+        for (let i = 1; i < copies; i++) {
+          const out = (i === copies - 1) ? '[xf]' : ('[m' + i + ']');
+          fc += prev + '[' + i + ':a]acrossfade=d=' + X.toFixed(2) + ':c1=tri:c2=tri' + out + ';';
+          prev = out;
+        }
+        fc += prev + fadeOut + '[bed]';
+        await run('ffmpeg', ['-y'].concat(inputs, [
+          '-filter_complex', fc, '-map', '[bed]', '-c:a', 'pcm_s16le', musicBed]));
+      }
+
       // Mezcla: voz al 100% + musica a VOL. amix normalize=0 evita que la voz se
       // baje a la mitad; alimiter (-1 dBFS, con lookahead) impide cualquier
       // recorte por picos SIN el escalon del hard-clip => sin distorsion ni clicks.
@@ -187,8 +226,7 @@ async function processJob(jobId, videos, audioParts, music) {
         '[2:a]aformat=sample_fmts=fltp:channel_layouts=stereo,volume=' + vol.toFixed(3) + '[mus];' +
         '[nar][mus]amix=inputs=2:duration=first:normalize=0:dropout_transition=0[premix];' +
         '[premix]alimiter=level=0:limit=0.891:attack=5:release=50:asc=1[a]';
-      await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull,
-        '-stream_loop', '-1', '-i', musicLoop,
+      await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull, '-i', musicBed,
         '-filter_complex', fc,
         '-map', '0:v:0', '-map', '[a]',
         '-c:v', 'copy'].concat(AAC, [
