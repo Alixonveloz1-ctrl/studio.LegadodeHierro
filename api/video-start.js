@@ -24,7 +24,12 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-app-key');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (!checkAuth(req, res)) return;
+  // Puerta de seguridad en linea (este archivo es ESM: no usa require). Si APP_KEY
+  // esta configurada, exige la cabecera x-app-key; sin APP_KEY queda abierto.
+  const APP_KEY = process.env.APP_KEY || '';
+  if (APP_KEY && (req.headers['x-app-key'] || '') !== APP_KEY) {
+    return res.status(401).json({ error: 'No autorizado. Vuelve a entrar con tu contrasena.' });
+  }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
