@@ -446,11 +446,10 @@ function switchTab(t){
 }
 
 function doLogin(){
-  var u=document.getElementById('lu').value.trim();
   var p=document.getElementById('lp').value;
   var e=document.getElementById('le');
   e.style.display='none';
-  if(!u||!p){e.textContent='Completa todos los campos';e.style.display='block';return;}
+  if(!p){e.textContent='Escribe tu contrasena de acceso';e.style.display='block';return;}
   var btn=document.getElementById('lbtn');
   var oTxt=btn?btn.textContent:'';
   if(btn){btn.disabled=true;btn.textContent='Verificando...';}
@@ -464,7 +463,7 @@ function doLogin(){
       if(res.status===200){
         try{localStorage.setItem('lh_key',p);}catch(_){}
         ANT=HARDCODED_ANT;EL=HARDCODED_EL;VOICE=HARDCODED_VOICE;NB=HARDCODED_NB;
-        localStorage.setItem('lh_sess',u);
+        localStorage.setItem('lh_sess','1');
         showApp();
       }else{
         e.textContent='Contrasena incorrecta';e.style.display='block';
@@ -498,6 +497,7 @@ function doRegister(){
 
 function logout(){
   localStorage.removeItem('lh_sess');
+  localStorage.removeItem('lh_key');
   ANT='';EL='';NB='';
   document.getElementById('pg-app').classList.remove('on');
   document.getElementById('pg-login').classList.add('on');
@@ -3090,7 +3090,6 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   document.getElementById('expbtn').addEventListener('click',exportAll);
   document.getElementById('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-  document.getElementById('rp2').addEventListener('keydown',function(e){if(e.key==='Enter')doRegister();});
   // Restaurar sesion: basta con haber iniciado antes. Si el candado (APP_KEY) esta
   // activo y la llave guardada ya no sirve, la primera llamada al API devuelve 401
   // y el interceptor manda de vuelta al login. Asi no dependemos del usuario local.

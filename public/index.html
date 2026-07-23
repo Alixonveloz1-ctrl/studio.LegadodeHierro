@@ -160,26 +160,12 @@ section{margin-bottom:20px}
       <div class="lhdr-sub">Sistema de Producción · Facebook Reels</div>
     </div>
     <div class="lbody">
-      <div class="ltabs">
-        <button class="ltab on" id="tl" onclick="switchTab('login')">Iniciar Sesión</button>
-        <button class="ltab" id="tr" onclick="switchTab('reg')">Registrarse</button>
-      </div>
       <div id="fl">
-        <div class="fg"><label class="fl">Usuario</label><input class="fi" id="lu" type="text" placeholder="tu_usuario" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-        <div class="fg"><label class="fl">Contraseña</label><input class="fi" id="lp" type="password" placeholder="••••••••"></div>
+        <div class="fg"><label class="fl">Contraseña de acceso</label><input class="fi" id="lp" type="password" placeholder="••••••••" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
         <button class="lbtn" id="lbtn" onclick="doLogin()">⚔ Entrar</button>
         <div class="lerr" id="le"></div>
       </div>
-      <div id="fr" style="display:none">
-        <div class="fg"><label class="fl">Código de Acceso</label><input class="fi" id="rac" type="password" placeholder="Código proporcionado por el admin" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-        <div class="fg"><label class="fl">Usuario</label><input class="fi" id="ru" type="text" placeholder="elige_un_usuario" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-        <div class="fg"><label class="fl">Contraseña</label><input class="fi" id="rp" type="password" placeholder="mínimo 6 caracteres"></div>
-        <div class="fg"><label class="fl">Confirmar contraseña</label><input class="fi" id="rp2" type="password" placeholder="repite la contraseña"></div>
-        <button class="lbtn" onclick="doRegister()">Crear Cuenta</button>
-        <div class="lerr" id="re"></div>
-        <div class="lok" id="ro"></div>
-      </div>
-      <div class="lhelp">Tus claves se guardan en este dispositivo de forma segura. <strong style="color:#b8975a">Nota:</strong> cada navegador (Safari, Chrome) necesita su propio registro — son almacenes separados.</div>
+      <div class="lhelp">Una sola contraseña protege tus créditos. Se verifica en el servidor (la variable <strong style="color:#b8975a">APP_KEY</strong> de Vercel), no en el navegador. Escríbela una vez y queda guardada en este dispositivo.</div>
     </div>
     <div class="lft">legadodehierro.com · Ejecuta. Calla. Domina.</div>
   </div>
@@ -510,6 +496,6 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/app.js"></script>
+<script src="/app.js?v=seguridad1"></script>
 </body>
 </html>
