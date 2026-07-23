@@ -63,11 +63,14 @@ function endpointFor(model, projectId) {
     '/locations/us-central1/publishers/google/models/' + model + ':generateContent';
 }
 
+const { checkAuth } = require('./_auth');
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-app-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!checkAuth(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (typeof req.body === 'string') {

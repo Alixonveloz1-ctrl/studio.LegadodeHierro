@@ -52,11 +52,14 @@ const PRESETS = {
 // Lo que NUNCA debe sonar: voces ni sonido de videojuego retro (chiptune/8-bit).
 const NEGATIVE = 'vocals, singing, voice, spoken word, 8-bit, chiptune, video game music, arcade sounds, retro console, bleeps and bloops, cheap MIDI, lo-fi bitcrushed, low quality';
 
+const { checkAuth } = require('./_auth');
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-app-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!checkAuth(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (typeof req.body === 'string') {

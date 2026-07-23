@@ -80,11 +80,17 @@ export default async function handler(req) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, x-app-key',
     'Content-Type': 'application/json',
   };
 
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  // Puerta de seguridad (runtime edge): si APP_KEY esta configurada, exige la
+  // cabecera x-app-key. Sin APP_KEY, queda abierto (nunca te bloquea por accidente).
+  const APP_KEY = process.env.APP_KEY || '';
+  if (APP_KEY && req.headers.get('x-app-key') !== APP_KEY) {
+    return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: corsHeaders });
+  }
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders });
   }

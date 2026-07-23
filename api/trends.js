@@ -107,11 +107,14 @@ function buildPrompt(avoid) {
     + 'Los 5 conceptos deben ser DIFERENTES entre sí, de pilares variados (máximo 2 del mismo pilar), específicos y frescos (nada de clichés repetidos), máximo 15 palabras cada uno, en español impecable con tildes.';
 }
 
+const { checkAuth } = require('./_auth');
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-app-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!checkAuth(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!process.env.GCP_SERVICE_ACCOUNT) {

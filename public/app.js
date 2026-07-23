@@ -1,3 +1,38 @@
+// ============================================================================
+//  SEGURIDAD: llave de la app. Se guarda en el navegador (lh_key) al iniciar
+//  sesion y se adjunta en la cabecera x-app-key a TODA llamada a /api/. El
+//  servidor la compara con APP_KEY (variable de Vercel). Asi nadie que no tenga
+//  la contrasena puede gastar tus creditos. Un solo lugar cubre las 20+ llamadas.
+// ============================================================================
+function forceRelogin(msg){
+  try{localStorage.removeItem('lh_key');localStorage.removeItem('lh_sess');}catch(e){}
+  var app=document.getElementById('pg-app');if(app)app.classList.remove('on');
+  var lg=document.getElementById('pg-login');if(lg)lg.classList.add('on');
+  var e=document.getElementById('le');
+  if(e){e.textContent=msg||'Tu sesion expiro. Entra de nuevo con tu contrasena.';e.style.display='block';}
+}
+(function(){
+  var _f=window.fetch.bind(window);
+  window.fetch=function(input,init){
+    if(typeof input==='string'&&input.indexOf('/api/')===0){
+      init=init||{};
+      var h=new Headers(init.headers||{});
+      var k='';try{k=localStorage.getItem('lh_key')||'';}catch(e){}
+      // No pisar la cabecera si la llamada ya la trae (p. ej. el propio login).
+      if(k&&!h.has('x-app-key'))h.set('x-app-key',k);
+      init.headers=h;
+      var p=_f(input,init);
+      // El login maneja su propio 401; en cualquier otro endpoint, un 401 manda
+      // a la pantalla de login (candado recien activado o clave cambiada).
+      if(input.indexOf('/api/login')!==0){
+        p=p.then(function(res){if(res&&res.status===401){forceRelogin();}return res;});
+      }
+      return p;
+    }
+    return _f(input,init);
+  };
+})();
+
 var THEMES=[
   {id:'libertad',   label:'Libertad Financiera',     icon:'🔓',desc:'Independencia, salida del sistema',c:'#b8975a',p:'#f0e8d8'},
   {id:'mentalidad', label:'Mentalidad & Disciplina',  icon:'🧠',desc:'Psicología del éxito, hábitos',    c:'#9a8ac4',p:'#f0eef8'},
@@ -416,12 +451,29 @@ function doLogin(){
   var e=document.getElementById('le');
   e.style.display='none';
   if(!u||!p){e.textContent='Completa todos los campos';e.style.display='block';return;}
-  var users=getUsers();
-  if(!users[u]){e.textContent='Usuario no encontrado';e.style.display='block';return;}
-  if(users[u].hash!==hashPass(p)){e.textContent='Contrasena incorrecta';e.style.display='block';return;}
-  ANT=HARDCODED_ANT;EL=HARDCODED_EL;VOICE=HARDCODED_VOICE;NB=HARDCODED_NB;
-  localStorage.setItem('lh_sess',u);
-  showApp();
+  var btn=document.getElementById('lbtn');
+  var oTxt=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Verificando...';}
+  // La contrasena se valida CONTRA EL SERVIDOR (protege tus creditos). Si coincide
+  // con APP_KEY (o si aun no configuraste APP_KEY: candado abierto), se guarda como
+  // llave y se enviara en cada llamada al API.
+  fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json','x-app-key':p}})
+    .then(function(r){return r.json().catch(function(){return{};}).then(function(d){return{status:r.status,d:d};});})
+    .then(function(res){
+      if(btn){btn.disabled=false;btn.textContent=oTxt;}
+      if(res.status===200){
+        try{localStorage.setItem('lh_key',p);}catch(_){}
+        ANT=HARDCODED_ANT;EL=HARDCODED_EL;VOICE=HARDCODED_VOICE;NB=HARDCODED_NB;
+        localStorage.setItem('lh_sess',u);
+        showApp();
+      }else{
+        e.textContent='Contrasena incorrecta';e.style.display='block';
+      }
+    })
+    .catch(function(){
+      if(btn){btn.disabled=false;btn.textContent=oTxt;}
+      e.textContent='No se pudo verificar. Revisa tu conexion.';e.style.display='block';
+    });
 }
 
 function doRegister(){
@@ -3039,9 +3091,11 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('expbtn').addEventListener('click',exportAll);
   document.getElementById('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
   document.getElementById('rp2').addEventListener('keydown',function(e){if(e.key==='Enter')doRegister();});
+  // Restaurar sesion: basta con haber iniciado antes. Si el candado (APP_KEY) esta
+  // activo y la llave guardada ya no sirve, la primera llamada al API devuelve 401
+  // y el interceptor manda de vuelta al login. Asi no dependemos del usuario local.
   var sess=localStorage.getItem('lh_sess');
-  var users=getUsers();
-  if(sess&&users[sess]){
+  if(sess){
     ANT=HARDCODED_ANT;EL=HARDCODED_EL;VOICE=HARDCODED_VOICE;NB=HARDCODED_NB;
     showApp();
   }else{
