@@ -4,12 +4,16 @@
 // La pista se guarda DIRECTO en la biblioteca del bucket (musica/), lista para
 // elegirse en la unificacion.
 //
-// MODELOS (se intentan en orden): lyria-3-pro-preview compone hasta 184 segundos
-// (~3 min), asi la pista CUBRE el reel entero y en la unificacion solo hay que
-// CORTARLA donde termina la voz — sin bucles ni costuras que se oigan. Si ese
-// modelo no esta habilitado en el proyecto (es preview y puede requerir acceso),
-// se cae automaticamente a lyria-002 (~30 s, que si necesita repetirse).
-const MODELS = ['lyria-3-pro-preview', 'lyria-002'];
+// MODELO UNICO: lyria-3-pro-preview compone hasta 184 segundos (~3 min), asi la
+// pista CUBRE el reel entero y en la unificacion solo hay que CORTARLA donde
+// termina la voz — sin bucles ni costuras que se oigan.
+// NO hay respaldo a lyria-002 (30 s) a proposito: si algo falla queremos VER el
+// error real de Google, no recibir en silencio una pista corta que hay que repetir.
+const MODEL = 'lyria-3-pro-preview';
+// El modelo no esta publicado en todas las regiones. Se prueban estas rutas en
+// orden y se usa la primera que responda; si todas fallan, se muestra el motivo
+// exacto que devuelve Google (region, permisos o acceso al preview).
+const LOCATIONS = ['us-central1', 'global'];
 
 const { createSign } = require('crypto');
 
@@ -66,6 +70,8 @@ module.exports = async (req, res) => {
   if (!checkAuth(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  const T_INICIO = Date.now(); // reloj para no pasarnos del limite de la funcion
+
   if (typeof req.body === 'string') {
     try { req.body = JSON.parse(req.body); } catch (e) {}
   }
@@ -88,8 +94,11 @@ module.exports = async (req, res) => {
 
   const style = (req.body.style || '').trim().slice(0, 300);
 
-  const urlFor = (m) => 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
-    '/locations/us-central1/publishers/google/models/' + m + ':predict';
+  // El endpoint "global" no lleva prefijo de region en el host.
+  const urlFor = (loc) => (loc === 'global'
+    ? 'https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/global'
+    : 'https://' + loc + '-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/' + loc)
+    + '/publishers/google/models/' + MODEL + ':predict';
 
   try {
     const token = await getGCPToken();
@@ -137,23 +146,21 @@ module.exports = async (req, res) => {
         console.warn('[music-gen] conversion fallo (' + e.message + '), se usa el estilo por defecto');
       }
     }
-    // Se intenta primero Lyria 3 Pro (pista larga). Si el modelo no esta
-    // disponible/habilitado en el proyecto, se pasa al siguiente sin romper nada.
-    // Presupuesto de tiempo: la funcion de Vercel se corta a los 60 s. Componer una
-    // pista larga puede tardar, asi que cada intento lleva su propio limite y, si se
-    // pasa, se abandona ese modelo en vez de dejar morir la peticion entera.
-    const t0 = Date.now();
-    const restante = () => 54000 - (Date.now() - t0);
+    // Presupuesto de tiempo desde el INICIO de la peticion (incluye la traduccion
+    // del estilo): la funcion de Vercel se corta a los 60 s y no queremos que muera
+    // sin dejar un mensaje claro.
+    const restante = () => 55000 - (Date.now() - T_INICIO);
 
-    let b64 = null, usedModel = null, lastMsg = 'Error desconocido';
-    for (const m of MODELS) {
+    let b64 = null, usedLoc = null;
+    const fallos = [];
+    for (const loc of LOCATIONS) {
       const presupuesto = restante();
-      if (presupuesto < 6000) { lastMsg = 'se acabo el tiempo disponible'; break; }
+      if (presupuesto < 5000) { fallos.push(loc + ': sin tiempo suficiente'); break; }
       const ctrl = new AbortController();
       const to = setTimeout(() => ctrl.abort(), presupuesto);
       let r;
       try {
-        r = await fetch(urlFor(m), {
+        r = await fetch(urlFor(loc), {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + token,
@@ -169,32 +176,38 @@ module.exports = async (req, res) => {
           signal: ctrl.signal,
         });
       } catch (e) {
-        lastMsg = e.name === 'AbortError' ? (m + ' tardo demasiado') : e.message;
-        console.warn('[music-gen] ' + m + ' fallo: ' + lastMsg);
+        const m1 = e.name === 'AbortError'
+          ? 'tardo mas de lo que permite Vercel (' + Math.round(presupuesto / 1000) + ' s)'
+          : e.message;
+        fallos.push(loc + ': ' + m1);
+        console.warn('[music-gen] ' + MODEL + ' @' + loc + ' fallo: ' + m1);
         continue;
       } finally {
         clearTimeout(to);
       }
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
-        lastMsg = (d && d.error && d.error.message) ? d.error.message : ('Error ' + r.status);
-        console.warn('[music-gen] ' + m + ' no disponible (' + r.status + '): ' + lastMsg);
+        const m2 = (d && d.error && d.error.message) ? d.error.message : ('HTTP ' + r.status);
+        fallos.push(loc + ': ' + m2);
+        console.warn('[music-gen] ' + MODEL + ' @' + loc + ' rechazado (' + r.status + '): ' + m2);
         continue;
       }
       const pred = d.predictions && d.predictions[0] ? d.predictions[0] : null;
       const got = pred ? (pred.bytesBase64Encoded || pred.audioContent || null) : null;
       if (!got) {
-        lastMsg = 'no devolvio audio';
-        console.warn('[music-gen] ' + m + ' respondio sin audio: ' + JSON.stringify(d).slice(0, 200));
+        fallos.push(loc + ': respondio sin audio');
+        console.warn('[music-gen] ' + MODEL + ' @' + loc + ' sin audio: ' + JSON.stringify(d).slice(0, 200));
         continue;
       }
-      b64 = got; usedModel = m;
-      console.log('[music-gen] pista compuesta con ' + m);
+      b64 = got; usedLoc = loc;
+      console.log('[music-gen] pista compuesta con ' + MODEL + ' @' + loc);
       break;
     }
     if (!b64) {
-      console.error('[music-gen] ningun modelo de Lyria respondio: ' + lastMsg);
-      return res.status(502).json({ error: 'Lyria no respondio: ' + lastMsg });
+      // Sin respaldo silencioso: se devuelve el motivo EXACTO de Google.
+      const detalle = fallos.join(' | ');
+      console.error('[music-gen] ' + MODEL + ' no pudo componer: ' + detalle);
+      return res.status(502).json({ error: MODEL + ' no respondio. ' + detalle });
     }
 
     // Guardar la pista directo en la biblioteca del bucket (WAV).
@@ -213,8 +226,8 @@ module.exports = async (req, res) => {
     const ud = await up.json();
     if (!up.ok) throw new Error('No se pudo guardar la pista: ' + ((ud.error && ud.error.message) || up.status));
 
-    console.log('[music-gen] pista generada y guardada: ' + object + ' (' + buf.length + ' bytes, ' + usedModel + ')');
-    return res.json({ success: true, object: object, name: name, model: usedModel });
+    console.log('[music-gen] pista guardada: ' + object + ' (' + buf.length + ' bytes, ' + MODEL + ' @' + usedLoc + ')');
+    return res.json({ success: true, object: object, name: name, model: MODEL, location: usedLoc });
   } catch (e) {
     console.error('[music-gen] excepcion: ' + e.message);
     return res.status(500).json({ error: e.message });
