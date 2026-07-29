@@ -366,10 +366,10 @@ section{margin-bottom:20px}
               </label>
               <label class="voxChk"><input type="checkbox" id="vBoost" checked> Speaker boost <span class="voxH" style="margin:0 0 0 4px">Refuerza el parecido con tu voz. Déjalo activo.</span></label>
               <div style="display:flex;gap:7px;margin:10px 0 8px;flex-wrap:wrap">
-                <button type="button" class="voxP" data-p="0.5,0.75,0,1">Equilibrado</button>
-                <button type="button" class="voxP" data-p="0.75,0.85,0,1">Firme y consistente</button>
-                <button type="button" class="voxP" data-p="0.4,0.8,0.1,1">Crudo y emocional</button>
-                <button type="button" class="voxP" data-p="0.6,0.8,0,1.1">Ágil</button>
+                <button type="button" class="voxP voxSet" data-p="0.5,0.75,0,1">Equilibrado</button>
+                <button type="button" class="voxP voxSet" data-p="0.75,0.85,0,1">Firme y consistente</button>
+                <button type="button" class="voxP voxSet" data-p="0.4,0.8,0.1,1">Crudo y emocional</button>
+                <button type="button" class="voxP voxSet" data-p="0.6,0.8,0,1.1">Ágil</button>
               </div>
             </div>
           </details>
@@ -457,10 +457,10 @@ section{margin-bottom:20px}
             <div style="margin-top:10px;padding:10px;background:#fff;border:1px solid var(--border);border-radius:8px">
               <label class="genLbl">🎼 Generar una NUEVA con IA (Lyria 3 Pro de Google · pista larga, se corta donde termina la voz)</label>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">
-                <button type="button" class="voxP musicPre" data-p="piano">🎹 Piano con fuerza</button>
-                <button type="button" class="voxP musicPre" data-p="cuerdas">🎻 Cuerdas épicas</button>
-                <button type="button" class="voxP musicPre" data-p="ambiente">🌫 Pulso tenso</button>
-                <button type="button" class="voxP musicPre" data-p="epica">⚔ Épica del canal</button>
+                <button type="button" class="voxP musicPre" data-p="piano">🎹 Piano inspirador</button>
+                <button type="button" class="voxP musicPre" data-p="cuerdas">🎻 Cuerdas que elevan</button>
+                <button type="button" class="voxP musicPre" data-p="ambiente">🌫 Ambiente luminoso</button>
+                <button type="button" class="voxP musicPre" data-p="epica">⚔ Épica triunfal</button>
               </div>
               <div style="font-size:10px;color:var(--tx3);margin-top:5px">Toca un estilo y se genera directo — son fórmulas ya afinadas. O describe el tuyo abajo:</div>
               <input class="fi" id="musicPrompt" type="text" placeholder="Estilo propio en español, se convierte solo — Ej: piano triste que se vuelve esperanza" style="margin-top:7px;padding:9px 12px;font-size:12px">

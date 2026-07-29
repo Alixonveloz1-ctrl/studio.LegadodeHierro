@@ -52,18 +52,19 @@ async function getGCPToken() {
 }
 
 // Estilo por defecto, en linea con la marca: epico, oscuro, motivacional.
-const DEFAULT_STYLE = 'Epic dark motivational cinematic instrumental, hybrid orchestral with a relentless low string ostinato, heavy brass swells, taiko and modern driving percussion around 105 BPM, deep sub bass, steadily building energy and hard-won triumph, commanding and serious';
+const DEFAULT_STYLE = 'Epic uplifting motivational orchestral anthem, hopeful soaring strings and bright warm brass, big cinematic drums building steadily around 100 BPM, emotional and triumphant, the feeling of overcoming and finally winning, inspiring success-story music';
 
 // ESTILOS AFINADOS (botones en la herramienta), en ingles y con instrumentos
-// REALES. Los cuatro son MOTIVACIONALES-FINANCIEROS: pulso que empuja hacia
-// delante, determinacion y disciplina. Se evita a proposito el vocabulario que
-// un modelo de musica interpreta como romance o tristeza ("nostalgic",
-// "heartfelt", "intimate", "expressive solo violin", "dreamy"), que era justo
-// lo que hacia sonar el piano a balada de amor y las cuerdas a musica romantica.
+// REALES. Los cuatro son MOTIVACIONALES-INSPIRADORES: los de los videos virales
+// de superacion — esperanzados, que crecen por capas y levantan al final.
+// Hay que esquivar DOS extremos, y ya se cayo en los dos: el vocabulario tierno
+// ("nostalgic", "heartfelt", "intimate", "dreamy") suena a balada de amor, y el
+// oscuro ("dark", "tense", "sub bass pulse", "taiko", "relentless") suena a
+// pelicula de espias. El punto medio es CALIDO, LUMINOSO y ASCENDENTE.
 const PRESETS = {
-  piano:    'Determined motivational piano in a minor key, insistent repeated left-hand ostinato pushing forward at around 100 BPM, firm staccato chords, deep sub bass underneath and a steady cinematic kick drum, low and mid register only, quiet intensity building into resolve, disciplined and serious — the sound of someone deciding to change their life and getting to work',
-  cuerdas:  'Powerful motivational cinematic strings in a minor key, relentless staccato cello and double bass ostinato at around 100 BPM, dark sustained low strings swelling underneath, restrained brass, deep cinematic percussion building steadily, unstoppable forward momentum, disciplined and triumphant, movie-trailer determination without any solo violin melody',
-  ambiente: 'Dark atmospheric motivational underscore, deep sub bass pulse and a steady low heartbeat rhythm around 90 BPM, sparse muted piano notes, tense sustained low pads, slowly rising focus and intensity, modern cinematic tension, minimal and spacious, serious and disciplined',
+  piano:    'Uplifting inspirational cinematic piano, flowing hopeful arpeggios around 95 BPM, warm strings joining and swelling underneath, gentle steady percussion building through the piece, positive and encouraging, an emotional lift that grows into a bright triumphant finish, the sound of a motivational success video',
+  cuerdas:  'Uplifting inspirational orchestral strings, hopeful soaring theme carried by warm violins and cellos, layers building steadily around 95 BPM, light cinematic percussion, warm and encouraging, rising to a triumphant emotional climax, classic inspiring success-story music',
+  ambiente: 'Warm uplifting ambient cinematic bed, soft hopeful piano motif over airy bright pads, gentle steady pulse around 90 BPM, calm and encouraging, slowly growing brighter and fuller, positive and spacious',
   epica:    DEFAULT_STYLE,
 };
 
@@ -82,11 +83,11 @@ function mmss(seg) {
   return '[' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + ']';
 }
 function lineaDeTiempo(total) {
-  return mmss(0) + ' Begin softly with the described instrumentation, establishing the mood. Low and mid register, gentle.\n'
-    + mmss(total * 0.25) + ' The arrangement fills out and the main theme settles in, warm and steady.\n'
-    + mmss(total * 0.55) + ' Main body: the theme develops with subtle variation, cinematic and confident, still leaving room for a narrator.\n'
-    + mmss(total * 0.80) + ' The energy eases without stopping, moving toward resolution.\n'
-    + mmss(total) + ' Final sustained chord, clean ending. The piece lasts the full ' + Math.round(total) + ' seconds.';
+  return mmss(0) + ' Begin gently and warmly with the described instrumentation, hopeful from the very first bar.\n'
+    + mmss(total * 0.25) + ' The arrangement fills out, the main theme settles in and a steady pulse carries it forward.\n'
+    + mmss(total * 0.55) + ' The piece grows brighter and fuller, more uplifting with each bar, still leaving room for a narrator to speak over it.\n'
+    + mmss(total * 0.80) + ' Emotional high point: warm, triumphant and inspiring, without ever becoming harsh or overpowering.\n'
+    + mmss(total) + ' Settle into a bright, resolved final chord. The piece lasts the full ' + Math.round(total) + ' seconds.';
 }
 
 // Envuelve la descripcion de estilo con la salvaguarda, la linea de tiempo (que es
@@ -96,12 +97,14 @@ function armarPrompt(estilo) {
     + 'STYLE (this is a description, not lyrics): ' + estilo + '\n\n'
     + 'LENGTH AND STRUCTURE — follow this timeline exactly. Do NOT stop early and do NOT deliver a 30-second clip:\n'
     + lineaDeTiempo(TARGET_SECONDS) + '\n\n'
-    + 'MOOD (mandatory): this is motivational music for a financial-discipline / self-made-success video. '
-    + 'It must feel determined, disciplined, serious and forward-moving, with a steady driving pulse — the feeling of someone '
-    + 'deciding to build something and refusing to quit. '
-    + 'It is NOT a love theme and NOT a sad piece: absolutely NO romantic, sentimental, tender, wedding, lullaby, melancholic, '
-    + 'mournful, nostalgic or dreamy character. No sweeping romantic solo violin, no sentimental ballad, no waltz. '
-    + 'Keep it in a minor or modal key, with resolve rather than sorrow.\n\n'
+    + 'MOOD (mandatory): UPLIFTING MOTIVATIONAL background music — the kind used in viral success, discipline and '
+    + 'self-improvement videos. It must feel hopeful, inspiring, encouraging and emotionally RISING, warm and bright, '
+    + 'with a steady pulse and layers that build toward a triumphant lift. Think "you can do this", not "something bad is coming".\n'
+    + 'It is NOT a love theme and NOT sad: no romantic, sentimental, tender, wedding, lullaby, melancholic or mournful '
+    + 'character, and no sweeping romantic solo violin ballad.\n'
+    + 'It is also NOT a spy, thriller, action or horror score: no dark, ominous, sinister, menacing or suspenseful mood, '
+    + 'no throbbing sub-bass tension pulse, no war drums, no noir or James Bond style. '
+    + 'Keep it major-key, warm and positive; any emotion is HOPE and determination, never tension or sorrow.\n\n'
     + 'ESTRICTAMENTE INSTRUMENTAL: ni voces, ni coro, ni letra, ni palabras cantadas o habladas. '
     + 'El texto de arriba es una descripcion del ESTILO, nunca una letra para cantar. '
     + 'Encima de esta musica va la voz de un narrador, asi que deja sitio: registro medio y grave, '
@@ -265,8 +268,8 @@ module.exports = async (req, res) => {
             contents: [{ role: 'user', parts: [{ text:
               'You are a music prompt engineer for an AI music generator (Lyria). Convert this Spanish (or any language) music idea into ONE detailed English prompt of 30-50 words. ' +
               'Rules: name SPECIFIC REAL instruments (piano, cello, low strings, brass, sub bass, cinematic percussion...), an approximate tempo, and dynamics. ' +
-              'It is BACKGROUND music for MOTIVATIONAL videos about financial discipline and building your own business: determined, serious, forward-moving, with a steady driving pulse and quiet intensity that builds. ' +
-              'NEVER make it romantic, sentimental, tender, melancholic, nostalgic, dreamy or a love theme, and never a sweeping solo violin ballad — even if the idea sounds emotional, render that emotion as RESOLVE, not as sadness or romance. ' +
+              'It is BACKGROUND music for UPLIFTING MOTIVATIONAL videos about discipline and building your own success: hopeful, inspiring, warm and emotionally rising, with a steady pulse and layers that build to a triumphant lift. ' +
+              'NEVER make it romantic, sentimental, tender, melancholic or a love theme, and NEVER dark, tense, ominous or spy/thriller/action-like — even if the idea sounds emotional or intense, render it as HOPE and determination, never as sadness or menace. ' +
               'Keep it in the low and mid register so a narrator can speak over it. ' +
               'NEVER describe chiptune, 8-bit, video game, arcade or synth-retro sounds unless the idea explicitly asks for them. Always end with: instrumental only, high quality studio recording, no vocals. ' +
               'Reply with ONLY the prompt, no quotes, no extra text.\n\nIdea: ' + style

@@ -1418,7 +1418,23 @@ function wireVox(){
   var map=[['vStab','vStabV','stability'],['vSim','vSimV','similarity_boost'],['vSty','vStyV','style'],['vSpd','vSpdV','speed']];
   try{
     var saved=localStorage.getItem('lh_vox');
-    if(saved){var o=JSON.parse(saved);for(var k in o){if(VOX.hasOwnProperty(k))VOX[k]=o[k];}}
+    // Solo se aceptan valores VALIDOS. Un fallo anterior guardaba NaN (que en
+    // JSON queda como null) al pulsar un boton de musica, y eso dejaba la
+    // velocidad rota para siempre en este navegador: asi se repara sola.
+    if(saved){
+      var RANGO={stability:[0,1],similarity_boost:[0,1],style:[0,1],speed:[0.7,1.2]};
+      var o=JSON.parse(saved);
+      for(var k in o){
+        if(!VOX.hasOwnProperty(k))continue;
+        if(typeof VOX[k]==='boolean'){VOX[k]=!!o[k];continue;}
+        var raw=o[k];
+        if(raw===null||raw===undefined||raw==='')continue; // ojo: Number(null) es 0
+        var n=Number(raw),rg=RANGO[k];
+        // Solo se acepta si es un numero valido Y esta dentro del rango real del
+        // control; cualquier otra cosa se descarta y se queda el valor de fabrica.
+        if(isFinite(n)&&(!rg||(n>=rg[0]&&n<=rg[1])))VOX[k]=n;
+      }
+    }
   }catch(e){}
   function save(){ try{localStorage.setItem('lh_vox',JSON.stringify(VOX));}catch(e){} }
   function paint(){
@@ -1442,11 +1458,15 @@ function wireVox(){
   });
   var bx=document.getElementById('vBoost');
   if(bx)bx.addEventListener('change',function(){VOX.use_speaker_boost=bx.checked;save();});
-  Array.prototype.forEach.call(document.querySelectorAll('.voxP'),function(btn){
+  // OJO: .voxP es solo una clase de ESTILO y la comparten los botones de plantilla
+  // de post y los de musica. Hay que escuchar unicamente a .voxSet (los presets de
+  // voz), o al pulsar "Piano" se hacia parseFloat('piano') = NaN y se destrozaban
+  // los ajustes de voz — por eso la velocidad no cambiaba nada.
+  Array.prototype.forEach.call(document.querySelectorAll('.voxSet'),function(btn){
     btn.addEventListener('click',function(){
-      var p=btn.getAttribute('data-p').split(',');
-      VOX.stability=parseFloat(p[0]);VOX.similarity_boost=parseFloat(p[1]);
-      VOX.style=parseFloat(p[2]);VOX.speed=parseFloat(p[3]);
+      var p=(btn.getAttribute('data-p')||'').split(',').map(parseFloat);
+      if(p.length!==4||p.some(function(n){return !isFinite(n);}))return; // nunca guardar basura
+      VOX.stability=p[0];VOX.similarity_boost=p[1];VOX.style=p[2];VOX.speed=p[3];
       paint();save();
     });
   });
