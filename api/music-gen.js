@@ -69,15 +69,29 @@ const PRESETS = {
 // ultimo que lee). Aqui no existe campo negative_prompt: todo va en el prompt.
 const GUARDA = 'INSTRUMENTAL ONLY. No vocals. No singing. No choir. No lyrics. No spoken word. No human voice of any kind. This is a background score for a narrated film.';
 
-// Envuelve la descripcion de estilo con la salvaguarda, la duracion objetivo (que
-// solo se puede pedir en prosa) y las condiciones para que quepa una narracion.
+// LA DURACION SE PIDE CON MARCAS DE TIEMPO. No existe ningun parametro de API
+// para la duracion (ni maxOutputTokens, que Lyria rechaza): la forma documentada
+// de controlar el largo y la estructura es escribir una linea de tiempo [MM:SS]
+// dentro del prompt. Sin ella el modelo entrega ~30 segundos y se acabo.
+function mmss(seg) {
+  const m = Math.floor(seg / 60), s = Math.round(seg % 60);
+  return '[' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + ']';
+}
+function lineaDeTiempo(total) {
+  return mmss(0) + ' Begin softly with the described instrumentation, establishing the mood. Low and mid register, gentle.\n'
+    + mmss(total * 0.25) + ' The arrangement fills out and the main theme settles in, warm and steady.\n'
+    + mmss(total * 0.55) + ' Main body: the theme develops with subtle variation, cinematic and confident, still leaving room for a narrator.\n'
+    + mmss(total * 0.80) + ' The energy eases without stopping, moving toward resolution.\n'
+    + mmss(total) + ' Final sustained chord, clean ending. The piece lasts the full ' + Math.round(total) + ' seconds.';
+}
+
+// Envuelve la descripcion de estilo con la salvaguarda, la linea de tiempo (que es
+// como se pide la duracion) y las condiciones para que quepa una narracion.
 function armarPrompt(estilo) {
   return GUARDA + '\n\n'
     + 'STYLE (this is a description, not lyrics): ' + estilo + '\n\n'
-    + 'LENGTH (important): compose a continuous piece of about ' + TARGET_SECONDS + ' seconds. '
-    + 'Do NOT stop early and do NOT deliver a 30-second clip.\n'
-    + 'Structure it to fill that whole time: a calm intro, a main body that develops and varies, and a resolved ending.\n\n'
-    + 'Duracion objetivo: alrededor de ' + TARGET_SECONDS + ' segundos en una sola pieza continua; no la cortes antes.\n\n'
+    + 'LENGTH AND STRUCTURE — follow this timeline exactly. Do NOT stop early and do NOT deliver a 30-second clip:\n'
+    + lineaDeTiempo(TARGET_SECONDS) + '\n\n'
     + 'ESTRICTAMENTE INSTRUMENTAL: ni voces, ni coro, ni letra, ni palabras cantadas o habladas. '
     + 'El texto de arriba es una descripcion del ESTILO, nunca una letra para cantar. '
     + 'Encima de esta musica va la voz de un narrador, asi que deja sitio: registro medio y grave, '
@@ -267,14 +281,13 @@ module.exports = async (req, res) => {
     // sin dejar un mensaje claro.
     const presupuesto = Math.max(5000, 55000 - (Date.now() - T_INICIO));
     // UN intento contra Lyria. Devuelve el audio o el motivo exacto del fallo.
-    // conTope=true pide un techo alto de tokens de salida: el audio se cobra en
-    // tokens, y con el techo por defecto una pieza larga se CORTA (sale de ~30 s)
-    // o se queda sin audio. Si el modelo no acepta ese campo, se reintenta sin el.
-    async function intentar(conTope, ms) {
+    // OJO: el unico campo valido aqui es responseModalities. Anadir maxOutputTokens
+    // hace que Vertex responda "Request contains an invalid argument"; la duracion
+    // NO se controla por configuracion sino con la linea de tiempo del prompt.
+    async function intentar(ms) {
       const ctrl = new AbortController();
       const to = setTimeout(() => ctrl.abort(), ms);
       const genCfg = { responseModalities: ['AUDIO', 'TEXT'] };
-      if (conTope) genCfg.maxOutputTokens = 32768;
       let r;
       try {
         r = await fetch(url, {
@@ -316,17 +329,12 @@ module.exports = async (req, res) => {
     }
 
     const gastado = () => Date.now() - T_INICIO;
-    let out = await intentar(true, presupuesto);
+    let out = await intentar(presupuesto);
 
-    // Si rechazo el techo de tokens (400), se repite sin ese campo.
-    if (out.err && out.http === 400 && /token|maxOutput|generationConfig|Invalid/i.test(out.err) && 55000 - gastado() > 8000) {
-      console.warn('[music-gen] reintento sin maxOutputTokens: ' + out.err);
-      out = await intentar(false, 55000 - gastado());
-    }
-    // Fallo intermitente sin audio: un reintento si queda tiempo.
+    // Fallo intermitente sin audio: un reintento identico si queda tiempo.
     if (out.sinAudio && 55000 - gastado() > 12000) {
       console.warn('[music-gen] reintento tras respuesta sin audio');
-      out = await intentar(true, 55000 - gastado());
+      out = await intentar(55000 - gastado());
     }
 
     if (!out.audio) {
