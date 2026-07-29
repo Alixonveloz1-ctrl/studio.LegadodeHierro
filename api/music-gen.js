@@ -73,7 +73,10 @@ const GUARDA = 'INSTRUMENTAL ONLY. No vocals. No singing. No choir. No lyrics. N
 function armarPrompt(estilo) {
   return GUARDA + '\n\n'
     + 'STYLE (this is a description, not lyrics): ' + estilo + '\n\n'
-    + 'Duracion objetivo: alrededor de ' + TARGET_SECONDS + ' segundos, en una sola pieza continua.\n\n'
+    + 'LENGTH (important): compose a FULL-LENGTH piece of about ' + TARGET_SECONDS + ' seconds '
+    + '(roughly ' + Math.round(TARGET_SECONDS / 60) + ' minutes). Do NOT stop early and do NOT deliver a short clip.\n'
+    + 'Structure it to fill that whole time: a calm intro, a long main body that develops and varies, and a resolved ending.\n\n'
+    + 'Duracion objetivo: alrededor de ' + TARGET_SECONDS + ' segundos en una sola pieza continua; no la cortes antes.\n\n'
     + 'ESTRICTAMENTE INSTRUMENTAL: ni voces, ni coro, ni letra, ni palabras cantadas o habladas. '
     + 'El texto de arriba es una descripcion del ESTILO, nunca una letra para cantar. '
     + 'Encima de esta musica va la voz de un narrador, asi que deja sitio: registro medio y grave, '
@@ -262,46 +265,74 @@ module.exports = async (req, res) => {
     // del estilo): la funcion de Vercel se corta a los 60 s y no queremos que muera
     // sin dejar un mensaje claro.
     const presupuesto = Math.max(5000, 55000 - (Date.now() - T_INICIO));
-    const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), presupuesto);
-    let r;
-    try {
-      r = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'X-Goog-User-Project': PROJECT_ID,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: armarPrompt(prompt) }] }],
-          generationConfig: { responseModalities: ['AUDIO', 'TEXT'] },
-        }),
-        signal: ctrl.signal,
-      });
-    } catch (e) {
-      const m1 = e.name === 'AbortError'
-        ? 'tardo mas de los ' + Math.round(presupuesto / 1000) + ' s que permite la funcion'
-        : e.message;
-      console.error('[music-gen] ' + MODEL + ' fallo: ' + m1);
-      return res.status(502).json({ error: MODEL + ' no respondio: ' + m1 });
-    } finally {
-      clearTimeout(to);
+    // UN intento contra Lyria. Devuelve el audio o el motivo exacto del fallo.
+    // conTope=true pide un techo alto de tokens de salida: el audio se cobra en
+    // tokens, y con el techo por defecto una pieza larga se CORTA (sale de ~30 s)
+    // o se queda sin audio. Si el modelo no acepta ese campo, se reintenta sin el.
+    async function intentar(conTope, ms) {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), ms);
+      const genCfg = { responseModalities: ['AUDIO', 'TEXT'] };
+      if (conTope) genCfg.maxOutputTokens = 32768;
+      let r;
+      try {
+        r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'X-Goog-User-Project': PROJECT_ID,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: armarPrompt(prompt) }] }],
+            generationConfig: genCfg,
+          }),
+          signal: ctrl.signal,
+        });
+      } catch (e) {
+        return { err: e.name === 'AbortError'
+          ? 'tardo mas de los ' + Math.round(ms / 1000) + ' s que permite la funcion'
+          : e.message, aborto: e.name === 'AbortError' };
+      } finally {
+        clearTimeout(to);
+      }
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        return { err: (d && d.error && d.error.message) ? d.error.message : ('HTTP ' + r.status), http: r.status };
+      }
+      const audio = juntarAudio(d);
+      if (audio) return { audio: audio };
+      // Sin audio: se rescata el motivo (finishReason) y el texto, que explican
+      // si lo corto el limite de tokens, un filtro de seguridad u otra cosa.
+      const cand = d && d.candidates && d.candidates[0];
+      const razon = (cand && cand.finishReason) ? cand.finishReason : 'sin finishReason';
+      let txt = '';
+      if (cand && cand.content && cand.content.parts) {
+        for (const p of cand.content.parts) if (p && typeof p.text === 'string') txt += p.text;
+      }
+      console.warn('[music-gen] sin audio (' + razon + '): ' + JSON.stringify(d).slice(0, 300));
+      return { err: 'no devolvio audio (' + razon + ')' + (txt ? ': ' + txt.slice(0, 120) : ''), sinAudio: true };
     }
 
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const m2 = (d && d.error && d.error.message) ? d.error.message : ('HTTP ' + r.status);
-      console.error('[music-gen] ' + MODEL + ' rechazado (' + r.status + '): ' + m2);
-      return res.status(502).json({ error: MODEL + ' no respondio: ' + m2 });
+    const gastado = () => Date.now() - T_INICIO;
+    let out = await intentar(true, presupuesto);
+
+    // Si rechazo el techo de tokens (400), se repite sin ese campo.
+    if (out.err && out.http === 400 && /token|maxOutput|generationConfig|Invalid/i.test(out.err) && 55000 - gastado() > 8000) {
+      console.warn('[music-gen] reintento sin maxOutputTokens: ' + out.err);
+      out = await intentar(false, 55000 - gastado());
+    }
+    // Fallo intermitente sin audio: un reintento si queda tiempo.
+    if (out.sinAudio && 55000 - gastado() > 12000) {
+      console.warn('[music-gen] reintento tras respuesta sin audio');
+      out = await intentar(true, 55000 - gastado());
     }
 
-    // El audio puede venir en VARIOS trozos: se concatenan bien (ver juntarAudio).
-    const audio = juntarAudio(d);
-    if (!audio) {
-      console.error('[music-gen] sin audio en la respuesta: ' + JSON.stringify(d).slice(0, 300));
-      return res.status(502).json({ error: MODEL + ' no devolvio audio.' });
+    if (!out.audio) {
+      console.error('[music-gen] ' + MODEL + ' fallo definitivo: ' + out.err);
+      return res.status(502).json({ error: MODEL + ': ' + out.err });
     }
+    const audio = out.audio;
     console.log('[music-gen] audio recibido: ' + audio.trozos + ' trozo(s), mime ' + audio.mimeType);
 
     // Guardar la pista con su formato REAL (extension y Content-Type detectados
