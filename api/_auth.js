@@ -30,7 +30,11 @@ function keyMatches(req) {
 // false (el endpoint debe hacer `if (!checkAuth(req, res)) return;`).
 function checkAuth(req, res) {
   if (keyMatches(req)) return true;
-  res.status(401).json({ error: 'No autorizado. Vuelve a entrar con tu contrasena.' });
+  // El marcador code:'APP_AUTH' distingue ESTE 401 (la contrasena de la app) de
+  // un 401 que venga de un proveedor externo (ElevenLabs, Google...). Sin el, el
+  // navegador confundia "ElevenLabs rechazo la clave" con "tu sesion expiro" y
+  // echaba al login tapando el error de verdad.
+  res.status(401).json({ error: 'No autorizado. Vuelve a entrar con tu contrasena.', code: 'APP_AUTH' });
   return false;
 }
 

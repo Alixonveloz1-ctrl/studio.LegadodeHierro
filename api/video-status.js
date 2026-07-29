@@ -89,7 +89,7 @@ export default async function handler(req) {
   // cabecera x-app-key. Sin APP_KEY, queda abierto (nunca te bloquea por accidente).
   const APP_KEY = process.env.APP_KEY || '';
   if (APP_KEY && req.headers.get('x-app-key') !== APP_KEY) {
-    return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'No autorizado', code: 'APP_AUTH' }), { status: 401, headers: corsHeaders });
   }
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders });

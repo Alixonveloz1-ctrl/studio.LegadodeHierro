@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   // esta configurada, exige la cabecera x-app-key; sin APP_KEY queda abierto.
   const APP_KEY = process.env.APP_KEY || '';
   if (APP_KEY && (req.headers['x-app-key'] || '') !== APP_KEY) {
-    return res.status(401).json({ error: 'No autorizado. Vuelve a entrar con tu contrasena.' });
+    return res.status(401).json({ error: 'No autorizado. Vuelve a entrar con tu contrasena.', code: 'APP_AUTH' });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 

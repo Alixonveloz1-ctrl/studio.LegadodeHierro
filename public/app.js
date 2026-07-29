@@ -22,10 +22,19 @@ function forceRelogin(msg){
       if(k&&!h.has('x-app-key'))h.set('x-app-key',k);
       init.headers=h;
       var p=_f(input,init);
-      // El login maneja su propio 401; en cualquier otro endpoint, un 401 manda
-      // a la pantalla de login (candado recien activado o clave cambiada).
+      // Un 401 NO siempre significa "tu sesion expiro": tambien puede venir de un
+      // proveedor externo (ElevenLabs, Google) y llegar reenviado tal cual. Solo se
+      // manda al login cuando el cuerpo trae code:'APP_AUTH', que es el que pone
+      // nuestra puerta de seguridad; el resto se deja pasar para que el error real
+      // se vea en pantalla en vez de quedar tapado por la pantalla de acceso.
       if(input.indexOf('/api/login')!==0){
-        p=p.then(function(res){if(res&&res.status===401){forceRelogin();}return res;});
+        p=p.then(function(res){
+          if(!res||res.status!==401)return res;
+          return res.clone().json().catch(function(){return null;}).then(function(d){
+            if(d&&d.code==='APP_AUTH')forceRelogin();
+            return res;
+          });
+        });
       }
       return p;
     }

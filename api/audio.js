@@ -152,6 +152,15 @@ module.exports = async (req, res) => {
     });
 
   } catch (e) {
-    return res.status(e.status || 500).json({ error: e.message });
+    // Se deja claro que el fallo viene de ElevenLabs y no de esta herramienta. Un
+    // 401/403 aqui es su clave o su cuenta, NO la contrasena de acceso a la app.
+    let msg = e.message;
+    if (e.status === 401 || e.status === 403) {
+      msg = 'ElevenLabs rechazo la peticion (' + e.status + '): ' + e.message +
+            '. Revisa la clave ELEVENLABS_API_KEY y el estado de tu cuenta de ElevenLabs.';
+    } else if (e.status === 429) {
+      msg = 'ElevenLabs: limite de uso alcanzado (429). ' + e.message;
+    }
+    return res.status(e.status || 500).json({ error: msg, upstream: 'elevenlabs' });
   }
 };
