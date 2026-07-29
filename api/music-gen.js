@@ -52,14 +52,18 @@ async function getGCPToken() {
 }
 
 // Estilo por defecto, en linea con la marca: epico, oscuro, motivacional.
-const DEFAULT_STYLE = 'Epic dark cinematic motivational instrumental, powerful hybrid orchestral with real strings, brass and modern driving percussion, deep and intense, building energy, high quality studio recording, inspiring';
+const DEFAULT_STYLE = 'Epic dark motivational cinematic instrumental, hybrid orchestral with a relentless low string ostinato, heavy brass swells, taiko and modern driving percussion around 105 BPM, deep sub bass, steadily building energy and hard-won triumph, commanding and serious';
 
-// ESTILOS AFINADOS (botones en la herramienta): descripciones profesionales ya
-// probadas, en ingles, con instrumentos REALES — sin depender de la traduccion.
+// ESTILOS AFINADOS (botones en la herramienta), en ingles y con instrumentos
+// REALES. Los cuatro son MOTIVACIONALES-FINANCIEROS: pulso que empuja hacia
+// delante, determinacion y disciplina. Se evita a proposito el vocabulario que
+// un modelo de musica interpreta como romance o tristeza ("nostalgic",
+// "heartfelt", "intimate", "expressive solo violin", "dreamy"), que era justo
+// lo que hacia sonar el piano a balada de amor y las cuerdas a musica romantica.
 const PRESETS = {
-  piano:    'Emotional nostalgic solo piano with soft warm string pads, slow tempo around 70 BPM, intimate and reflective, cinematic motivational background music, gentle dynamics, warm and heartfelt, high quality studio recording of a real grand piano',
-  cuerdas:  'Inspiring cinematic strings and expressive solo violin over soft piano chords, emotional gradual build, hopeful and uplifting orchestral background music, slow to moderate tempo, warm concert hall reverb, real orchestra recording',
-  ambiente: 'Soft ambient atmospheric pads with sparse gentle piano notes, calm nostalgic dreamy mood, minimalist and warm, very smooth quiet background music, slow evolving textures, emotional and reflective',
+  piano:    'Determined motivational piano in a minor key, insistent repeated left-hand ostinato pushing forward at around 100 BPM, firm staccato chords, deep sub bass underneath and a steady cinematic kick drum, low and mid register only, quiet intensity building into resolve, disciplined and serious — the sound of someone deciding to change their life and getting to work',
+  cuerdas:  'Powerful motivational cinematic strings in a minor key, relentless staccato cello and double bass ostinato at around 100 BPM, dark sustained low strings swelling underneath, restrained brass, deep cinematic percussion building steadily, unstoppable forward momentum, disciplined and triumphant, movie-trailer determination without any solo violin melody',
+  ambiente: 'Dark atmospheric motivational underscore, deep sub bass pulse and a steady low heartbeat rhythm around 90 BPM, sparse muted piano notes, tense sustained low pads, slowly rising focus and intensity, modern cinematic tension, minimal and spacious, serious and disciplined',
   epica:    DEFAULT_STYLE,
 };
 
@@ -92,6 +96,12 @@ function armarPrompt(estilo) {
     + 'STYLE (this is a description, not lyrics): ' + estilo + '\n\n'
     + 'LENGTH AND STRUCTURE — follow this timeline exactly. Do NOT stop early and do NOT deliver a 30-second clip:\n'
     + lineaDeTiempo(TARGET_SECONDS) + '\n\n'
+    + 'MOOD (mandatory): this is motivational music for a financial-discipline / self-made-success video. '
+    + 'It must feel determined, disciplined, serious and forward-moving, with a steady driving pulse — the feeling of someone '
+    + 'deciding to build something and refusing to quit. '
+    + 'It is NOT a love theme and NOT a sad piece: absolutely NO romantic, sentimental, tender, wedding, lullaby, melancholic, '
+    + 'mournful, nostalgic or dreamy character. No sweeping romantic solo violin, no sentimental ballad, no waltz. '
+    + 'Keep it in a minor or modal key, with resolve rather than sorrow.\n\n'
     + 'ESTRICTAMENTE INSTRUMENTAL: ni voces, ni coro, ni letra, ni palabras cantadas o habladas. '
     + 'El texto de arriba es una descripcion del ESTILO, nunca una letra para cantar. '
     + 'Encima de esta musica va la voz de un narrador, asi que deja sitio: registro medio y grave, '
@@ -254,7 +264,10 @@ module.exports = async (req, res) => {
           body: JSON.stringify({
             contents: [{ role: 'user', parts: [{ text:
               'You are a music prompt engineer for an AI music generator (Lyria). Convert this Spanish (or any language) music idea into ONE detailed English prompt of 30-50 words. ' +
-              'Rules: name SPECIFIC REAL instruments (piano, violin, strings, cello, soft percussion...), the mood, an approximate tempo, and dynamics. It is BACKGROUND music for motivational videos: smooth, emotional, professional. ' +
+              'Rules: name SPECIFIC REAL instruments (piano, cello, low strings, brass, sub bass, cinematic percussion...), an approximate tempo, and dynamics. ' +
+              'It is BACKGROUND music for MOTIVATIONAL videos about financial discipline and building your own business: determined, serious, forward-moving, with a steady driving pulse and quiet intensity that builds. ' +
+              'NEVER make it romantic, sentimental, tender, melancholic, nostalgic, dreamy or a love theme, and never a sweeping solo violin ballad — even if the idea sounds emotional, render that emotion as RESOLVE, not as sadness or romance. ' +
+              'Keep it in the low and mid register so a narrator can speak over it. ' +
               'NEVER describe chiptune, 8-bit, video game, arcade or synth-retro sounds unless the idea explicitly asks for them. Always end with: instrumental only, high quality studio recording, no vocals. ' +
               'Reply with ONLY the prompt, no quotes, no extra text.\n\nIdea: ' + style
             }] }],
