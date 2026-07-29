@@ -73,6 +73,49 @@ var HERRAM_ANGLES=[
   'Enseña el costo real de la información suelta: por qué acumular videos y consejos gratis sin un orden lleva años de vueltas, y qué cambia cuando el camino tiene estructura.',
 ];
 
+// PUERTAS DE ENTRADA al tema. El codigo asigna una al azar en cada guion para que
+// el modelo no entre siempre por el mismo sermon ("el sueldo es una trampa, se tu
+// propio jefe"). No cambian el PILAR: cambian POR DONDE se abre.
+var ENFOQUES=[
+  'el dinero que ya pasa por sus manos cada mes y a dónde se le va sin que lo note.',
+  'el tiempo como la moneda real que está gastando, y lo que ya no vuelve.',
+  'una decisión concreta que lleva meses aplazando y el precio que paga por esperar.',
+  'un hábito pequeño y diario que sostiene todo o lo hunde todo.',
+  'la diferencia entre estar ocupado y estar avanzando de verdad.',
+  'el miedo real que no admite en voz alta, y lo que le cuesta.',
+  'lo que les está enseñando a los suyos sin darse cuenta, con el ejemplo y no con las palabras.',
+  'la comodidad como el enemigo más silencioso: lo que no duele lo suficiente para cambiarlo.',
+  'lo que hace cuando nadie lo está mirando, y por qué eso decide todo.',
+  'la información que consume contra lo que de verdad ejecuta.',
+  'compararse con otros y el pozo en el que eso lo mete.',
+  'la deuda o el compromiso que lo mantiene atado y cómo se ve de verdad.',
+  'la gente a su alrededor: quién lo empuja, quién lo frena y qué hace con eso.',
+  'el largo plazo y la paciencia: lo que se construye lento contra lo que se busca rápido.',
+  'el precio real de la seguridad que cree tener.',
+  'empezar tarde: si vale la pena, y qué cambia cuando se arranca con años encima.',
+  'una habilidad concreta que multiplica lo que vale y que no está desarrollando.',
+  'lo que hace con lo que le sobra (o lo que cree que no le sobra) cada mes.',
+];
+
+// REGISTROS VISUALES: mundos de imagen muy distintos entre si. El CODIGO elige
+// unos pocos al azar en cada generacion y se los pasa al modelo como territorio
+// de partida. Es lo que impide que dos guiones seguidos caigan siempre en el
+// mismo mundo (la bodega, la obra, la fabrica) por mucha libertad que se le de.
+var VIS_REGISTROS=[
+  'lo intimo y domestico: la casa de noche, la cocina, la mesa donde se hacen las cuentas, la familia dormida, el cuarto antes de que amanezca',
+  'la calle y la ciudad real: el transporte publico, la acera, el trafico a la hora pico, la gente caminando, la parada donde se espera',
+  'el mundo del empleo por dentro: el cubiculo, la oficina de otro, la sala de juntas, el reloj marcando, el pasillo, la fila para entrar',
+  'el detalle cerrado: las manos, un objeto que lo cuenta todo, el dinero contado, el telefono, la libreta, la puerta, las llaves — sin mostrar el rostro',
+  'la soledad y la reflexion: una sola figura pequena en un espacio muy amplio, la espalda, el silencio, la distancia',
+  'las personas alrededor: un cliente, un socio, un hijo, un padre, alguien a quien se le ensena, una conversacion cara a cara',
+  'lo logrado con sobriedad: un espacio propio en calma, ordenado y digno, sin lujo ostentoso, luz suave',
+  'el mismo lugar en dos tiempos: el contraste entre lo que era y lo que es, el antes y el despues dentro de un mismo encuadre',
+  'el aire libre: un amanecer, una carretera, una azotea, el horizonte de la ciudad a lo lejos, un descampado',
+  'la composicion conceptual con objetos reales: una mesa, una silla vacia, una ventana, una sombra larga — fuerza simbolica sin salirse del mundo real',
+  'la rutina que se repite: el mismo trayecto, el mismo gesto, la misma hora, mostrado como un ciclo que aprieta',
+  'el momento de la decision: el umbral, la salida, el sobre sobre la mesa, el instante justo antes de cambiar algo',
+];
+
 var SCHED_POOL=[
   {t:'libertad',concept:'Tu finca te da de comer, pero te tiene preso; así se cambia eso',h:'afirmacion'},
   {t:'libertad',concept:'El día que tu negocio facturó sin que tú abrieras la puerta',h:'historia'},
@@ -241,7 +284,9 @@ VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación 
 
 A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
 
-NORTE: el canal empuja a UNA sola cosa — que deje de esperar y construya lo suyo. Libertad financiera, legado, disciplina, no rendirse, dejar de cambiar su vida por un sueldo, montar su propio negocio. Tu trabajo es encender la decisión, no dar recetas.
+NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
+
+NO REPITAS SIEMPRE EL MISMO SERMÓN (crítico): el encuadre de "el sueldo es una trampa, renuncia y monta tu negocio para ser tu propio jefe" ya se usó demasiadas veces en este canal y está gastado. Puede aparecer, pero NO puede ser el marco por defecto de todos los guiones. La mayoría de las veces entra por otro lado: por el dinero que ya tiene en la mano, por el tiempo que no vuelve, por una decisión concreta que lleva meses aplazando, por un hábito, por el miedo real, por lo que le está enseñando a su hijo sin darse cuenta, por la diferencia entre estar ocupado y estar avanzando. Antes de dar el guion por bueno, léelo: si se resume en "deja de trabajar para otro y sé tu propio jefe", REESCRÍBELO entrando por otro ángulo.
 
 RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
 - EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
@@ -295,7 +340,9 @@ VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación 
 
 A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
 
-NORTE: el canal empuja a UNA sola cosa — que deje de esperar y construya lo suyo. Libertad financiera, legado, disciplina, no rendirse, dejar de cambiar su vida por un sueldo, montar su propio negocio. Tu trabajo es encender la decisión, no dar recetas.
+NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
+
+NO REPITAS SIEMPRE EL MISMO SERMÓN (crítico): el encuadre de "el sueldo es una trampa, renuncia y monta tu negocio para ser tu propio jefe" ya se usó demasiadas veces en este canal y está gastado. Puede aparecer, pero NO puede ser el marco por defecto de todos los guiones. La mayoría de las veces entra por otro lado: por el dinero que ya tiene en la mano, por el tiempo que no vuelve, por una decisión concreta que lleva meses aplazando, por un hábito, por el miedo real, por lo que le está enseñando a su hijo sin darse cuenta, por la diferencia entre estar ocupado y estar avanzando. Antes de dar el guion por bueno, léelo: si se resume en "deja de trabajar para otro y sé tu propio jefe", REESCRÍBELO entrando por otro ángulo.
 
 RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
 - EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
@@ -365,7 +412,9 @@ VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación 
 
 A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
 
-NORTE: el canal empuja a UNA sola cosa — que deje de esperar y construya lo suyo. Libertad financiera, legado, disciplina, no rendirse, dejar de cambiar su vida por un sueldo, montar su propio negocio. Tu trabajo es encender la decisión, no dar recetas.
+NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
+
+NO REPITAS SIEMPRE EL MISMO SERMÓN (crítico): el encuadre de "el sueldo es una trampa, renuncia y monta tu negocio para ser tu propio jefe" ya se usó demasiadas veces en este canal y está gastado. Puede aparecer, pero NO puede ser el marco por defecto de todos los guiones. La mayoría de las veces entra por otro lado: por el dinero que ya tiene en la mano, por el tiempo que no vuelve, por una decisión concreta que lleva meses aplazando, por un hábito, por el miedo real, por lo que le está enseñando a su hijo sin darse cuenta, por la diferencia entre estar ocupado y estar avanzando. Antes de dar el guion por bueno, léelo: si se resume en "deja de trabajar para otro y sé tu propio jefe", REESCRÍBELO entrando por otro ángulo.
 
 RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
 - EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
@@ -744,20 +793,27 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   var hO=HOOKS.find(function(h){return h.id===hId;});
   var dO=DURS.find(function(d){return d.id===dId;});
   var hi={dato:'Empieza con dato/cifra impactante.',pregunta:'Empieza con pregunta disruptiva.',afirmacion:'Empieza con verdad incomoda directa.',historia:'Empieza en primera persona con experiencia cruda.',pasos:'Desarrolla con Primero, Segundo, Tercero.'};
-  var identidadBase='PERSONAJE FIJO — el MISMO hombre en TODAS las imagenes, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO EN TODA IMAGEN: lluvia, cualquier clima (nieve, tormenta, gotas de agua), cielos lluviosos, superficies mojadas, charcos -- NUNCA, ni dentro ni fuera del edificio; el clima es fuente de errores graves al animar. Tampoco robots, futurismo, sci-fi, cadenas rotas, magia ni fantasia. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad, contraste y sombras, jamas clima. ESCENAS LIMPIAS: incluye solo los objetos que la accion necesita; evita objetos sueltos irrelevantes (tazas de cafe, vasos, adornos) que no formen parte de la accion, porque al animar se deforman o se transforman en otra cosa. MIRADA (obligatorio): el personaje mira lo que exige la accion (lo que hace con las manos, la persona con quien trata, el lugar que supervisa, el horizonte de la ciudad), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
-  var sceneDir;
+  var identidadBase='PERSONAJE FIJO — NO todas las imagenes tienen que mostrarlo (hay planos de detalle, de entorno o de otras personas), pero SIEMPRE que aparezca el protagonista es el MISMO hombre, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO EN TODA IMAGEN: lluvia, cualquier clima (nieve, tormenta, gotas de agua), cielos lluviosos, superficies mojadas, charcos -- NUNCA, ni dentro ni fuera del edificio; el clima es fuente de errores graves al animar. Tampoco robots, futurismo, sci-fi, cadenas rotas, magia ni fantasia. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad, contraste y sombras, jamas clima. ESCENAS LIMPIAS: incluye solo los objetos que la accion necesita; evita objetos sueltos irrelevantes (tazas de cafe, vasos, adornos) que no formen parte de la accion, porque al animar se deforman o se transforman en otra cosa. MIRADA (obligatorio): el personaje mira lo que exige la accion (lo que hace con las manos, la persona con quien trata, el lugar que supervisa, el horizonte de la ciudad), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
+  // DIRECCION VISUAL: se le da al modelo el papel de DIRECTOR, no una lista de
+  // escenas. Antes aqui habia arcos y menus de acciones fijos ("cargando cajas",
+  // "dirigiendo al equipo"...) y el modelo simplemente los obedecia: por eso salian
+  // siempre las mismas imagenes. Ahora decide el como a partir de ESTE guion.
+  var sceneDir='DIRECCION VISUAL — ERES EL DIRECTOR: actua como director de cine y fotografia especialista en contenido de libertad financiera, no como un generador de escenas sueltas. ANTES de escribir nada, LEE el guion completo que acabas de escribir y planifica la secuencia entera como una pieza: decide que momento merece cada imagen, que se muestra y que se sugiere, y como avanza visualmente de la primera a la ultima. Cada prompt es UNA sola imagen, un unico plano que llena el cuadro — NUNCA vinetas, cuadros ni collage. ';
   if(mode==='historia'){
-    sceneDir='DIRECCION VISUAL — MODO HISTORIA (arco de emprendimiento, de cero a negocio solido): cada prompt es UNA sola imagen, un unico plano que llena todo el cuadro — NUNCA vinetas, cuadros ni collage. Las imagenes van EN SECUENCIA e ILUSTRAN en orden la parte del guion que a cada una le toca, y JUNTAS cuentan una historia visual de SUPERACION que AVANZA imagen a imagen: no son la misma escena repetida con otro fondo y otra ropa. '
-      +'EL ARCO (repartelo segun el orden de las imagenes): las PRIMERAS imagenes = el arranque humilde y duro — el protagonista trabajando con sus propias manos en un espacio modesto y pequeno, con lo minimo, haciendo el trabajo pesado el solo (cargando, montando, acomodando, madrugando, atendiendo al primer cliente). Las IMAGENES DEL MEDIO = empieza a levantar — cerrar el primer trato con un apreton de manos, contar las primeras ganancias en efectivo, ensenar o sumar al primer ayudante, mudarse a un local un poco mas grande, mas movimiento y clientes. Las ULTIMAS imagenes = el negocio ya SOLIDO y rentable — un equipo pequeno trabajando, un espacio mas amplio y cuidado, el protagonista dirigiendo y supervisando con calma, el resultado logrado (solido, NO millonario ostentoso). '
-      +'SIN NOMBRAR UN NEGOCIO CONCRETO: muestra emprendimiento GENERAL (un taller, un local, un puesto, una bodega, una oficina sencilla — puedes variar el tipo), lo que importa es que se vea la PROGRESION de esfuerzo a logro, no la industria. Deriva cada escena del CONTENIDO de su parte del guion; NO uses una lista fija de escenas. ';
+    sceneDir+='ESTE MODO cuenta un recorrido que AVANZA: las imagenes en conjunto deben sentirse como una progresion con principio y final, no como la misma escena repetida con otro fondo. TU decides cual es ese recorrido segun lo que dice ESTE guion en particular — puede ser de esfuerzo a logro, de duda a decision, de aislamiento a construccion, de rutina a ruptura, o cualquier otro que el guion pida. No existe un arco obligatorio. ';
   }else if(mode==='impacto'){
-    sceneDir='DIRECCION VISUAL — MODO IMPACTO (imagenes para VOLVERSE VIRALES): 3 imagenes de altisimo impacto visual, cada una un golpe distinto ligado a un momento del mensaje de ESTE guion. Composicion audaz y cinematografica, alto contraste, mucha fuerza emocional — del tipo de imagen que detiene el scroll y da ganas de compartir. Puedes usar al protagonista exitoso en un momento poderoso, o un contraste simbolico que refuerce el mensaje (por ejemplo el que sigue atrapado frente al que se solto), SIEMPRE fiel a lo que se esta diciendo. Entornos completamente diferentes entre si, potentes. Deriva las escenas del guion; NO uses una lista fija de escenas. ';
+    sceneDir+='ESTE MODO son 3 golpes visuales para detener el scroll: composicion audaz, alto contraste, mucha fuerza emocional, cada imagen un impacto distinto ligado a un momento del mensaje. Puedes usar contraste simbolico, un detalle brutal o una escena potente — lo que MEJOR sirva a lo que dice este guion. ';
   }else{
-    sceneDir='DIRECCION VISUAL — MODO REEL (el protagonista YA TIENE su empresa y la esta ESCALANDO): nunca desde abajo, nunca pobre, nunca haciendo el trabajo pesado el solo — ya es un empresario exitoso que hace CRECER lo que ya construyo, con poder tranquilo y estetica de cine. Cada imagen ILUSTRA lo que la narracion dice en ese momento del guion, siguiendo su ritmo de principio a fin, y muestra al empresario en la accion concreta de esa parte: dirigiendo una reunion con su equipo, supervisando una operacion en marcha desde lo alto, cerrando un trato grande con un apreton de manos firme, guiando o instruyendo a su gente, llegando o saliendo en un auto de gama alta, de pie en una azotea o ventanal dominando la ciudad, expandiendose a un nuevo local, viajando por negocios. Entornos VARIADOS y coherentes con lo que se dice; NUNCA siempre la misma oficina ni siempre en un escritorio. Deriva cada escena del CONTENIDO de su parte del guion; NO uses una lista fija de escenas. ';
+    sceneDir+='ESTE MODO acompana un consejo directo: cada imagen ILUSTRA lo que la narracion dice en ese momento, siguiendo su ritmo de principio a fin, con estetica de cine y poder tranquilo. ';
   }
-  // Regla de variedad compartida por los tres modos: es lo que rompe la repeticion
-  // de "papeles en un escritorio" y obliga a acciones fisicas distintas por imagen.
-  sceneDir+='VARIEDAD DE ACCION (obligatorio, es lo mas importante): cada imagen debe mostrar una ACCION FISICA CONCRETA Y DISTINTA — PROHIBIDO que dos imagenes muestren la misma accion. NO uses "revisar papeles" ni "firmar un documento en un escritorio" como accion por defecto: a lo sumo UNA sola imagen de todo el conjunto puede tener papeles o pantalla; TODAS las demas son acciones distintas (trabajar con las manos o herramientas, cargar o mover cosas, saludar o cerrar un trato con alguien, contar dinero, dirigir a un equipo, caminar por el lugar, supervisar desde lo alto, hablar directo a camara). Si el guion no exige papeles, que NO aparezca ni un papel. Piensa cada imagen como un fotograma distinto de una escena en movimiento, no como un retrato del personaje posando. ';
+  // El CODIGO (no el modelo) asigna registros visuales al azar: es lo que impide
+  // que dos guiones seguidos caigan en el mismo mundo visual.
+  var regs=shuffleArr(VIS_REGISTROS.slice()).slice(0,3);
+  sceneDir+='LIBERTAD Y CRITERIO (lo mas importante): tienes libertad TOTAL para elegir escenas, encuadres y entornos. NO existe ninguna lista de escenas que debas seguir. Deriva cada imagen del CONTENIDO CONCRETO de su parte de ESTE guion: si el guion habla de tiempo, de una decision, de una perdida, de una relacion o de una rutina, la imagen debe ser de ESO, no una escena generica de trabajo. '
+    +'MUNDOS VISUALES DE ESTE GUION (usalos como territorio de partida, mezclalos y sal de ellos si el guion pide otra cosa): '+regs.join(' / ')+'. '
+    +'VARIEDAD DE PLANOS (obligatorio): NO todas las imagenes son un plano entero del protagonista trabajando. Alterna la escala — un primer plano de manos u objetos, un detalle cerrado sin rostro, un plano general amplio donde la persona es pequena en el espacio, un plano medio, un punto de vista subjetivo. NO todas las imagenes tienen que mostrar al protagonista: algunas pueden ser un entorno vacio, un objeto que cuenta la historia, otra persona, o un detalle. Al menos una imagen del conjunto NO debe mostrar su rostro. '
+    +'IMAGENES QUEMADAS — PROHIBIDAS salvo que el guion lo pida literalmente: el protagonista cargando cajas o bultos, apilando o moviendo mercancia, en una bodega o almacen con cajas de carton, cargando materiales en una obra en construccion, senalando o dirigiendo obreros con casco y chaleco en una fabrica o planta industrial, revisando o firmando papeles en un escritorio. Esas escenas ya se usaron demasiadas veces en este canal y estan gastadas; si tu primera idea es una de esas, DESCARTALA y busca otra. '
+    +'ANTIRREPETICION: PROHIBIDO que dos imagenes de este conjunto compartan la misma accion, el mismo tipo de entorno o el mismo encuadre. Si dos prompts se parecen, reescribe uno. Piensa cada imagen como un fotograma distinto de una pelicula, no como un retrato del personaje posando. ';
   // Regla clave: el guion habla en METAFORAS. Sin esto, el modelo dibuja las
   // palabras al pie de la letra (fuego real por "apagar incendios", engranajes de
   // reloj por "engranajes") en vez del significado. No es una lista negra: es una
@@ -777,6 +833,11 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   if(mode!=='impacto'&&tId==='herramientas'){
     var ang=HERRAM_ANGLES[Math.floor(Math.random()*HERRAM_ANGLES.length)];
     seedRule='ÁNGULO ASIGNADO PARA ESTE GUION (variedad obligatoria): '+ang+' Desarrolla ESE contenido con sustancia real; SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDO repetir la fórmula de siempre.\n\n';
+  }else{
+    // El codigo asigna la PUERTA DE ENTRADA al azar (el modelo no la elige): es lo
+    // que evita que todos los guiones entren por "el sueldo es una trampa".
+    var enf=ENFOQUES[Math.floor(Math.random()*ENFOQUES.length)];
+    seedRule='PUERTA DE ENTRADA ASIGNADA PARA ESTE GUION (variedad obligatoria, no la anuncies ni la nombres): entra al tema por '+enf+' Sigue tratando el PILAR y el CONCEPTO que te dieron, pero ábrelos por ESA puerta en vez de por el encuadre de siempre. Si al terminar el guion podría haber entrado por cualquier otra puerta sin cambiar nada, no lo hiciste bien.\n\n';
   }
   var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
   return {msg:msg,tO:tO,dO:dO,hO:hO};

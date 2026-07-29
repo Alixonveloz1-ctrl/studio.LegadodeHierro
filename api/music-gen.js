@@ -1,11 +1,15 @@
 // api/music-gen.js
 // GENERADOR DE MUSICA CON IA — Lyria (Google) via Vertex AI, en el mismo
 // proyecto y con el mismo credito que todo lo demas.
-// Compone ~30 segundos instrumentales segun el estilo pedido, y la pista se
-// guarda DIRECTO en la biblioteca del bucket (musica/), lista para elegirse
-// en la unificacion (alli se repite en bucle si el video es mas largo).
-
-const MODEL = 'lyria-002';
+// La pista se guarda DIRECTO en la biblioteca del bucket (musica/), lista para
+// elegirse en la unificacion.
+//
+// MODELOS (se intentan en orden): lyria-3-pro-preview compone hasta 184 segundos
+// (~3 min), asi la pista CUBRE el reel entero y en la unificacion solo hay que
+// CORTARLA donde termina la voz — sin bucles ni costuras que se oigan. Si ese
+// modelo no esta habilitado en el proyecto (es preview y puede requerir acceso),
+// se cae automaticamente a lyria-002 (~30 s, que si necesita repetirse).
+const MODELS = ['lyria-3-pro-preview', 'lyria-002'];
 
 const { createSign } = require('crypto');
 
@@ -84,8 +88,8 @@ module.exports = async (req, res) => {
 
   const style = (req.body.style || '').trim().slice(0, 300);
 
-  const url = 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
-    '/locations/us-central1/publishers/google/models/' + MODEL + ':predict';
+  const urlFor = (m) => 'https://us-central1-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
+    '/locations/us-central1/publishers/google/models/' + m + ':predict';
 
   try {
     const token = await getGCPToken();
@@ -133,32 +137,64 @@ module.exports = async (req, res) => {
         console.warn('[music-gen] conversion fallo (' + e.message + '), se usa el estilo por defecto');
       }
     }
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'X-Goog-User-Project': PROJECT_ID,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        instances: [{
-          prompt: prompt,
-          negative_prompt: NEGATIVE,
-        }],
-      }),
-    });
-    const d = await r.json();
-    if (!r.ok) {
-      const msg = (d && d.error && d.error.message) ? d.error.message : ('Error ' + r.status);
-      console.error('[music-gen] Lyria fallo: ' + msg);
-      return res.status(502).json({ error: 'Lyria no respondio: ' + msg });
-    }
+    // Se intenta primero Lyria 3 Pro (pista larga). Si el modelo no esta
+    // disponible/habilitado en el proyecto, se pasa al siguiente sin romper nada.
+    // Presupuesto de tiempo: la funcion de Vercel se corta a los 60 s. Componer una
+    // pista larga puede tardar, asi que cada intento lleva su propio limite y, si se
+    // pasa, se abandona ese modelo en vez de dejar morir la peticion entera.
+    const t0 = Date.now();
+    const restante = () => 54000 - (Date.now() - t0);
 
-    const pred = d.predictions && d.predictions[0] ? d.predictions[0] : null;
-    const b64 = pred ? (pred.bytesBase64Encoded || pred.audioContent || null) : null;
+    let b64 = null, usedModel = null, lastMsg = 'Error desconocido';
+    for (const m of MODELS) {
+      const presupuesto = restante();
+      if (presupuesto < 6000) { lastMsg = 'se acabo el tiempo disponible'; break; }
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), presupuesto);
+      let r;
+      try {
+        r = await fetch(urlFor(m), {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'X-Goog-User-Project': PROJECT_ID,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            instances: [{
+              prompt: prompt,
+              negative_prompt: NEGATIVE,
+            }],
+          }),
+          signal: ctrl.signal,
+        });
+      } catch (e) {
+        lastMsg = e.name === 'AbortError' ? (m + ' tardo demasiado') : e.message;
+        console.warn('[music-gen] ' + m + ' fallo: ' + lastMsg);
+        continue;
+      } finally {
+        clearTimeout(to);
+      }
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        lastMsg = (d && d.error && d.error.message) ? d.error.message : ('Error ' + r.status);
+        console.warn('[music-gen] ' + m + ' no disponible (' + r.status + '): ' + lastMsg);
+        continue;
+      }
+      const pred = d.predictions && d.predictions[0] ? d.predictions[0] : null;
+      const got = pred ? (pred.bytesBase64Encoded || pred.audioContent || null) : null;
+      if (!got) {
+        lastMsg = 'no devolvio audio';
+        console.warn('[music-gen] ' + m + ' respondio sin audio: ' + JSON.stringify(d).slice(0, 200));
+        continue;
+      }
+      b64 = got; usedModel = m;
+      console.log('[music-gen] pista compuesta con ' + m);
+      break;
+    }
     if (!b64) {
-      console.error('[music-gen] sin audio. Respuesta: ' + JSON.stringify(d).slice(0, 300));
-      return res.status(502).json({ error: 'Lyria no devolvio audio.' });
+      console.error('[music-gen] ningun modelo de Lyria respondio: ' + lastMsg);
+      return res.status(502).json({ error: 'Lyria no respondio: ' + lastMsg });
     }
 
     // Guardar la pista directo en la biblioteca del bucket (WAV).
@@ -177,8 +213,8 @@ module.exports = async (req, res) => {
     const ud = await up.json();
     if (!up.ok) throw new Error('No se pudo guardar la pista: ' + ((ud.error && ud.error.message) || up.status));
 
-    console.log('[music-gen] pista generada y guardada: ' + object + ' (' + buf.length + ' bytes)');
-    return res.json({ success: true, object: object, name: name, model: MODEL });
+    console.log('[music-gen] pista generada y guardada: ' + object + ' (' + buf.length + ' bytes, ' + usedModel + ')');
+    return res.json({ success: true, object: object, name: name, model: usedModel });
   } catch (e) {
     console.error('[music-gen] excepcion: ' + e.message);
     return res.status(500).json({ error: e.message });
