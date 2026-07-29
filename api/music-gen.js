@@ -15,10 +15,11 @@
 // La duracion NO es un parametro: se pide en prosa dentro del propio prompt.
 const MODEL = 'lyria-3-pro-preview';
 const LOCATION = 'global';
-// Duracion que se pide. Se factura POR PIEZA (no por segundo), asi que pedir
-// largo no cuesta mas: con esto cualquier reel de 30 o 60 s queda cubierto de
-// sobra y la musica solo hay que cortarla donde termina la voz.
-const TARGET_SECONDS = 180;
+// Duracion que se pide. El reel mas largo del canal es de 60 s, asi que con 80
+// sobra margen: la musica cubre toda la narracion y la unificacion solo tiene
+// que cortarla donde termina la voz. Pedir 3 minutos era desperdicio y ademas
+// hacia que el modelo se quedara sin espacio de salida a mitad de la pieza.
+const TARGET_SECONDS = 80;
 
 const { createSign } = require('crypto');
 
@@ -73,9 +74,9 @@ const GUARDA = 'INSTRUMENTAL ONLY. No vocals. No singing. No choir. No lyrics. N
 function armarPrompt(estilo) {
   return GUARDA + '\n\n'
     + 'STYLE (this is a description, not lyrics): ' + estilo + '\n\n'
-    + 'LENGTH (important): compose a FULL-LENGTH piece of about ' + TARGET_SECONDS + ' seconds '
-    + '(roughly ' + Math.round(TARGET_SECONDS / 60) + ' minutes). Do NOT stop early and do NOT deliver a short clip.\n'
-    + 'Structure it to fill that whole time: a calm intro, a long main body that develops and varies, and a resolved ending.\n\n'
+    + 'LENGTH (important): compose a continuous piece of about ' + TARGET_SECONDS + ' seconds. '
+    + 'Do NOT stop early and do NOT deliver a 30-second clip.\n'
+    + 'Structure it to fill that whole time: a calm intro, a main body that develops and varies, and a resolved ending.\n\n'
     + 'Duracion objetivo: alrededor de ' + TARGET_SECONDS + ' segundos en una sola pieza continua; no la cortes antes.\n\n'
     + 'ESTRICTAMENTE INSTRUMENTAL: ni voces, ni coro, ni letra, ni palabras cantadas o habladas. '
     + 'El texto de arriba es una descripcion del ESTILO, nunca una letra para cantar. '
