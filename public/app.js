@@ -2116,7 +2116,10 @@ async function genMusic(preset){
     if(!r.ok||!d.object)throw new Error(d.error||'Error '+r.status);
     try{localStorage.setItem('lh_music_sel',d.object);}catch(e){}
     loadMusicList();
-    if(st)st.textContent='🎼 "'+d.name+'" lista y seleccionada. Toca ▶ Escuchar para oírla al volumen de la barra; si no te convence, genera otra.';
+    // Se muestra el formato real que devolvio el modelo: si algo suena mal (ruido,
+    // estatica), este dato dice exactamente por que sin tener que adivinar.
+    var info=d.formato?(' ['+d.formato+(d.trozos>1?', '+d.trozos+' trozos':'')+']'):'';
+    if(st)st.textContent='🎼 "'+d.name+'" lista y seleccionada'+info+'. Toca ▶ Escuchar para oírla al volumen de la barra; si no te convence, genera otra.';
     cost+=0.06;updCost();
   }catch(e){
     if(st)st.textContent='Error generando música: '+(e.message||'sin conexión');

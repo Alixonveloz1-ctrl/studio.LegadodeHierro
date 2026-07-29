@@ -115,11 +115,8 @@ function juntarAudio(json) {
   };
 }
 
-// Si el audio no viene ya como WAV (RIFF) sino como PCM crudo (audio/L16), se le
-// pone cabecera WAV: asi el navegador puede reproducirlo y ffmpeg leerlo sin
-// tener que adivinar el formato en la unificacion.
-function aWav(buf, mimeType) {
-  if (buf.length > 4 && buf.slice(0, 4).toString('latin1') === 'RIFF') return buf;
+// Cabecera WAV para PCM CRUDO. Solo se usa cuando el audio es de verdad PCM.
+function cabeceraWav(buf, mimeType) {
   const rate = parseInt((/rate=(\d+)/.exec(mimeType) || [])[1], 10) || 24000;
   const ch = parseInt((/channels=(\d+)/.exec(mimeType) || [])[1], 10) || 1;
   const bits = 16, blockAlign = ch * bits / 8, byteRate = rate * blockAlign;
@@ -138,6 +135,43 @@ function aWav(buf, mimeType) {
   h.write('data', 36);
   h.writeUInt32LE(buf.length, 40);
   return Buffer.concat([h, buf]);
+}
+
+// Tras concatenar varios trozos WAV, la cabecera del primero sigue declarando el
+// tamano de SU trozo. Se corrige al tamano real o los lectores estrictos (ffmpeg)
+// solo leen el primer pedazo y la pista sale corta.
+function corregirTamanoWav(buf) {
+  if (buf.length < 44 || buf.slice(0, 4).toString('latin1') !== 'RIFF') return buf;
+  const out = Buffer.from(buf);
+  out.writeUInt32LE(out.length - 8, 4);
+  if (out.slice(36, 40).toString('latin1') === 'data') out.writeUInt32LE(out.length - 44, 40);
+  return out;
+}
+
+// Detecta el formato REAL por los bytes de cabecera (magic numbers) y NUNCA
+// reinterpreta el contenido. Envolver audio comprimido (MP3/Opus) en una
+// cabecera WAV que dice "PCM" es exactamente lo que produce ruido blanco, asi
+// que solo se anade cabecera cuando el audio es PCM de verdad.
+function prepararAudio(buf, mimeType) {
+  const h4 = buf.slice(0, 4).toString('latin1');
+  if (h4 === 'RIFF') return { buf: corregirTamanoWav(buf), ext: '.wav', tipo: 'audio/wav' };
+  if (h4 === 'OggS') return { buf: buf, ext: '.ogg', tipo: 'audio/ogg' };
+  if (h4 === 'fLaC') return { buf: buf, ext: '.flac', tipo: 'audio/flac' };
+  if (buf.slice(4, 8).toString('latin1') === 'ftyp') return { buf: buf, ext: '.m4a', tipo: 'audio/mp4' };
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) {
+    return { buf: buf, ext: '.webm', tipo: 'audio/webm' };
+  }
+  if (h4.slice(0, 3) === 'ID3' || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0)) {
+    return { buf: buf, ext: '.mp3', tipo: 'audio/mpeg' };
+  }
+  // Sin firma reconocible: solo se envuelve si el mimeType dice que es PCM.
+  if (/l16|pcm|linear/i.test(mimeType || '')) {
+    return { buf: cabeceraWav(buf, mimeType), ext: '.wav', tipo: 'audio/wav' };
+  }
+  // Formato desconocido: se guarda TAL CUAL (sin tocar un byte) con la extension
+  // que sugiera el mimeType. Mejor un archivo intacto que uno reinterpretado mal.
+  const sub = (/audio\/([a-z0-9.+-]+)/i.exec(mimeType || '') || [])[1] || 'bin';
+  return { buf: buf, ext: '.' + sub.replace(/[^a-z0-9]/gi, ''), tipo: mimeType || 'application/octet-stream' };
 }
 
 const { checkAuth } = require('./_auth');
@@ -270,25 +304,32 @@ module.exports = async (req, res) => {
     }
     console.log('[music-gen] audio recibido: ' + audio.trozos + ' trozo(s), mime ' + audio.mimeType);
 
-    // Guardar la pista directo en la biblioteca del bucket, siempre como WAV
-    // valido (si vino PCM crudo se le pone cabecera).
-    const buf = aWav(audio.buf, audio.mimeType);
+    // Guardar la pista con su formato REAL (extension y Content-Type detectados
+    // de los propios bytes). Nunca se reinterpreta el contenido.
+    const fmt = prepararAudio(audio.buf, audio.mimeType);
+    const buf = fmt.buf;
+    console.log('[music-gen] formato detectado: ' + fmt.tipo + ' (' + fmt.ext + '), ' +
+      'primeros bytes: ' + audio.buf.slice(0, 4).toString('hex'));
     let slug = (style || 'epica').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'epica';
     const stamp = new Date().toISOString().slice(5, 16).replace(/[-:T]/g, '');
-    const name = 'ia-' + slug + '-' + stamp + '.wav';
+    const name = 'ia-' + slug + '-' + stamp + fmt.ext;
     const object = 'musica/' + name;
     const up = await fetch('https://storage.googleapis.com/upload/storage/v1/b/' + bucket +
       '/o?uploadType=media&name=' + encodeURIComponent(object), {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'audio/wav' },
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': fmt.tipo },
       body: buf,
     });
     const ud = await up.json();
     if (!up.ok) throw new Error('No se pudo guardar la pista: ' + ((ud.error && ud.error.message) || up.status));
 
     console.log('[music-gen] pista guardada: ' + object + ' (' + buf.length + ' bytes, ' + MODEL + ')');
-    return res.json({ success: true, object: object, name: name, model: MODEL, descripcion: audio.texto });
+    // Se devuelve el formato real: si algo suena mal, se ve al instante que era.
+    return res.json({
+      success: true, object: object, name: name, model: MODEL,
+      descripcion: audio.texto, formato: fmt.tipo, mimeOriginal: audio.mimeType, trozos: audio.trozos,
+    });
   } catch (e) {
     console.error('[music-gen] excepcion: ' + e.message);
     return res.status(500).json({ error: e.message });
