@@ -6,14 +6,19 @@
 //
 // MODELO UNICO: lyria-3-pro-preview compone hasta 184 segundos (~3 min), asi la
 // pista CUBRE el reel entero y en la unificacion solo hay que CORTARLA donde
-// termina la voz — sin bucles ni costuras que se oigan.
-// NO hay respaldo a lyria-002 (30 s) a proposito: si algo falla queremos VER el
-// error real de Google, no recibir en silencio una pista corta que hay que repetir.
+// termina la voz — sin bucles ni costuras que se oigan. Sin respaldo a modelos
+// de 30 s: si algo falla, se muestra el error real en vez de degradar en silencio.
+//
+// COMO SE LLAMA (lo que no es obvio): Lyria NO tiene endpoint propio ni usa
+// :predict. Se pide igual que un modelo de imagen de Gemini — :generateContent
+// con responseModalities ['AUDIO','TEXT'] — y SIEMPRE en la region "global".
+// La duracion NO es un parametro: se pide en prosa dentro del propio prompt.
 const MODEL = 'lyria-3-pro-preview';
-// El modelo no esta publicado en todas las regiones. Se prueban estas rutas en
-// orden y se usa la primera que responda; si todas fallan, se muestra el motivo
-// exacto que devuelve Google (region, permisos o acceso al preview).
-const LOCATIONS = ['us-central1', 'global'];
+const LOCATION = 'global';
+// Duracion que se pide. Se factura POR PIEZA (no por segundo), asi que pedir
+// largo no cuesta mas: con esto cualquier reel de 30 o 60 s queda cubierto de
+// sobra y la musica solo hay que cortarla donde termina la voz.
+const TARGET_SECONDS = 180;
 
 const { createSign } = require('crypto');
 
@@ -57,8 +62,83 @@ const PRESETS = {
   epica:    DEFAULT_STYLE,
 };
 
-// Lo que NUNCA debe sonar: voces ni sonido de videojuego retro (chiptune/8-bit).
-const NEGATIVE = 'vocals, singing, voice, spoken word, 8-bit, chiptune, video game music, arcade sounds, retro console, bleeps and bloops, cheap MIDI, lo-fi bitcrushed, low quality';
+// SALVAGUARDA INSTRUMENTAL: Lyria es un modelo de CANCIONES y, si le das una
+// descripcion en prosa sin mas, puede tomarla como letra y cantarla. La orden va
+// en INGLES y se repite DELANTE y AL FINAL (el modelo pesa mas lo primero y lo
+// ultimo que lee). Aqui no existe campo negative_prompt: todo va en el prompt.
+const GUARDA = 'INSTRUMENTAL ONLY. No vocals. No singing. No choir. No lyrics. No spoken word. No human voice of any kind. This is a background score for a narrated film.';
+
+// Envuelve la descripcion de estilo con la salvaguarda, la duracion objetivo (que
+// solo se puede pedir en prosa) y las condiciones para que quepa una narracion.
+function armarPrompt(estilo) {
+  return GUARDA + '\n\n'
+    + 'STYLE (this is a description, not lyrics): ' + estilo + '\n\n'
+    + 'Duracion objetivo: alrededor de ' + TARGET_SECONDS + ' segundos, en una sola pieza continua.\n\n'
+    + 'ESTRICTAMENTE INSTRUMENTAL: ni voces, ni coro, ni letra, ni palabras cantadas o habladas. '
+    + 'El texto de arriba es una descripcion del ESTILO, nunca una letra para cantar. '
+    + 'Encima de esta musica va la voz de un narrador, asi que deja sitio: registro medio y grave, '
+    + 'sin agudos punzantes, dinamica contenida y sin silencios bruscos. '
+    + 'Produccion limpia, estereo amplio, sin distorsion. '
+    + 'Nada de sonido de videojuego retro (8-bit, chiptune, arcade) ni MIDI barato.\n\n'
+    + GUARDA;
+}
+
+// El audio puede volver PARTIDO en varias partes inlineData dentro de la MISMA
+// respuesta. Hay que concatenarlas; y si son WAV, cada trozo trae su cabecera
+// RIFF de 44 bytes: se conserva la del primero y se quita en los demas, o el
+// archivo sale corrupto (falla solo en piezas largas, que son las troceadas).
+function juntarAudio(json) {
+  const parts = json && json.candidates && json.candidates[0] &&
+    json.candidates[0].content && json.candidates[0].content.parts;
+  if (!parts) return null;
+  const trozos = [];
+  let mimeType = null, texto = '';
+  for (const p of parts) {
+    if (p && typeof p.text === 'string') texto += p.text;
+    const inl = p.inlineData || p.inline_data;
+    if (!inl || !inl.data) continue;
+    const mt = inl.mimeType || inl.mime_type || '';
+    if (mt.indexOf('image') === 0) continue; // descarta partes que no son audio
+    if (!mimeType) mimeType = mt;
+    let buf = Buffer.from(inl.data, 'base64');
+    if (trozos.length && buf.length > 44 && buf.slice(0, 4).toString('latin1') === 'RIFF') {
+      buf = buf.slice(44);
+    }
+    trozos.push(buf);
+  }
+  if (!trozos.length) return null;
+  return {
+    buf: trozos.length === 1 ? trozos[0] : Buffer.concat(trozos),
+    mimeType: mimeType || 'audio/L16;codec=pcm;rate=24000',
+    texto: texto.trim(),
+    trozos: trozos.length,
+  };
+}
+
+// Si el audio no viene ya como WAV (RIFF) sino como PCM crudo (audio/L16), se le
+// pone cabecera WAV: asi el navegador puede reproducirlo y ffmpeg leerlo sin
+// tener que adivinar el formato en la unificacion.
+function aWav(buf, mimeType) {
+  if (buf.length > 4 && buf.slice(0, 4).toString('latin1') === 'RIFF') return buf;
+  const rate = parseInt((/rate=(\d+)/.exec(mimeType) || [])[1], 10) || 24000;
+  const ch = parseInt((/channels=(\d+)/.exec(mimeType) || [])[1], 10) || 1;
+  const bits = 16, blockAlign = ch * bits / 8, byteRate = rate * blockAlign;
+  const h = Buffer.alloc(44);
+  h.write('RIFF', 0);
+  h.writeUInt32LE(36 + buf.length, 4);
+  h.write('WAVE', 8);
+  h.write('fmt ', 12);
+  h.writeUInt32LE(16, 16);
+  h.writeUInt16LE(1, 20);          // PCM
+  h.writeUInt16LE(ch, 22);
+  h.writeUInt32LE(rate, 24);
+  h.writeUInt32LE(byteRate, 28);
+  h.writeUInt16LE(blockAlign, 32);
+  h.writeUInt16LE(bits, 34);
+  h.write('data', 36);
+  h.writeUInt32LE(buf.length, 40);
+  return Buffer.concat([h, buf]);
+}
 
 const { checkAuth } = require('./_auth');
 
@@ -94,11 +174,9 @@ module.exports = async (req, res) => {
 
   const style = (req.body.style || '').trim().slice(0, 300);
 
-  // El endpoint "global" no lleva prefijo de region en el host.
-  const urlFor = (loc) => (loc === 'global'
-    ? 'https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/global'
-    : 'https://' + loc + '-aiplatform.googleapis.com/v1/projects/' + PROJECT_ID + '/locations/' + loc)
-    + '/publishers/google/models/' + MODEL + ':predict';
+  // Region "global": el host NO lleva prefijo de region. Metodo generateContent.
+  const url = 'https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
+    '/locations/' + LOCATION + '/publishers/google/models/' + MODEL + ':generateContent';
 
   try {
     const token = await getGCPToken();
@@ -149,69 +227,52 @@ module.exports = async (req, res) => {
     // Presupuesto de tiempo desde el INICIO de la peticion (incluye la traduccion
     // del estilo): la funcion de Vercel se corta a los 60 s y no queremos que muera
     // sin dejar un mensaje claro.
-    const restante = () => 55000 - (Date.now() - T_INICIO);
-
-    let b64 = null, usedLoc = null;
-    const fallos = [];
-    for (const loc of LOCATIONS) {
-      const presupuesto = restante();
-      if (presupuesto < 5000) { fallos.push(loc + ': sin tiempo suficiente'); break; }
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), presupuesto);
-      let r;
-      try {
-        r = await fetch(urlFor(loc), {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'X-Goog-User-Project': PROJECT_ID,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            instances: [{
-              prompt: prompt,
-              negative_prompt: NEGATIVE,
-            }],
-          }),
-          signal: ctrl.signal,
-        });
-      } catch (e) {
-        const m1 = e.name === 'AbortError'
-          ? 'tardo mas de lo que permite Vercel (' + Math.round(presupuesto / 1000) + ' s)'
-          : e.message;
-        fallos.push(loc + ': ' + m1);
-        console.warn('[music-gen] ' + MODEL + ' @' + loc + ' fallo: ' + m1);
-        continue;
-      } finally {
-        clearTimeout(to);
-      }
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        const m2 = (d && d.error && d.error.message) ? d.error.message : ('HTTP ' + r.status);
-        fallos.push(loc + ': ' + m2);
-        console.warn('[music-gen] ' + MODEL + ' @' + loc + ' rechazado (' + r.status + '): ' + m2);
-        continue;
-      }
-      const pred = d.predictions && d.predictions[0] ? d.predictions[0] : null;
-      const got = pred ? (pred.bytesBase64Encoded || pred.audioContent || null) : null;
-      if (!got) {
-        fallos.push(loc + ': respondio sin audio');
-        console.warn('[music-gen] ' + MODEL + ' @' + loc + ' sin audio: ' + JSON.stringify(d).slice(0, 200));
-        continue;
-      }
-      b64 = got; usedLoc = loc;
-      console.log('[music-gen] pista compuesta con ' + MODEL + ' @' + loc);
-      break;
-    }
-    if (!b64) {
-      // Sin respaldo silencioso: se devuelve el motivo EXACTO de Google.
-      const detalle = fallos.join(' | ');
-      console.error('[music-gen] ' + MODEL + ' no pudo componer: ' + detalle);
-      return res.status(502).json({ error: MODEL + ' no respondio. ' + detalle });
+    const presupuesto = Math.max(5000, 55000 - (Date.now() - T_INICIO));
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), presupuesto);
+    let r;
+    try {
+      r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'X-Goog-User-Project': PROJECT_ID,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: armarPrompt(prompt) }] }],
+          generationConfig: { responseModalities: ['AUDIO', 'TEXT'] },
+        }),
+        signal: ctrl.signal,
+      });
+    } catch (e) {
+      const m1 = e.name === 'AbortError'
+        ? 'tardo mas de los ' + Math.round(presupuesto / 1000) + ' s que permite la funcion'
+        : e.message;
+      console.error('[music-gen] ' + MODEL + ' fallo: ' + m1);
+      return res.status(502).json({ error: MODEL + ' no respondio: ' + m1 });
+    } finally {
+      clearTimeout(to);
     }
 
-    // Guardar la pista directo en la biblioteca del bucket (WAV).
-    const buf = Buffer.from(b64, 'base64');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const m2 = (d && d.error && d.error.message) ? d.error.message : ('HTTP ' + r.status);
+      console.error('[music-gen] ' + MODEL + ' rechazado (' + r.status + '): ' + m2);
+      return res.status(502).json({ error: MODEL + ' no respondio: ' + m2 });
+    }
+
+    // El audio puede venir en VARIOS trozos: se concatenan bien (ver juntarAudio).
+    const audio = juntarAudio(d);
+    if (!audio) {
+      console.error('[music-gen] sin audio en la respuesta: ' + JSON.stringify(d).slice(0, 300));
+      return res.status(502).json({ error: MODEL + ' no devolvio audio.' });
+    }
+    console.log('[music-gen] audio recibido: ' + audio.trozos + ' trozo(s), mime ' + audio.mimeType);
+
+    // Guardar la pista directo en la biblioteca del bucket, siempre como WAV
+    // valido (si vino PCM crudo se le pone cabecera).
+    const buf = aWav(audio.buf, audio.mimeType);
     let slug = (style || 'epica').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'epica';
     const stamp = new Date().toISOString().slice(5, 16).replace(/[-:T]/g, '');
@@ -226,8 +287,8 @@ module.exports = async (req, res) => {
     const ud = await up.json();
     if (!up.ok) throw new Error('No se pudo guardar la pista: ' + ((ud.error && ud.error.message) || up.status));
 
-    console.log('[music-gen] pista guardada: ' + object + ' (' + buf.length + ' bytes, ' + MODEL + ' @' + usedLoc + ')');
-    return res.json({ success: true, object: object, name: name, model: MODEL, location: usedLoc });
+    console.log('[music-gen] pista guardada: ' + object + ' (' + buf.length + ' bytes, ' + MODEL + ')');
+    return res.json({ success: true, object: object, name: name, model: MODEL, descripcion: audio.texto });
   } catch (e) {
     console.error('[music-gen] excepcion: ' + e.message);
     return res.status(500).json({ error: e.message });
