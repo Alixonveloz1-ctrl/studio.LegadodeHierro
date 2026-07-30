@@ -1296,6 +1296,20 @@ function renderOut(r){
     document.getElementById('imgCard').appendChild(ballvids);
   }
   ballvids.style.display='none';
+  // Boton del BANCO: reutilizar clips que ya viven en el bucket, sin generar
+  // (ni pagar) nada. Se crea una sola vez y siempre esta disponible.
+  if(!document.getElementById('bbanco')){
+    var bb=document.createElement('button');
+    bb.id='bbanco';
+    bb.textContent='📼 Usar videos ya generados';
+    bb.style.cssText='width:100%;margin-top:8px;padding:12px;background:#fff;border:2px solid #9ab47a;border-radius:10px;font-size:13px;font-weight:700;color:#6a8a4a;cursor:pointer;font-family:inherit';
+    bb.addEventListener('click',abrirBanco);
+    document.getElementById('imgCard').appendChild(bb);
+    var bp=document.createElement('div');
+    bp.id='bancoPanel';
+    bp.style.cssText='display:none;margin-top:8px;border:1.5px solid var(--border);border-radius:10px;padding:10px;background:#fbfcf9;max-height:420px;overflow-y:auto';
+    document.getElementById('imgCard').appendChild(bp);
+  }
   document.getElementById('rES').style.display='none';
   document.getElementById('rEN').style.display='none';
   document.getElementById('ast').style.display='none';
@@ -1664,6 +1678,108 @@ async function genAudio(lang){
     er.textContent='Error: '+e.message;er.style.display='block';st.style.display='none';
   }finally{
     btn.textContent=orig;btn.style.opacity='1';btn.disabled=false;
+  }
+}
+
+// ============================================================================
+//  BANCO DE VIDEOS YA GENERADOS
+//  Trae clips que ya estan en el bucket para montar un reel nuevo sin volver a
+//  generarlos. Se eligen TOCANDOLOS EN ORDEN: el orden de seleccion es el orden
+//  en que se van a ensamblar, que es lo unico que importa para el montaje.
+// ============================================================================
+var BANCO=[];      // lo que hay en el bucket
+var BANCO_SEL=[];  // objetos elegidos, EN ORDEN
+
+async function abrirBanco(){
+  var p=document.getElementById('bancoPanel');
+  var b=document.getElementById('bbanco');
+  if(!p)return;
+  if(p.style.display==='block'){p.style.display='none';return;}
+  p.style.display='block';
+  p.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px">Buscando tus videos en el bucket...</div>';
+  var orig=b?b.textContent:'';
+  if(b){b.disabled=true;b.textContent='Buscando...';}
+  try{
+    var r=await fetch('/api/videos',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'list'})});
+    var d=await r.json().catch(function(){return{};});
+    if(!r.ok)throw new Error(d.error||'Error '+r.status);
+    BANCO=d.clips||[];BANCO_SEL=[];
+    pintarBanco();
+  }catch(e){
+    p.innerHTML='<div style="font-size:12px;color:#8a4a3a;padding:8px">No se pudo leer el banco: '+escHtml(e.message||'error')+'</div>';
+  }finally{
+    if(b){b.disabled=false;b.textContent=orig;}
+  }
+}
+
+function pintarBanco(){
+  var p=document.getElementById('bancoPanel');if(!p)return;
+  if(!BANCO.length){
+    p.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px">No hay videos guardados todavia en el bucket.</div>';
+    return;
+  }
+  var h='<div style="font-size:11px;color:var(--tx2);line-height:1.5;margin-bottom:9px">'
+    +'<strong>'+BANCO.length+' clips</strong> guardados, del mas reciente al mas antiguo. '
+    +'Tocalos <strong>en el orden</strong> en que quieres que se unan: el numero que aparece es su posicion en el reel.</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+    +'<button type="button" class="voxP" id="bBancoTop5">Elegir los 5 mas recientes</button>'
+    +'<button type="button" class="voxP" id="bBancoTop3">Elegir los 3 mas recientes</button>'
+    +'<button type="button" class="voxP" id="bBancoClear">Limpiar seleccion</button>'
+    +'</div>';
+  BANCO.forEach(function(c,i){
+    var pos=BANCO_SEL.indexOf(c.object);
+    var sel=pos>-1;
+    var fecha=c.fecha?new Date(c.fecha).toLocaleString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    h+='<div class="bancoIt" data-i="'+i+'" style="display:flex;align-items:center;gap:9px;padding:7px 9px;margin-bottom:5px;border-radius:8px;cursor:pointer;'
+      +'background:'+(sel?'#eef4e8':'#fff')+';border:1.5px solid '+(sel?'#9ab47a':'var(--border)')+'">'
+      +'<span style="flex:0 0 24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'
+      +'background:'+(sel?'#9ab47a':'var(--warm)')+';color:'+(sel?'#fff':'var(--tx3)')+'">'+(sel?(pos+1):'+')+'</span>'
+      +'<span style="flex:1;min-width:0"><span style="display:block;font-size:11px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(c.name)+'</span>'
+      +'<span style="display:block;font-size:9.5px;color:var(--tx3)">'+escHtml(fecha)+(c.size?' · '+(c.size/1048576).toFixed(1)+' MB':'')+'</span></span>'
+      +'</div>';
+  });
+  h+='<button type="button" id="bBancoUsar" style="width:100%;margin-top:8px;padding:12px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;'
+    +'border:2px solid #9ab47a;background:'+(BANCO_SEL.length?'#9ab47a':'#fff')+';color:'+(BANCO_SEL.length?'#fff':'#6a8a4a')+'">'
+    +(BANCO_SEL.length?('✓ Usar estos '+BANCO_SEL.length+' clips en este orden'):'Toca los clips que quieras usar')+'</button>';
+  p.innerHTML=h;
+
+  Array.prototype.forEach.call(p.querySelectorAll('.bancoIt'),function(el){
+    el.addEventListener('click',function(){
+      var c=BANCO[parseInt(el.getAttribute('data-i'),10)];
+      if(!c)return;
+      var k=BANCO_SEL.indexOf(c.object);
+      if(k>-1)BANCO_SEL.splice(k,1); else BANCO_SEL.push(c.object);
+      pintarBanco();
+    });
+  });
+  var t5=p.querySelector('#bBancoTop5');if(t5)t5.addEventListener('click',function(){BANCO_SEL=BANCO.slice(0,5).map(function(c){return c.object;});pintarBanco();});
+  var t3=p.querySelector('#bBancoTop3');if(t3)t3.addEventListener('click',function(){BANCO_SEL=BANCO.slice(0,3).map(function(c){return c.object;});pintarBanco();});
+  var cl=p.querySelector('#bBancoClear');if(cl)cl.addEventListener('click',function(){BANCO_SEL=[];pintarBanco();});
+  var us=p.querySelector('#bBancoUsar');if(us)us.addEventListener('click',usarBanco);
+}
+
+async function usarBanco(){
+  if(!BANCO_SEL.length){alert('Toca primero los clips que quieres usar.');return;}
+  var us=document.getElementById('bBancoUsar');
+  var orig=us?us.textContent:'';
+  if(us){us.disabled=true;us.textContent='Preparando los clips...';}
+  try{
+    // URLs firmadas: son las que descarga el servicio de unificacion.
+    var r=await fetch('/api/videos',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'link',objects:BANCO_SEL})});
+    var d=await r.json().catch(function(){return{};});
+    if(!r.ok||!d.urls)throw new Error(d.error||'Error '+r.status);
+    // Se colocan EN EL MISMO ORDEN en que se eligieron.
+    vids=d.urls.map(function(u){return {url:u,remoteUrl:u,delBanco:true};});
+    vidState=d.urls.map(function(){return 'done';});
+    var p=document.getElementById('bancoPanel');if(p)p.style.display='none';
+    updUnifyCard();chkExport();
+    alert('Listos '+d.urls.length+' clips del banco, en el orden que elegiste. Ya puedes unificar (solo falta la narración).');
+  }catch(e){
+    alert('No se pudieron preparar los clips: '+(e.message||'error'));
+  }finally{
+    if(us){us.disabled=false;us.textContent=orig;}
   }
 }
 
@@ -2216,7 +2332,12 @@ async function genVideoForSlot(idx,box){
 function buildVideoMotionPrompt(idx){
   var base=lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'';
   return 'ANIMATION STYLE (strict, must match the input image exactly): American 2D comic book illustration style, clean ink outlines, flat cel-shading with hard color blocks and visible shading edges -- NOT 3D, NOT 3D render, NOT CGI, NOT photorealistic, NOT realistic rendering, NOT Pixar style, NOT smooth 3D shading. The animation must preserve the flat 2D comic look of the source image throughout the entire clip.\n\n'
-    +'NO WEATHER AT ALL (strict): there is NO rain, NO snow, NO storm, NO raindrops, NO water on any surface, NO wet floors, anywhere in the clip -- not outside the window, not in the background, and absolutely never indoors. Skies stay clear or neutral. Never add any weather effect that was not clearly in the source image, and never let anything look wet.\n\n'
+    // OJO: aqui NO se nombra la lluvia. Los modelos de video no manejan bien la
+    // negacion: escribir "sin lluvia" mete la palabra en el prompt y acaba
+    // generandola igual (por eso salia agua hasta dentro del coche). Se describe
+    // en POSITIVO lo que si debe haber, y las palabras prohibidas viven solo en
+    // el negativePrompt de la API, que es donde de verdad restan.
+    +'ATMOSPHERE (strict): the air is completely dry and still. Indoor scenes keep dry floors, dry surfaces and calm indoor air. Outdoor scenes have clear skies and dry ground. Every surface stays dry from the first frame to the last. The environment and the sky match the source image exactly, with nothing added to the air.\n\n'
     +'OBJECT AND HAND REALISM (strict): every object stays the SAME object for the whole clip -- it never morphs, transforms, changes type, multiplies, or turns into a different thing (a cup stays a cup, a paper stays a paper, a pen stays a pen). The character ONLY touches and interacts with the object the action requires; he does NOT reach for or pick up unrelated objects (coffee cups, glasses, decorations). Hands are steady and calm -- NO trembling, NO shaking, NO jitter. When signing or writing, ONE hand holds ONE pen; the other hand rests naturally -- never two pens, never writing with both hands at once. Papers and objects on the desk stay in place -- they do NOT jump, fly, flip, or scatter on their own. Correct human anatomy: exactly five fingers per hand, no extra or missing fingers, no merging.\n\n'
     +'MANDATORY ACTION FOR THIS CLIP (this single action drives the body, hands, and gaze direction for the ENTIRE clip): '+base+'\n\n'
     +'EYE LINE AND BODY DIRECTION (strict, this is not optional): the character looks at and engages with WHATEVER THE ACTION DESCRIBES -- his hands and the task, the person he is dealing with, the goods he is handling, the space he is overseeing. The character does NOT look at the camera, does NOT pose for the camera, does NOT turn the head toward the viewer, UNLESS the action explicitly says the character is speaking directly to camera. There is no head tilting, no modeling pose, no fashion-style head turn, no posing of any kind -- only the working posture that the action requires.\n\n'
@@ -2496,11 +2617,20 @@ function selectedMusic(){
   return {object:sel.value,volume:v};
 }
 
+// Cuantos clips componen el reel. Normalmente es el numero de imagenes, pero si
+// se trajeron videos YA GENERADOS del banco puede no haber imagenes nuevas: en
+// ese caso mandan los videos.
+function totalClips(){
+  var conImg=imgs.filter(function(x){return x&&x.src;}).length;
+  var conVid=vids.filter(function(v){return v&&v.remoteUrl;}).length;
+  return Math.max(conImg,conVid);
+}
+
 function updUnifyCard(){
   var card=document.getElementById('unifyCard');if(!card)return;
   if(!musicLoaded)loadMusicList();
   var sub=document.getElementById('unifySub');
-  var total=imgs.filter(function(x){return x&&x.src;}).length;
+  var total=totalClips();
   var listos=0;
   for(var i=0;i<vids.length;i++)if(vids[i]&&vids[i].remoteUrl)listos++;
   if(sub){
@@ -2516,8 +2646,8 @@ function updUnifyCard(){
 
 async function unifyVideo(){
   if(!lastRes){alert('Genera un reel primero.');return;}
-  var total=imgs.filter(function(x){return x&&x.src;}).length;
-  if(!total){alert('Primero genera las imágenes y sus videos.');return;}
+  var total=totalClips();
+  if(!total){alert('Primero genera las imágenes y sus videos, o trae videos ya generados del banco.');return;}
   var urls=[];
   for(var i=0;i<total;i++){
     if(!(vids[i]&&vids[i].remoteUrl)){alert('Falta el video del clip '+(i+1)+'. Genera todos los videos primero.');return;}

@@ -52,20 +52,27 @@ async function getGCPToken() {
 }
 
 // Estilo por defecto, en linea con la marca: epico, oscuro, motivacional.
-const DEFAULT_STYLE = 'Epic uplifting motivational orchestral anthem, hopeful soaring strings and bright warm brass, big cinematic drums building steadily around 100 BPM, emotional and triumphant, the feeling of overcoming and finally winning, inspiring success-story music';
+const DEFAULT_STYLE = 'Epic cinematic battle-style orchestral, thunderous taiko and war drums, huge low brass, aggressive staccato low strings, deep sub bass, around 90 BPM, enormous and powerful, relentless build to a victorious climax';
 
-// ESTILOS AFINADOS (botones en la herramienta), en ingles y con instrumentos
-// REALES. Los cuatro son MOTIVACIONALES-INSPIRADORES: los de los videos virales
-// de superacion — esperanzados, que crecen por capas y levantan al final.
-// Hay que esquivar DOS extremos, y ya se cayo en los dos: el vocabulario tierno
-// ("nostalgic", "heartfelt", "intimate", "dreamy") suena a balada de amor, y el
-// oscuro ("dark", "tense", "sub bass pulse", "taiko", "relentless") suena a
-// pelicula de espias. El punto medio es CALIDO, LUMINOSO y ASCENDENTE.
+// ESTILOS AFINADOS (los botones de la herramienta), en ingles y con instrumentos
+// REALES. Diez opciones pensadas para el canal: cinco con fuerza y peso (epica,
+// suspenso, oscura, determinacion, urbana) y cinco luminosas (piano, cuerdas,
+// triunfo, amanecer, reflexiva).
+// Cada preset declara si es LUMINOSO o si puede ser OSCURO.
+// Importa: la regla que prohibe lo oscuro solo se aplica a los luminosos. Antes
+// se aplicaba a todos y por eso "epica" salia sin fuerza — se le prohibian los
+// tambores de guerra y se le exigia tono mayor, que es justo lo contrario.
 const PRESETS = {
-  piano:    'Uplifting inspirational cinematic piano, flowing hopeful arpeggios around 95 BPM, warm strings joining and swelling underneath, gentle steady percussion building through the piece, positive and encouraging, an emotional lift that grows into a bright triumphant finish, the sound of a motivational success video',
-  cuerdas:  'Uplifting inspirational orchestral strings, hopeful soaring theme carried by warm violins and cellos, layers building steadily around 95 BPM, light cinematic percussion, warm and encouraging, rising to a triumphant emotional climax, classic inspiring success-story music',
-  ambiente: 'Warm uplifting ambient cinematic bed, soft hopeful piano motif over airy bright pads, gentle steady pulse around 90 BPM, calm and encouraging, slowly growing brighter and fuller, positive and spacious',
-  epica:    DEFAULT_STYLE,
+  epica:    { oscuro: true,  p: 'Epic cinematic battle-style orchestral, thunderous taiko and war drums, huge low brass and french horns, aggressive staccato low strings, deep sub bass hits, around 90 BPM, enormous and powerful, relentless build to an overwhelming victorious climax, the sound of an army marching to win — trailer-scale, massive and heroic' },
+  suspenso: { oscuro: true,  p: 'Dark cinematic suspense underscore, tense sustained low strings, a slow ticking pulse like a clock counting down, deep ominous sub bass swells, sparse muted piano notes, around 80 BPM, quiet dread that keeps tightening, unresolved tension building toward something inevitable' },
+  oscura:   { oscuro: true,  p: 'Dark powerful hybrid cinematic score, menacing low brass, distorted bass pulse, heavy industrial percussion, cold sustained strings, around 95 BPM, threatening and commanding, the weight of a hard truth being told, brooding but strong — never sad, always powerful' },
+  determin: { oscuro: true,  p: 'Determined driving cinematic instrumental in a minor key, relentless staccato cello and double bass ostinato, insistent piano pulse, tight modern percussion around 105 BPM, disciplined and unstoppable forward momentum, the sound of grinding work done day after day' },
+  urbana:   { oscuro: true,  p: 'Modern cinematic urban instrumental, hard-hitting trap drums with crisp hi-hats and deep 808 sub bass, dark minor piano motif, cold synth pads, around 140 BPM half-time feel, confident street-money energy, sleek and self-assured' },
+  piano:    { oscuro: false, p: 'Uplifting inspirational cinematic piano, flowing hopeful arpeggios around 95 BPM, warm strings joining and swelling underneath, gentle steady percussion building through the piece, positive and encouraging, an emotional lift that grows into a bright triumphant finish' },
+  cuerdas:  { oscuro: false, p: 'Uplifting inspirational orchestral strings, hopeful soaring theme carried by warm violins and cellos, layers building steadily around 95 BPM, light cinematic percussion, warm and encouraging, rising to a triumphant emotional climax' },
+  triunfo:  { oscuro: false, p: 'Triumphant cinematic anthem of arrival and victory, bright soaring brass fanfare, full orchestral strings, big celebratory drums around 100 BPM, glorious and proud, the moment everything finally pays off after years of work' },
+  amanecer: { oscuro: false, p: 'Warm hopeful cinematic sunrise theme, delicate piano over airy bright strings, gentle steady pulse around 85 BPM, slowly opening up and growing luminous, the feeling of a new beginning and a clean start, calm and optimistic' },
+  reflexiva:{ oscuro: false, p: 'Reflective cinematic underscore, sparse thoughtful solo piano with long sustained low strings, very slow around 70 BPM, spacious and contemplative, serious and grounded, the quiet of someone thinking hard about a decision — introspective but never sad' },
 };
 
 // SALVAGUARDA INSTRUMENTAL: Lyria es un modelo de CANCIONES y, si le das una
@@ -82,29 +89,37 @@ function mmss(seg) {
   const m = Math.floor(seg / 60), s = Math.round(seg % 60);
   return '[' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + ']';
 }
-function lineaDeTiempo(total) {
-  return mmss(0) + ' Begin gently and warmly with the described instrumentation, hopeful from the very first bar.\n'
+function lineaDeTiempo(total, oscuro) {
+  return mmss(0) + ' Begin restrained, establishing the mood described above from the very first bar.\n'
     + mmss(total * 0.25) + ' The arrangement fills out, the main theme settles in and a steady pulse carries it forward.\n'
-    + mmss(total * 0.55) + ' The piece grows brighter and fuller, more uplifting with each bar, still leaving room for a narrator to speak over it.\n'
-    + mmss(total * 0.80) + ' Emotional high point: warm, triumphant and inspiring, without ever becoming harsh or overpowering.\n'
-    + mmss(total) + ' Settle into a bright, resolved final chord. The piece lasts the full ' + Math.round(total) + ' seconds.';
+    + mmss(total * 0.55) + ' The piece grows fuller and more intense with each bar, still leaving room for a narrator to speak over it.\n'
+    + mmss(total * 0.80) + ' Peak of the piece: ' + (oscuro ? 'at its most powerful and imposing' : 'warm, triumphant and inspiring')
+    + ', without ever becoming harsh or drowning out a voice.\n'
+    + mmss(total) + ' Settle into a resolved final chord. The piece lasts the full ' + Math.round(total) + ' seconds.';
 }
 
 // Envuelve la descripcion de estilo con la salvaguarda, la linea de tiempo (que es
 // como se pide la duracion) y las condiciones para que quepa una narracion.
-function armarPrompt(estilo) {
+// Reglas de caracter. La parte COMUN vale para todo (nunca voces, nunca balada
+// de amor, nunca sonar a anuncio). La parte de "solo luminosos" se aplica UNICAMENTE
+// a los estilos alegres: si se aplicara tambien a Epica o Suspenso les quitaria la
+// fuerza, que es exactamente lo que pasaba antes.
+const HUMOR_COMUN = 'MOOD: this is background music for a channel about financial discipline, sacrifice and building your own success. '
+  + 'It must sound like real cinematic production music, never cheap or amateur.\n'
+  + 'It is NEVER a love theme and NEVER sad: no romantic, sentimental, tender, wedding, lullaby or mournful character, '
+  + 'and no sweeping romantic solo violin ballad. Any emotion is resolve, hunger or triumph — never heartbreak.';
+const HUMOR_LUMINOSO = '\nKeep this one bright and hopeful: warm, encouraging and emotionally rising, building toward an uplifting lift. '
+  + 'For THIS style avoid a dark, ominous or horror-like mood.';
+const HUMOR_OSCURO = '\nThis one is MEANT to be dark and powerful: lean into weight, tension and force — big drums, low brass, '
+  + 'deep bass and minor harmony are wanted here. Intense and commanding, but never sad and never cartoonish.';
+
+function armarPrompt(estilo, oscuro) {
+  const humor = HUMOR_COMUN + (oscuro ? HUMOR_OSCURO : HUMOR_LUMINOSO);
   return GUARDA + '\n\n'
     + 'STYLE (this is a description, not lyrics): ' + estilo + '\n\n'
     + 'LENGTH AND STRUCTURE — follow this timeline exactly. Do NOT stop early and do NOT deliver a 30-second clip:\n'
-    + lineaDeTiempo(TARGET_SECONDS) + '\n\n'
-    + 'MOOD (mandatory): UPLIFTING MOTIVATIONAL background music — the kind used in viral success, discipline and '
-    + 'self-improvement videos. It must feel hopeful, inspiring, encouraging and emotionally RISING, warm and bright, '
-    + 'with a steady pulse and layers that build toward a triumphant lift. Think "you can do this", not "something bad is coming".\n'
-    + 'It is NOT a love theme and NOT sad: no romantic, sentimental, tender, wedding, lullaby, melancholic or mournful '
-    + 'character, and no sweeping romantic solo violin ballad.\n'
-    + 'It is also NOT a spy, thriller, action or horror score: no dark, ominous, sinister, menacing or suspenseful mood, '
-    + 'no throbbing sub-bass tension pulse, no war drums, no noir or James Bond style. '
-    + 'Keep it major-key, warm and positive; any emotion is HOPE and determination, never tension or sorrow.\n\n'
+    + lineaDeTiempo(TARGET_SECONDS, oscuro) + '\n\n'
+    + humor + '\n\n'
     + 'ESTRICTAMENTE INSTRUMENTAL: ni voces, ni coro, ni letra, ni palabras cantadas o habladas. '
     + 'El texto de arriba es una descripcion del ESTILO, nunca una letra para cantar. '
     + 'Encima de esta musica va la voz de un narrador, asi que deja sitio: registro medio y grave, '
@@ -253,7 +268,10 @@ module.exports = async (req, res) => {
     //   "sonido Atari" venia de descripciones cortas mal interpretadas).
     // Prioridad 3: sin nada -> estilo epico del canal.
     const preset = req.body.preset && PRESETS[req.body.preset] ? PRESETS[req.body.preset] : null;
-    let prompt = preset || DEFAULT_STYLE;
+    let prompt = preset ? preset.p : DEFAULT_STYLE;
+    // Un estilo libre se trata como luminoso salvo que pida lo contrario.
+    let oscuro = preset ? !!preset.oscuro : true;
+    if (!preset && style) oscuro = /oscur|tens|suspens|epic|épic|fuerte|poder|guerra|batalla|dur[oa]|sombri/i.test(style);
     if (!preset && style) {
       try {
         const tr = await fetch('https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
@@ -314,7 +332,7 @@ module.exports = async (req, res) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: armarPrompt(prompt) }] }],
+            contents: [{ role: 'user', parts: [{ text: armarPrompt(prompt, oscuro) }] }],
             generationConfig: genCfg,
           }),
           signal: ctrl.signal,
