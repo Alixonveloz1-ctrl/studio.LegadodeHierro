@@ -1,7 +1,9 @@
 // api/audio.js
 // NARRACION con DOS MOTORES a elegir desde la herramienta:
 //   engine 'eleven' -> ElevenLabs, la voz original del canal (ver _eleven.js).
-//   engine 'gemini' -> Gemini-TTS en Vertex AI, que gasta el credito de Google.
+//   engine 'chirp'  -> Chirp 3 HD (Cloud TTS): locucion neutra, la que menos
+//                      suena a anuncio. Credito de Google (ver _chirp.js).
+//   engine 'gemini' -> Gemini-TTS en Vertex AI: actua segun instrucciones.
 // El usuario decide cual usar segun los creditos que tenga en cada sitio.
 //
 // COMO SE PIDE A GEMINI-TTS (lo que no es obvio):
@@ -20,6 +22,7 @@
 
 const { checkAuth } = require('./_auth');
 const { generarEleven } = require('./_eleven');
+const { generarChirp } = require('./_chirp');
 
 const ALLOWED_MODELS = {
   'gemini-2.5-flash-tts': true,
@@ -200,6 +203,23 @@ module.exports = async (req, res) => {
   if (!PROJECT_ID) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
   if (!process.env.GCP_SERVICE_ACCOUNT) {
     return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
+  }
+
+  // CHIRP 3 HD: locucion neutra, no actuada. Es el motor que menos suena a
+  // anuncio; usa otra API (texttospeech) pero el mismo credito de Google.
+  if (req.body.engine === 'chirp') {
+    try {
+      const token = await getGCPToken();
+      const out = await generarChirp(text, (req.body && req.body.voice) || {}, req.body.lang, token);
+      return res.json({ success: true, engine: 'chirp', ...out });
+    } catch (e) {
+      let msg = e.message;
+      if (e.status === 403 && /texttospeech|disabled|not enabled|SERVICE_DISABLED/i.test(msg)) {
+        msg = 'Falta habilitar la API "Cloud Text-to-Speech" en tu proyecto de Google Cloud. ' + msg;
+      }
+      console.error('[audio] Chirp 3 HD fallo: ' + msg);
+      return res.status(e.status || 500).json({ error: 'Chirp 3 HD: ' + msg, upstream: 'chirp' });
+    }
   }
 
   const vIn = (req.body && req.body.voice) || {};

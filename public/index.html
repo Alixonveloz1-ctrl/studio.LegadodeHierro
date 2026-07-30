@@ -351,10 +351,11 @@ section{margin-bottom:20px}
               <label class="genLbl" style="margin-bottom:4px">Motor de voz
                 <select id="vEngine" class="genSel">
                   <option value="eleven">ElevenLabs · la voz del canal (Adam)</option>
-                  <option value="gemini">Gemini de Google · usa tu crédito de Google Cloud</option>
+                  <option value="chirp">Chirp 3 HD de Google · locución neutra (recomendado si no hay créditos)</option>
+                  <option value="gemini">Gemini de Google · voz actuada, más expresiva</option>
                 </select>
               </label>
-              <span class="voxH" style="display:block;margin:2px 0 12px">Elige según los créditos que tengas. ElevenLabs suena a la voz de siempre; Gemini es gratis con tu crédito de Google.</span>
+              <span class="voxH" style="display:block;margin:2px 0 12px">ElevenLabs es la voz de siempre. Los dos de Google gastan tu crédito de Google Cloud: <strong>Chirp 3 HD</strong> lee neutro y serio (lo más parecido a una locución real), <strong>Gemini</strong> actúa más pero tiende a sonar a anuncio.</span>
 
               <div id="voxEleven">
                 <label class="voxLbl">Estabilidad <span class="voxV" id="vStabV">0.50</span>
@@ -379,6 +380,23 @@ section{margin-bottom:20px}
                   <button type="button" class="voxP elevenSet" data-p="0.75,0.85,0,1">Firme y consistente</button>
                   <button type="button" class="voxP elevenSet" data-p="0.4,0.8,0.1,1">Crudo y emocional</button>
                   <button type="button" class="voxP elevenSet" data-p="0.6,0.8,0,1.1">Ágil</button>
+                </div>
+              </div>
+
+              <div id="voxChirp" style="display:none">
+                <label class="genLbl" style="margin-bottom:4px">Voz (30 de Chirp 3 HD)
+                  <select id="cVoz" class="genSel"></select>
+                </label>
+                <span class="voxH" style="display:block;margin:2px 0 10px">Mismos nombres que Gemini, pero otro modelo: aquí solo lee, no interpreta.</span>
+                <label class="voxLbl">Velocidad <span class="voxV" id="cVelV">0.95</span>
+                  <input type="range" id="cVel" class="voxR" min="0.7" max="1.3" step="0.05" value="0.95">
+                  <span class="voxH">Por debajo de 1.00 suena más grave y con más peso.</span>
+                </label>
+                <div style="display:flex;gap:7px;margin:10px 0 8px;flex-wrap:wrap">
+                  <button type="button" class="voxP chirpSet" data-p="Algenib,0.90">Voz del canal</button>
+                  <button type="button" class="voxP chirpSet" data-p="Alnilam,0.95">Firme</button>
+                  <button type="button" class="voxP chirpSet" data-p="Sadaltager,0.90">Grave y pausada</button>
+                  <button type="button" class="voxP chirpSet" data-p="Charon,1.00">Narrador</button>
                 </div>
               </div>
 

@@ -1437,7 +1437,12 @@ function wireVox(){
     var saved=localStorage.getItem('lh_vox');
     if(saved){
       var o=JSON.parse(saved);
-      if(o.engine==='eleven'||o.engine==='gemini')VOX.engine=o.engine;
+      if(o.engine==='eleven'||o.engine==='gemini'||o.engine==='chirp')VOX.engine=o.engine;
+      if(o.chirp){
+        if(VAL_G.voz.indexOf(o.chirp.voz)>-1)VOX.chirp.voz=o.chirp.voz;
+        var cn=Number(o.chirp.velocidad);
+        if(isFinite(cn)&&cn>=0.7&&cn<=1.3)VOX.chirp.velocidad=cn;
+      }
       if(o.gemini)for(var k in o.gemini){
         if(!VOX.gemini.hasOwnProperty(k))continue;
         if(k==='extra'){VOX.gemini.extra=String(o.gemini.extra||'').slice(0,200);continue;}
@@ -1469,6 +1474,18 @@ function wireVox(){
     sel.appendChild(gH);sel.appendChild(gM);
   }
 
+  var selC=document.getElementById('cVoz');
+  if(selC&&!selC.options.length){
+    var cH=document.createElement('optgroup');cH.label='Masculinas';
+    var cM=document.createElement('optgroup');cM.label='Femeninas';
+    VOCES.forEach(function(x){
+      var op=document.createElement('option');
+      op.value=x.v;op.textContent=x.v+' — '+x.d;
+      (x.s==='H'?cH:cM).appendChild(op);
+    });
+    selC.appendChild(cH);selC.appendChild(cM);
+  }
+
   var campG=[['vVoz','voz'],['vTono','tono'],['vVel','velocidad'],['vInt','intensidad'],['vModel','model'],['vExtra','extra']];
   var campE=[['vStab','vStabV','stability'],['vSim','vSimV','similarity_boost'],['vSty','vStyV','style'],['vSpd','vSpdV','speed']];
 
@@ -1476,9 +1493,14 @@ function wireVox(){
     var e=document.getElementById('vEngine');
     if(e)e.value=VOX.engine;
     // Solo se muestran los ajustes del motor elegido.
-    var pe=document.getElementById('voxEleven'),pg=document.getElementById('voxGemini');
+    var pe=document.getElementById('voxEleven'),pg=document.getElementById('voxGemini'),pc=document.getElementById('voxChirp');
     if(pe)pe.style.display=VOX.engine==='eleven'?'block':'none';
     if(pg)pg.style.display=VOX.engine==='gemini'?'block':'none';
+    if(pc)pc.style.display=VOX.engine==='chirp'?'block':'none';
+    var cv=document.getElementById('cVoz');if(cv)cv.value=VOX.chirp.voz;
+    var cr=document.getElementById('cVel'),crv=document.getElementById('cVelV');
+    if(cr)cr.value=VOX.chirp.velocidad;
+    if(crv)crv.textContent=Number(VOX.chirp.velocidad).toFixed(2);
     campG.forEach(function(c){
       var el=document.getElementById(c[0]);
       if(el)el.value=VOX.gemini[c[1]];
@@ -1517,6 +1539,23 @@ function wireVox(){
     });
     var bx=document.getElementById('vBoost');
     if(bx)bx.addEventListener('change',function(){VOX.eleven.use_speaker_boost=bx.checked;save();});
+    var cvz=document.getElementById('cVoz');
+    if(cvz)cvz.addEventListener('change',function(){VOX.chirp.voz=cvz.value;save();});
+    var cvl=document.getElementById('cVel');
+    if(cvl)cvl.addEventListener('input',function(){
+      VOX.chirp.velocidad=parseFloat(cvl.value);
+      var e2=document.getElementById('cVelV');if(e2)e2.textContent=parseFloat(cvl.value).toFixed(2);
+      save();
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.chirpSet'),function(btn){
+      btn.addEventListener('click',function(){
+        var p=(btn.getAttribute('data-p')||'').split(',');
+        if(p.length!==2||VAL_G.voz.indexOf(p[0])===-1)return;
+        var n2=parseFloat(p[1]);if(!isFinite(n2))return;
+        VOX.chirp.voz=p[0];VOX.chirp.velocidad=n2;
+        paint();save();
+      });
+    });
     // OJO: .voxP es solo una clase de ESTILO, compartida con los botones de
     // plantilla de post y de musica. Cada grupo escucha SOLO a su propia clase.
     Array.prototype.forEach.call(document.querySelectorAll('.voxSet'),function(btn){
@@ -1721,6 +1760,7 @@ var VOX={
   engine:'eleven',
   eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true},
   gemini:{voz:'Algenib',tono:'canal',velocidad:'0.90',intensidad:'media',model:'gemini-2.5-flash-tts',extra:''},
+  chirp:{voz:'Algenib',velocidad:0.9},
 };
 var loadedRefsCount=0; // cuantas de las 4 referencias del personaje cargaron en el ultimo intento
 
