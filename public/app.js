@@ -1422,31 +1422,41 @@ function parseCaption(txt){
 }
 
 // AUDIO
-// Ajustes de voz (Gemini-TTS): selectores, presets y persistencia en el navegador.
+// Ajustes de voz: dos motores (ElevenLabs y Gemini), cada uno con sus controles.
 var voxWired=false;
 function wireVox(){
-  // Valores permitidos: si el navegador trae algo raro guardado, se descarta.
-  var VALIDOS={
+  var VAL_G={
     voz:VOCES.map(function(x){return x.v;}),
-    tono:['autoridad','duro','cercano','energico','calmado','narrador'],
+    tono:['canal','autoridad','duro','cercano','energico','calmado','narrador'],
     velocidad:['0.80','0.90','1.00','1.10','1.20'],
     intensidad:['baja','media','alta'],
     model:['gemini-2.5-flash-tts','gemini-2.5-pro-tts','gemini-2.5-flash-lite-preview-tts'],
   };
+  var RANGO_E={stability:[0,1],similarity_boost:[0,1],style:[0,1],speed:[0.7,1.2]};
   try{
     var saved=localStorage.getItem('lh_vox');
     if(saved){
       var o=JSON.parse(saved);
-      for(var k in o){
-        if(!VOX.hasOwnProperty(k))continue;
-        if(k==='extra'){VOX.extra=String(o.extra||'').slice(0,200);continue;}
-        if(VALIDOS[k]&&VALIDOS[k].indexOf(o[k])>-1)VOX[k]=o[k];
+      if(o.engine==='eleven'||o.engine==='gemini')VOX.engine=o.engine;
+      if(o.gemini)for(var k in o.gemini){
+        if(!VOX.gemini.hasOwnProperty(k))continue;
+        if(k==='extra'){VOX.gemini.extra=String(o.gemini.extra||'').slice(0,200);continue;}
+        if(VAL_G[k]&&VAL_G[k].indexOf(o.gemini[k])>-1)VOX.gemini[k]=o.gemini[k];
+      }
+      // Solo numeros validos y dentro de rango (ojo: Number(null) es 0).
+      if(o.eleven)for(var k2 in o.eleven){
+        if(!VOX.eleven.hasOwnProperty(k2))continue;
+        if(typeof VOX.eleven[k2]==='boolean'){VOX.eleven[k2]=!!o.eleven[k2];continue;}
+        var raw=o.eleven[k2];
+        if(raw===null||raw===undefined||raw==='')continue;
+        var n=Number(raw),rg=RANGO_E[k2];
+        if(isFinite(n)&&(!rg||(n>=rg[0]&&n<=rg[1])))VOX.eleven[k2]=n;
       }
     }
   }catch(e){}
   function save(){ try{localStorage.setItem('lh_vox',JSON.stringify(VOX));}catch(e){} }
 
-  // Rellenar el selector de voces una sola vez, agrupadas por tipo.
+  // Selector de voces de Gemini, agrupado por tipo. Se rellena una sola vez.
   var sel=document.getElementById('vVoz');
   if(sel&&!sel.options.length){
     var gH=document.createElement('optgroup');gH.label='Masculinas';
@@ -1459,33 +1469,72 @@ function wireVox(){
     sel.appendChild(gH);sel.appendChild(gM);
   }
 
-  var campos=[['vVoz','voz'],['vTono','tono'],['vVel','velocidad'],['vInt','intensidad'],['vModel','model'],['vExtra','extra']];
+  var campG=[['vVoz','voz'],['vTono','tono'],['vVel','velocidad'],['vInt','intensidad'],['vModel','model'],['vExtra','extra']];
+  var campE=[['vStab','vStabV','stability'],['vSim','vSimV','similarity_boost'],['vSty','vStyV','style'],['vSpd','vSpdV','speed']];
+
   function paint(){
-    campos.forEach(function(c){
+    var e=document.getElementById('vEngine');
+    if(e)e.value=VOX.engine;
+    // Solo se muestran los ajustes del motor elegido.
+    var pe=document.getElementById('voxEleven'),pg=document.getElementById('voxGemini');
+    if(pe)pe.style.display=VOX.engine==='eleven'?'block':'none';
+    if(pg)pg.style.display=VOX.engine==='gemini'?'block':'none';
+    campG.forEach(function(c){
       var el=document.getElementById(c[0]);
-      if(el)el.value=VOX[c[1]];
+      if(el)el.value=VOX.gemini[c[1]];
     });
+    campE.forEach(function(c){
+      var r=document.getElementById(c[0]),v=document.getElementById(c[1]);
+      if(r)r.value=VOX.eleven[c[2]];
+      if(v)v.textContent=Number(VOX.eleven[c[2]]).toFixed(2);
+    });
+    var b=document.getElementById('vBoost');
+    if(b)b.checked=!!VOX.eleven.use_speaker_boost;
   }
-  // Los manejadores se conectan UNA sola vez: wireVox se llama en cada guion
-  // generado y, sin esta guarda, se acumulaban listeners sobre los mismos campos.
+
+  // Los manejadores se conectan UNA sola vez: wireVox corre en cada guion generado
+  // y, sin esta guarda, se acumularian listeners sobre los mismos campos.
   if(!voxWired){
-    campos.forEach(function(c){
+    var eng=document.getElementById('vEngine');
+    if(eng)eng.addEventListener('change',function(){VOX.engine=eng.value;paint();save();});
+    campG.forEach(function(c){
       var el=document.getElementById(c[0]);
       if(!el)return;
       el.addEventListener(c[0]==='vExtra'?'input':'change',function(){
-        VOX[c[1]]=c[1]==='extra'?el.value.slice(0,200):el.value;
+        VOX.gemini[c[1]]=c[1]==='extra'?el.value.slice(0,200):el.value;
         save();
       });
     });
-    // OJO: .voxP es solo una clase de ESTILO y la comparten los botones de
-    // plantilla de post y los de musica. Se escucha solo a .voxSet (presets de voz).
+    campE.forEach(function(c){
+      var r=document.getElementById(c[0]);
+      if(!r)return;
+      r.addEventListener('input',function(){
+        VOX.eleven[c[2]]=parseFloat(r.value);
+        var v=document.getElementById(c[1]);
+        if(v)v.textContent=parseFloat(r.value).toFixed(2);
+        save();
+      });
+    });
+    var bx=document.getElementById('vBoost');
+    if(bx)bx.addEventListener('change',function(){VOX.eleven.use_speaker_boost=bx.checked;save();});
+    // OJO: .voxP es solo una clase de ESTILO, compartida con los botones de
+    // plantilla de post y de musica. Cada grupo escucha SOLO a su propia clase.
     Array.prototype.forEach.call(document.querySelectorAll('.voxSet'),function(btn){
       btn.addEventListener('click',function(){
         var p=(btn.getAttribute('data-p')||'').split(',');
         if(p.length!==4)return;
-        if(VALIDOS.voz.indexOf(p[0])===-1||VALIDOS.tono.indexOf(p[1])===-1)return;
-        if(VALIDOS.velocidad.indexOf(p[2])===-1||VALIDOS.intensidad.indexOf(p[3])===-1)return;
-        VOX.voz=p[0];VOX.tono=p[1];VOX.velocidad=p[2];VOX.intensidad=p[3];
+        if(VAL_G.voz.indexOf(p[0])===-1||VAL_G.tono.indexOf(p[1])===-1)return;
+        if(VAL_G.velocidad.indexOf(p[2])===-1||VAL_G.intensidad.indexOf(p[3])===-1)return;
+        VOX.gemini.voz=p[0];VOX.gemini.tono=p[1];VOX.gemini.velocidad=p[2];VOX.gemini.intensidad=p[3];
+        paint();save();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.elevenSet'),function(btn){
+      btn.addEventListener('click',function(){
+        var p=(btn.getAttribute('data-p')||'').split(',').map(parseFloat);
+        if(p.length!==4||p.some(function(n){return !isFinite(n);}))return;
+        VOX.eleven.stability=p[0];VOX.eleven.similarity_boost=p[1];
+        VOX.eleven.style=p[2];VOX.eleven.speed=p[3];
         paint();save();
       });
     });
@@ -1512,7 +1561,8 @@ async function genAudio(lang){
     var r=await fetch('/api/audio',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:text,voice:VOX,lang:isEN?'en':'es'}),
+      // Se manda SOLO el bloque de ajustes del motor elegido.
+      body:JSON.stringify({text:text,engine:VOX.engine,voice:VOX[VOX.engine],lang:isEN?'en':'es'}),
     });
     if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||'Error '+r.status);}
     var data=await r.json();
@@ -1662,9 +1712,16 @@ var VOCES=[
   {v:'Vindemiatrix',s:'M',d:'Amable y suave'},
   {v:'Achernar',s:'M',d:'Delicada y suave'},
 ];
-// Ajustes de voz de Gemini-TTS. No hay perillas numericas: el tono, la velocidad
-// y la intensidad se convierten en el servidor en una instruccion hablada.
-var VOX={voz:'Alnilam',tono:'autoridad',velocidad:'1.00',intensidad:'media',model:'gemini-2.5-flash-tts',extra:''};
+// Ajustes de voz. Se guardan por MOTOR, para poder cambiar de uno a otro sin
+// perder lo que tenias afinado en cada uno.
+//  - eleven: perillas numericas de ElevenLabs (la voz original del canal).
+//  - gemini: no hay perillas; el tono, la velocidad y la intensidad se convierten
+//    en el servidor en una instruccion hablada delante del guion.
+var VOX={
+  engine:'eleven',
+  eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true},
+  gemini:{voz:'Algenib',tono:'canal',velocidad:'0.90',intensidad:'media',model:'gemini-2.5-flash-tts',extra:''},
+};
 var loadedRefsCount=0; // cuantas de las 4 referencias del personaje cargaron en el ultimo intento
 
 async function fetchRefOnce(url){

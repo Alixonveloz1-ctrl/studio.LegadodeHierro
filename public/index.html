@@ -338,7 +338,7 @@ section{margin-bottom:20px}
 
       <div class="scard" id="audioCard" style="border:1.5px solid #c4897a44">
         <div class="shdr" style="background:#f8ede8">
-          <div><div class="stitl" style="color:#c4897a">🎙 ElevenLabs — Audio</div><div class="ssub">Genera con tu voz clonada</div></div>
+          <div><div class="stitl" style="color:#c4897a">🎙 Narración — Audio</div><div class="ssub">Elige el motor de voz en los ajustes</div></div>
           <div class="sbtns">
             <button class="cbtn" id="baes" style="border-color:#b8975a;color:#b8975a">🎙 Audio ES</button>
             <button class="cbtn" id="baen" style="border-color:#c4897a;color:#c4897a">🎙 Audio EN</button>
@@ -348,12 +348,48 @@ section{margin-bottom:20px}
           <details id="voxPanel" style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
             <summary style="padding:9px 11px;cursor:pointer;font-size:11px;font-weight:700;color:var(--tx3);letter-spacing:.04em;background:#faf8f6;list-style:none">⚙ AJUSTES DE VOZ</summary>
             <div style="padding:12px 11px 4px">
+              <label class="genLbl" style="margin-bottom:4px">Motor de voz
+                <select id="vEngine" class="genSel">
+                  <option value="eleven">ElevenLabs · la voz del canal (Adam)</option>
+                  <option value="gemini">Gemini de Google · usa tu crédito de Google Cloud</option>
+                </select>
+              </label>
+              <span class="voxH" style="display:block;margin:2px 0 12px">Elige según los créditos que tengas. ElevenLabs suena a la voz de siempre; Gemini es gratis con tu crédito de Google.</span>
+
+              <div id="voxEleven">
+                <label class="voxLbl">Estabilidad <span class="voxV" id="vStabV">0.50</span>
+                  <input type="range" id="vStab" class="voxR" min="0" max="1" step="0.05" value="0.5">
+                  <span class="voxH">Bajo: más emoción y variación entre tomas. Alto: consistente pero monótono.</span>
+                </label>
+                <label class="voxLbl">Claridad / Similitud <span class="voxV" id="vSimV">0.75</span>
+                  <input type="range" id="vSim" class="voxR" min="0" max="1" step="0.05" value="0.75">
+                  <span class="voxH">Entre 0.75 y 0.90 es lo recomendado. Al máximo sobre-pronuncia.</span>
+                </label>
+                <label class="voxLbl">Estilo <span class="voxV" id="vStyV">0.00</span>
+                  <input type="range" id="vSty" class="voxR" min="0" max="1" step="0.05" value="0">
+                  <span class="voxH">Exageración del estilo. Subirlo resta estabilidad. Déjalo en 0 salvo que quieras drama.</span>
+                </label>
+                <label class="voxLbl">Velocidad <span class="voxV" id="vSpdV">1.00</span>
+                  <input type="range" id="vSpd" class="voxR" min="0.7" max="1.2" step="0.05" value="1">
+                  <span class="voxH">0.7 lenta · 1.0 normal · 1.2 rápida. Los extremos degradan la calidad.</span>
+                </label>
+                <label class="voxChk"><input type="checkbox" id="vBoost" checked> Speaker boost <span class="voxH" style="margin:0 0 0 4px">Refuerza el parecido con tu voz. Déjalo activo.</span></label>
+                <div style="display:flex;gap:7px;margin:10px 0 8px;flex-wrap:wrap">
+                  <button type="button" class="voxP elevenSet" data-p="0.5,0.75,0,1">Equilibrado</button>
+                  <button type="button" class="voxP elevenSet" data-p="0.75,0.85,0,1">Firme y consistente</button>
+                  <button type="button" class="voxP elevenSet" data-p="0.4,0.8,0.1,1">Crudo y emocional</button>
+                  <button type="button" class="voxP elevenSet" data-p="0.6,0.8,0,1.1">Ágil</button>
+                </div>
+              </div>
+
+              <div id="voxGemini" style="display:none">
               <label class="genLbl" style="margin-bottom:4px">Voz (30 de Gemini)
                 <select id="vVoz" class="genSel"></select>
               </label>
               <span class="voxH" style="display:block;margin:2px 0 10px">Cada voz tiene su carácter. Para el canal encajan las firmes y graves.</span>
               <label class="genLbl" style="margin-bottom:4px">Tono
                 <select id="vTono" class="genSel">
+                  <option value="canal" selected>Voz del canal (grave, sin sonar a anuncio)</option>
                   <option value="autoridad">Grave y con autoridad</option>
                   <option value="duro">Duro y contundente</option>
                   <option value="cercano">Cercano y directo</option>
@@ -389,10 +425,11 @@ section{margin-bottom:20px}
               </label>
               <span class="voxH" style="display:block;margin:6px 0 8px">La dirección de voz se da con palabras, no con números: se le indica al modelo cómo actuar antes de leer el guion.</span>
               <div style="display:flex;gap:7px;margin:4px 0 8px;flex-wrap:wrap">
-                <button type="button" class="voxP voxSet" data-p="Alnilam,autoridad,1.00,media">Marca (recomendado)</button>
-                <button type="button" class="voxP voxSet" data-p="Orus,duro,1.00,alta">Golpe seco</button>
+                <button type="button" class="voxP voxSet" data-p="Algenib,canal,0.90,media">Voz del canal</button>
+                <button type="button" class="voxP voxSet" data-p="Alnilam,duro,1.00,media">Golpe seco</button>
+                <button type="button" class="voxP voxSet" data-p="Sadaltager,calmado,0.90,baja">Grave y pausada</button>
                 <button type="button" class="voxP voxSet" data-p="Charon,narrador,0.90,baja">Documental</button>
-                <button type="button" class="voxP voxSet" data-p="Puck,energico,1.10,alta">Enérgico</button>
+              </div>
               </div>
             </div>
           </details>

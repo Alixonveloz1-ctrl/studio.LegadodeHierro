@@ -1,8 +1,10 @@
 // api/audio.js
-// NARRACION con GEMINI-TTS (Google) via Vertex AI — mismo proyecto y credito que
-// todo lo demas. Sustituye a ElevenLabs, que se quedo sin creditos.
+// NARRACION con DOS MOTORES a elegir desde la herramienta:
+//   engine 'eleven' -> ElevenLabs, la voz original del canal (ver _eleven.js).
+//   engine 'gemini' -> Gemini-TTS en Vertex AI, que gasta el credito de Google.
+// El usuario decide cual usar segun los creditos que tenga en cada sitio.
 //
-// COMO SE PIDE (lo que no es obvio):
+// COMO SE PIDE A GEMINI-TTS (lo que no es obvio):
 //   - Se llama a :generateContent, como cualquier modelo Gemini, con
 //     responseModalities ['AUDIO'] y speechConfig.voiceConfig.prebuiltVoiceConfig.
 //   - Region SIEMPRE "global".
@@ -17,6 +19,7 @@
 // para que la unificacion en Cloud Run y el reproductor sigan funcionando igual.
 
 const { checkAuth } = require('./_auth');
+const { generarEleven } = require('./_eleven');
 
 const ALLOWED_MODELS = {
   'gemini-2.5-flash-tts': true,
@@ -31,18 +34,29 @@ const VOICES = ['Achernar','Achird','Algenib','Algieba','Alnilam','Aoede','Auton
   'Orus','Puck','Pulcherrima','Rasalgethi','Sadachbia','Sadaltager','Schedar','Sulafat','Umbriel',
   'Vindemiatrix','Zephyr','Zubenelgenubi'];
 const VOICE_SET = VOICES.reduce((a, v) => (a[v.toLowerCase()] = v, a), {});
-const DEFAULT_VOICE = 'Alnilam'; // masculina, firme y fuerte: encaja con la marca
+// Algenib es la mas rasposa y de pecho del catalogo: es la que menos suena a
+// locutor de anuncio y la que mas se acerca a la voz grave del canal.
+const DEFAULT_VOICE = 'Algenib';
 
 // Piezas de la instruccion de estilo. Son frases, no numeros, porque asi es como
 // Gemini-TTS acepta la direccion de actuacion.
 const TONOS = {
+  canal:     'con voz grave, madura y algo desgastada, en volumen bajo y contenido, como un hombre que le cuenta a otro una verdad que le costo aprender',
   autoridad: 'con voz grave, firme y de autoridad, como alguien que sabe de lo que habla',
   cercano:   'en tono cercano y directo, como si le hablaras a un amigo a los ojos',
-  energico:  'con energia y empuje, transmitiendo urgencia y ganas',
+  energico:  'con energia y empuje, transmitiendo urgencia y ganas, pero sin gritar',
   calmado:   'con calma y peso, sin prisa, dejando que cada frase asiente',
   duro:      'con dureza y contundencia, sin adornos, como quien dice una verdad incomoda',
-  narrador:  'con voz de narrador de documental, seria y envolvente',
+  narrador:  'con voz de narrador de documental serio, grave y envolvente',
 };
+
+// ANTI-LOCUTOR (va SIEMPRE). Sin esto Gemini-TTS entrega una lectura de anuncio:
+// entusiasta, con sonrisa en la voz y entonacion ascendente. Este canal necesita
+// lo contrario — alguien hablandole a UNA persona, no vendiendole algo a muchas.
+const NO_COMERCIAL = 'MUY IMPORTANTE: no suenes a locutor de comercial, ni a anuncio publicitario, ni a promocion de radio, ni a presentador de television. '
+  + 'Nada de entusiasmo fingido, ni sonrisa en la voz, ni entonacion que sube al final de las frases, ni energia de vendedor. '
+  + 'Habla como una persona real hablandole a OTRA persona, en corto, con voz de pecho, seria y natural, '
+  + 'con pausas de verdad entre las frases y bajando el tono al final de cada una.';
 const VELOCIDADES = {
   '0.80': 'muy despacio, marcando mucho cada palabra',
   '0.90': 'algo mas despacio de lo normal',
@@ -58,16 +72,16 @@ const INTENSIDADES = {
 
 function construirInstruccion(v) {
   const partes = [];
-  const tono = TONOS[v.tono] || TONOS.autoridad;
+  const tono = TONOS[v.tono] || TONOS.canal;
   if (tono) partes.push(tono);
   const vel = VELOCIDADES[v.velocidad] || '';
   if (vel) partes.push(vel);
   const inten = INTENSIDADES[v.intensidad];
   if (inten) partes.push(inten);
   if (v.extra) partes.push(String(v.extra).slice(0, 200));
-  // Se cierra con dos puntos: el texto a leer va justo detras.
-  return 'Lee el siguiente texto ' + partes.join(', ') +
-    '. No leas estas instrucciones en voz alta, solo el texto que viene despues:\n\n';
+  return 'Lee el siguiente texto ' + partes.join(', ') + '.\n'
+    + NO_COMERCIAL + '\n'
+    + 'No leas estas instrucciones en voz alta, solo el texto que viene despues:\n\n';
 }
 
 // PCM crudo -> WAV. Gemini-TTS entrega PCM 16 bits mono a 24 kHz sin cabecera.
@@ -163,6 +177,25 @@ module.exports = async (req, res) => {
   const text = req.body && req.body.text ? req.body.text : null;
   if (!text) return res.status(400).json({ error: 'Texto requerido' });
 
+  // MOTOR ELEGIDO POR EL USUARIO. 'eleven' = la voz original del canal (Adam);
+  // 'gemini' = las voces de Google, que gastan el credito de Google Cloud.
+  if (req.body.engine === 'eleven') {
+    try {
+      const out = await generarEleven(text, (req.body && req.body.voice) || {});
+      return res.json({ success: true, engine: 'eleven', ...out });
+    } catch (e) {
+      let msg = e.message;
+      if (e.status === 401 || e.status === 403) {
+        msg = 'ElevenLabs rechazo la peticion (' + e.status + '): ' + e.message +
+              '. Revisa la clave ELEVENLABS_API_KEY y el saldo de tu cuenta.';
+      } else if (e.status === 429) {
+        msg = 'ElevenLabs: limite de uso alcanzado (429). ' + e.message;
+      }
+      console.error('[audio] ElevenLabs fallo: ' + msg);
+      return res.status(e.status || 500).json({ error: msg, upstream: 'elevenlabs' });
+    }
+  }
+
   const PROJECT_ID = process.env.GCP_PROJECT_ID;
   if (!PROJECT_ID) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
   if (!process.env.GCP_SERVICE_ACCOUNT) {
@@ -243,6 +276,7 @@ module.exports = async (req, res) => {
     // subtitulos caen solos al calculo estimado, que ya existia como respaldo.
     return res.json({
       success: true,
+      engine: 'gemini',
       parts: parts,
       alignments: parts.map(() => null),
       format: 'wav',
