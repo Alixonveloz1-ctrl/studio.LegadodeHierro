@@ -1422,63 +1422,75 @@ function parseCaption(txt){
 }
 
 // AUDIO
-// Ajustes de voz: sliders, presets y persistencia en el navegador.
+// Ajustes de voz (Gemini-TTS): selectores, presets y persistencia en el navegador.
+var voxWired=false;
 function wireVox(){
-  var map=[['vStab','vStabV','stability'],['vSim','vSimV','similarity_boost'],['vSty','vStyV','style'],['vSpd','vSpdV','speed']];
+  // Valores permitidos: si el navegador trae algo raro guardado, se descarta.
+  var VALIDOS={
+    voz:VOCES.map(function(x){return x.v;}),
+    tono:['autoridad','duro','cercano','energico','calmado','narrador'],
+    velocidad:['0.80','0.90','1.00','1.10','1.20'],
+    intensidad:['baja','media','alta'],
+    model:['gemini-2.5-flash-tts','gemini-2.5-pro-tts','gemini-2.5-flash-lite-preview-tts'],
+  };
   try{
     var saved=localStorage.getItem('lh_vox');
-    // Solo se aceptan valores VALIDOS. Un fallo anterior guardaba NaN (que en
-    // JSON queda como null) al pulsar un boton de musica, y eso dejaba la
-    // velocidad rota para siempre en este navegador: asi se repara sola.
     if(saved){
-      var RANGO={stability:[0,1],similarity_boost:[0,1],style:[0,1],speed:[0.7,1.2]};
       var o=JSON.parse(saved);
       for(var k in o){
         if(!VOX.hasOwnProperty(k))continue;
-        if(typeof VOX[k]==='boolean'){VOX[k]=!!o[k];continue;}
-        var raw=o[k];
-        if(raw===null||raw===undefined||raw==='')continue; // ojo: Number(null) es 0
-        var n=Number(raw),rg=RANGO[k];
-        // Solo se acepta si es un numero valido Y esta dentro del rango real del
-        // control; cualquier otra cosa se descarta y se queda el valor de fabrica.
-        if(isFinite(n)&&(!rg||(n>=rg[0]&&n<=rg[1])))VOX[k]=n;
+        if(k==='extra'){VOX.extra=String(o.extra||'').slice(0,200);continue;}
+        if(VALIDOS[k]&&VALIDOS[k].indexOf(o[k])>-1)VOX[k]=o[k];
       }
     }
   }catch(e){}
   function save(){ try{localStorage.setItem('lh_vox',JSON.stringify(VOX));}catch(e){} }
-  function paint(){
-    map.forEach(function(m){
-      var r=document.getElementById(m[0]),v=document.getElementById(m[1]);
-      if(r)r.value=VOX[m[2]];
-      if(v)v.textContent=Number(VOX[m[2]]).toFixed(2);
+
+  // Rellenar el selector de voces una sola vez, agrupadas por tipo.
+  var sel=document.getElementById('vVoz');
+  if(sel&&!sel.options.length){
+    var gH=document.createElement('optgroup');gH.label='Masculinas';
+    var gM=document.createElement('optgroup');gM.label='Femeninas';
+    VOCES.forEach(function(x){
+      var op=document.createElement('option');
+      op.value=x.v;op.textContent=x.v+' — '+x.d;
+      (x.s==='H'?gH:gM).appendChild(op);
     });
-    var b=document.getElementById('vBoost');
-    if(b)b.checked=!!VOX.use_speaker_boost;
+    sel.appendChild(gH);sel.appendChild(gM);
   }
-  map.forEach(function(m){
-    var r=document.getElementById(m[0]);
-    if(!r)return;
-    r.addEventListener('input',function(){
-      VOX[m[2]]=parseFloat(r.value);
-      var v=document.getElementById(m[1]);
-      if(v)v.textContent=parseFloat(r.value).toFixed(2);
-      save();
+
+  var campos=[['vVoz','voz'],['vTono','tono'],['vVel','velocidad'],['vInt','intensidad'],['vModel','model'],['vExtra','extra']];
+  function paint(){
+    campos.forEach(function(c){
+      var el=document.getElementById(c[0]);
+      if(el)el.value=VOX[c[1]];
     });
-  });
-  var bx=document.getElementById('vBoost');
-  if(bx)bx.addEventListener('change',function(){VOX.use_speaker_boost=bx.checked;save();});
-  // OJO: .voxP es solo una clase de ESTILO y la comparten los botones de plantilla
-  // de post y los de musica. Hay que escuchar unicamente a .voxSet (los presets de
-  // voz), o al pulsar "Piano" se hacia parseFloat('piano') = NaN y se destrozaban
-  // los ajustes de voz — por eso la velocidad no cambiaba nada.
-  Array.prototype.forEach.call(document.querySelectorAll('.voxSet'),function(btn){
-    btn.addEventListener('click',function(){
-      var p=(btn.getAttribute('data-p')||'').split(',').map(parseFloat);
-      if(p.length!==4||p.some(function(n){return !isFinite(n);}))return; // nunca guardar basura
-      VOX.stability=p[0];VOX.similarity_boost=p[1];VOX.style=p[2];VOX.speed=p[3];
-      paint();save();
+  }
+  // Los manejadores se conectan UNA sola vez: wireVox se llama en cada guion
+  // generado y, sin esta guarda, se acumulaban listeners sobre los mismos campos.
+  if(!voxWired){
+    campos.forEach(function(c){
+      var el=document.getElementById(c[0]);
+      if(!el)return;
+      el.addEventListener(c[0]==='vExtra'?'input':'change',function(){
+        VOX[c[1]]=c[1]==='extra'?el.value.slice(0,200):el.value;
+        save();
+      });
     });
-  });
+    // OJO: .voxP es solo una clase de ESTILO y la comparten los botones de
+    // plantilla de post y los de musica. Se escucha solo a .voxSet (presets de voz).
+    Array.prototype.forEach.call(document.querySelectorAll('.voxSet'),function(btn){
+      btn.addEventListener('click',function(){
+        var p=(btn.getAttribute('data-p')||'').split(',');
+        if(p.length!==4)return;
+        if(VALIDOS.voz.indexOf(p[0])===-1||VALIDOS.tono.indexOf(p[1])===-1)return;
+        if(VALIDOS.velocidad.indexOf(p[2])===-1||VALIDOS.intensidad.indexOf(p[3])===-1)return;
+        VOX.voz=p[0];VOX.tono=p[1];VOX.velocidad=p[2];VOX.intensidad=p[3];
+        paint();save();
+      });
+    });
+    voxWired=true;
+  }
   paint();
 }
 
@@ -1500,7 +1512,7 @@ async function genAudio(lang){
     var r=await fetch('/api/audio',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:text,voice:VOX}),
+      body:JSON.stringify({text:text,voice:VOX,lang:isEN?'en':'es'}),
     });
     if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||'Error '+r.status);}
     var data=await r.json();
@@ -1515,9 +1527,9 @@ async function genAudio(lang){
     }
     var blob,url,combinedAlignment;
     if(partsB64.length===1){
-      // Una sola parte: MP3 directo, sin union
+      // Una sola parte: se usa tal cual (Gemini-TTS entrega WAV ya con cabecera).
       var bytes=b64ToBytes(partsB64[0]);
-      blob=new Blob([bytes],{type:'audio/mpeg'});
+      blob=new Blob([bytes],{type:(data.format==='wav'?'audio/wav':'audio/mpeg')});
       url=URL.createObjectURL(blob);
       combinedAlignment=alignments[0]||null;
     }else{
@@ -1616,7 +1628,43 @@ var imgRefs=[];
 var lastTikTok='',lastYouTube='';
 // Ajustes de voz de ElevenLabs. Rangos reales de la API: stability/similarity/style 0-1;
 // speed 0.7-1.2 (fuera de ese rango la calidad se degrada).
-var VOX={stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true};
+// Las 30 voces de Gemini con su caracter, para poder elegir con criterio.
+// Las masculinas graves y firmes van primero: son las que encajan con la marca.
+var VOCES=[
+  {v:'Alnilam',s:'H',d:'Firme y fuerte'},
+  {v:'Orus',s:'H',d:'Firme y decidida'},
+  {v:'Charon',s:'H',d:'Informativa y clara'},
+  {v:'Sadaltager',s:'H',d:'Con conocimiento y autoridad'},
+  {v:'Rasalgethi',s:'H',d:'Informativa y profesional'},
+  {v:'Algenib',s:'H',d:'Rasposa, con textura'},
+  {v:'Iapetus',s:'H',d:'Clara y bien articulada'},
+  {v:'Schedar',s:'H',d:'Pareja y equilibrada'},
+  {v:'Algieba',s:'H',d:'Suave y agradable'},
+  {v:'Achird',s:'H',d:'Amistosa y cercana'},
+  {v:'Umbriel',s:'H',d:'Tranquila y relajada'},
+  {v:'Zubenelgenubi',s:'H',d:'Casual y conversacional'},
+  {v:'Puck',s:'H',d:'Animada y con energía'},
+  {v:'Fenrir',s:'H',d:'Excitable y dinámica'},
+  {v:'Sadachbia',s:'H',d:'Viva y animada'},
+  {v:'Enceladus',s:'H',d:'Susurrada y suave'},
+  {v:'Kore',s:'M',d:'Firme y segura'},
+  {v:'Gacrux',s:'M',d:'Madura y con experiencia'},
+  {v:'Erinome',s:'M',d:'Clara y precisa'},
+  {v:'Sulafat',s:'M',d:'Cálida y acogedora'},
+  {v:'Despina',s:'M',d:'Suave y fluida'},
+  {v:'Aoede',s:'M',d:'Ligera y natural'},
+  {v:'Autonoe',s:'M',d:'Brillante y optimista'},
+  {v:'Callirrhoe',s:'M',d:'Tranquila y relajada'},
+  {v:'Laomedeia',s:'M',d:'Animada y alegre'},
+  {v:'Leda',s:'M',d:'Joven y con energía'},
+  {v:'Zephyr',s:'M',d:'Brillante y alegre'},
+  {v:'Pulcherrima',s:'M',d:'Directa y expresiva'},
+  {v:'Vindemiatrix',s:'M',d:'Amable y suave'},
+  {v:'Achernar',s:'M',d:'Delicada y suave'},
+];
+// Ajustes de voz de Gemini-TTS. No hay perillas numericas: el tono, la velocidad
+// y la intensidad se convierten en el servidor en una instruccion hablada.
+var VOX={voz:'Alnilam',tono:'autoridad',velocidad:'1.00',intensidad:'media',model:'gemini-2.5-flash-tts',extra:''};
 var loadedRefsCount=0; // cuantas de las 4 referencias del personaje cargaron en el ultimo intento
 
 async function fetchRefOnce(url){

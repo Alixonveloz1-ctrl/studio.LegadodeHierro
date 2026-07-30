@@ -1,4 +1,145 @@
+// api/audio.js
+// NARRACION con GEMINI-TTS (Google) via Vertex AI — mismo proyecto y credito que
+// todo lo demas. Sustituye a ElevenLabs, que se quedo sin creditos.
+//
+// COMO SE PIDE (lo que no es obvio):
+//   - Se llama a :generateContent, como cualquier modelo Gemini, con
+//     responseModalities ['AUDIO'] y speechConfig.voiceConfig.prebuiltVoiceConfig.
+//   - Region SIEMPRE "global".
+//   - La salida es PCM 16 bits, 24 kHz, MONO, y NO trae cabecera WAV: hay que
+//     ponersela aqui o el navegador no puede reproducirlo.
+//   - NO hay parametros numericos de tono/velocidad: el estilo se dirige con una
+//     INSTRUCCION EN LENGUAJE NATURAL delante del texto ("Di lo siguiente con voz
+//     grave y pausada: ..."). De ahi que la UI mande tono/velocidad/intensidad y
+//     aqui se conviertan en esa frase.
+//
+// Devuelve el MISMO formato que antes ({success, parts:[b64], alignments:[]}),
+// para que la unificacion en Cloud Run y el reproductor sigan funcionando igual.
+
 const { checkAuth } = require('./_auth');
+
+const ALLOWED_MODELS = {
+  'gemini-2.5-flash-tts': true,
+  'gemini-2.5-pro-tts': true,
+  'gemini-2.5-flash-lite-preview-tts': true,
+};
+const DEFAULT_MODEL = 'gemini-2.5-flash-tts';
+
+// Las 30 voces de Gemini. Se validan aqui para no mandar nombres inventados.
+const VOICES = ['Achernar','Achird','Algenib','Algieba','Alnilam','Aoede','Autonoe','Callirrhoe',
+  'Charon','Despina','Enceladus','Erinome','Fenrir','Gacrux','Iapetus','Kore','Laomedeia','Leda',
+  'Orus','Puck','Pulcherrima','Rasalgethi','Sadachbia','Sadaltager','Schedar','Sulafat','Umbriel',
+  'Vindemiatrix','Zephyr','Zubenelgenubi'];
+const VOICE_SET = VOICES.reduce((a, v) => (a[v.toLowerCase()] = v, a), {});
+const DEFAULT_VOICE = 'Alnilam'; // masculina, firme y fuerte: encaja con la marca
+
+// Piezas de la instruccion de estilo. Son frases, no numeros, porque asi es como
+// Gemini-TTS acepta la direccion de actuacion.
+const TONOS = {
+  autoridad: 'con voz grave, firme y de autoridad, como alguien que sabe de lo que habla',
+  cercano:   'en tono cercano y directo, como si le hablaras a un amigo a los ojos',
+  energico:  'con energia y empuje, transmitiendo urgencia y ganas',
+  calmado:   'con calma y peso, sin prisa, dejando que cada frase asiente',
+  duro:      'con dureza y contundencia, sin adornos, como quien dice una verdad incomoda',
+  narrador:  'con voz de narrador de documental, seria y envolvente',
+};
+const VELOCIDADES = {
+  '0.80': 'muy despacio, marcando mucho cada palabra',
+  '0.90': 'algo mas despacio de lo normal',
+  '1.00': 'a un ritmo natural',
+  '1.10': 'a buen ritmo, agil pero sin atropellarse',
+  '1.20': 'rapido y sin pausas largas',
+};
+const INTENSIDADES = {
+  baja:   'con emocion contenida, sobrio',
+  media:  '',
+  alta:   'con mucha carga emocional, que se note la conviccion',
+};
+
+function construirInstruccion(v) {
+  const partes = [];
+  const tono = TONOS[v.tono] || TONOS.autoridad;
+  if (tono) partes.push(tono);
+  const vel = VELOCIDADES[v.velocidad] || '';
+  if (vel) partes.push(vel);
+  const inten = INTENSIDADES[v.intensidad];
+  if (inten) partes.push(inten);
+  if (v.extra) partes.push(String(v.extra).slice(0, 200));
+  // Se cierra con dos puntos: el texto a leer va justo detras.
+  return 'Lee el siguiente texto ' + partes.join(', ') +
+    '. No leas estas instrucciones en voz alta, solo el texto que viene despues:\n\n';
+}
+
+// PCM crudo -> WAV. Gemini-TTS entrega PCM 16 bits mono a 24 kHz sin cabecera.
+function pcmAWav(pcm, rate, canales) {
+  const bits = 16, ch = canales || 1, sr = rate || 24000;
+  const blockAlign = ch * bits / 8, byteRate = sr * blockAlign;
+  const h = Buffer.alloc(44);
+  h.write('RIFF', 0);
+  h.writeUInt32LE(36 + pcm.length, 4);
+  h.write('WAVE', 8);
+  h.write('fmt ', 12);
+  h.writeUInt32LE(16, 16);
+  h.writeUInt16LE(1, 20);
+  h.writeUInt16LE(ch, 22);
+  h.writeUInt32LE(sr, 24);
+  h.writeUInt32LE(byteRate, 28);
+  h.writeUInt16LE(blockAlign, 32);
+  h.writeUInt16LE(bits, 34);
+  h.write('data', 36);
+  h.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([h, pcm]);
+}
+
+async function getGCPToken() {
+  const sa = JSON.parse(process.env.GCP_SERVICE_ACCOUNT);
+  const now = Math.floor(Date.now() / 1000);
+  const { createSign } = require('crypto');
+  const encode = obj => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  const header = encode({ alg: 'RS256', typ: 'JWT' });
+  const payload = encode({
+    iss: sa.client_email,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
+  });
+  const sigInput = header + '.' + payload;
+  const sign = createSign('RSA-SHA256');
+  sign.update(sigInput);
+  const sig = sign.sign(sa.private_key, 'base64')
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + sigInput + '.' + sig,
+  });
+  const data = await res.json();
+  if (!data.access_token) throw new Error('Token error: ' + JSON.stringify(data));
+  return data.access_token;
+}
+
+// Corta el guion en bloques por numero de palabras, respetando las frases. Los
+// guiones del canal (75-160 palabras) caben de sobra en UN bloque; esto solo
+// actua si algun dia se pide un texto mucho mas largo.
+function partirTexto(texto, maxPalabras) {
+  const limpio = String(texto).replace(/\s+/g, ' ').trim();
+  if (limpio.split(' ').length <= maxPalabras) return [limpio];
+  const frases = limpio.match(/[^.!?]+[.!?]*/g) || [limpio];
+  const bloques = [];
+  let actual = '';
+  for (const f of frases) {
+    const cand = actual ? actual + ' ' + f.trim() : f.trim();
+    if (cand.split(' ').length > maxPalabras && actual) {
+      bloques.push(actual.trim());
+      actual = f.trim();
+    } else {
+      actual = cand;
+    }
+  }
+  if (actual.trim()) bloques.push(actual.trim());
+  return bloques;
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,158 +150,107 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (typeof req.body === 'string') {
-    try { req.body = JSON.parse(req.body); } catch(e) {}
+    try { req.body = JSON.parse(req.body); } catch (e) {}
   }
   if (!req.body) {
     try {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
       req.body = JSON.parse(Buffer.concat(chunks).toString());
-    } catch(e) { req.body = {}; }
+    } catch (e) { req.body = {}; }
   }
 
   const text = req.body && req.body.text ? req.body.text : null;
   if (!text) return res.status(400).json({ error: 'Texto requerido' });
 
-  // Ajustes de voz enviados desde la UI. Se validan y se acotan a los rangos
-  // reales de ElevenLabs: fuera de rango la API rechaza o degrada el audio.
-  function clamp(v, lo, hi, def) {
-    const n = Number(v);
-    if (!isFinite(n)) return def;
-    return Math.min(hi, Math.max(lo, n));
+  const PROJECT_ID = process.env.GCP_PROJECT_ID;
+  if (!PROJECT_ID) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
+  if (!process.env.GCP_SERVICE_ACCOUNT) {
+    return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
   }
+
   const vIn = (req.body && req.body.voice) || {};
-  const VOICE_SETTINGS = {
-    stability:        clamp(vIn.stability,        0,   1,   0.5),
-    similarity_boost: clamp(vIn.similarity_boost, 0,   1,   0.75),
-    style:            clamp(vIn.style,            0,   1,   0),
-    speed:            clamp(vIn.speed,            0.7, 1.2, 1),
-    use_speaker_boost: vIn.use_speaker_boost === false ? false : true,
-  };
+  const voz = VOICE_SET[String(vIn.voz || '').toLowerCase()] || DEFAULT_VOICE;
+  let model = String(vIn.model || '');
+  if (!ALLOWED_MODELS[model]) model = DEFAULT_MODEL;
+  const idioma = req.body.lang === 'en' ? 'en-US' : 'es-US';
+  const instruccion = construirInstruccion({
+    tono: vIn.tono, velocidad: vIn.velocidad, intensidad: vIn.intensidad, extra: vIn.extra,
+  });
 
-  const EL_KEY = process.env.ELEVENLABS_API_KEY;
-  const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'IRHApOXLvnW57QJPQH2P';
-  if (!EL_KEY) return res.status(500).json({ error: 'ELEVENLABS_API_KEY no configurada' });
-
-  // Velocidad de habla estimada en espanol (locucion natural): ~2.5 palabras/segundo.
-  const WORDS_PER_SECOND = 2.5;
-  const TARGET_SECONDS_PER_BLOCK = 40;
-  // Objetivo ~38s y TOPE DURO ~42s: ningun bloque puede pasar de ~40s reales,
-  // porque ElevenLabs pierde calidad (volumen/velocidad) en generaciones largas.
-  const TARGET_WORDS = Math.round((TARGET_SECONDS_PER_BLOCK - 2) * WORDS_PER_SECOND); // ~95
-  const MAX_WORDS = Math.round((TARGET_SECONDS_PER_BLOCK + 2) * WORDS_PER_SECOND);    // ~105
-
-  // Divide el texto en bloques de <= ~40s. Corta preferentemente al final de una
-  // oracion cerca del objetivo; si una oracion es demasiado larga, corta en la
-  // ultima coma; si no hay coma, corta por palabra en el tope. La ultima llamada
-  // se queda con la diferencia. REGLA FIJA: nunca una sola llamada larga.
-  function splitByDuration(t) {
-    const clean = t.replace(/\s+/g, ' ').trim();
-    const words = clean.split(' ').filter(Boolean);
-    if (words.length <= MAX_WORDS) return [clean]; // suficientemente corto: una sola llamada
-
-    const blocks = [];
-    let cur = [];
-    for (let i = 0; i < words.length; i++) {
-      cur.push(words[i]);
-      const endsSentence = /[.!?…]["')]?$/.test(words[i]);
-      if (cur.length >= TARGET_WORDS && endsSentence) {
-        blocks.push(cur.join(' ')); cur = [];
-        continue;
-      }
-      if (cur.length >= MAX_WORDS) {
-        // Oracion demasiado larga: forzar corte en la ultima coma/;/: dentro del bloque
-        let cut = -1;
-        for (let j = cur.length - 1; j >= Math.floor(TARGET_WORDS * 0.5); j--) {
-          if (/[,;:]$/.test(cur[j])) { cut = j; break; }
-        }
-        if (cut > 0) {
-          blocks.push(cur.slice(0, cut + 1).join(' '));
-          cur = cur.slice(cut + 1);
-        } else {
-          blocks.push(cur.join(' '));
-          cur = [];
-        }
-      }
-    }
-    if (cur.length) blocks.push(cur.join(' '));
-    return blocks.length ? blocks : [clean];
-  }
-
-  async function generatePart(partText, prevText, nextText) {
-    const url = 'https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID + '/with-timestamps';
-    const body = {
-      text: partText,
-      model_id: 'eleven_multilingual_v2',
-      voice_settings: VOICE_SETTINGS
-    };
-    if (prevText) body.previous_text = prevText;
-    if (nextText) body.next_text = nextText;
-
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': EL_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!r.ok) {
-      const errText = await r.text();
-      let errMsg = 'Error ' + r.status;
-      try {
-        const errJson = JSON.parse(errText);
-        if (errJson && errJson.detail && errJson.detail.message) errMsg = errJson.detail.message;
-        else if (errJson && errJson.message) errMsg = errJson.message;
-      } catch(e) {}
-      const err = new Error(errMsg);
-      err.status = r.status;
-      throw err;
-    }
-
-    return await r.json();
-  }
+  const url = 'https://aiplatform.googleapis.com/v1/projects/' + PROJECT_ID +
+    '/locations/global/publishers/google/models/' + model + ':generateContent';
 
   try {
-    const parts = splitByDuration(text);
+    const token = await getGCPToken();
+    const bloques = partirTexto(text, 200);
+    const parts = [];
 
-    if (parts.length === 1) {
-      const data = await generatePart(parts[0], '', '');
-      return res.json({
-        success: true,
-        parts: [ data.audio_base64 ],
-        alignments: [ data.alignment || null ]
+    for (const bloque of bloques) {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'X-Goog-User-Project': PROJECT_ID,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: instruccion + bloque }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              languageCode: idioma,
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: voz } },
+            },
+          },
+        }),
       });
+
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const msg = (d && d.error && d.error.message) ? d.error.message : ('Error ' + r.status);
+        console.error('[audio] Gemini-TTS rechazo (' + r.status + '): ' + msg);
+        return res.status(502).json({ error: 'Gemini-TTS no respondio: ' + msg, upstream: 'gemini-tts' });
+      }
+
+      // El audio llega como inlineData (PCM sin cabecera) en las partes.
+      const cand = d.candidates && d.candidates[0];
+      const ps = cand && cand.content && cand.content.parts ? cand.content.parts : [];
+      let pcm = null, mime = '';
+      for (const p of ps) {
+        const inl = p.inlineData || p.inline_data;
+        if (!inl || !inl.data) continue;
+        const mt = inl.mimeType || inl.mime_type || '';
+        if (mt.indexOf('audio') !== 0) continue;
+        mime = mt;
+        const buf = Buffer.from(inl.data, 'base64');
+        pcm = pcm ? Buffer.concat([pcm, buf]) : buf;
+      }
+      if (!pcm) {
+        const razon = (cand && cand.finishReason) ? cand.finishReason : 'sin audio';
+        console.error('[audio] sin audio (' + razon + '): ' + JSON.stringify(d).slice(0, 300));
+        return res.status(502).json({ error: 'Gemini-TTS no devolvio audio (' + razon + ')', upstream: 'gemini-tts' });
+      }
+
+      // Si ya viniera con cabecera RIFF se respeta; si no, se le pone.
+      const esWav = pcm.length > 4 && pcm.slice(0, 4).toString('latin1') === 'RIFF';
+      const rate = parseInt((/rate=(\d+)/.exec(mime) || [])[1], 10) || 24000;
+      const canales = parseInt((/channels=(\d+)/.exec(mime) || [])[1], 10) || 1;
+      parts.push((esWav ? pcm : pcmAWav(pcm, rate, canales)).toString('base64'));
     }
 
-    const audioParts = [];
-    const alignParts = [];
-    for (let i = 0; i < parts.length; i++) {
-      const prevText = i > 0 ? parts[i - 1] : '';
-      const nextText = i < parts.length - 1 ? parts[i + 1] : '';
-      const data = await generatePart(parts[i], prevText, nextText);
-      audioParts.push(data.audio_base64);
-      alignParts.push(data.alignment || null);
-    }
-
+    // alignments va vacio: Gemini-TTS no entrega tiempos por caracter. Los
+    // subtitulos caen solos al calculo estimado, que ya existia como respaldo.
     return res.json({
       success: true,
-      parts: audioParts,
-      alignments: alignParts
+      parts: parts,
+      alignments: parts.map(() => null),
+      format: 'wav',
+      voice: voz,
+      model: model,
     });
-
   } catch (e) {
-    // Se deja claro que el fallo viene de ElevenLabs y no de esta herramienta. Un
-    // 401/403 aqui es su clave o su cuenta, NO la contrasena de acceso a la app.
-    let msg = e.message;
-    if (e.status === 401 || e.status === 403) {
-      msg = 'ElevenLabs rechazo la peticion (' + e.status + '): ' + e.message +
-            '. Revisa la clave ELEVENLABS_API_KEY y el estado de tu cuenta de ElevenLabs.';
-    } else if (e.status === 429) {
-      msg = 'ElevenLabs: limite de uso alcanzado (429). ' + e.message;
-    }
-    return res.status(e.status || 500).json({ error: msg, upstream: 'elevenlabs' });
+    console.error('[audio] excepcion: ' + e.message);
+    return res.status(500).json({ error: e.message });
   }
 };

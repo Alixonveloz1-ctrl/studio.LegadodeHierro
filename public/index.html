@@ -348,28 +348,51 @@ section{margin-bottom:20px}
           <details id="voxPanel" style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
             <summary style="padding:9px 11px;cursor:pointer;font-size:11px;font-weight:700;color:var(--tx3);letter-spacing:.04em;background:#faf8f6;list-style:none">⚙ AJUSTES DE VOZ</summary>
             <div style="padding:12px 11px 4px">
-              <label class="voxLbl">Estabilidad <span class="voxV" id="vStabV">0.50</span>
-                <input type="range" id="vStab" class="voxR" min="0" max="1" step="0.05" value="0.5">
-                <span class="voxH">Bajo: más emoción, más variación entre tomas. Alto: consistente pero monótono.</span>
+              <label class="genLbl" style="margin-bottom:4px">Voz (30 de Gemini)
+                <select id="vVoz" class="genSel"></select>
               </label>
-              <label class="voxLbl">Claridad / Similitud <span class="voxV" id="vSimV">0.75</span>
-                <input type="range" id="vSim" class="voxR" min="0" max="1" step="0.05" value="0.75">
-                <span class="voxH">Entre 0.75 y 0.90 es lo recomendado. Al máximo sobre-pronuncia.</span>
+              <span class="voxH" style="display:block;margin:2px 0 10px">Cada voz tiene su carácter. Para el canal encajan las firmes y graves.</span>
+              <label class="genLbl" style="margin-bottom:4px">Tono
+                <select id="vTono" class="genSel">
+                  <option value="autoridad">Grave y con autoridad</option>
+                  <option value="duro">Duro y contundente</option>
+                  <option value="cercano">Cercano y directo</option>
+                  <option value="energico">Enérgico y con empuje</option>
+                  <option value="calmado">Calmado y con peso</option>
+                  <option value="narrador">Narrador de documental</option>
+                </select>
               </label>
-              <label class="voxLbl">Estilo <span class="voxV" id="vStyV">0.00</span>
-                <input type="range" id="vSty" class="voxR" min="0" max="1" step="0.05" value="0">
-                <span class="voxH">Exageración del estilo. Subirlo resta estabilidad. Déjalo en 0 salvo que quieras drama.</span>
+              <label class="genLbl" style="margin:8px 0 4px">Velocidad
+                <select id="vVel" class="genSel">
+                  <option value="0.80">Muy pausada</option>
+                  <option value="0.90">Algo pausada</option>
+                  <option value="1.00" selected>Natural</option>
+                  <option value="1.10">Ágil</option>
+                  <option value="1.20">Rápida</option>
+                </select>
               </label>
-              <label class="voxLbl">Velocidad <span class="voxV" id="vSpdV">1.00</span>
-                <input type="range" id="vSpd" class="voxR" min="0.7" max="1.2" step="0.05" value="1">
-                <span class="voxH">0.7 lenta · 1.0 normal · 1.2 rápida. Los extremos degradan la calidad.</span>
+              <label class="genLbl" style="margin:8px 0 4px">Intensidad emocional
+                <select id="vInt" class="genSel">
+                  <option value="baja">Contenida</option>
+                  <option value="media" selected>Normal</option>
+                  <option value="alta">Intensa</option>
+                </select>
               </label>
-              <label class="voxChk"><input type="checkbox" id="vBoost" checked> Speaker boost <span class="voxH" style="margin:0 0 0 4px">Refuerza el parecido con tu voz. Déjalo activo.</span></label>
-              <div style="display:flex;gap:7px;margin:10px 0 8px;flex-wrap:wrap">
-                <button type="button" class="voxP voxSet" data-p="0.5,0.75,0,1">Equilibrado</button>
-                <button type="button" class="voxP voxSet" data-p="0.75,0.85,0,1">Firme y consistente</button>
-                <button type="button" class="voxP voxSet" data-p="0.4,0.8,0.1,1">Crudo y emocional</button>
-                <button type="button" class="voxP voxSet" data-p="0.6,0.8,0,1.1">Ágil</button>
+              <label class="genLbl" style="margin:8px 0 4px">Calidad del modelo
+                <select id="vModel" class="genSel">
+                  <option value="gemini-2.5-flash-tts" selected>Flash · rápido y barato</option>
+                  <option value="gemini-2.5-pro-tts">Pro · máxima calidad</option>
+                </select>
+              </label>
+              <label class="genLbl" style="margin:8px 0 4px">Indicación extra (opcional)
+                <input type="text" id="vExtra" class="fi" style="font-size:12px;padding:8px 10px" placeholder="Ej: haz una pausa antes de la última frase" maxlength="200">
+              </label>
+              <span class="voxH" style="display:block;margin:6px 0 8px">La dirección de voz se da con palabras, no con números: se le indica al modelo cómo actuar antes de leer el guion.</span>
+              <div style="display:flex;gap:7px;margin:4px 0 8px;flex-wrap:wrap">
+                <button type="button" class="voxP voxSet" data-p="Alnilam,autoridad,1.00,media">Marca (recomendado)</button>
+                <button type="button" class="voxP voxSet" data-p="Orus,duro,1.00,alta">Golpe seco</button>
+                <button type="button" class="voxP voxSet" data-p="Charon,narrador,0.90,baja">Documental</button>
+                <button type="button" class="voxP voxSet" data-p="Puck,energico,1.10,alta">Enérgico</button>
               </div>
             </div>
           </details>
@@ -378,12 +401,12 @@ section{margin-bottom:20px}
           <div class="ares" id="rES">
             <div class="arlbl" style="color:#b8975a">Audio en Español</div>
             <audio id="pES" controls style="width:100%;border-radius:8px;margin-bottom:8px"></audio>
-            <a id="dES" download="legado-es.mp3" style="display:inline-block;background:linear-gradient(135deg,#b8975a,#d4b47a);color:#fff;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none">⬇ Descargar ES</a>
+            <a id="dES" download="legado-es.wav" style="display:inline-block;background:linear-gradient(135deg,#b8975a,#d4b47a);color:#fff;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none">⬇ Descargar ES</a>
           </div>
           <div class="ares" id="rEN" style="margin-top:12px">
             <div class="arlbl" style="color:#c4897a">Audio en Inglés</div>
             <audio id="pEN" controls style="width:100%;border-radius:8px;margin-bottom:8px"></audio>
-            <a id="dEN" download="legado-en.mp3" style="display:inline-block;background:linear-gradient(135deg,#c4897a,#d4a090);color:#fff;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none">⬇ Descargar EN</a>
+            <a id="dEN" download="legado-en.wav" style="display:inline-block;background:linear-gradient(135deg,#c4897a,#d4a090);color:#fff;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none">⬇ Descargar EN</a>
           </div>
         </div>
       </div>
