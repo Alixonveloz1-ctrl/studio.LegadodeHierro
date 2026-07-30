@@ -451,6 +451,19 @@ section{margin-bottom:20px}
               </div>
             </div>
           </details>
+          <div style="margin-bottom:12px;border:1px dashed var(--border);border-radius:10px;padding:10px 11px;background:#fcfaf8">
+            <div class="genLbl" style="margin-bottom:6px">⬆ O sube el audio ya generado (sin gastar API)</div>
+            <span class="voxH" style="display:block;margin-bottom:9px">Copia el guion, genéralo en la web de ElevenLabs con la voz del canal, descárgalo y súbelo aquí. El resto del montaje —imágenes, videos, música y unificación— sigue funcionando igual. MP3, M4A o WAV, máximo 20 MB.</span>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:7px">
+              <button type="button" class="voxP" id="bCopyES">📋 Copiar guion ES</button>
+              <button type="button" class="voxP" id="bCopyEN">📋 Copiar guion EN</button>
+            </div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+              <label class="voxP" style="cursor:pointer;display:inline-block">⬆ Subir audio ES<input type="file" id="upAudES" accept="audio/*,.mp3,.m4a,.wav,.ogg" style="display:none"></label>
+              <label class="voxP" style="cursor:pointer;display:inline-block">⬆ Subir audio EN<input type="file" id="upAudEN" accept="audio/*,.mp3,.m4a,.wav,.ogg" style="display:none"></label>
+            </div>
+            <div id="upAudSt" style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.5;display:none"></div>
+          </div>
           <div class="stxt" id="ast"></div>
           <div class="serr" id="ae"></div>
           <div class="ares" id="rES">

@@ -1667,6 +1667,73 @@ async function genAudio(lang){
   }
 }
 
+// ============================================================================
+//  SUBIR LA NARRACION YA GENERADA (sin gastar API)
+//  Permite crear el audio por fuera —p. ej. en la web de ElevenLabs, con los
+//  creditos gratis y la voz de siempre del canal— y cargarlo aqui. A partir de
+//  ese punto TODO sigue igual: mezcla con musica, unificacion y exportacion.
+//  El archivo no pasa por ningun servidor: se lee en el propio navegador.
+// ============================================================================
+var MAX_AUD_MB=20;
+
+function bytesToB64(bytes){
+  // Por trozos: pasar un array enorme a fromCharCode de una vez desborda la pila.
+  var CH=0x8000,partes=[];
+  for(var i=0;i<bytes.length;i+=CH)partes.push(String.fromCharCode.apply(null,bytes.subarray(i,i+CH)));
+  return btoa(partes.join(''));
+}
+
+async function subirAudio(file,isEN){
+  var st=document.getElementById('upAudSt');
+  function di(msg,err){
+    if(!st)return;
+    st.style.display='block';
+    st.style.color=err?'#8a4a3a':'var(--tx3)';
+    st.textContent=msg;
+  }
+  if(!file)return;
+  var mb=file.size/1048576;
+  if(mb>MAX_AUD_MB){di('Ese archivo pesa '+mb.toFixed(1)+' MB y el maximo es '+MAX_AUD_MB+' MB. Exportalo en MP3 y vuelve a intentarlo.',true);return;}
+  di('Cargando "'+file.name+'"...');
+  try{
+    var ab=await file.arrayBuffer();
+    var bytes=new Uint8Array(ab);
+    if(bytes.length<1000)throw new Error('El archivo llego vacio o corrupto.');
+    var b64=bytesToB64(bytes);
+    var tipo=file.type||(/\.wav$/i.test(file.name)?'audio/wav':/\.m4a$/i.test(file.name)?'audio/mp4':/\.ogg$/i.test(file.name)?'audio/ogg':'audio/mpeg');
+    var blob=new Blob([bytes],{type:tipo});
+    var url=URL.createObjectURL(blob);
+
+    // Duracion real: sirve para avisar si no cuadra con el guion.
+    var dur=0;
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext;
+      var ctx=new AC();
+      var dec=await ctx.decodeAudioData(bytes.slice(0).buffer);
+      dur=dec.duration;
+      if(ctx.close)ctx.close();
+    }catch(e){/* si el navegador no sabe decodificarlo, se sigue igual */}
+
+    // Sin alignment: los subtitulos usan el calculo estimado, que ya existe.
+    var reg={blob:blob,url:url,alignment:null,partsB64:[b64]};
+    if(isEN){audEN=reg;}
+    else{
+      audES=reg;
+      if(typeof invalidateVoiceMix==='function')invalidateVoiceMix();
+    }
+    var ext=/wav/.test(tipo)?'wav':/mp4|m4a/.test(tipo)?'m4a':/ogg/.test(tipo)?'ogg':'mp3';
+    var pl=document.getElementById(isEN?'pEN':'pES');if(pl)pl.src=url;
+    var dl=document.getElementById(isEN?'dEN':'dES');
+    if(dl){dl.href=url;dl.setAttribute('download','legado-'+(isEN?'en':'es')+'.'+ext);}
+    var box=document.getElementById(isEN?'rEN':'rES');if(box)box.style.display='block';
+    di('Audio '+(isEN?'EN':'ES')+' cargado: "'+file.name+'"'+(dur?' · '+dur.toFixed(1)+' s':'')+
+       '. Ya puedes unificar; no se gasto ningun credito.');
+    chkExport();updUnifyCard();
+  }catch(e){
+    di('No se pudo cargar el audio: '+(e.message||'archivo no valido'),true);
+  }
+}
+
 // Convierte un AudioBuffer a un Blob WAV valido
 function audioBufferToWav(buffer){
   var nCh=buffer.numberOfChannels,len=buffer.length*nCh*2,sr=buffer.sampleRate;
@@ -3325,6 +3392,22 @@ document.addEventListener('DOMContentLoaded',function(){
       navigator.clipboard.writeText(todo);
       var b=document.getElementById('bcapcopy');var o=b.textContent;b.textContent='Copiado ✓';setTimeout(function(){b.textContent=o;},1500);
     }
+  });
+  // Subir la narracion hecha por fuera (ElevenLabs web u otro), sin gastar API.
+  ['ES','EN'].forEach(function(L){
+    var inp=document.getElementById('upAud'+L);
+    if(inp)inp.addEventListener('change',function(){
+      var f=inp.files&&inp.files[0];
+      if(f)subirAudio(f,L==='EN');
+      inp.value=''; // permite volver a subir el MISMO archivo si hace falta
+    });
+    var cp=document.getElementById('bCopy'+L);
+    if(cp)cp.addEventListener('click',function(){
+      var txt=L==='EN'?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
+      if(!txt){alert('Genera un episodio primero.');return;}
+      navigator.clipboard.writeText(txt);
+      var o=cp.textContent;cp.textContent='Copiado ✓';setTimeout(function(){cp.textContent=o;},1500);
+    });
   });
   document.getElementById('expbtn').addEventListener('click',exportAll);
   document.getElementById('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
