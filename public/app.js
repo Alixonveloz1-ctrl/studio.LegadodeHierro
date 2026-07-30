@@ -2402,8 +2402,19 @@ function invalidateVoiceMix(){
   }catch(e){}
 }
 
+// Pausa los reproductores sueltos de narracion. Si uno de ellos esta sonando y
+// ademas se lanza la mezcla, se oye la MISMA voz dos veces con un desfase: suena
+// a "voz doble" y enturbiada (dos copias solapadas se filtran entre si).
+function pausarReproductores(){
+  ['pES','pEN'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el&&!el.paused){try{el.pause();}catch(e){}}
+  });
+}
+
 async function toggleMixPreview(objectOverride){
   if(MIX.playing){stopMix();return;}
+  pausarReproductores(); // nunca dos fuentes de la misma voz a la vez
   var sel=document.getElementById('musicSel');
   var st=document.getElementById('musicSt');
   var btn=document.getElementById('bMusicPlay');
@@ -3392,6 +3403,17 @@ document.addEventListener('DOMContentLoaded',function(){
       navigator.clipboard.writeText(todo);
       var b=document.getElementById('bcapcopy');var o=b.textContent;b.textContent='Copiado ✓';setTimeout(function(){b.textContent=o;},1500);
     }
+  });
+  // Y al reves: si se le da play a un reproductor de narracion, se corta la
+  // mezcla. Asi nunca puede sonar la misma voz por dos sitios a la vez.
+  ['pES','pEN'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener('play',function(){
+      if(typeof MIX!=='undefined'&&MIX.playing)stopMix();
+      // y el otro reproductor tampoco sigue sonando
+      var otro=document.getElementById(id==='pES'?'pEN':'pES');
+      if(otro&&!otro.paused){try{otro.pause();}catch(e){}}
+    });
   });
   // Subir la narracion hecha por fuera (ElevenLabs web u otro), sin gastar API.
   ['ES','EN'].forEach(function(L){
