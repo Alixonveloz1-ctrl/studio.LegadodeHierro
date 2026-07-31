@@ -1690,10 +1690,71 @@ async function genAudio(lang){
 var BANCO=[];        // lo que hay en el bucket
 var BANCO_SEL=[];    // objetos elegidos, EN ORDEN
 var BANCO_TODOS=false; // false = solo la carpeta del canal; true = tambien la raiz
+var BANCO_VIS=9;       // cuantos clips se pintan de golpe (el resto, con "Ver mas")
+var BANCO_IO=null;     // observador de visibilidad
+
+// Cambia SOLO los numeros y los bordes de la seleccion. Es importante que no
+// rehaga el HTML: al rehacerlo se destruian y recreaban todos los <video>, y por
+// eso todo lo que ya se habia visto volvia a negro y el panel se colgaba.
+function actualizarBadges(){
+  var p=document.getElementById('bancoPanel');if(!p)return;
+  Array.prototype.forEach.call(p.querySelectorAll('.bancoIt'),function(el){
+    var c=BANCO[parseInt(el.getAttribute('data-i'),10)];
+    if(!c)return;
+    var pos=BANCO_SEL.indexOf(c.object),sel=pos>-1;
+    el.style.borderColor=sel?'#9ab47a':'var(--border)';
+    var n=el.querySelector('.bancoNum');
+    if(n){n.textContent=sel?(pos+1):'+';n.style.background=sel?'#9ab47a':'rgba(0,0,0,.55)';}
+  });
+  var us=p.querySelector('#bBancoUsar');
+  if(us){
+    us.textContent=BANCO_SEL.length?('✓ Usar estos '+BANCO_SEL.length+' clips en este orden'):'Toca los clips que quieras usar';
+    us.style.background=BANCO_SEL.length?'#9ab47a':'#fff';
+    us.style.color=BANCO_SEL.length?'#fff':'#6a8a4a';
+  }
+}
+
+// Carga el video SOLO cuando esta a la vista y lo suelta al alejarse. Sin esto,
+// una docena larga de videos vivos a la vez deja al navegador del movil en blanco.
+function observarBanco(p){
+  if(BANCO_IO){try{BANCO_IO.disconnect();}catch(e){}BANCO_IO=null;}
+  if(typeof IntersectionObserver==='undefined'){
+    // Navegador antiguo: se cargan tal cual, que son pocos por pagina.
+    Array.prototype.forEach.call(p.querySelectorAll('.bancoVid'),function(v){
+      if(!v.src)v.src=v.getAttribute('data-src')||'';
+    });
+    return;
+  }
+  BANCO_IO=new IntersectionObserver(function(entradas){
+    entradas.forEach(function(en){
+      var v=en.target;
+      if(en.isIntersecting){
+        if(!v.getAttribute('src')){v.preload='metadata';v.setAttribute('src',v.getAttribute('data-src')||'');}
+      }else{
+        if(!v.paused){try{v.pause();}catch(e){}}
+        // Se libera el decodificador del que ya no se ve.
+        if(v.getAttribute('src')){v.removeAttribute('src');try{v.load();}catch(e){}}
+      }
+    });
+  },{root:p,rootMargin:'150px 0px'});
+  Array.prototype.forEach.call(p.querySelectorAll('.bancoVid'),function(v){BANCO_IO.observe(v);});
+}
+
+// Cerrar el panel suelta TODO: observador, reproduccion y decodificadores. Si no,
+// los videos siguen en memoria aunque el panel no se vea.
+function cerrarBanco(p){
+  p=p||document.getElementById('bancoPanel');
+  if(!p)return;
+  if(BANCO_IO){try{BANCO_IO.disconnect();}catch(e){}BANCO_IO=null;}
+  Array.prototype.forEach.call(p.querySelectorAll('.bancoVid'),function(v){
+    try{v.pause();}catch(e){}
+    if(v.getAttribute('src')){v.removeAttribute('src');try{v.load();}catch(e){}}
+  });
+  p.style.display='none';
+}
 
 function abrirBancoRecargar(){
-  var p=document.getElementById('bancoPanel');
-  if(p)p.style.display='none'; // fuerza que abrirBanco vuelva a cargar
+  cerrarBanco(); // suelta los videos y fuerza que abrirBanco recargue
   return abrirBanco();
 }
 
@@ -1701,7 +1762,10 @@ async function abrirBanco(){
   var p=document.getElementById('bancoPanel');
   var b=document.getElementById('bbanco');
   if(!p)return;
-  if(p.style.display==='block'){p.style.display='none';return;}
+  if(p.style.display==='block'){
+    cerrarBanco(p);
+    return;
+  }
   p.style.display='block';
   p.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px">Buscando tus videos en el bucket...</div>';
   var orig=b?b.textContent:'';
@@ -1711,7 +1775,7 @@ async function abrirBanco(){
       body:JSON.stringify({action:'list',todos:BANCO_TODOS})});
     var d=await r.json().catch(function(){return{};});
     if(!r.ok)throw new Error(d.error||'Error '+r.status);
-    BANCO=d.clips||[];BANCO_SEL=[];
+    BANCO=d.clips||[];BANCO_SEL=[];BANCO_VIS=9;
     pintarBanco();
   }catch(e){
     p.innerHTML='<div style="font-size:12px;color:#8a4a3a;padding:8px">No se pudo leer el banco: '+escHtml(e.message||'error')+'</div>';
@@ -1749,17 +1813,20 @@ function pintarBanco(){
     +(BANCO_TODOS?'Solo Legado de Hierro':'Ver también los antiguos')+'</button>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px">';
-  BANCO.forEach(function(c,i){
+  // Solo se pintan BANCO_VIS de golpe. Meter 120 <video> a la vez tumba a Safari
+  // en el iPhone: se queda sin decodificadores y la pantalla se pone en blanco.
+  var visibles=Math.min(BANCO_VIS,BANCO.length);
+  BANCO.slice(0,visibles).forEach(function(c,i){
     var pos=BANCO_SEL.indexOf(c.object);
     var sel=pos>-1;
     var fecha=c.fecha?new Date(c.fecha).toLocaleString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-    // Cada clip se MUESTRA. Los nombres que pone Veo son todos iguales
-    // (sample_0.mp4), asi que por nombre es imposible distinguirlos.
+    // El src va en data-src: se carga SOLO cuando el clip entra en pantalla, y
+    // se suelta al alejarse. Asi nunca hay muchos videos vivos a la vez.
     h+='<div class="bancoIt" data-i="'+i+'" style="position:relative;border-radius:9px;overflow:hidden;cursor:pointer;'
       +'border:2.5px solid '+(sel?'#9ab47a':'var(--border)')+';background:#000">'
-      +'<video class="bancoVid" src="'+escHtml(c.url||'')+'" preload="metadata" muted playsinline '
+      +'<video class="bancoVid" data-src="'+escHtml(c.url||'')+'" preload="none" muted playsinline '
       +'style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block;background:#000"></video>'
-      +'<span style="position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;'
+      +'<span class="bancoNum" style="position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;'
       +'font-size:11px;font-weight:700;background:'+(sel?'#9ab47a':'rgba(0,0,0,.55)')+';color:#fff">'+(sel?(pos+1):'+')+'</span>'
       +'<button type="button" class="bancoPlay" data-i="'+i+'" style="position:absolute;top:5px;right:5px;width:24px;height:24px;border:none;border-radius:50%;'
       +'background:rgba(0,0,0,.55);color:#fff;font-size:11px;cursor:pointer;padding:0;font-family:inherit">▶</button>'
@@ -1768,6 +1835,10 @@ function pintarBanco(){
       +'</div>';
   });
   h+='</div>';
+  if(BANCO.length>visibles){
+    h+='<button type="button" class="voxP" id="bBancoMas" style="width:100%;margin-top:8px">'
+      +'Ver 9 mas ('+(BANCO.length-visibles)+' restantes)</button>';
+  }
   h+='<button type="button" id="bBancoUsar" style="width:100%;margin-top:8px;padding:12px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;'
     +'border:2px solid #9ab47a;background:'+(BANCO_SEL.length?'#9ab47a':'#fff')+';color:'+(BANCO_SEL.length?'#fff':'#6a8a4a')+'">'
     +(BANCO_SEL.length?('✓ Usar estos '+BANCO_SEL.length+' clips en este orden'):'Toca los clips que quieras usar')+'</button>';
@@ -1779,9 +1850,14 @@ function pintarBanco(){
       if(!c)return;
       var k=BANCO_SEL.indexOf(c.object);
       if(k>-1)BANCO_SEL.splice(k,1); else BANCO_SEL.push(c.object);
-      pintarBanco();
+      // NO se redibuja el panel: solo cambian los numeros y los bordes. Antes se
+      // rehacia el HTML entero y eso reiniciaba todos los videos a negro.
+      actualizarBadges();
     });
   });
+  var mas=p.querySelector('#bBancoMas');
+  if(mas)mas.addEventListener('click',function(){BANCO_VIS+=9;pintarBanco();});
+  observarBanco(p);
   // Ver un clip. Se para el clic para que mirarlo NO lo seleccione, y se pausan
   // los demas: asi nunca suenan/corren dos a la vez.
   Array.prototype.forEach.call(p.querySelectorAll('.bancoPlay'),function(btn){
@@ -1791,6 +1867,8 @@ function pintarBanco(){
       var v=vids[parseInt(btn.getAttribute('data-i'),10)];
       if(!v)return;
       Array.prototype.forEach.call(vids,function(o){if(o!==v&&!o.paused){try{o.pause();}catch(e){}}});
+      // Puede no estar cargado todavia (se cargan solo los que estan a la vista).
+      if(!v.getAttribute('src')){v.preload='auto';v.setAttribute('src',v.getAttribute('data-src')||'');}
       if(v.paused){v.play().catch(function(){});btn.textContent='❚❚';}
       else{v.pause();btn.textContent='▶';}
       v.onended=function(){btn.textContent='▶';};
@@ -1818,7 +1896,7 @@ async function usarBanco(){
     // Se colocan EN EL MISMO ORDEN en que se eligieron.
     vids=d.urls.map(function(u){return {url:u,remoteUrl:u,delBanco:true};});
     vidState=d.urls.map(function(){return 'done';});
-    var p=document.getElementById('bancoPanel');if(p)p.style.display='none';
+    cerrarBanco();
     updUnifyCard();chkExport();
     alert('Listos '+d.urls.length+' clips del banco, en el orden que elegiste. Ya puedes unificar (solo falta la narración).');
   }catch(e){
