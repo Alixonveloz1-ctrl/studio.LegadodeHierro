@@ -2,13 +2,18 @@
 // Lista los clips de Veo que ya viven en el bucket y devuelve URLs firmadas para
 // reutilizarlos en un reel nuevo SIN volver a generarlos (ni pagarlos).
 //
-// Veo escribe los clips en la raiz del bucket (storageUri), en carpetas propias
-// por operacion. Aqui se listan todos los .mp4 excepto las carpetas de la
-// herramienta (unify/ son reels ya terminados, musica/ y refs/ no son clips).
+// Los clips NUEVOS de este canal se guardan bajo legado-videos/ (lo fija
+// video-start.js), asi no se mezclan con los de otros proyectos que compartan
+// el mismo bucket. Por defecto el banco lista SOLO esa carpeta.
+// Con {todos:true} se listan tambien los antiguos que quedaron en la raiz,
+// de cuando todo caia junto; ahi si pueden aparecer clips de otros proyectos,
+// pero como el banco los muestra en video se distinguen a simple vista.
 
 const { createSign, createHash } = require('crypto');
 const { checkAuth } = require('./_auth');
 
+// Carpeta propia del canal.
+const PREFIJO = 'legado-videos/';
 // Carpetas que NO son clips sueltos de Veo.
 const EXCLUIR = ['unify/', 'musica/', 'refs/'];
 // Se limita la lista porque cada clip se devuelve YA FIRMADO (para poder verlo
@@ -96,11 +101,15 @@ module.exports = async (req, res) => {
 
     if (action === 'list') {
       const token = await getGCPToken();
-      // Se pagina hasta juntar los mas recientes; el bucket puede tener muchos.
+      // Por defecto solo la carpeta del canal. El filtro se pide al propio
+      // servidor con prefix=, asi ni siquiera se traen los de otros proyectos.
+      const todos = req.body.todos === true;
+      const prefijo = todos ? '' : PREFIJO;
       let items = [], pageToken = '', vueltas = 0;
       do {
         const url = 'https://storage.googleapis.com/storage/v1/b/' + bucket +
           '/o?maxResults=1000&fields=items(name,size,timeCreated),nextPageToken' +
+          (prefijo ? '&prefix=' + encodeURIComponent(prefijo) : '') +
           (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
         const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
         const d = await r.json();
@@ -129,7 +138,7 @@ module.exports = async (req, res) => {
       const sa2 = JSON.parse(process.env.GCP_SERVICE_ACCOUNT);
       for (const c of clips) c.url = signedReadUrl(sa2, bucket, c.object);
 
-      return res.json({ success: true, clips: clips, total: clips.length });
+      return res.json({ success: true, clips: clips, total: clips.length, todos: todos, prefijo: prefijo });
     }
 
     if (action === 'link') {

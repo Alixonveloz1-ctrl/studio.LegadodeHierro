@@ -1687,8 +1687,15 @@ async function genAudio(lang){
 //  generarlos. Se eligen TOCANDOLOS EN ORDEN: el orden de seleccion es el orden
 //  en que se van a ensamblar, que es lo unico que importa para el montaje.
 // ============================================================================
-var BANCO=[];      // lo que hay en el bucket
-var BANCO_SEL=[];  // objetos elegidos, EN ORDEN
+var BANCO=[];        // lo que hay en el bucket
+var BANCO_SEL=[];    // objetos elegidos, EN ORDEN
+var BANCO_TODOS=false; // false = solo la carpeta del canal; true = tambien la raiz
+
+function abrirBancoRecargar(){
+  var p=document.getElementById('bancoPanel');
+  if(p)p.style.display='none'; // fuerza que abrirBanco vuelva a cargar
+  return abrirBanco();
+}
 
 async function abrirBanco(){
   var p=document.getElementById('bancoPanel');
@@ -1701,7 +1708,7 @@ async function abrirBanco(){
   if(b){b.disabled=true;b.textContent='Buscando...';}
   try{
     var r=await fetch('/api/videos',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'list'})});
+      body:JSON.stringify({action:'list',todos:BANCO_TODOS})});
     var d=await r.json().catch(function(){return{};});
     if(!r.ok)throw new Error(d.error||'Error '+r.status);
     BANCO=d.clips||[];BANCO_SEL=[];
@@ -1715,18 +1722,31 @@ async function abrirBanco(){
 
 function pintarBanco(){
   var p=document.getElementById('bancoPanel');if(!p)return;
+  var alterna='<button type="button" class="voxP" id="bBancoTodos" style="margin-top:8px">'
+    +(BANCO_TODOS?'Ver solo los de Legado de Hierro':'Ver también los antiguos (raíz del bucket)')+'</button>';
   if(!BANCO.length){
-    p.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px">No hay videos guardados todavia en el bucket.</div>';
+    p.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:8px;line-height:1.6">'
+      +(BANCO_TODOS
+        ?'No hay videos guardados todavia en el bucket.'
+        :'Todavia no hay clips en la carpeta de Legado de Hierro. Los que generes a partir de ahora se guardaran ahi. '
+         +'Los de antes quedaron en la raiz del bucket, mezclados con los de tus otros proyectos:')
+      +'</div>'+(BANCO_TODOS?'':alterna);
+    var b0=p.querySelector('#bBancoTodos');
+    if(b0)b0.addEventListener('click',function(){BANCO_TODOS=!BANCO_TODOS;abrirBancoRecargar();});
     return;
   }
   var h='<div style="font-size:11px;color:var(--tx2);line-height:1.5;margin-bottom:9px">'
-    +'<strong>'+BANCO.length+' clips</strong> guardados, del mas reciente al mas antiguo. '
+    +'<strong>'+BANCO.length+' clips</strong> '
+    +(BANCO_TODOS?'de TODO el bucket (incluye otros proyectos)':'de Legado de Hierro')
+    +', del mas reciente al mas antiguo. '
     +'Toca ▶ para <strong>ver</strong> cualquiera, y el recuadro para <strong>elegirlo</strong>. '
     +'El numero es su posicion en el reel: se unen en el orden en que los tocas.</div>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
     +'<button type="button" class="voxP" id="bBancoTop5">Elegir los 5 mas recientes</button>'
     +'<button type="button" class="voxP" id="bBancoTop3">Elegir los 3 mas recientes</button>'
     +'<button type="button" class="voxP" id="bBancoClear">Limpiar seleccion</button>'
+    +'<button type="button" class="voxP" id="bBancoTodos">'
+    +(BANCO_TODOS?'Solo Legado de Hierro':'Ver también los antiguos')+'</button>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px">';
   BANCO.forEach(function(c,i){
@@ -1779,6 +1799,8 @@ function pintarBanco(){
   var t5=p.querySelector('#bBancoTop5');if(t5)t5.addEventListener('click',function(){BANCO_SEL=BANCO.slice(0,5).map(function(c){return c.object;});pintarBanco();});
   var t3=p.querySelector('#bBancoTop3');if(t3)t3.addEventListener('click',function(){BANCO_SEL=BANCO.slice(0,3).map(function(c){return c.object;});pintarBanco();});
   var cl=p.querySelector('#bBancoClear');if(cl)cl.addEventListener('click',function(){BANCO_SEL=[];pintarBanco();});
+  var bt=p.querySelector('#bBancoTodos');
+  if(bt)bt.addEventListener('click',function(){BANCO_TODOS=!BANCO_TODOS;abrirBancoRecargar();});
   var us=p.querySelector('#bBancoUsar');if(us)us.addEventListener('click',usarBanco);
 }
 

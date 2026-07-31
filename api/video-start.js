@@ -88,9 +88,15 @@ export default async function handler(req, res) {
       },
     };
 
+    // CARPETA PROPIA. Antes los clips caian en la RAIZ del bucket y se mezclaban
+    // con los de otros proyectos que comparten el mismo bucket, y en el banco no
+    // habia forma de distinguirlos. Desde aqui, todo lo de este canal vive bajo
+    // legado-videos/ y el banco puede filtrar por esa carpeta.
+    const destino = GCS_OUTPUT_BUCKET.replace(/\/+$/, '') + '/legado-videos/';
+
     const parameters = {
       aspectRatio: aspectRatio,
-      storageUri: GCS_OUTPUT_BUCKET,
+      storageUri: destino,
       sampleCount: 1,
       personGeneration: 'allow_adult',
       negativePrompt: 'deformed hands, extra fingers, missing fingers, merged fingers, bad anatomy, blurry, watermark, text overlay, hopping, skipping, bouncing, little jumps, stutter-stepping, moonwalking, floating, childish scribbles, scribbling, random squiggles, meaningless zigzag lines, crayon marks, rain, raining, rainfall, raindrops, drizzle, downpour, snow, storm, thunderstorm, mist, fog, wet floor, wet surfaces, water on surfaces, water droplets, puddles, splashing water, dripping water, indoor rain, rain inside a room, rain inside a car, water falling indoors, weather effects indoors, damp, soaked, morphing objects, transforming objects, object turning into another object, two pens, writing with both hands, trembling hands, shaking hands, jittering, papers flying, papers jumping',
