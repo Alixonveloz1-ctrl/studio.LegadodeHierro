@@ -1839,9 +1839,14 @@ function pintarBanco(){
     h+='<button type="button" class="voxP" id="bBancoMas" style="width:100%;margin-top:8px">'
       +'Ver 9 mas ('+(BANCO.length-visibles)+' restantes)</button>';
   }
-  h+='<button type="button" id="bBancoUsar" style="width:100%;margin-top:8px;padding:12px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;'
+  // El boton de confirmar va PEGADO abajo (sticky): antes quedaba debajo de las
+  // miniaturas, fuera de la vista, y se seleccionaban clips sin llegar a
+  // confirmarlos nunca — por eso la unificacion seguia diciendo que faltaban.
+  h+='<div style="position:sticky;bottom:-10px;margin:8px -10px -10px;padding:8px 10px 10px;background:#fbfcf9;border-top:1px solid var(--border);z-index:5">'
+    +'<button type="button" id="bBancoUsar" style="width:100%;padding:13px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;'
     +'border:2px solid #9ab47a;background:'+(BANCO_SEL.length?'#9ab47a':'#fff')+';color:'+(BANCO_SEL.length?'#fff':'#6a8a4a')+'">'
-    +(BANCO_SEL.length?('✓ Usar estos '+BANCO_SEL.length+' clips en este orden'):'Toca los clips que quieras usar')+'</button>';
+    +(BANCO_SEL.length?('✓ Usar estos '+BANCO_SEL.length+' clips en este orden'):'Toca los clips que quieras usar')+'</button>'
+    +'</div>';
   p.innerHTML=h;
 
   Array.prototype.forEach.call(p.querySelectorAll('.bancoIt'),function(el){
@@ -2770,7 +2775,21 @@ function updUnifyCard(){
 async function unifyVideo(){
   if(!lastRes){alert('Genera un reel primero.');return;}
   var total=totalClips();
-  if(!total){alert('Primero genera las imágenes y sus videos, o trae videos ya generados del banco.');return;}
+  if(!total){
+    // Caso tipico: se tocaron clips en el banco pero no se pulso el boton de
+    // confirmar, asi que nunca llegaron a cargarse. Se dice tal cual.
+    if(BANCO_SEL.length){
+      alert('Tienes '+BANCO_SEL.length+' clips marcados en el banco, pero falta confirmarlos: pulsa el botón verde "✓ Usar estos '+BANCO_SEL.length+' clips en este orden" que está al final del panel.');
+      var pb=document.getElementById('bancoPanel');
+      if(pb&&pb.style.display==='block'){
+        var ub=document.getElementById('bBancoUsar');
+        if(ub&&ub.scrollIntoView)ub.scrollIntoView({block:'center',behavior:'smooth'});
+      }
+      return;
+    }
+    alert('Primero genera las imágenes y sus videos, o trae videos ya generados con "📼 Usar videos ya generados".');
+    return;
+  }
   var urls=[];
   for(var i=0;i<total;i++){
     if(!(vids[i]&&vids[i].remoteUrl)){alert('Falta el video del clip '+(i+1)+'. Genera todos los videos primero.');return;}
