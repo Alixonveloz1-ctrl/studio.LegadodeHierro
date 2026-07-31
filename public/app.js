@@ -1721,24 +1721,33 @@ function pintarBanco(){
   }
   var h='<div style="font-size:11px;color:var(--tx2);line-height:1.5;margin-bottom:9px">'
     +'<strong>'+BANCO.length+' clips</strong> guardados, del mas reciente al mas antiguo. '
-    +'Tocalos <strong>en el orden</strong> en que quieres que se unan: el numero que aparece es su posicion en el reel.</div>'
+    +'Toca ▶ para <strong>ver</strong> cualquiera, y el recuadro para <strong>elegirlo</strong>. '
+    +'El numero es su posicion en el reel: se unen en el orden en que los tocas.</div>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
     +'<button type="button" class="voxP" id="bBancoTop5">Elegir los 5 mas recientes</button>'
     +'<button type="button" class="voxP" id="bBancoTop3">Elegir los 3 mas recientes</button>'
     +'<button type="button" class="voxP" id="bBancoClear">Limpiar seleccion</button>'
-    +'</div>';
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:7px">';
   BANCO.forEach(function(c,i){
     var pos=BANCO_SEL.indexOf(c.object);
     var sel=pos>-1;
     var fecha=c.fecha?new Date(c.fecha).toLocaleString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-    h+='<div class="bancoIt" data-i="'+i+'" style="display:flex;align-items:center;gap:9px;padding:7px 9px;margin-bottom:5px;border-radius:8px;cursor:pointer;'
-      +'background:'+(sel?'#eef4e8':'#fff')+';border:1.5px solid '+(sel?'#9ab47a':'var(--border)')+'">'
-      +'<span style="flex:0 0 24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;'
-      +'background:'+(sel?'#9ab47a':'var(--warm)')+';color:'+(sel?'#fff':'var(--tx3)')+'">'+(sel?(pos+1):'+')+'</span>'
-      +'<span style="flex:1;min-width:0"><span style="display:block;font-size:11px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(c.name)+'</span>'
-      +'<span style="display:block;font-size:9.5px;color:var(--tx3)">'+escHtml(fecha)+(c.size?' · '+(c.size/1048576).toFixed(1)+' MB':'')+'</span></span>'
+    // Cada clip se MUESTRA. Los nombres que pone Veo son todos iguales
+    // (sample_0.mp4), asi que por nombre es imposible distinguirlos.
+    h+='<div class="bancoIt" data-i="'+i+'" style="position:relative;border-radius:9px;overflow:hidden;cursor:pointer;'
+      +'border:2.5px solid '+(sel?'#9ab47a':'var(--border)')+';background:#000">'
+      +'<video class="bancoVid" src="'+escHtml(c.url||'')+'" preload="metadata" muted playsinline '
+      +'style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block;background:#000"></video>'
+      +'<span style="position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;'
+      +'font-size:11px;font-weight:700;background:'+(sel?'#9ab47a':'rgba(0,0,0,.55)')+';color:#fff">'+(sel?(pos+1):'+')+'</span>'
+      +'<button type="button" class="bancoPlay" data-i="'+i+'" style="position:absolute;top:5px;right:5px;width:24px;height:24px;border:none;border-radius:50%;'
+      +'background:rgba(0,0,0,.55);color:#fff;font-size:11px;cursor:pointer;padding:0;font-family:inherit">▶</button>'
+      +'<span style="position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;'
+      +'font-size:9px;padding:10px 5px 3px;display:block">'+escHtml(fecha)+'</span>'
       +'</div>';
   });
+  h+='</div>';
   h+='<button type="button" id="bBancoUsar" style="width:100%;margin-top:8px;padding:12px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;'
     +'border:2px solid #9ab47a;background:'+(BANCO_SEL.length?'#9ab47a':'#fff')+';color:'+(BANCO_SEL.length?'#fff':'#6a8a4a')+'">'
     +(BANCO_SEL.length?('✓ Usar estos '+BANCO_SEL.length+' clips en este orden'):'Toca los clips que quieras usar')+'</button>';
@@ -1751,6 +1760,20 @@ function pintarBanco(){
       var k=BANCO_SEL.indexOf(c.object);
       if(k>-1)BANCO_SEL.splice(k,1); else BANCO_SEL.push(c.object);
       pintarBanco();
+    });
+  });
+  // Ver un clip. Se para el clic para que mirarlo NO lo seleccione, y se pausan
+  // los demas: asi nunca suenan/corren dos a la vez.
+  Array.prototype.forEach.call(p.querySelectorAll('.bancoPlay'),function(btn){
+    btn.addEventListener('click',function(ev){
+      ev.stopPropagation();
+      var vids=p.querySelectorAll('.bancoVid');
+      var v=vids[parseInt(btn.getAttribute('data-i'),10)];
+      if(!v)return;
+      Array.prototype.forEach.call(vids,function(o){if(o!==v&&!o.paused){try{o.pause();}catch(e){}}});
+      if(v.paused){v.play().catch(function(){});btn.textContent='❚❚';}
+      else{v.pause();btn.textContent='▶';}
+      v.onended=function(){btn.textContent='▶';};
     });
   });
   var t5=p.querySelector('#bBancoTop5');if(t5)t5.addEventListener('click',function(){BANCO_SEL=BANCO.slice(0,5).map(function(c){return c.object;});pintarBanco();});

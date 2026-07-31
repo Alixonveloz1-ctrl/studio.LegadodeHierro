@@ -11,7 +11,9 @@ const { checkAuth } = require('./_auth');
 
 // Carpetas que NO son clips sueltos de Veo.
 const EXCLUIR = ['unify/', 'musica/', 'refs/'];
-const MAX_ITEMS = 300;
+// Se limita la lista porque cada clip se devuelve YA FIRMADO (para poder verlo
+// en la herramienta) y firmar tiene un coste de CPU por elemento.
+const MAX_ITEMS = 120;
 
 async function getGCPToken() {
   const sa = JSON.parse(process.env.GCP_SERVICE_ACCOUNT);
@@ -121,6 +123,11 @@ module.exports = async (req, res) => {
         // el orden en que se generaron los clips de un mismo reel.
         .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || a.name.localeCompare(b.name))
         .slice(0, MAX_ITEMS);
+
+      // Cada clip viaja con su URL firmada: asi la herramienta puede MOSTRARLO y
+      // no hay que elegir a ciegas por el nombre (Veo los llama todos igual).
+      const sa2 = JSON.parse(process.env.GCP_SERVICE_ACCOUNT);
+      for (const c of clips) c.url = signedReadUrl(sa2, bucket, c.object);
 
       return res.json({ success: true, clips: clips, total: clips.length });
     }
