@@ -291,7 +291,9 @@ function buildSP(mode){
 
 VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
 
-A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
+A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que depende de él. NO des por hecho su situación: puede estar empleado, puede tener ya algo propio, puede estar arrancando. No lo trates como una víctima ni le supongas un jefe al que culpar. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es sostenerlo.
+
+SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario, al que gana más o al que llegó primero como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro", "construyes el sueño de otro", "pagas con tus años la tranquilidad de otro" y cualquier variante. Al que ya lo logró se le respeta: hizo lo que había que hacer, y el objetivo es LLEGAR AHÍ, no despreciarlo. El único adversario del espectador es él mismo: su postergación, su miedo, su comodidad. Se habla de lo que él puede construir, jamás de lo que otro hace mal.
 
 NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
 
@@ -306,12 +308,24 @@ RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los
 FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Un detalle exacto de su vida golpea; una abstracción rebota. Mientras más específico, más duele.
 - RECONOCIMIENTO: que piense "ese soy yo". Un detalle concreto de su día real, no una generalidad.
 - LA HERIDA: lo que no dice en voz alta. Su miedo verdadero, el que no admite ni dentro de su propia cabeza.
-- LO QUE CUESTA QUEDARSE: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
+- LO QUE CUESTA NO CAMBIAR: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
 - EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
 LOS DETALLES LOS ELIGES TÚ, y ahí está tu trabajo de verdad: NO uses el primero que se te ocurra, porque ese es el que usaría cualquiera. JAMÁS repitas el mismo detalle de un guion a otro: si ya usaste una imagen concreta, esa queda quemada. Búscate una nueva cada vez.
 La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
 
-PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. El espectador ya sabe qué quiere montar; lo que le falta es arrancar. Habla de construir LO TUYO, en general, nunca en particular. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
+PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
+
+Y OJO, ESTO NO SIGNIFICA QUE TODO GUION VAYA DE EMPRENDER: solo se habla de montar algo propio cuando el PILAR o el CONCEPTO lo piden. Si el pilar va de carácter, de hábitos o de manejar el dinero, NO metas la idea de crear un negocio ni el final de "empieza lo tuyo": ahí no pinta nada y desvía el guion.
+
+EL PILAR Y EL CONCEPTO MANDAN, POR ENCIMA DE TODO LO DEMÁS: el PILAR define EL TERRENO del guion y el CONCEPTO define exactamente de qué va. Respeta los dos al pie de la letra. NO arrastres el tema de un pilar a otro: si el pilar es MENTALIDAD, el guion NO es de libertad financiera —quien lo pidió habría elegido ese pilar si lo quisiera—. Y si el concepto que te dan es de ánimo y superación personal, el guion va de eso, no de dinero. Antes de darlo por bueno, léelo: si podría haber salido con cualquier otro pilar, está mal.
+- LIBERTAD FINANCIERA: el tiempo contra el dinero, lo que cuesta seguir esperando, la independencia real y lo que exige construirla.
+- MENTALIDAD Y DISCIPLINA: la cabeza y el carácter del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va, creer en uno mismo y sostenerlo. AQUÍ NO SE HABLA de sueldos, jefes, empleos ni negocios: se habla de carácter. Es el pilar donde cabe el ánimo y el empuje — que termine creyendo que sí puede y con ganas de exigirse más.
+- SISTEMAS Y AUTOMATIZACIÓN: que lo tuyo funcione sin ti. Dejar de ser la pieza que sostiene todo, delegar, salir de la operación.
+- HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO que viene en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
+- MARCA PERSONAL: tu nombre, tu presencia, tu autoridad. Que te conozcan es dinero.
+- INVERSIÓN Y CAPITAL: que tu dinero trabaje por ti. Activos, reinversión, lo que cuesta tenerlo parado.
+- NEGOCIO Y VENTAS: arrancar lo tuyo, vender sin miedo, la estructura que lo sostiene.
+- NEGOCIOS MILLONARIOS: pensar en grande. Escalar con gente y sistemas, construir algo que valga y que te sobreviva. Una sola unidad no te hace millonario; multiplicarla sí. Visión de largo plazo, sin prometer millones.
 
 EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cambies por otro. Máximo 12 palabras en la primera frase.
 - Dato Crudo: entra con una cifra o un hecho concreto que destruya una creencia. Los datos que más retienen son los que muestran lo que él está PERDIENDO, no lo que podría ganar.
@@ -347,7 +361,9 @@ BLOQUE F
 
 VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
 
-A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
+A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que depende de él. NO des por hecho su situación: puede estar empleado, puede tener ya algo propio, puede estar arrancando. No lo trates como una víctima ni le supongas un jefe al que culpar. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es sostenerlo.
+
+SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario, al que gana más o al que llegó primero como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro", "construyes el sueño de otro", "pagas con tus años la tranquilidad de otro" y cualquier variante. Al que ya lo logró se le respeta: hizo lo que había que hacer, y el objetivo es LLEGAR AHÍ, no despreciarlo. El único adversario del espectador es él mismo: su postergación, su miedo, su comodidad. Se habla de lo que él puede construir, jamás de lo que otro hace mal.
 
 NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
 
@@ -362,16 +378,18 @@ RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los
 FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Un detalle exacto de su vida golpea; una abstracción rebota. Mientras más específico, más duele.
 - RECONOCIMIENTO: que piense "ese soy yo". Un detalle concreto de su día real, no una generalidad.
 - LA HERIDA: lo que no dice en voz alta. Su miedo verdadero, el que no admite ni dentro de su propia cabeza.
-- LO QUE CUESTA QUEDARSE: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
+- LO QUE CUESTA NO CAMBIAR: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
 - EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
 LOS DETALLES LOS ELIGES TÚ, y ahí está tu trabajo de verdad: NO uses el primero que se te ocurra, porque ese es el que usaría cualquiera. JAMÁS repitas el mismo detalle de un guion a otro: si ya usaste una imagen concreta, esa queda quemada. Búscate una nueva cada vez.
 La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
 
-PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. El espectador ya sabe qué quiere montar; lo que le falta es arrancar. Habla de construir LO TUYO, en general, nunca en particular. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
+PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
 
-EL PILAR MANDA: el guion trata de lo que dice el PILAR que te dan, y de nada más.
-- LIBERTAD FINANCIERA: el tiempo contra el dinero, la trampa del sueldo, lo que cuesta seguir esperando, la independencia real.
-- MENTALIDAD Y DISCIPLINA: la cabeza del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va.
+Y OJO, ESTO NO SIGNIFICA QUE TODO GUION VAYA DE EMPRENDER: solo se habla de montar algo propio cuando el PILAR o el CONCEPTO lo piden. Si el pilar va de carácter, de hábitos o de manejar el dinero, NO metas la idea de crear un negocio ni el final de "empieza lo tuyo": ahí no pinta nada y desvía el guion.
+
+EL PILAR Y EL CONCEPTO MANDAN, POR ENCIMA DE TODO LO DEMÁS: el PILAR define EL TERRENO del guion y el CONCEPTO define exactamente de qué va. Respeta los dos al pie de la letra. NO arrastres el tema de un pilar a otro: si el pilar es MENTALIDAD, el guion NO es de libertad financiera —quien lo pidió habría elegido ese pilar si lo quisiera—. Y si el concepto que te dan es de ánimo y superación personal, el guion va de eso, no de dinero. Antes de darlo por bueno, léelo: si podría haber salido con cualquier otro pilar, está mal.
+- LIBERTAD FINANCIERA: el tiempo contra el dinero, lo que cuesta seguir esperando, la independencia real y lo que exige construirla.
+- MENTALIDAD Y DISCIPLINA: la cabeza y el carácter del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va, creer en uno mismo y sostenerlo. AQUÍ NO SE HABLA de sueldos, jefes, empleos ni negocios: se habla de carácter. Es el pilar donde cabe el ánimo y el empuje — que termine creyendo que sí puede y con ganas de exigirse más.
 - SISTEMAS Y AUTOMATIZACIÓN: que lo tuyo funcione sin ti. Dejar de ser la pieza que sostiene todo, delegar, salir de la operación.
 - HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO que viene en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
 - MARCA PERSONAL: tu nombre, tu presencia, tu autoridad. Que te conozcan es dinero.
@@ -386,8 +404,8 @@ EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cam
 - Historia Personal: entra en primera persona con una confesión concreta. Nadie se salta un secreto que alguien está a punto de contar.
 - Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
 
-MODO HISTORIA — el arco del que se levanta:
-El camino de alguien que estaba abajo y decidió construir lo suyo: el punto en que se hartó, la decisión, lo que costó sostenerla, y a dónde llegó. No el éxito final ni el millonario: el hombre que dejó de esperar y hoy tiene algo propio. Cuéntalo en segunda persona (tú) o desde la lección, jamás inventando un personaje con nombre.
+MODO HISTORIA — el arco del que cambia:
+Un recorrido con principio y final: el punto en que se hartó, la decisión, lo que costó sostenerla, y en qué se convirtió. QUÉ cambia lo dicta el PILAR y el CONCEPTO — puede ser levantar algo propio, pero también puede ser ganarse una disciplina, romper un hábito, dejar de postergar o aprender a confiar en sí mismo. No lo conviertas en una historia de negocios si el pilar no va de eso. Cuéntalo en segunda persona (tú) o desde la lección, jamás inventando un personaje con nombre.
 Esto es el esqueleto, NO una plantilla: entra por donde quieras, dale la vuelta al orden, sorprende.
 
 NUNCA UN PERSONAJE INVENTADO: nada de "Marcos", "Carlos", "Pedro" ni la fórmula "[Nombre] vivía en un barrio... un día entendió...". Nada de biografías ficticias.
@@ -419,7 +437,9 @@ BLOQUE F
 
 VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
 
-A QUIÉN LE HABLAS: a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo. Cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es empezar.
+A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que depende de él. NO des por hecho su situación: puede estar empleado, puede tener ya algo propio, puede estar arrancando. No lo trates como una víctima ni le supongas un jefe al que culpar. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es sostenerlo.
+
+SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario, al que gana más o al que llegó primero como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro", "construyes el sueño de otro", "pagas con tus años la tranquilidad de otro" y cualquier variante. Al que ya lo logró se le respeta: hizo lo que había que hacer, y el objetivo es LLEGAR AHÍ, no despreciarlo. El único adversario del espectador es él mismo: su postergación, su miedo, su comodidad. Se habla de lo que él puede construir, jamás de lo que otro hace mal.
 
 NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
 
@@ -434,16 +454,18 @@ RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los
 FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Un detalle exacto de su vida golpea; una abstracción rebota. Mientras más específico, más duele.
 - RECONOCIMIENTO: que piense "ese soy yo". Un detalle concreto de su día real, no una generalidad.
 - LA HERIDA: lo que no dice en voz alta. Su miedo verdadero, el que no admite ni dentro de su propia cabeza.
-- LO QUE CUESTA QUEDARSE: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
+- LO QUE CUESTA NO CAMBIAR: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
 - EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
 LOS DETALLES LOS ELIGES TÚ, y ahí está tu trabajo de verdad: NO uses el primero que se te ocurra, porque ese es el que usaría cualquiera. JAMÁS repitas el mismo detalle de un guion a otro: si ya usaste una imagen concreta, esa queda quemada. Búscate una nueva cada vez.
 La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
 
-PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. El espectador ya sabe qué quiere montar; lo que le falta es arrancar. Habla de construir LO TUYO, en general, nunca en particular. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
+PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
 
-EL PILAR MANDA: el guion trata de lo que dice el PILAR que te dan, y de nada más.
-- LIBERTAD FINANCIERA: el tiempo contra el dinero, la trampa del sueldo, lo que cuesta seguir esperando, la independencia real.
-- MENTALIDAD Y DISCIPLINA: la cabeza del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va.
+Y OJO, ESTO NO SIGNIFICA QUE TODO GUION VAYA DE EMPRENDER: solo se habla de montar algo propio cuando el PILAR o el CONCEPTO lo piden. Si el pilar va de carácter, de hábitos o de manejar el dinero, NO metas la idea de crear un negocio ni el final de "empieza lo tuyo": ahí no pinta nada y desvía el guion.
+
+EL PILAR Y EL CONCEPTO MANDAN, POR ENCIMA DE TODO LO DEMÁS: el PILAR define EL TERRENO del guion y el CONCEPTO define exactamente de qué va. Respeta los dos al pie de la letra. NO arrastres el tema de un pilar a otro: si el pilar es MENTALIDAD, el guion NO es de libertad financiera —quien lo pidió habría elegido ese pilar si lo quisiera—. Y si el concepto que te dan es de ánimo y superación personal, el guion va de eso, no de dinero. Antes de darlo por bueno, léelo: si podría haber salido con cualquier otro pilar, está mal.
+- LIBERTAD FINANCIERA: el tiempo contra el dinero, lo que cuesta seguir esperando, la independencia real y lo que exige construirla.
+- MENTALIDAD Y DISCIPLINA: la cabeza y el carácter del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va, creer en uno mismo y sostenerlo. AQUÍ NO SE HABLA de sueldos, jefes, empleos ni negocios: se habla de carácter. Es el pilar donde cabe el ánimo y el empuje — que termine creyendo que sí puede y con ganas de exigirse más.
 - SISTEMAS Y AUTOMATIZACIÓN: que lo tuyo funcione sin ti. Dejar de ser la pieza que sostiene todo, delegar, salir de la operación.
 - HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO que viene en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
 - MARCA PERSONAL: tu nombre, tu presencia, tu autoridad. Que te conozcan es dinero.
@@ -846,7 +868,7 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
     // El codigo asigna la PUERTA DE ENTRADA al azar (el modelo no la elige): es lo
     // que evita que todos los guiones entren por "el sueldo es una trampa".
     var enf=ENFOQUES[Math.floor(Math.random()*ENFOQUES.length)];
-    seedRule='PUERTA DE ENTRADA ASIGNADA PARA ESTE GUION (variedad obligatoria, no la anuncies ni la nombres): entra al tema por '+enf+' Sigue tratando el PILAR y el CONCEPTO que te dieron, pero ábrelos por ESA puerta en vez de por el encuadre de siempre. Si al terminar el guion podría haber entrado por cualquier otra puerta sin cambiar nada, no lo hiciste bien.\n\n';
+    seedRule='PUERTA DE ENTRADA ASIGNADA PARA ESTE GUION (variedad obligatoria, no la anuncies ni la nombres): entra al tema por '+enf+' Sigue tratando el PILAR y el CONCEPTO que te dieron, pero ábrelos por ESA puerta en vez de por el encuadre de siempre. Si esa puerta NO encaja con el pilar o con el concepto, MANDA EL PILAR: descártala y entra por donde el tema lo pida. Si al terminar el guion podría haber entrado por cualquier otra puerta sin cambiar nada, no lo hiciste bien.\n\n';
   }
   var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
   return {msg:msg,tO:tO,dO:dO,hO:hO};
