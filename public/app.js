@@ -511,19 +511,11 @@ var SP=buildSP();
 
 
 // AUTH
-function hashPass(p){
-  var h=0;for(var i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;}
-  return 'lh'+Math.abs(h).toString(36);
-}
-function getUsers(){return JSON.parse(localStorage.getItem('lh_users')||'{}');}
-function saveUsers(u){localStorage.setItem('lh_users',JSON.stringify(u));}
-
-function switchTab(t){
-  document.getElementById('fl').style.display=t==='login'?'block':'none';
-  document.getElementById('fr').style.display=t==='reg'?'block':'none';
-  document.getElementById('tl').classList.toggle('on',t==='login');
-  document.getElementById('tr').classList.toggle('on',t==='reg');
-}
+// Ya NO hay registro ni usuarios guardados en el navegador: la unica puerta es la
+// contrasena, y se comprueba CONTRA EL SERVIDOR (api/login -> APP_KEY). Lo que
+// habia aqui antes (hashPass, lh_users, el codigo de acceso, las pestanas de
+// login/registro) se elimino: apuntaba a una pantalla que ya no existe y dejaba
+// rastro de la seguridad vieja en el codigo del cliente.
 
 function doLogin(){
   var p=document.getElementById('lp').value;
@@ -555,26 +547,6 @@ function doLogin(){
     });
 }
 
-function doRegister(){
-  var ac=document.getElementById('rac').value.trim();
-  var u=document.getElementById('ru').value.trim();
-  var p=document.getElementById('rp').value;
-  var p2=document.getElementById('rp2').value;
-  var e=document.getElementById('re'),ok=document.getElementById('ro');
-  e.style.display='none';ok.style.display='none';
-  if(!ac||!u||!p||!p2){e.textContent='Completa todos los campos';e.style.display='block';return;}
-  if(ac!==ACCESS_CODE){e.textContent='Codigo de acceso incorrecto';e.style.display='block';return;}
-  if(u.length<3){e.textContent='Usuario minimo 3 caracteres';e.style.display='block';return;}
-  if(p.length<6){e.textContent='Contrasena minimo 6 caracteres';e.style.display='block';return;}
-  if(p!==p2){e.textContent='Las contrasenas no coinciden';e.style.display='block';return;}
-  var users=getUsers();
-  if(users[u]){e.textContent='Ese usuario ya existe';e.style.display='block';return;}
-  users[u]={hash:hashPass(p)};
-  saveUsers(users);
-  ok.textContent='Cuenta creada. Ahora puedes iniciar sesion.';ok.style.display='block';
-  setTimeout(function(){switchTab('login');},1500);
-}
-
 function logout(){
   localStorage.removeItem('lh_sess');
   localStorage.removeItem('lh_key');
@@ -595,7 +567,6 @@ var HARDCODED_ANT='';
 var HARDCODED_EL='';
 var HARDCODED_VOICE='IRHApOXLvnW57QJPQH2P';
 var HARDCODED_NB='';
-var ACCESS_CODE=(window.__ENV__&&window.__ENV__.ACCESS_CODE)?window.__ENV__.ACCESS_CODE:'LEGADO2025';
 var ANT=HARDCODED_ANT,EL=HARDCODED_EL,VOICE=HARDCODED_VOICE,NB=HARDCODED_NB;
 var sT='',sD='60',sH='dato',sMode='reel'; // sMode: 'reel' | 'historia'
 var loading=false,lastRes=null,activeTab='a';
@@ -1876,7 +1847,18 @@ function pintarBanco(){
       var c=BANCO[parseInt(el.getAttribute('data-i'),10)];
       if(!c)return;
       var k=BANCO_SEL.indexOf(c.object);
-      if(k>-1)BANCO_SEL.splice(k,1); else BANCO_SEL.push(c.object);
+      if(k>-1){
+        BANCO_SEL.splice(k,1);
+      }else{
+        // La unificacion admite 10 clips como maximo. Se avisa AQUI, al elegir,
+        // y no al final: antes se podian marcar 12 y el aviso llegaba despues de
+        // confirmarlos, cuando ya no se sabia cual sobraba.
+        if(BANCO_SEL.length>=10){
+          alert('El máximo son 10 clips por reel (ya tienes 10 marcados). Quita alguno tocándolo otra vez si quieres cambiarlo.');
+          return;
+        }
+        BANCO_SEL.push(c.object);
+      }
       // NO se redibuja el panel: solo cambian los numeros y los bordes. Antes se
       // rehacia el HTML entero y eso reiniciaba todos los videos a negro.
       actualizarBadges();
@@ -2608,7 +2590,15 @@ async function uploadMusic(){
 
 // Genera una pista nueva con Lyria (IA de musica de Google) segun el estilo
 // descrito. Queda guardada en la biblioteca y seleccionada para la unificacion.
-var PRESET_LABELS={piano:'🎹 Piano nostálgico',cuerdas:'🎻 Cuerdas inspiradoras',ambiente:'🌫 Ambiente suave',epica:'⚔ Épica del canal'};
+// Los mismos nombres que ves en los botones. Si se anade o se renombra un estilo
+// arriba (en el HTML), hay que reflejarlo aqui: es el nombre que sale en el aviso
+// de "Componiendo ..." y el que va en el nombre del archivo de la pista.
+var PRESET_LABELS={
+  epica:'⚔ Épica de batalla', suspenso:'🕯 Suspenso', oscura:'🌑 Oscura y poderosa',
+  determin:'🔨 Determinación', urbana:'🏙 Urbana / dinero', triunfo:'🏆 Triunfo',
+  cuerdas:'🎻 Cuerdas que elevan', piano:'🎹 Piano inspirador',
+  amanecer:'🌅 Amanecer', reflexiva:'🕰 Reflexiva',
+};
 
 async function genMusic(preset){
   var inp=document.getElementById('musicPrompt');
@@ -3621,11 +3611,6 @@ async function genTrends(){
 document.addEventListener('DOMContentLoaded',function(){
   buildAll();
   wireGenSettings();
-  var sb=document.getElementById('schedBtn');
-  if(sb)sb.addEventListener('click',function(){
-    var o=document.getElementById('schedPanel').classList.toggle('on');
-    document.getElementById('sa').textContent=o?'▲':'▼';
-  });
   document.getElementById('conc').addEventListener('input',function(){updCC();updGBtn();});
   document.getElementById('gbtn').addEventListener('click',generate);
   var b5=document.getElementById('gbtn5');

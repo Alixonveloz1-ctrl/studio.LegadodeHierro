@@ -384,7 +384,12 @@ module.exports = async (req, res) => {
     const buf = fmt.buf;
     console.log('[music-gen] formato detectado: ' + fmt.tipo + ' (' + fmt.ext + '), ' +
       'primeros bytes: ' + audio.buf.slice(0, 4).toString('hex'));
-    let slug = (style || 'epica').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    // El nombre del archivo lleva EL ESTILO. Con los botones no llega "style"
+    // (llega "preset"), y antes todos caian en el respaldo 'epica': la biblioteca
+    // acababa con diez pistas distintas llamadas todas ia-epica-xxxx y no habia
+    // forma de saber cual era cual. Ahora manda la clave del preset.
+    const claveEstilo = preset ? String(req.body.preset) : style;
+    let slug = (claveEstilo || 'epica').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'epica';
     const stamp = new Date().toISOString().slice(5, 16).replace(/[-:T]/g, '');
     const name = 'ia-' + slug + '-' + stamp + fmt.ext;
