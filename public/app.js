@@ -863,6 +863,8 @@ function buildAll(){
         // modos se ajusta el formato solo, que si no se olvida y sale al reves.
         aplicarFormatoDelModo();
         updImgLabel();
+        verBotonLote();
+        pintarTrends(); // las tarjetas de tendencias cambian con la familia de modo
         modeWrap.querySelectorAll('.oc').forEach(function(x){
           var s=x.dataset.id===sMode;
           x.classList.toggle('sel',s);x.style.borderColor=s?'#b8975a':'';
@@ -881,6 +883,7 @@ function buildAll(){
     tg.appendChild(b);
   });
   pintarDuraciones();
+  verBotonLote();
   var hg=document.getElementById('hookGrid');
   HOOKS.forEach(function(h){
     var b=document.createElement('button');b.className='oc';b.dataset.id=h.id;
@@ -927,6 +930,21 @@ function updImgLabel(){
     :sMode==='relato'?' · la historia en orden, con continuidad'
     :' · Personaje en acción acorde al guion';
   el.textContent=n+' imágenes'+det;
+}
+
+// EL LOTE DE 5 SOLO EXISTE EN LOS MODOS CORTOS. Un video de YouTube se sube uno
+// o dos por semana: sacar cinco de golpe no tiene ningun sentido, y ademas cuesta
+// lo que cuestan cinco videos largos. Antes el boton se veia y al pulsarlo salia
+// un aviso; eso es enseñar una puerta que no lleva a ningun sitio. Ahora en modo
+// Profesor y Relato el boton y su nota simplemente no estan.
+function verBotonLote(){
+  var largo=esModoLargo();
+  var b5=document.getElementById('gbtn5');
+  if(b5)b5.style.display=largo?'none':'flex';
+  var n5=document.getElementById('gnote5');
+  if(n5)n5.style.display=largo?'none':'block';
+  var b=document.getElementById('gbtn');
+  if(b&&!loading)b.textContent=largo?'⚔ Forjar vídeo largo':'⚔ Forjar Reel';
 }
 
 function updGBtn(){
@@ -1466,7 +1484,7 @@ async function generate(){
   document.getElementById('ow').style.display='none';
   document.getElementById('gbtn').innerHTML='<span class="spin"></span> Forjando...';
   document.getElementById('gnote').style.display='inline';
-  document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Generando narrativa Trabajador→Alpha...':'Generando guiones ES + EN y prompts...';
+  document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Generando narrativa Trabajador→Alpha...':sMode==='profesor'?'Escribiendo la clase, el set y el montaje... (puede tardar)':sMode==='relato'?'Escribiendo el relato largo y sus escenas en orden... (puede tardar)':'Generando guiones ES + EN y prompts...';
   try{
     var built=buildEpisodeMsg(topic,sT,sH,sMode,sD);
     var p=await fetchEpisode(built.msg);
@@ -1479,7 +1497,7 @@ async function generate(){
     showErr(e.message||'Error de conexion.');
   }finally{
     loading=false;
-    document.getElementById('gbtn').innerHTML='⚔ Forjar Reel';
+    verBotonLote(); // devuelve la etiqueta correcta segun el modo
     document.getElementById('gnote').style.display='none';
     updGBtn();
   }
@@ -1579,26 +1597,18 @@ function batchJobs(){
       picked[picked.length-1]=nuevo; // sustituye el ultimo, no anade un sexto
     }
   }
-  // Si escribiste un concepto, el guion 1 es ese concepto con tu seleccion actual.
-  // Si el modo actual es largo, el primer trabajo se pasa a Reel: el lote es de
-  // reels y un guion de 5 minutos no encaja entre ellos.
-  var mode1=esModoLargo()?'reel':sMode;
-  var d1=mode1==='impacto'?'30':(esModoLargo()?'60':sD);
-  var firstJob=topic?{topic:topic,t:sT||picked[0].t,h:sH,mode:mode1,d:d1}:null;
+  // Si escribiste un concepto, el guion 1 es ese concepto con TU seleccion actual:
+  // tu modo y tu duracion, sin tocarlos. El lote solo existe en los modos cortos
+  // (en los largos el boton ni siquiera aparece), asi que aqui sMode ya es corto.
+  var firstJob=topic?{topic:topic,t:sT||picked[0].t,h:sH,mode:sMode,d:sMode==='impacto'?'30':sD}:null;
   return jobsFromIdeas(picked,firstJob);
 }
 
 async function generateBatch(customJobs){
   if(loading||batchLoading)return;
-  // El lote de 5 es una herramienta de REELS: mezcla los tres modos cortos y
-  // duraciones de 30/60. En un modo largo no tiene sentido — serian cinco videos
-  // de YouTube de golpe, con su coste — y ademas el primer trabajo heredaria el
-  // modo largo y saldria un guion de 750 palabras mezclado entre reels.
-  if(!customJobs&&esModoLargo()){
-    alert('El lote de 5 es para reels cortos.\n\nEstás en '+(MODE_LABELS[sMode]||sMode)
-      +', que hace un solo vídeo largo. Genera este de uno en uno, o cambia a Reel, Historia o Impacto para usar el lote.');
-    return;
-  }
+  // El lote de 5 es una herramienta de REELS. En los modos largos el boton esta
+  // oculto (verBotonLote), asi que aqui no se llega; el guarda es por si acaso.
+  if(!customJobs&&esModoLargo())return;
   batchLoading=true;loading=true;updGBtn();hideErr();
   var b5=document.getElementById('gbtn5');
   if(b5){b5.disabled=true;b5.innerHTML='<span class="spin" style="border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span> Forjando lote...';}
@@ -4668,6 +4678,99 @@ function wrapText(ctx,text,maxW){
 // funcionando AHORA en reels de finanzas y motivacion en español, y resume patrones
 // replicables. No usa lo que el modelo "recuerda": usa resultados actuales de internet.
 var TREND_IDEAS=[]; // los 5 conceptos que salieron de la ultima investigacion
+var TREND_TEXT='';  // el analisis en prosa de esa investigacion
+var TREND_SOURCES=[]; // las fuentes que consulto Gemini
+
+// Las tarjetas de la investigacion se repintan solas al cambiar de modo, porque
+// no proponen lo mismo un reel que un video de YouTube: en los modos cortos
+// puedes lanzar los 5 de golpe, y en los largos la investigacion es un MENU —
+// varios temas de los que eliges UNO y sobre ese se hace el video.
+function pintarTrends(){
+  var box=document.getElementById('trendBox');
+  if(!box||(!TREND_TEXT&&!TREND_IDEAS.length))return;
+  var largo=esModoLargo();
+  var html='<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--tx)">'+escHtml(TREND_TEXT)+'</div>';
+  if(TREND_IDEAS.length){
+    // Modos cortos: se sugiere un modo distinto por tarjeta para que el lote salga
+    // variado. Modos largos: cada tarjeta hereda TU modo y TU duracion actuales,
+    // porque solo vas a generar uno y ya elegiste arriba como lo quieres.
+    var defModes=largo?TREND_IDEAS.map(function(){return sMode;})
+      :shuffleArr(['reel','historia','impacto']).concat(shuffleArr(['reel','historia','impacto']).slice(0,2));
+    var defDurs=largo?TREND_IDEAS.map(function(){return sD;}):shuffleArr(['30','60','60','30','60']);
+    var opDur=dursDe(sMode);
+    html+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
+      +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">'
+      +TREND_IDEAS.length+(largo?' temas posibles — elige UNO para el vídeo':' conceptos sacados de lo viral — elige modo y duración de cada uno')+'</div>';
+    TREND_IDEAS.forEach(function(it,i){
+      var th=THEMES.find(function(t){return t.id===it.t;});
+      var dm=defModes[i],isImp=dm==='impacto';
+      var dd=isImp?'30':defDurs[i];
+      html+='<div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;margin-bottom:6px">'
+        +'<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:'+(th?th.c:'#b8975a')+';text-transform:uppercase">'+(i+1)+' · '+(th?th.icon+' '+th.label:'')+'</span>'
+        +'<div style="font-size:12px;font-weight:600;color:var(--tx);line-height:1.4;margin-top:3px">'+escHtml(it.concept)+'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
+        +'<label class="genLbl">Modo<select id="trendMode-'+i+'" class="genSel">'
+        +(largo
+          ?'<option value="profesor"'+(dm==='profesor'?' selected':'')+'>🎓 Profesor</option>'
+           +'<option value="relato"'+(dm==='relato'?' selected':'')+'>🎞 Relato</option>'
+          :'<option value="reel"'+(dm==='reel'?' selected':'')+'>🎬 Reel</option>'
+           +'<option value="historia"'+(dm==='historia'?' selected':'')+'>📖 Historia</option>'
+           +'<option value="impacto"'+(isImp?' selected':'')+'>⚡ Impacto (30s)</option>')
+        +'</select></label>'
+        +'<label class="genLbl">Duración<select id="trendDur-'+i+'" class="genSel"'+(isImp?' disabled':'')+'>'
+        +opDur.map(function(d){
+          return '<option value="'+d.id+'"'+(d.id===dd?' selected':'')+'>'+d.label+'</option>';
+        }).join('')
+        +'</select></label>'
+        +'</div>'
+        +'<button id="bTrendOne-'+i+'" style="width:100%;margin-top:8px;background:#fff;border:1.5px solid var(--gold);color:var(--gold);border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">⚔ '
+        +(largo?'Hacer el vídeo sobre este tema':'Generar solo este')+'</button>'
+        +'</div>';
+    });
+    // El lote de 5 SOLO en los modos cortos. Un video largo se sube uno o dos por
+    // semana: cinco de golpe no tiene sentido ni por tiempo ni por coste.
+    if(!largo){
+      html+='<button id="bTrendBatch" style="width:100%;margin-top:6px;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar los 5 a la vez (lote)</button>'
+        +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">Cada tarjeta tiene su botón para generar solo ese reel; o usa el botón dorado para los 5 de una, uno tras otro (en orden).</div>';
+    }else{
+      html+='<div style="font-size:10px;color:var(--tx3);margin-top:6px">Estás en '+(MODE_LABELS[sMode]||sMode)+': la investigación te propone temas y tú eliges uno. Se genera un solo vídeo.</div>';
+    }
+    html+='</div>';
+  }else{
+    html+='<div style="margin-top:10px;font-size:11px;color:var(--tx3)">La investigación no trajo conceptos en formato usable esta vez. Vuelve a intentar con 🔎.</div>';
+  }
+  if(TREND_SOURCES.length){
+    html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Fuentes consultadas</div>';
+    TREND_SOURCES.slice(0,8).forEach(function(s2){
+      html+='<a href="'+escHtml(s2.uri||'#')+'" target="_blank" rel="noopener" style="display:block;font-size:11px;color:#7a9ec4;text-decoration:none;margin-bottom:3px">• '+escHtml(s2.title||s2.uri||'fuente')+'</a>';
+    });
+    html+='</div>';
+  }
+  box.innerHTML=html;box.style.display='block';
+  // Impacto fuerza la duracion a 30s y bloquea el selector de duracion.
+  TREND_IDEAS.forEach(function(it,i){
+    var ms=document.getElementById('trendMode-'+i);
+    var ds=document.getElementById('trendDur-'+i);
+    if(ms&&ds)ms.addEventListener('change',function(){
+      if(ms.value==='impacto'){ds.value='30';ds.disabled=true;}
+      else{ds.disabled=false;}
+    });
+    var b1=document.getElementById('bTrendOne-'+i);
+    if(b1)b1.addEventListener('click',function(){genTrendOne(i);});
+  });
+  var bb=document.getElementById('bTrendBatch');
+  if(bb)bb.addEventListener('click',function(){
+    if(!TREND_IDEAS.length)return;
+    // El lote respeta el modo y la duracion elegidos para CADA concepto.
+    var jobs=TREND_IDEAS.map(function(it,i){
+      var ms=document.getElementById('trendMode-'+i);
+      var ds=document.getElementById('trendDur-'+i);
+      var mode=ms?ms.value:'reel';
+      return {topic:it.concept,t:it.t,h:it.h,mode:mode,d:mode==='impacto'?'30':(ds?ds.value:'60')};
+    });
+    generateBatch(jobs);
+  });
+}
 
 // Generar UN SOLO reel de un concepto de la investigacion (boton chiquito de su
 // tarjeta), respetando el modo y la duracion elegidos para ESE concepto.
@@ -4704,7 +4807,6 @@ async function genTrends(){
   var btn=document.getElementById('bTrends');
   var st=document.getElementById('trendSt');
   var er=document.getElementById('trendErr');
-  var box=document.getElementById('trendBox');
   var orig=btn.textContent;
   btn.textContent='Investigando...';btn.disabled=true;btn.style.opacity='.6';
   st.style.display='block';st.textContent='Buscando en Google qué está funcionando ahora en el nicho... (30-60 segundos)';
@@ -4724,71 +4826,9 @@ async function genTrends(){
     // Los conceptos vienen al final en lineas pilar|gancho|concepto: se separan
     // del analisis y se convierten en el lote de 5 con un solo boton.
     TREND_IDEAS=parseSuggestions(d.text).slice(0,5);
-    var showText=d.text.replace(/CONCEPTOS PARA GENERAR[\s\S]*$/i,'').trim();
-    var html='<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--tx)">'+escHtml(showText)+'</div>';
-    if(TREND_IDEAS.length){
-      // Cada concepto trae su propio selector de MODO y DURACION, con valores
-      // sugeridos variados (los tres modos presentes). Impacto fuerza 30s.
-      var defModes=shuffleArr(['reel','historia','impacto']).concat(shuffleArr(['reel','historia','impacto']).slice(0,2));
-      var defDurs=shuffleArr(['30','60','60','30','60']);
-      html+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
-        +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">'+TREND_IDEAS.length+' conceptos sacados de lo viral — elige modo y duración de cada uno</div>';
-      TREND_IDEAS.forEach(function(it,i){
-        var th=THEMES.find(function(t){return t.id===it.t;});
-        var dm=defModes[i],isImp=dm==='impacto';
-        html+='<div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;margin-bottom:6px">'
-          +'<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:'+(th?th.c:'#b8975a')+';text-transform:uppercase">'+(i+1)+' · '+(th?th.icon+' '+th.label:'')+'</span>'
-          +'<div style="font-size:12px;font-weight:600;color:var(--tx);line-height:1.4;margin-top:3px">'+escHtml(it.concept)+'</div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
-          +'<label class="genLbl">Modo<select id="trendMode-'+i+'" class="genSel">'
-            +'<option value="reel"'+(dm==='reel'?' selected':'')+'>🎬 Reel</option>'
-            +'<option value="historia"'+(dm==='historia'?' selected':'')+'>📖 Historia</option>'
-            +'<option value="impacto"'+(isImp?' selected':'')+'>⚡ Impacto (30s)</option>'
-          +'</select></label>'
-          +'<label class="genLbl">Duración<select id="trendDur-'+i+'" class="genSel"'+(isImp?' disabled':'')+'>'
-            +'<option value="30"'+((isImp||defDurs[i]==='30')?' selected':'')+'>30 segundos</option>'
-            +'<option value="60"'+(!isImp&&defDurs[i]==='60'?' selected':'')+'>60 segundos</option>'
-          +'</select></label>'
-          +'</div>'
-          +'<button id="bTrendOne-'+i+'" style="width:100%;margin-top:8px;background:#fff;border:1.5px solid var(--gold);color:var(--gold);border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar solo este</button>'
-          +'</div>';
-      });
-      html+='<button id="bTrendBatch" style="width:100%;margin-top:6px;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar los 5 a la vez (lote)</button>'
-        +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">Cada tarjeta tiene su botón para generar solo ese reel; o usa el botón dorado para los 5 de una, uno tras otro (en orden).</div></div>';
-    }else{
-      html+='<div style="margin-top:10px;font-size:11px;color:var(--tx3)">La investigación no trajo conceptos en formato usable esta vez. Vuelve a intentar con 🔎.</div>';
-    }
-    if(d.sources&&d.sources.length){
-      html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Fuentes consultadas</div>';
-      d.sources.slice(0,8).forEach(function(s2){
-        html+='<a href="'+escHtml(s2.uri||'#')+'" target="_blank" rel="noopener" style="display:block;font-size:11px;color:#7a9ec4;text-decoration:none;margin-bottom:3px">• '+escHtml(s2.title||s2.uri||'fuente')+'</a>';
-      });
-      html+='</div>';
-    }
-    box.innerHTML=html;box.style.display='block';
-    // Impacto fuerza la duracion a 30s y bloquea el selector de duracion.
-    TREND_IDEAS.forEach(function(it,i){
-      var ms=document.getElementById('trendMode-'+i);
-      var ds=document.getElementById('trendDur-'+i);
-      if(ms&&ds)ms.addEventListener('change',function(){
-        if(ms.value==='impacto'){ds.value='30';ds.disabled=true;}
-        else{ds.disabled=false;}
-      });
-      var b1=document.getElementById('bTrendOne-'+i);
-      if(b1)b1.addEventListener('click',function(){genTrendOne(i);});
-    });
-    var bb=document.getElementById('bTrendBatch');
-    if(bb)bb.addEventListener('click',function(){
-      if(!TREND_IDEAS.length)return;
-      // El lote respeta el modo y la duracion elegidos para CADA concepto.
-      var jobs=TREND_IDEAS.map(function(it,i){
-        var ms=document.getElementById('trendMode-'+i);
-        var ds=document.getElementById('trendDur-'+i);
-        var mode=ms?ms.value:'reel';
-        return {topic:it.concept,t:it.t,h:it.h,mode:mode,d:mode==='impacto'?'30':(ds?ds.value:'60')};
-      });
-      generateBatch(jobs);
-    });
+    TREND_TEXT=d.text.replace(/CONCEPTOS PARA GENERAR[\s\S]*$/i,'').trim();
+    TREND_SOURCES=(d.sources||[]).slice();
+    pintarTrends();
     st.style.display='none';
     cost+=0.02;updCost();
   }catch(e){

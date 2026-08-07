@@ -49,28 +49,82 @@ const fs = require('fs');
   t('la etiqueta dice 8 imágenes en modo profesor', /^8 imágenes/.test(lbl), lbl);
   t('y explica que las tomas se repiten', /se repiten/.test(lbl));
 
-  // ---- el lote de 5 NO se lanza en modo largo ----
-  const aviso = await page.evaluate(async () => {
-    sMode = 'profesor'; sD = '300';
-    let msg = null; const oa = window.alert;
-    window.alert = (m) => { msg = m; };
-    await generateBatch();
-    window.alert = oa;
-    return { msg, arranco: typeof batchLoading !== 'undefined' && batchLoading === true };
+  // ---- en los modos largos el lote de 5 NI SIQUIERA SE VE ----
+  // Un video de YouTube se sube uno o dos por semana: sacar cinco de golpe no
+  // tiene sentido. Antes el boton se veia y al pulsarlo salia un aviso; eso es
+  // enseñar una puerta que no lleva a ningun sitio.
+  const vis = await page.evaluate(() => {
+    const ver = () => {
+      const b5 = document.getElementById('gbtn5');
+      const n5 = document.getElementById('gnote5');
+      return {
+        boton: b5 && b5.style.display !== 'none',
+        nota: n5 && n5.style.display !== 'none',
+        etiqueta: document.getElementById('gbtn').textContent,
+      };
+    };
+    document.querySelector('#modeSelector .oc[data-id="profesor"]').click();
+    const largo = ver();
+    document.querySelector('#modeSelector .oc[data-id="reel"]').click();
+    const corto = ver();
+    return { largo, corto };
   });
-  t('el lote de 5 NO arranca en modo largo', !aviso.arranco);
-  t('y explica por qué', !!aviso.msg && /lote de 5 es para reels/.test(aviso.msg));
+  t('en modo Profesor el botón "Generar 5" no está', !vis.largo.boton);
+  t('ni su nota explicativa', !vis.largo.nota);
+  t('y el botón grande dice "Forjar vídeo largo"', /vídeo largo/i.test(vis.largo.etiqueta), vis.largo.etiqueta);
+  t('al volver a Reel, el botón "Generar 5" reaparece', vis.corto.boton);
+  t('y el botón grande vuelve a decir "Forjar Reel"', /Forjar Reel/.test(vis.corto.etiqueta), vis.corto.etiqueta);
+  t('ya no queda el aviso que bloqueaba el lote', !/lote de 5 es para reels/.test(SRC));
 
-  // ---- si escribes un concepto en modo largo, el lote lo pasa a Reel ----
+  // ---- el modo que TU elegiste se respeta: nunca se cambia solo ----
   const j = await page.evaluate(() => {
-    sMode = 'profesor'; sD = '300';
-    document.getElementById('conc').value = 'un concepto cualquiera';
-    const jobs = batchJobs();
-    return { modo: jobs[0].mode, dur: jobs[0].d, n: jobs.length };
+    const out = {};
+    ['reel', 'historia', 'impacto'].forEach((m) => {
+      sMode = m; sD = '60';
+      document.getElementById('conc').value = 'un concepto cualquiera';
+      const jobs = batchJobs();
+      out[m] = { modo: jobs[0].mode, dur: jobs[0].d, n: jobs.length };
+    });
+    return out;
   });
-  t('el primer trabajo del lote no arrastra el modo largo', j.modo !== 'profesor' && j.modo !== 'relato', j.modo);
-  t('ni su duración de minutos', ['30', '60'].indexOf(j.dur) > -1, j.dur + 's');
-  t('el lote sigue siendo de 5', j.n === 5);
+  t('si estás en Reel, el guion 1 del lote sale en Reel', j.reel.modo === 'reel', j.reel.modo);
+  t('si estás en Historia, sale en Historia', j.historia.modo === 'historia', j.historia.modo);
+  t('si estás en Impacto, sale en Impacto y a 30s', j.impacto.modo === 'impacto' && j.impacto.dur === '30');
+  t('el lote sigue siendo de 5', j.reel.n === 5);
+  t('ya no existe el cambio automático a Reel', !/mode1=esModoLargo\(\)\?'reel'/.test(SRC));
+
+  // ---- la investigación en modo largo es un MENÚ: varios temas, eliges uno ----
+  const tr = await page.evaluate(() => {
+    TREND_IDEAS = [
+      { t: 'libertad', h: 'pasos', concept: 'el metodo de los tres sobres' },
+      { t: 'mentalidad', h: 'historia', concept: 'salir de una deuda en un año' },
+    ];
+    TREND_TEXT = 'analisis de prueba'; TREND_SOURCES = [];
+    const leer = () => {
+      const ms = document.getElementById('trendMode-0');
+      const ds = document.getElementById('trendDur-0');
+      return {
+        modos: ms ? [...ms.options].map((o) => o.value).join(',') : '',
+        durs: ds ? [...ds.options].map((o) => o.value).join(',') : '',
+        lote: !!document.getElementById('bTrendBatch'),
+        boton: (document.getElementById('bTrendOne-0') || {}).textContent || '',
+        tarjetas: document.querySelectorAll('[id^="bTrendOne-"]').length,
+      };
+    };
+    document.querySelector('#modeSelector .oc[data-id="profesor"]').click();
+    const largo = leer();
+    document.querySelector('#modeSelector .oc[data-id="reel"]').click();
+    const corto = leer();
+    return { largo, corto };
+  });
+  t('en modo largo la investigación sigue proponiendo varios temas', tr.largo.tarjetas === 2);
+  t('cada tema ofrece solo los modos largos', tr.largo.modos === 'profesor,relato', tr.largo.modos);
+  t('y solo duraciones de minutos', tr.largo.durs === '180,300,480', tr.largo.durs);
+  t('el botón dice que hará UN vídeo sobre ese tema', /Hacer el vídeo sobre este tema/.test(tr.largo.boton), tr.largo.boton);
+  t('NO hay botón de "generar los 5 a la vez"', !tr.largo.lote);
+  t('en modo corto sí sigue estando el lote de tendencias', tr.corto.lote);
+  t('y ahí los modos vuelven a ser los cortos', tr.corto.modos === 'reel,historia,impacto', tr.corto.modos);
+  t('con duraciones en segundos', tr.corto.durs === '30,60', tr.corto.durs);
 
   // ---- los bucles siguen yendo EN COLA (lo que ya hacia bien el proyecto) ----
   t('las imágenes se generan una tras otra, con pausa',
