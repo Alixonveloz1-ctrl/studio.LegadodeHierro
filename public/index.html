@@ -219,6 +219,17 @@ section{margin-bottom:20px}
             Los que tienen <b>✓</b> ya tienen sus vistas generadas y saldrán siempre con la misma cara;
             los que no, saldrán descritos por texto hasta que se les generen.
           </div>
+          <label class="genLbl" style="margin-bottom:10px">Modelo con el que se generan las vistas
+            <select id="selBibliaModel" class="genSel">
+              <option value="gemini-3-pro-image" selected>Nano Banana Pro (3 Pro) · máxima calidad — recomendado</option>
+              <option value="gemini-3.1-flash-image">Nano Banana 2 (3.1 Flash) · rápido</option>
+              <option value="gemini-2.5-flash-image">Nano Banana (2.5 Flash) · el más barato</option>
+            </select>
+          </label>
+          <div style="font-size:10.5px;color:var(--tx3);line-height:1.5;margin-bottom:10px">
+            Estas vistas se generan <b>una sola vez</b> y luego mandan la cara del personaje en todos los vídeos.
+            Vale la pena el modelo bueno aquí aunque para los reels uses el barato.
+          </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
             <button class="cbtn" id="bBibliaTodas" style="border-color:#b8975a;color:#b8975a">⚡ Generar las vistas que faltan</button>
             <button class="cbtn" id="bBibliaRecargar">↻ Recargar</button>

@@ -717,6 +717,9 @@ var IMG_COST={'gemini-2.5-flash-image':0.039,'gemini-3.1-flash-image':0.067,'gem
 // Costo estimado por clip de 8s segun modelo de video
 var VID_COST={'veo-3.1-lite-generate-001':0.30,'veo-3.1-fast-generate-001':0.40,'veo-3.1-generate-001':0.60,'veo-2.0-generate-001':0.40};
 function imgCost(){return IMG_COST[imgModel]||0.05;}
+// El coste de la biblia se calcula con SU modelo, que puede ser otro (por defecto
+// el bueno). Con imgCost() se estimaba con el de los reels y el aviso mentia.
+function costoBiblia(){return IMG_COST[modeloBiblia()]||0.05;}
 function vidCost(){return VID_COST[vidModel]||0.40;}
 // Pista de orientacion en el prompt (refuerza el aspectRatio real de imageConfig).
 function aspectHint(fmt){
@@ -1000,6 +1003,18 @@ function cargarBiblia(){
     .catch(function(){return BIBLIA;});
 }
 
+// El modelo con el que se generan las vistas. Se elige DENTRO de la biblia: antes
+// se tomaba en silencio del selector de otro panel y no habia forma de saber cual
+// se estaba usando. Por defecto el mejor: estas imagenes se generan una sola vez
+// y luego mandan la cara del personaje en todos los videos.
+function modeloBiblia(){
+  var s=document.getElementById('selBibliaModel');
+  return (s&&s.value)?s.value:'gemini-3-pro-image';
+}
+
+// Cache de las vistas ya descargadas para verlas, por id de personaje.
+var VISTAS_VISTAS={};
+
 function pintarBiblia(){
   var g=document.getElementById('bibliaGrid');if(!g)return;
   var lbl=document.getElementById('bibliaLbl');
@@ -1009,6 +1024,7 @@ function pintarBiblia(){
   BIBLIA.forEach(function(p){
     var listo=(p.refs||[]).length>0;
     var el=document.createElement('div');
+    el.setAttribute('data-id',p.id);
     el.style.cssText='background:#fff;border:1.5px solid '+(p.fijo?'#b8975a':'var(--border)')
       +';border-radius:10px;padding:9px 10px';
     el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px">'
@@ -1016,9 +1032,110 @@ function pintarBiblia(){
       +'<span style="font-size:10px;color:'+(listo?'#7a9b8a':'var(--tx3)')+'">'+(listo?'✓':'—')+'</span></div>'
       +'<div style="font-size:9.5px;color:var(--tx3);line-height:1.4;margin-bottom:5px">'+escHtml(p.rol||'')
       +(p.fijo?' · <b style="color:#b8975a">insignia</b>':'')+'</div>'
-      +'<div style="font-size:9.5px;color:var(--tx3);line-height:1.4">'+escHtml((p.encaja||'').slice(0,90))+'</div>';
+      +'<div style="font-size:9.5px;color:var(--tx3);line-height:1.4;margin-bottom:7px">'+escHtml((p.encaja||'').slice(0,90))+'</div>'
+      +'<button type="button" class="bibliaVer" data-id="'+escHtml(p.id)+'" '
+      +'style="width:100%;border:1px solid var(--border);background:var(--warm);border-radius:7px;'
+      +'padding:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">'
+      +(listo?'👁 Ver las vistas':'⚡ Generar sus 4 vistas')+'</button>'
+      +'<div class="bibliaVistas" style="display:none;margin-top:8px"></div>';
     g.appendChild(el);
   });
+  Array.prototype.forEach.call(g.querySelectorAll('.bibliaVer'),function(b){
+    b.addEventListener('click',function(){ abrirVistas(b.getAttribute('data-id')); });
+  });
+}
+
+// Abre (o cierra) las vistas de un personaje. Es lo que faltaba: sin poder VERLAS
+// no habia forma de saber si una salio mal y habia que rehacerla.
+async function abrirVistas(id){
+  var card=document.querySelector('#bibliaGrid [data-id="'+id+'"]');
+  if(!card)return;
+  var caja=card.querySelector('.bibliaVistas');
+  var btn=card.querySelector('.bibliaVer');
+  if(caja.style.display==='block'){ caja.style.display='none'; return; }
+  var p=personajePorId(id);
+  if(!p)return;
+  caja.style.display='block';
+
+  if(!(p.refs||[]).length){
+    caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Generando sus 4 vistas...</div>';
+    var okGen=await generarVistasDe(p,null);
+    if(!okGen){caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No se pudieron generar. Inténtalo otra vez.</div>';return;}
+    p=personajePorId(id)||p;
+  }
+
+  if(!VISTAS_VISTAS[id]){
+    caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Cargando...</div>';
+    try{
+      var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'imagenes',id:id})});
+      var d=await r.json();
+      VISTAS_VISTAS[id]=(d&&Array.isArray(d.refs))?d.refs:[];
+    }catch(e){ VISTAS_VISTAS[id]=[]; }
+  }
+  var vs=VISTAS_VISTAS[id];
+  if(!vs.length){caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No se pudieron cargar las vistas.</div>';return;}
+
+  var html='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px">';
+  vs.forEach(function(b64,i){
+    html+='<div style="position:relative">'
+      +'<img src="data:image/png;base64,'+b64+'" style="width:100%;display:block;border-radius:6px;background:#fff;border:1px solid var(--border)">'
+      +'<button type="button" class="bibliaRe" data-id="'+escHtml(id)+'" data-i="'+i+'" title="Rehacer esta vista" '
+      +'style="position:absolute;top:3px;right:3px;background:rgba(255,255,255,.9);border:none;border-radius:5px;'
+      +'padding:2px 6px;font-size:11px;cursor:pointer;line-height:1">↺</button></div>';
+  });
+  html+='</div>'
+    +'<div style="font-size:9.5px;color:var(--tx3);line-height:1.4;margin-top:6px">'
+    +'Deben ser el MISMO personaje sobre fondo blanco. Si alguna sale con otra cara, con fondo o deformada, dale a ↺ en esa.</div>'
+    +'<button type="button" class="bibliaReTodas" data-id="'+escHtml(id)+'" '
+    +'style="width:100%;margin-top:6px;border:1px solid var(--border);background:#fff;border-radius:7px;'
+    +'padding:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">↺ Rehacer las cuatro</button>';
+  caja.innerHTML=html;
+  if(btn)btn.textContent='👁 Ocultar las vistas';
+
+  Array.prototype.forEach.call(caja.querySelectorAll('.bibliaRe'),function(b){
+    b.addEventListener('click',function(){ rehacerVista(id,[parseInt(b.getAttribute('data-i'),10)]); });
+  });
+  var rt=caja.querySelector('.bibliaReTodas');
+  if(rt)rt.addEventListener('click',function(){ rehacerVista(id,null); });
+}
+
+// Rehace una vista concreta (o las cuatro). `cuales` null = todas.
+async function rehacerVista(id,cuales){
+  var p=personajePorId(id);if(!p)return;
+  var card=document.querySelector('#bibliaGrid [data-id="'+id+'"]');
+  var caja=card?card.querySelector('.bibliaVistas'):null;
+  if(caja)caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Rehaciendo '
+    +(cuales?'la vista '+(cuales[0]+1):'las cuatro vistas')+'...</div>';
+  var okGen=await generarVistasDe(p,cuales);
+  delete VISTAS_VISTAS[id];
+  if(caja)caja.style.display='none';
+  if(okGen)await abrirVistas(id);
+  else if(caja){caja.style.display='block';caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No salió. Prueba otra vez o con otro modelo.</div>';}
+}
+
+// Genera y guarda las vistas de UN personaje. Devuelve true si fue bien.
+async function generarVistasDe(p,cuales){
+  try{
+    var cuerpo={action:'generar',personaje:p,model:modeloBiblia()};
+    if(cuales)cuerpo.vistas=cuales;
+    var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cuerpo)});
+    var d=await r.json();
+    if(!r.ok||!d.vistas)throw new Error(d.error||'Error '+r.status);
+    var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
+    var gd=await g.json();
+    if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
+    cost+=d.vistas.length*costoBiblia();updCost();
+    // Se suelta la cache de referencias: la proxima imagen usara las nuevas.
+    delete REFS_PERSONAJE[p.id];
+    delete VISTAS_VISTAS[p.id];
+    await cargarBiblia();
+    return true;
+  }catch(e){
+    console.warn('[biblia] '+p.id+': '+(e.message||e));
+    return false;
+  }
 }
 
 // Genera las vistas que falten, de una en una para poder ir contando y para que
@@ -1029,7 +1146,7 @@ async function generarVistasFaltantes(){
   var faltan=BIBLIA.filter(function(p){return !(p.refs||[]).length;});
   if(!faltan.length){ if(st){st.style.display='block';st.textContent='Todos los personajes ya tienen sus vistas.';} return; }
   if(!confirm('Se van a generar 4 vistas para '+faltan.length+' personaje(s).\n\nCoste aproximado: $'
-    +(faltan.length*4*imgCost()).toFixed(2)+'. Se hace una sola vez: luego son gratis para siempre.\n\n¿Seguimos?'))return;
+    +(faltan.length*4*costoBiblia()).toFixed(2)+'. Se hace una sola vez: luego son gratis para siempre.\n\n¿Seguimos?'))return;
   var orig=btn?btn.textContent:'';
   if(btn){btn.disabled=true;btn.style.opacity='.6';}
   if(st)st.style.display='block';
@@ -1039,7 +1156,7 @@ async function generarVistasFaltantes(){
     if(st)st.textContent='Generando '+(i+1)+' de '+faltan.length+': '+p.nombre+'... (4 vistas cada uno)';
     try{
       var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'generar',personaje:p,model:imgModel})});
+        body:JSON.stringify({action:'generar',personaje:p,model:modeloBiblia()})});
       var d=await r.json();
       if(!r.ok||!d.vistas)throw new Error(d.error||'Error '+r.status);
       var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1047,7 +1164,7 @@ async function generarVistasFaltantes(){
       var gd=await g.json();
       if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
       hechos++;
-      cost+=4*imgCost();updCost();
+      cost+=4*costoBiblia();updCost();
     }catch(e){ fallos.push(p.nombre+': '+(e.message||'error')); }
   }
   await cargarBiblia();

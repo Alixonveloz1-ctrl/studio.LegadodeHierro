@@ -27,6 +27,9 @@ La de subtitulos NO necesita el servidor, pero si `ffmpeg` y `ffprobe`:
 - **check-modos-largos.js** — Profesor y Relato: que las duraciones cambien con
   el modo, que el profesor pida SET + TOMAS + EJEMPLOS + MONTAJE, y que el
   montaje reutilice las tomas (9 planos de 8 imagenes).
+- **check-biblia-vista-previa.js** — que se pueda elegir el modelo dentro de la
+  biblia y VER las vistas generadas, con un boton por vista para rehacer solo la
+  que salio mal.
 - **check-reparto.js** — que los 31 personajes esten completos, que el director
   los reciba y que la marca [CON: id] traiga la cara correcta a la imagen.
 - **check-sincronia-subtitulos.js** — que los subtitulos del audio SUBIDO A MANO
