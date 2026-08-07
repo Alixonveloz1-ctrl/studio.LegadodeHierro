@@ -61,6 +61,14 @@ const { chromium } = require('playwright-core');
     nuevas.length + ' petición(es), vista ' + (nuevas[0] && nuevas[0].vista));
   t('y la rehace CON la cara ya guardada como referencia', !!nuevas[0].conRefs);
 
+  // LAS VIEJAS DE LA TANDA NO VALEN DE REFERENCIA. Al rehacer las tres, la vista 2
+  // se generaba mirando la vista 2 vieja y la 3 vieja, y salia igual que antes.
+  t('al rehacer todas, cada vista dice qué viejas hay que ignorar',
+    JSON.stringify(g.map(x => (x.ignorar || []).join(''))) === '["012","12","2"]',
+    JSON.stringify(g.map(x => x.ignorar)));
+  t('rehacer una sola solo ignora esa', JSON.stringify(nuevas[0].ignorar) === '[2]',
+    JSON.stringify(nuevas[0].ignorar));
+
   // ---- el servidor manda al modelo copiar la cara ----
   const fs = require('fs');
   const R = fs.readFileSync('/home/user/studio.LegadodeHierro/api/refs.js', 'utf8');
@@ -70,9 +78,11 @@ const { chromium } = require('playwright-core');
   // llama al endpoint y mira que imagenes viajan. Aqui solo se vigila que la regla
   // siga escrita: la vista N se descarta por su INDICE, no por su nombre.
   t('la vista que se rehace no se usa como referencia de sí misma',
-    /\.filter\(\(o, k\) => o && k !== i\)/.test(R));
+    /k !== i && ignorar\.indexOf\(k\) < 0/.test(R));
   t('y el ancla del personaje va SIEMPRE primero',
     /const ancla = \(guardado && guardado\.base\)/.test(R));
+  t('el encuadre NO se copia de la referencia',
+    /Do NOT copy their framing, crop, zoom, camera distance or pose/.test(R));
   t('el servidor genera UNA vista por petición', /UNA VISTA POR PETICION/.test(R));
 
   // ---- el botón permite parar a mitad ----

@@ -143,7 +143,8 @@ const server = http.createServer((req, res) => {
         // Se apunta CADA peticion con su instante, para poder comprobar desde la
         // prueba que van en cola y no todas a la vez.
         GEN_LOG.push({t:Date.now(),id:d.personaje&&d.personaje.id,vista:d.vista,
-                      model:d.model,conRefs:!!(MOCK_VISTAS[d.personaje&&d.personaje.id])});
+                      model:d.model,ignorar:d.ignorar||null,
+                      conRefs:!!(MOCK_VISTAS[d.personaje&&d.personaje.id])});
         const i=(typeof d.vista==='number')?d.vista:0;
         return json(res,200,{success:true,id:d.personaje&&d.personaje.id,vista:i,
           vistas:[{i:i,b64:TINY_PNG}],conReferencia:MOCK_VISTAS[d.personaje&&d.personaje.id]?2:0,total:3});

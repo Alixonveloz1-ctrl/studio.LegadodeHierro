@@ -244,6 +244,62 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
   l = LLAMADAS[LLAMADAS.length - 1];
   t('y es la descripción NUEVA la que llega al generador', /rubio/.test(l.prompt));
 
+  // ---- 12. AL REHACER TODAS, LAS VIEJAS NO SIRVEN DE REFERENCIA ----
+  // Esto es lo que hacia que la companera siguiera saliendo morena: se le cambio
+  // la descripcion, se le dio a "rehacer las tres", la vista 1 salio rubia... y la
+  // 2 salio morena otra vez, porque se genero MIRANDO la vista 2 vieja (morena) y
+  // la 3 vieja. Copiaba hasta su encuadre de retrato en una vista de cuerpo entero.
+  const VIEJA = Buffer.from('VISTA-VIEJA-MORENA-' + '-'.repeat(200)).toString('base64');
+  BUCKET['personajes/companera/vista-1.png'] = VIEJA;
+  BUCKET['personajes/companera/vista-2.png'] = VIEJA;
+  BUCKET['personajes/companera/vista-3.png'] = VIEJA;
+  BUCKET['personajes/index.json'] = Buffer.from(JSON.stringify([{
+    id: 'companera', nombre: 'La compañera', rol: 'Su pareja', edad: '33 anos',
+    fisico: 'mujer de 33 anos, guapa, cabello rubio claro',
+    refs: ['personajes/companera/vista-1.png', 'personajes/companera/vista-2.png',
+      'personajes/companera/vista-3.png'],
+  }]), 'utf8').toString('base64');
+  let comp2 = ficha((await llamar({ action: 'list' })).body.personajes, 'companera');
+
+  // Se rehacen las tres, como hace el navegador: cada una avisa de cuales quedan
+  // pendientes en la tanda.
+  const usadas = [];
+  for (let v = 0; v < 3; v++) {
+    const pend = [];
+    for (let q = v; q < 3; q++) pend.push(q);
+    const rr = await llamar({ action: 'generar', personaje: comp2, vista: v, ignorar: pend });
+    usadas.push(LLAMADAS[LLAMADAS.length - 1].refs.slice());
+    const gg = await llamar({ action: 'guardar', personaje: comp2, vistas: rr.body.vistas });
+    comp2 = gg.body.personaje;
+  }
+  t('al rehacer la vista 1, no se usa ninguna vista vieja',
+    usadas[0].every(x => !/VISTA-VIEJA/.test(x)), usadas[0].length + ' referencias');
+  t('al rehacer la vista 2 TAMPOCO (era el fallo: copiaba la morena vieja)',
+    usadas[1].every(x => !/VISTA-VIEJA/.test(x)),
+    usadas[1].map(x => x.slice(0, 18)).join(' | '));
+  t('y la vista 2 sí usa la vista 1 recién hecha',
+    usadas[1].some(x => /IMAGEN-GENERADA/.test(x)));
+  t('la vista 3 usa las dos nuevas y ninguna vieja',
+    usadas[2].length === 2 && usadas[2].every(x => /IMAGEN-GENERADA/.test(x)),
+    usadas[2].length + ' referencias');
+
+  // El encuadre no se hereda de la referencia
+  t('se le prohíbe copiar el encuadre de la referencia',
+    /Do NOT copy their framing, crop, zoom, camera distance or pose/.test(LLAMADAS[LLAMADAS.length - 1].prompt));
+
+  // ---- 13. si la escritura falla, NO se da por buena ----
+  const escribirOriginal = global.fetch;
+  global.fetch = async (url, opts) => {
+    if (String(url).indexOf('uploadType=media&name=personajes%2Fcompanera%2Fvista-2') > -1) {
+      return { ok: false, status: 503, json: async () => ({}), text: async () => '', headers: { get: () => '' } };
+    }
+    return escribirOriginal(url, opts);
+  };
+  r = await llamar({ action: 'guardar', personaje: comp2, vistas: [{ i: 1, b64: GENERADA }] });
+  global.fetch = escribirOriginal;
+  t('si no se pudo escribir la vista, se dice cuál',
+    JSON.stringify(r.body.noGuardadas) === '[1]', JSON.stringify(r.body.noGuardadas));
+
   console.log('\n' + ok + ' OK, ' + ko + ' fallos');
   process.exit(ko ? 1 : 0);
 })().catch((e) => { console.error('EXCEPCION: ' + e.stack); process.exit(1); });

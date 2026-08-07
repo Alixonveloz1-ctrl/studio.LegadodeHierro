@@ -247,8 +247,13 @@ function promptDeVista(f, vista, conReferencia) {
     ? 'THIS IS THE SAME PERSON AS IN THE REFERENCE IMAGES. Copy the face exactly: same bone structure, '
       + 'same eyes, same nose, same mouth, same hairline, same beard, same skin tone. '
       + 'You are drawing ANOTHER ANGLE of that same person, not a similar-looking person. '
-      + 'If the face differs from the reference, the image is wrong. '
-      + 'Only the camera angle and the pose change.\n'
+      + 'If the face differs from the reference, the image is wrong.\n'
+      // El encuadre NO se hereda de la referencia. Sin decir esto, al rehacer una
+      // vista de cuerpo entero teniendo delante un primer plano, el modelo copiaba
+      // el recorte de la referencia y devolvia otro primer plano.
+      + 'Use the reference images ONLY for WHO this person is: face, hair colour, hair style, '
+      + 'build, skin tone, clothing. Do NOT copy their framing, crop, zoom, camera distance or pose. '
+      + 'The framing must follow the FRAMING instruction above, even if the references are framed differently.\n'
     : '';
   // "Character reference sheet" era un error de bulto: al modelo esa expresion le
   // pide una LAMINA de personaje, y devolvia collages con dos y tres cabezas del
@@ -535,10 +540,17 @@ async function biblia(req, res) {
       // en el insignia son sus 4 fotos de marca, y su cara no se negocia. Despues,
       // si quedan huecos, se rellenan con las vistas que ya tenga hechas.
       const ancla = (guardado && guardado.base) ? guardado.base.slice(0, 3) : [];
+      // VISTAS QUE NO SE PUEDEN USAR DE REFERENCIA. La que se esta rehaciendo,
+      // obviamente — si no, se copia el fallo que se queria corregir. Y ademas las
+      // que estan EN LA MISMA TANDA y todavia no se han rehecho: son las viejas,
+      // las que se quieren tirar. Sin esto, al darle a "rehacer las tres" la vista
+      // nueva se generaba mirando a las viejas: se cambio a la companera a rubia,
+      // la vista 1 salio rubia, y la 2 salio morena otra vez porque tenia delante
+      // la vieja morena como referencia. Copiaba tambien su encuadre.
+      const ignorar = Array.isArray(body.ignorar)
+        ? body.ignorar.map(Number).filter(n => isFinite(n)) : [];
       const propias = ((guardado && guardado.refs) ? guardado.refs : [])
-        // La vista que se esta rehaciendo NO se usa como referencia de si misma:
-        // si no, se copia el fallo que se queria corregir.
-        .filter((o, k) => o && k !== i);
+        .filter((o, k) => o && k !== i && ignorar.indexOf(k) < 0);
       const refsB64 = [];
       for (const o of ancla) {
         const b64 = await cargarAncla(token, bucket, o);
@@ -573,12 +585,16 @@ async function biblia(req, res) {
       // Las vistas nuevas llegan en base64 y se guardan como objetos del bucket.
       const nuevas = Array.isArray(body.vistas) ? body.vistas : [];
       const refs = (antes && antes.refs) ? antes.refs.slice() : [];
+      // Si la escritura falla, la vista VIEJA se queda en su sitio y en pantalla
+      // parece que "no cambio nada" — que es justo lo que no puede pasar sin que
+      // nadie se entere. Las que no se pudieron escribir se devuelven.
+      const noGuardadas = [];
       for (const v of nuevas) {
         const i = Number(v.i);
-        if (!isFinite(i) || i < 0 || i >= N_VISTAS || !v.b64) continue;
+        if (!isFinite(i) || i < 0 || i >= N_VISTAS || !v.b64) { noGuardadas.push(Number(v.i)); continue; }
         const obj = 'personajes/' + f.id + '/vista-' + (i + 1) + '.png';
         const ok = await writeToBucket(token, bucket, obj, v.b64, 'image/png');
-        if (ok) refs[i] = obj;
+        if (ok) refs[i] = obj; else noGuardadas.push(i);
       }
       // Cada vista se queda en SU hueco. Los que falten valen null y siguen
       // valiendo null: compactar la lista descolocaba las vistas siguientes.
@@ -592,8 +608,9 @@ async function biblia(req, res) {
       const idx = lista.findIndex(x => x.id === f.id);
       if (idx > -1) lista[idx] = f; else lista.push(f);
       await escribirIndice(token, bucket, lista);
-      console.log('[refs] personaje guardado: ' + f.id + ' (' + f.refs.filter(Boolean).length + '/4 vistas)');
-      return res.json({ success: true, personaje: f });
+      console.log('[refs] personaje guardado: ' + f.id + ' (' + f.refs.filter(Boolean).length + '/' + N_VISTAS + ' vistas)'
+        + (noGuardadas.length ? ' — NO se pudo escribir la(s) vista(s) ' + noGuardadas.map(x => x + 1).join(', ') : ''));
+      return res.json({ success: true, personaje: f, noGuardadas: noGuardadas });
     }
 
     if (accion === 'borrar') {

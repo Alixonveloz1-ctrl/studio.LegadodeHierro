@@ -3,6 +3,14 @@
 // espanol, asi que no habia forma de comprobar la mezcla del reel EN.
 const { chromium } = require('playwright-core');
 
+// La pista se le pasa a toggleMixPreview como parametro en vez de dejarla elegida
+// en el selector: el panel se repinta solo y el selector puede quedarse en blanco,
+// con lo que la mezcla se salia sin hacer nada y la prueba fallaba a ratos.
+// Espera a que la mezcla tenga la narracion decodificada y guardada en cache.
+const esperarVoz = (page) => page.waitForFunction(
+  () => Object.keys(MIX.bufs).some(k => /^voz-/.test(k)), null, { timeout: 15000 },
+).catch(() => {});
+
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', headless: true,
     args: ['--autoplay-policy=no-user-gesture-required'] });
@@ -48,10 +56,13 @@ const { chromium } = require('playwright-core');
 
   // --- ESPAÑOL ---
   await page.evaluate(() => { window.__decodificados = []; setUnifyLang('es'); });
-  await page.evaluate(() => toggleMixPreview());
-  // Se espera a que la mezcla haya decodificado, no un tiempo fijo: con la maquina
-  // cargada 600 ms no llegaban y la prueba fallaba sin que nada estuviera roto.
-  await page.waitForFunction(() => window.__decodificados.length > 0, null, { timeout: 10000 }).catch(() => {});
+  // Se ESPERA a que la mezcla termine de montarse. toggleMixPreview arranca trabajo
+  // asincrono; sin el await, la prueba miraba el resultado antes de que existiera.
+  await page.evaluate(async (p) => { await toggleMixPreview(p); }, pistaSel);
+  // Se espera a que la VOZ este decodificada, no un tiempo fijo. Ojo: no vale
+  // esperar "la primera decodificacion", porque la primera es la MUSICA — con eso
+  // la prueba seguia adelante antes de tiempo y fallaba sin que nada se hubiera roto.
+  await esperarVoz(page);
   const es = await page.evaluate(() => ({ dec: window.__decodificados.slice(), claves: Object.keys(MIX.bufs) }));
   t('en español se decodifica la narración ES (1000 bytes)', es.dec.indexOf(1000) > -1, es.dec.join(', '));
   t('la guarda con clave de idioma es', es.claves.some(k => /^voz-es-/.test(k)), es.claves.join(', '));
@@ -60,8 +71,8 @@ const { chromium } = require('playwright-core');
   // --- INGLES ---
   await page.evaluate(() => { window.__decodificados = []; document.querySelector('.unifyLang[data-l="en"]').click(); });
   t('cambiar de idioma corta la escucha que estaba sonando', await page.evaluate(() => MIX.playing === false));
-  await page.evaluate(() => toggleMixPreview());
-  await page.waitForFunction(() => window.__decodificados.length > 0, null, { timeout: 10000 }).catch(() => {});
+  await page.evaluate(async (p) => { await toggleMixPreview(p); }, pistaSel);
+  await esperarVoz(page);
   const en = await page.evaluate(() => ({ dec: window.__decodificados.slice(), claves: Object.keys(MIX.bufs) }));
   t('en inglés se decodifica la narración EN (2000 bytes)', en.dec.indexOf(2000) > -1, en.dec.join(', '));
   t('NO vuelve a sonar la española', en.dec.indexOf(1000) < 0);

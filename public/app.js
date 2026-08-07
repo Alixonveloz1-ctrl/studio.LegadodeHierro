@@ -1191,12 +1191,28 @@ async function rehacerVista(id,cuales){
   if(caja)caja.style.display='none';
   if(res.ok){
     await abrirVistas(id);
-    // SI ALGUNA FALLO, SE DICE. Antes con que saliera una sola ya se daba por
-    // bueno: la ficha quedaba con tres vistas y ni un aviso de por que.
+    // SI ALGUNA FALLO, SE DICE Y SE VE. Antes con que saliera una sola ya se daba
+    // por buena la tanda: la vista mala se quedaba con su imagen VIEJA en pantalla
+    // y parecia que rehacerla "no habia hecho nada".
     if(res.fallos.length&&caja){
       var av=document.createElement('div');
-      av.style.cssText='margin-top:6px;font-size:10px;color:#8a4a3a;line-height:1.4';
-      av.textContent='No salieron: '+res.fallos.slice(0,3).join(' · ');
+      av.style.cssText='margin-top:8px;background:#fdeeea;border:1px solid #d9a08f;border-radius:7px;padding:7px 9px';
+      var txt=document.createElement('div');
+      txt.style.cssText='font-size:10px;color:#8a4a3a;font-weight:600;line-height:1.45';
+      txt.textContent='No se pudo rehacer '+res.fallos.map(function(f){return f.split(':')[0];}).join(' ni ')
+        +'. Lo que ves de esa'+(res.malas.length>1?'s':'')+' es la imagen ANTERIOR.\nMotivo: '
+        +res.fallos.map(function(f){return f.split(': ').slice(1).join(': ');}).join(' · ');
+      txt.style.whiteSpace='pre-line';
+      av.appendChild(txt);
+      if(res.malas.length){
+        var rb=document.createElement('button');
+        rb.type='button';
+        rb.style.cssText='width:100%;margin-top:5px;border:1px solid #b8975a;background:#fff;color:#b8975a;'
+          +'border-radius:6px;padding:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit';
+        rb.textContent='↺ Reintentar esa'+(res.malas.length>1?'s':'');
+        rb.addEventListener('click',function(){ rehacerVista(id,res.malas); });
+        av.appendChild(rb);
+      }
       caja.appendChild(av);
     }
   }
@@ -1221,33 +1237,51 @@ async function generarVistasDe(p,cuales,alProgreso){
   var lista=cuales&&cuales.length?cuales.slice():TODAS_LAS_VISTAS();
   // La vista 1 primero SIEMPRE que este en la tanda: es la que fija la cara.
   lista.sort(function(a,b){return a-b;});
-  var hechas=0,fallos=[],sinRef=0;
+  var hechas=0,fallos=[],sinRef=0,malas=[];
   for(var k=0;k<lista.length;k++){
     var i=lista[k];
     if(alProgreso)alProgreso(k+1,lista.length,i);
-    try{
-      var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'generar',personaje:p,model:modeloBiblia(),vista:i})});
-      var d=await r.json();
-      if(!r.ok||!d.vistas||!d.vistas.length)throw new Error(d.error||'Error '+r.status);
-      if(!d.conReferencia)sinRef++;
-      // Se guarda ENSEGUIDA: asi la siguiente vista ya la puede usar de
-      // referencia, y si algo falla a media tanda no se pierde lo hecho.
-      var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
-      var gd=await g.json();
-      if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
-      if(gd.personaje)p=gd.personaje; // la ficha vuelve con la ref nueva incluida
-      hechas++;
-      cost+=costoBiblia();updCost();
-    }catch(e){ fallos.push('vista '+(i+1)+': '+(e.message||'error')); }
+    // LAS VIEJAS DE ESTA MISMA TANDA NO VALEN DE REFERENCIA. Son justo las que se
+    // quieren tirar: al rehacer las tres, la vista 2 se generaba mirando la vista
+    // 2 vieja... y la 3 vieja, y salia igual que antes. Se le dice al servidor que
+    // ignore las que aun no se han rehecho en esta tanda.
+    var pendientes=lista.slice(k);
+    var ultimoError='';
+    // Un reintento: la mitad de los fallos del generador son pasajeros.
+    for(var intento=0;intento<2;intento++){
+      try{
+        var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action:'generar',personaje:p,model:modeloBiblia(),vista:i,ignorar:pendientes})});
+        var d=await r.json();
+        if(!r.ok||!d.vistas||!d.vistas.length)throw new Error(d.error||'Error '+r.status);
+        if(!d.conReferencia)sinRef++;
+        // Se guarda ENSEGUIDA: asi la siguiente vista ya la puede usar de
+        // referencia, y si algo falla a media tanda no se pierde lo hecho.
+        var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
+        var gd=await g.json();
+        if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
+        // Si la escritura fallo, la imagen VIEJA sigue ahi: en pantalla parece que
+        // "no cambio nada". Eso cuenta como fallo, no como exito.
+        if(gd.noGuardadas&&gd.noGuardadas.indexOf(i)>-1)throw new Error('se generó pero no se pudo guardar');
+        if(gd.personaje)p=gd.personaje; // la ficha vuelve con la ref nueva incluida
+        hechas++;
+        cost+=costoBiblia();updCost();
+        ultimoError='';
+        break;
+      }catch(e){
+        ultimoError=e.message||'error';
+        if(intento===0)await new Promise(function(rs){setTimeout(rs,PAUSA_VISTAS);});
+      }
+    }
+    if(ultimoError){ fallos.push('vista '+(i+1)+': '+ultimoError); malas.push(i); }
     // Pausa entre llamadas, como en el lote de reels.
     if(k<lista.length-1)await new Promise(function(rs){setTimeout(rs,PAUSA_VISTAS);});
   }
   delete REFS_PERSONAJE[p.id];
   delete VISTAS_VISTAS[p.id];
   await cargarBiblia();
-  return {ok:hechas>0,hechas:hechas,fallos:fallos,sinRef:sinRef};
+  return {ok:hechas>0,hechas:hechas,fallos:fallos,sinRef:sinRef,malas:malas};
 }
 
 // Genera las vistas que falten: personaje por personaje, y dentro de cada uno
