@@ -13,12 +13,41 @@
 
 const { checkAuth } = require('./_auth');
 
+// La version de cloudrun/unify/index.js que espera ESTA copia del repositorio.
+// Si el Cloud Run desplegado devuelve otra, es que le falta la actualizacion.
+// comprobar.sh vigila que las dos vayan siempre a la par.
+const VERSION_ESPERADA = '2026-08-07.1';
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-app-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (!checkAuth(req, res)) return;
+
+  // GET = comprobar que version del servicio hay corriendo. Asi la herramienta
+  // sabe SOLA si el Cloud Run esta al dia y no hay que preguntarselo a nadie.
+  if (req.method === 'GET') {
+    const url = process.env.CLOUD_RUN_UNIFY_URL;
+    if (!url) return res.json({ estado: 'sin-configurar', esperada: VERSION_ESPERADA });
+    try {
+      const ctrl = new AbortController();
+      const corta = setTimeout(() => ctrl.abort(), 8000);
+      const r = await fetch(url.replace(/\/+$/, '') + '/', { signal: ctrl.signal });
+      clearTimeout(corta);
+      const d = await r.json().catch(() => ({}));
+      // Un servicio anterior a este cambio no devuelve version: eso YA significa
+      // que esta desactualizado, no que no se pueda saber.
+      const actual = d.version || null;
+      return res.json({
+        estado: actual === VERSION_ESPERADA ? 'al-dia' : 'desactualizado',
+        actual: actual, esperada: VERSION_ESPERADA,
+      });
+    } catch (e) {
+      return res.json({ estado: 'sin-respuesta', esperada: VERSION_ESPERADA, error: String(e.message || e) });
+    }
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (typeof req.body === 'string') {

@@ -54,3 +54,6 @@ La de subtitulos NO necesita el servidor, pero si `ffmpeg` y `ffprobe`:
 
 Sintaxis, JSON, funciones que se llaman pero no existen, ids huerfanos y que el
 index.js embebido en los instaladores de Cloud Run siga al dia.
+- **check-version-montaje.js** — que la herramienta diga SOLA si el Cloud Run
+  esta al dia o le falta la ultima actualizacion. Levanta sus propios servidores
+  (8331 y 8332), no necesita el de siempre.

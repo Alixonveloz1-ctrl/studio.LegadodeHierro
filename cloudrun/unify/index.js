@@ -34,6 +34,12 @@ const crypto = require('crypto');
 const { execFile } = require('child_process');
 const { Storage } = require('@google-cloud/storage');
 
+// VERSION DEL SERVICIO. Cambia cada vez que se toca este archivo, y la
+// herramienta la compara con la que espera para decir sola si el Cloud Run que
+// hay corriendo esta al dia o le falta la ultima actualizacion. Antes no habia
+// forma de saberlo desde fuera y habia que preguntarlo, que es absurdo.
+const VERSION = '2026-08-07.1';
+
 const PORT = process.env.PORT || 8080;
 // Sin nombres de respaldo: el bucket SIEMPRE viene de la variable BUCKET del despliegue.
 const BUCKET = (process.env.BUCKET || '').replace('gs://', '').replace(/\/.*$/, '');
@@ -490,7 +496,7 @@ async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg, im
 const server = http.createServer((req, res) => {
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'GET' && req.url === '/') {
-    return res.end(JSON.stringify({ ok: true, service: 'legado-unify' }));
+    return res.end(JSON.stringify({ ok: true, service: 'legado-unify', version: VERSION }));
   }
   if (req.method !== 'POST' || req.url !== '/start') {
     res.statusCode = 404;

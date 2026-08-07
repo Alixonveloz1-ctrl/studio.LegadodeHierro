@@ -3851,6 +3851,42 @@ function setUnifyLang(l){
       : '▶ Escuchar cómo quedará (narración ES + música)';
   }
 }
+// ¿ESTA AL DIA EL CLOUD RUN? Antes no habia forma de saberlo: el servicio solo
+// respondia {ok:true}, asi que cada vez que se tocaba el montaje habia que
+// PREGUNTAR si se habia corrido el actualizador. Preguntar por algo que la
+// maquina puede comprobar sola es hacerle perder el tiempo a quien la usa.
+// Ahora el servicio devuelve su version, la herramienta la compara con la que
+// espera, y lo dice ella misma en el panel de unificacion.
+async function comprobarCloudRun(){
+  var el=document.getElementById('crVer');
+  if(!el)return;
+  var d={};
+  try{
+    var r=await fetch('/api/unify');
+    d=await r.json();
+  }catch(e){ d={estado:'sin-respuesta',error:e.message}; }
+  var css=function(borde,fondo,color){
+    el.style.border='1px solid '+borde;el.style.background=fondo;el.style.color=color;
+    el.style.display='block';
+  };
+  if(d.estado==='al-dia'){
+    css('#9ab47a55','#f2f7ee','#5c7a45');
+    el.innerHTML='✓ El montaje en Cloud Run está al día (versión '+escHtml(d.actual||'')+').';
+  }else if(d.estado==='desactualizado'){
+    css('#c4a05a66','#fbf5e8','#8a6a1f');
+    el.innerHTML='⚠ <b>Al montaje le falta la última actualización.</b> '
+      +'Tiene la versión '+escHtml(d.actual||'anterior a las versiones')+' y necesita la '+escHtml(d.esperada||'')+'.<br>'
+      +'Corre esto una vez en la terminal de Google Cloud:<br>'
+      +'<code style="display:block;margin-top:5px;padding:6px 8px;background:#fff;border:1px solid #e0d5bd;border-radius:6px;font-size:11px;word-break:break-all">curl -sL https://studio.legadodehierro.com/u.sh | bash</code>';
+  }else if(d.estado==='sin-configurar'){
+    css('#c4a05a66','#fbf5e8','#8a6a1f');
+    el.textContent='⚠ El montaje aún no está configurado en Vercel (falta CLOUD_RUN_UNIFY_URL).';
+  }else{
+    css('#c4707066','#fbeeee','#96403f');
+    el.textContent='⚠ El montaje no responde ahora mismo. Si acabas de desplegarlo, espera unos segundos y recarga.';
+  }
+}
+
 function wireUnifyLang(){
   Array.prototype.forEach.call(document.querySelectorAll('.unifyLang'),function(b){
     if(b.dataset.wired)return; b.dataset.wired='1';
@@ -4854,6 +4890,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   buildHistory();
   wireUnifyLang();
+  comprobarCloudRun();
   // La biblia se carga al entrar: el director la necesita ya en el primer guion.
   cargarBiblia();
   var bb=document.getElementById('bibliaBtn');

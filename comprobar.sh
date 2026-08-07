@@ -161,6 +161,29 @@ for s in public/u.sh public/i.sh cloudrun/unify/actualizar.sh cloudrun/unify/ins
 done
 rm -f /tmp/_emb.js
 
+echo "== la version del montaje =="
+# La herramienta le dice sola al usuario si su Cloud Run esta al dia comparando
+# dos constantes. Si se tocan sin bumpear la version, dira "al dia" mintiendo.
+vser=$(grep -m1 "^const VERSION = '" cloudrun/unify/index.js | sed "s/.*'\(.*\)'.*/\1/")
+vesp=$(grep -m1 "^const VERSION_ESPERADA = '" api/unify.js | sed "s/.*'\(.*\)'.*/\1/")
+if [ -z "$vser" ] || [ -z "$vesp" ]; then
+  echo "  FALTA la constante VERSION en el servicio o VERSION_ESPERADA en api/unify.js"; fallos=$((fallos+1))
+elif [ "$vser" != "$vesp" ]; then
+  echo "  DESCUADRADAS: el servicio dice $vser y la herramienta espera $vesp"; fallos=$((fallos+1))
+else
+  echo "  ok    servicio y herramienta van por la $vser"
+  # Si el servicio cambio respecto al ultimo commit, la version TIENE que cambiar
+  # tambien; si no, el usuario no se entera de que le falta actualizar.
+  if git rev-parse --git-dir >/dev/null 2>&1 && ! git diff --quiet HEAD -- cloudrun/unify/index.js 2>/dev/null; then
+    vant=$(git show HEAD:cloudrun/unify/index.js 2>/dev/null | grep -m1 "^const VERSION = '" | sed "s/.*'\(.*\)'.*/\1/")
+    if [ -n "$vant" ] && [ "$vant" = "$vser" ]; then
+      echo "  SIN BUMPEAR: cambiaste el servicio pero dejaste la version en $vser"; fallos=$((fallos+1))
+    else
+      echo "  ok    el servicio cambio y la version subio ($vant → $vser)"
+    fi
+  fi
+fi
+
 echo
 if [ "$fallos" -eq 0 ]; then echo "TODO OK — se puede desplegar"; else echo "$fallos problema(s): NO despliegues"; fi
 exit "$fallos"

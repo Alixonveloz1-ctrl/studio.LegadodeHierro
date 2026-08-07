@@ -4,7 +4,9 @@ const fs = require('fs');
 const path = require('path');
 
 const PUB = '/home/user/studio.LegadodeHierro/public';
-const PORT = 8321;
+// 8321 por defecto; una prueba puede pedir otro puerto para levantar el suyo
+// propio sin pelearse con el servidor que ya este corriendo.
+const PORT = Number(process.env.PUERTO) || 8321;
 
 const TINY_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
@@ -175,6 +177,15 @@ const server = http.createServer((req, res) => {
       sources: [{ title: 'Fuente demo', uri: 'https://example.com/x' }],
     }));
     return;
+  }
+  // Version del montaje en Cloud Run. La prueba decide que contestar poniendo
+  // CR_ESTADO al arrancar el servidor: al-dia (por defecto) o desactualizado.
+  if (req.method === 'GET' && req.url === '/api/unify') {
+    const esperada = '2026-08-07.1';
+    const est = process.env.CR_ESTADO || 'al-dia';
+    return json(res, 200, est === 'al-dia'
+      ? { estado: 'al-dia', actual: esperada, esperada }
+      : { estado: 'desactualizado', actual: null, esperada });
   }
   if (req.method === 'POST' && req.url === '/api/unify') {
     let b = '';
