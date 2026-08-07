@@ -110,6 +110,8 @@ async function fetchFromIbb(url) {
 // Va dentro de este archivo y no en uno nuevo a proposito: Vercel limita el
 // numero de funciones en el plan gratuito y ya hay 13.
 
+const { REPARTO } = require('./_personajes');
+
 const INDICE = 'personajes/index.json';
 
 async function leerIndice(token, bucket) {
@@ -299,24 +301,39 @@ async function biblia(req, res) {
     const token = await getGCPToken();
 
     if (accion === 'list') {
-      const lista = await leerIndice(token, bucket);
-      // Si aun no hay nada, se siembra con el personaje INSIGNIA usando sus 4
-      // imagenes de siempre. No se regenera: su cara lleva un ano siendo la marca.
-      if (!lista.length) {
-        lista.push(sanearFicha({
+      let lista = await leerIndice(token, bucket);
+      // SIEMBRA. La biblia no nace vacia: trae el insignia mas los 31 del
+      // reparto. Un formulario en blanco no sirve de nada — lo que da variedad
+      // es que el director tenga gente a la que llamar.
+      // El insignia entra con sus 4 imagenes DE SIEMPRE, sin regenerar: su cara
+      // lleva un ano siendo la marca del canal.
+      const antes = lista.length;
+      if (!lista.some(x => x.id === 'insignia')) {
+        lista.unshift(sanearFicha({
           id: 'insignia', nombre: 'El hombre de Legado de Hierro', rol: 'Protagonista del canal',
           edad: '35 anos',
           fisico: 'hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria',
           vestuario: 'traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes',
           habla: 'directo, crudo, sin adornos',
-          encaja: 'cualquier reel del canal: es el protagonista por defecto',
+          encaja: 'es el protagonista por defecto y aparece en practicamente todos los reels',
           fijo: true,
           refs: ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3', 'refs/personaje-4'],
         }));
-        await escribirIndice(token, bucket, lista);
-        console.log('[refs] biblia sembrada con el personaje insignia');
       }
-      return res.json({ success: true, personajes: lista });
+      // Los del reparto se anaden si faltan, SIN pisar los que ya tengan vistas
+      // generadas o los que el duenno haya editado.
+      for (const base of REPARTO) {
+        if (lista.some(x => x.id === base.id)) continue;
+        lista.push(sanearFicha(base));
+      }
+      if (lista.length !== antes) {
+        await escribirIndice(token, bucket, lista);
+        console.log('[refs] biblia sembrada: ' + (lista.length - antes) + ' personajes nuevos, ' + lista.length + ' en total');
+      }
+      return res.json({
+        success: true, personajes: lista,
+        conVistas: lista.filter(p => (p.refs || []).length).length,
+      });
     }
 
     if (accion === 'imagenes') {

@@ -14,6 +14,7 @@ let inFlight = 0, maxConcurrent = 0;
 let lastAppKey = null;
 let lastAudioBody = null;
 let lastUnifyBody = null;
+let MOCK_VISTAS = {};
 let musicTracks = [{ object: 'musica/epica-1.mp3', name: 'epica-1.mp3', size: 2000000 }];
 
 const SCRIPT_TEXT = (n, concepto) => `BLOQUE A
@@ -117,6 +118,34 @@ const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => json(res, 200, { success: true, image: TINY_PNG }));
+    return;
+  }
+  // Biblia de personajes (POST). El reparto real se lee del modulo del repo.
+  if (req.method === 'POST' && req.url.split('?')[0] === '/api/refs') {
+    let b3=''; req.on('data',c=>b3+=c);
+    req.on('end',()=>{
+      let d={}; try{ d=JSON.parse(b3); }catch(e){}
+      const { REPARTO } = require('/home/user/studio.LegadodeHierro/api/_personajes.js');
+      if(d.action==='imagenes'){
+        return json(res,200,{success:true,id:d.id,refs:[TINY_PNG,TINY_PNG]});
+      }
+      if(d.action==='generar'){
+        return json(res,200,{success:true,id:d.personaje&&d.personaje.id,
+          vistas:[0,1,2,3].map(i=>({i:i,b64:TINY_PNG}))});
+      }
+      if(d.action==='guardar'){
+        const id=d.personaje&&d.personaje.id;
+        if(id)MOCK_VISTAS[id]=true;
+        return json(res,200,{success:true,personaje:d.personaje});
+      }
+      const insignia={id:'insignia',nombre:'El hombre de Legado de Hierro',rol:'Protagonista del canal',
+        fijo:true,encaja:'es el protagonista por defecto',
+        refs:['refs/personaje-1','refs/personaje-2','refs/personaje-3','refs/personaje-4']};
+      const lista=[insignia].concat(REPARTO.map(p=>Object.assign({},p,{
+        refs: MOCK_VISTAS[p.id] ? ['personajes/'+p.id+'/vista-1.png'] : [],
+      })));
+      json(res,200,{success:true,personajes:lista,conVistas:lista.filter(p=>p.refs.length).length});
+    });
     return;
   }
   if (req.url.split('?')[0] === '/api/refs') {

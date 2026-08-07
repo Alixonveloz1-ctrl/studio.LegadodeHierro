@@ -210,6 +210,23 @@ section{margin-bottom:20px}
       <div class="slbl">🕘 Historial</div>
       <button class="sbtn" id="histBtn"><span id="histLbl">Historial · 0 reels guardados</span><span id="ha">▼</span></button>
       <div class="spanel" id="histPanel"><div id="histGrid" style="padding:11px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div></div>
+
+      <button class="sbtn" id="bibliaBtn" style="margin-top:8px"><span id="bibliaLbl">Biblia de personajes</span><span id="ba">▼</span></button>
+      <div class="spanel" id="bibliaPanel">
+        <div style="padding:11px">
+          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">
+            El reparto del canal. El director elige a quién meter en cada guion según lo que cuente.
+            Los que tienen <b>✓</b> ya tienen sus vistas generadas y saldrán siempre con la misma cara;
+            los que no, saldrán descritos por texto hasta que se les generen.
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <button class="cbtn" id="bBibliaTodas" style="border-color:#b8975a;color:#b8975a">⚡ Generar las vistas que faltan</button>
+            <button class="cbtn" id="bBibliaRecargar">↻ Recargar</button>
+          </div>
+          <div class="stxt" id="bibliaSt"></div>
+          <div id="bibliaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px"></div>
+        </div>
+      </div>
     </section>
 
     <section><div class="slbl">00 · Modo de Reel</div><div class="olist" id="modeSelector"></div></section>

@@ -413,7 +413,7 @@ EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cam
 - Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
 
 MODO HISTORIA — el arco del que cambia:
-Un recorrido con principio y final: el punto en que se hartó, la decisión, lo que costó sostenerla, y en qué se convirtió. QUÉ cambia lo dicta el PILAR y el CONCEPTO — puede ser levantar algo propio, pero también puede ser ganarse una disciplina, romper un hábito, dejar de postergar o aprender a confiar en sí mismo. No lo conviertas en una historia de negocios si el pilar no va de eso. Cuéntalo en segunda persona (tú) o desde la lección, jamás inventando un personaje con nombre.
+Un recorrido con principio y final: el punto en que se hartó, la decisión, lo que costó sostenerla, y en qué se convirtió. QUÉ cambia lo dicta el PILAR y el CONCEPTO — puede ser levantar algo propio, pero también puede ser ganarse una disciplina, romper un hábito, dejar de postergar o aprender a confiar en sí mismo. No lo conviertas en una historia de negocios si el pilar no va de eso. Cuéntalo en segunda persona (tú) o desde la lección. No inventes un protagonista con nombre propio: el que cambia es el espectador. Sí pueden aparecer OTRAS personas de su vida (quien lo espera en casa, quien le dio el primer sí, quien no cambió) — el reparto del canal está más abajo.
 Esto es el esqueleto, NO una plantilla: entra por donde quieras, dale la vuelta al orden, sorprende.
 
 NUNCA UN PERSONAJE INVENTADO: nada de "Marcos", "Carlos", "Pedro" ni la fórmula "[Nombre] vivía en un barrio... un día entendió...". Nada de biografías ficticias.
@@ -842,6 +842,123 @@ function cierreDe(txt){
   return String(last||ult).trim().slice(0,110);
 }
 
+// ============ EL REPARTO ============
+// La biblia de personajes vive en el bucket y se carga una vez al entrar.
+// Hasta ahora el canal tenia UN personaje y el prompt prohibia expresamente
+// inventar otros, asi que todos los reels eran el mismo hombre solo. Sin nadie
+// mas en el cuadro no hay conflicto ni dialogo: solo un senor pensando. Esa es
+// una de las razones de que todo pareciera igual.
+var BIBLIA=[];
+
+function cargarBiblia(){
+  return fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'list'})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d&&Array.isArray(d.personajes))BIBLIA=d.personajes;
+      if(typeof pintarBiblia==='function')pintarBiblia();
+      return BIBLIA;
+    })
+    .catch(function(){return BIBLIA;});
+}
+
+function pintarBiblia(){
+  var g=document.getElementById('bibliaGrid');if(!g)return;
+  var lbl=document.getElementById('bibliaLbl');
+  var conVistas=BIBLIA.filter(function(p){return (p.refs||[]).length;}).length;
+  if(lbl)lbl.textContent='Biblia de personajes · '+BIBLIA.length+' en el reparto, '+conVistas+' con vistas';
+  g.innerHTML='';
+  BIBLIA.forEach(function(p){
+    var listo=(p.refs||[]).length>0;
+    var el=document.createElement('div');
+    el.style.cssText='background:#fff;border:1.5px solid '+(p.fijo?'#b8975a':'var(--border)')
+      +';border-radius:10px;padding:9px 10px';
+    el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px">'
+      +'<span style="font-size:11px;font-weight:700;color:var(--tx1);line-height:1.3">'+escHtml(p.nombre)+'</span>'
+      +'<span style="font-size:10px;color:'+(listo?'#7a9b8a':'var(--tx3)')+'">'+(listo?'✓':'—')+'</span></div>'
+      +'<div style="font-size:9.5px;color:var(--tx3);line-height:1.4;margin-bottom:5px">'+escHtml(p.rol||'')
+      +(p.fijo?' · <b style="color:#b8975a">insignia</b>':'')+'</div>'
+      +'<div style="font-size:9.5px;color:var(--tx3);line-height:1.4">'+escHtml((p.encaja||'').slice(0,90))+'</div>';
+    g.appendChild(el);
+  });
+}
+
+// Genera las vistas que falten, de una en una para poder ir contando y para que
+// un fallo suelto no tire toda la tanda.
+async function generarVistasFaltantes(){
+  var btn=document.getElementById('bBibliaTodas');
+  var st=document.getElementById('bibliaSt');
+  var faltan=BIBLIA.filter(function(p){return !(p.refs||[]).length;});
+  if(!faltan.length){ if(st){st.style.display='block';st.textContent='Todos los personajes ya tienen sus vistas.';} return; }
+  if(!confirm('Se van a generar 4 vistas para '+faltan.length+' personaje(s).\n\nCoste aproximado: $'
+    +(faltan.length*4*imgCost()).toFixed(2)+'. Se hace una sola vez: luego son gratis para siempre.\n\n¿Seguimos?'))return;
+  var orig=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.style.opacity='.6';}
+  if(st)st.style.display='block';
+  var hechos=0,fallos=[];
+  for(var i=0;i<faltan.length;i++){
+    var p=faltan[i];
+    if(st)st.textContent='Generando '+(i+1)+' de '+faltan.length+': '+p.nombre+'... (4 vistas cada uno)';
+    try{
+      var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'generar',personaje:p,model:imgModel})});
+      var d=await r.json();
+      if(!r.ok||!d.vistas)throw new Error(d.error||'Error '+r.status);
+      var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
+      var gd=await g.json();
+      if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
+      hechos++;
+      cost+=4*imgCost();updCost();
+    }catch(e){ fallos.push(p.nombre+': '+(e.message||'error')); }
+  }
+  await cargarBiblia();
+  if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent=orig;}
+  if(st)st.textContent=hechos+' personaje(s) listos.'
+    +(fallos.length?' No salieron '+fallos.length+': '+fallos.slice(0,3).join(' · ')+'. Puedes volver a darle al botón para reintentar solo esos.':'');
+}
+
+function personajePorId(id){
+  for(var i=0;i<BIBLIA.length;i++) if(BIBLIA[i].id===id) return BIBLIA[i];
+  return null;
+}
+
+// Los secundarios que MENOS han salido ultimamente van primero: asi el director
+// ve caras frescas arriba en vez de proponer siempre a los mismos.
+function repartoDisponible(){
+  var usos={};
+  histRecientes(20).forEach(function(it){
+    var ps=(it.sem&&it.sem.personajes)?it.sem.personajes:[];
+    ps.forEach(function(id){usos[id]=(usos[id]||0)+1;});
+  });
+  return BIBLIA.filter(function(p){return !p.fijo;})
+    .slice()
+    .sort(function(a,b){return (usos[a.id]||0)-(usos[b.id]||0);});
+}
+
+// EL REPARTO, tal como lo lee el director al escribir el guion.
+function bloqueReparto(){
+  var libres=repartoDisponible();
+  if(!libres.length)return '';
+  var filas=libres.slice(0,31).map(function(p){
+    return '- ' + p.id + ' | ' + p.nombre + (p.rol?' ('+p.rol+')':'') + ' — ' + (p.encaja||'');
+  });
+  return 'EL REPARTO DEL CANAL. Ademas del protagonista existen estas personas, y son SUYAS: '
+    +'la misma compañera, el mismo mentor y el mismo cliente en todos los reels donde aparecen. '
+    +'Estan ordenadas de la que menos ha salido ultimamente a la que mas.\n'
+    +filas.join('\n')+'\n\n'
+    +'COMO USARLOS (importante):\n'
+    +'- Si el guion pide otra persona — alguien que espera en casa, alguien a quien se le rinde cuentas, '
+    +'alguien que ya lo logro, alguien que no cambio — ELIGE a alguien de esa lista en vez de dejar al protagonista solo.\n'
+    +'- Como maximo DOS secundarios por reel, y solo si aportan. Un guion de reflexion personal puede no llevar ninguno: '
+    +'meter gente porque si es peor que no meterla.\n'
+    +'- NO inventes personas nuevas ni les pongas nombre propio: usa a los del reparto.\n'
+    +'- En los prompts de imagen, cuando en la escena aparezca uno de ellos, empieza ESE prompt con la marca '
+    +'[CON: id] usando su identificador exacto de la lista (por ejemplo [CON: companera]). '
+    +'Esa marca es la que hace que salga con su cara de siempre; sin ella saldra una persona cualquiera distinta cada vez. '
+    +'Si en una imagen no hay nadie mas, no pongas marca.\n\n';
+}
+
 // MEMORIA DE ESCENAS. Hasta ahora la unica defensa contra las imagenes repetidas
 // era una lista de escenas prohibidas escrita A MANO ("cargando cajas", "obra en
 // construccion"...) que yo anadia cada vez que el dueno notaba que una se habia
@@ -851,7 +968,7 @@ function cierreDe(txt){
 // corto, y los de los ultimos reels se le pasan al director como "esto ya lo
 // usaste". Asi la lista se mantiene sola.
 function resumirEscena(prompt){
-  var p=String(prompt||'').replace(/\s+/g,' ').trim();
+  var p=String(prompt||'').replace(/\[CON:\s*[a-z0-9-]+\s*\]/gi,'').replace(/\s+/g,' ').trim();
   if(!p)return '';
   // Fuera la parte tecnica del prompt (planos, luz, estilo): lo que importa para
   // no repetirse es QUE se ve, no como esta fotografiado.
@@ -978,11 +1095,11 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
     semEnf=elegirConMemoria(ENFOQUES,'enf',ENFOQUES.length);
     seedRule='PUERTA DE ENTRADA ASIGNADA PARA ESTE GUION (variedad obligatoria, no la anuncies ni la nombres): entra al tema por '+semEnf+' Sigue tratando el PILAR y el CONCEPTO que te dieron, pero ábrelos por ESA puerta en vez de por el encuadre de siempre. Si esa puerta NO encaja con el pilar o con el concepto, MANDA EL PILAR: descártala y entra por donde el tema lo pida. Si al terminar el guion podría haber entrado por cualquier otra puerta sin cambiar nada, no lo hiciste bien.\n\n';
   }
-  var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+bloqueYaDicho(25)+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
+  var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+bloqueReparto()+bloqueYaDicho(25)+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
   // Las semillas creativas viajan de vuelta para guardarlas en el historial. Sin
   // esto no hay forma de rotar sin repetir: el siguiente guion no sabria por que
   // puerta entro el anterior ni en que mundo visual estuvo.
-  return {msg:msg,tO:tO,dO:dO,hO:hO,sem:{enf:semEnf,ang:semAng,regs:regs}};
+  return {msg:msg,tO:tO,dO:dO,hO:hO,sem:{enf:semEnf,ang:semAng,regs:regs,personajes:[]}};
 }
 
 // Llama a /api/generate y devuelve el episodio ya parseado (a, f, c, cRaw, raw).
@@ -2446,6 +2563,65 @@ async function loadRefs(){
   return refs;
 }
 
+// Cache de las vistas de cada secundario, para no pedirlas al servidor una vez
+// por imagen. Se llenan la primera vez que ese personaje aparece.
+var REFS_PERSONAJE={};
+
+// El director marca los prompts con [CON: id] cuando en esa escena aparece
+// alguien del reparto. Aqui se traduce esa marca a: (a) sus vistas de referencia,
+// para que salga con SU cara y no con una persona cualquiera distinta cada vez,
+// y (b) una descripcion suya dentro del prompt.
+async function refsDeEscena(prompt){
+  var ids=[],re=/\[CON:\s*([a-z0-9-]+)\s*\]/gi,m;
+  while((m=re.exec(prompt))!==null){ if(ids.indexOf(m[1])<0)ids.push(m[1]); }
+  var limpio=prompt.replace(/\[CON:\s*[a-z0-9-]+\s*\]/gi,'').replace(/^\s+/,'');
+  if(!ids.length)return {prompt:limpio,refs:null,ids:[]};
+
+  var extra=[],fichas=[];
+  for(var i=0;i<ids.length&&i<2;i++){
+    var p=personajePorId(ids[i]);
+    if(!p)continue;
+    fichas.push(p.nombre+' ('+(p.rol||'')+'): '+p.fisico+(p.vestuario?'. Viste: '+p.vestuario:''));
+    if(REFS_PERSONAJE[p.id]===undefined){
+      try{
+        var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action:'imagenes',id:p.id})});
+        var d=await r.json();
+        REFS_PERSONAJE[p.id]=(d&&Array.isArray(d.refs)&&d.refs.length)?d.refs:null;
+      }catch(e){ REFS_PERSONAJE[p.id]=null; }
+    }
+    var rp=REFS_PERSONAJE[p.id];
+    if(rp)extra=extra.concat(rp.slice(0,2)); // 2 vistas por secundario: suficiente y no infla la peticion
+  }
+  // La descripcion va SIEMPRE, tenga vistas o no: si el personaje aun no tiene
+  // imagenes generadas, al menos el texto mantiene su aspecto estable.
+  if(fichas.length){
+    limpio+='\n\nOTRAS PERSONAS EN ESTA ESCENA (respeta su aspecto exactamente): '+fichas.join(' | ')
+      +'. El protagonista sigue siendo el hombre de las imagenes de referencia.';
+  }
+  return {prompt:limpio,refs:extra.length?extra:null,ids:ids};
+}
+
+// Junta las referencias del protagonista con las de los secundarios de la escena.
+async function prepararImagen(promptCrudo,refsBase){
+  var e=await refsDeEscena(promptCrudo);
+  var refs=refsBase||[];
+  if(e.refs)refs=refs.concat(e.refs);
+  if(e.ids.length)apuntarPersonajes(e.ids);
+  return {prompt:e.prompt,refs:refs};
+}
+
+// Deja constancia en el historial de quien salio, para que la proxima vez el
+// reparto se ordene por quien lleva mas tiempo sin aparecer.
+function apuntarPersonajes(ids){
+  if(!lastRes||!ids||!ids.length)return;
+  if(!lastRes.sem)lastRes.sem={};
+  var ya=lastRes.sem.personajes||[];
+  ids.forEach(function(x){ if(ya.indexOf(x)<0)ya.push(x); });
+  lastRes.sem.personajes=ya;
+  guardarEnReel({sem:lastRes.sem});
+}
+
 async function genOneImage(prompt,refs){
   var ir;
   try{
@@ -2504,7 +2680,9 @@ function setSlotOk(slot,src,idx){
   rb.addEventListener('click',function(){
     setSlotLoading(slot,iidx);
     var p=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    genOneImage(imgPromptPrefix(imgFmt)+p,imgRefs).then(function(s){
+    prepararImagen(p,imgRefs).then(function(e){
+      return genOneImage(imgPromptPrefix(imgFmt)+e.prompt,e.refs);
+    }).then(function(s){
       imgs[iidx]={src:s,idx:iidx+1};
       var habia=invalidarClip(iidx); // el clip de la imagen vieja ya no vale
       setSlotOk(slot,s,iidx);cost+=imgCost();updCost();chkExport();
@@ -2549,7 +2727,9 @@ function setSlotError(slot,idx,msg){
   rbtn.addEventListener('click',function(){
     setSlotLoading(slot,iidx);
     var prompt=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    genOneImage(imgPromptPrefix(imgFmt)+prompt,imgRefs).then(function(src){
+    prepararImagen(prompt,imgRefs).then(function(e){
+      return genOneImage(imgPromptPrefix(imgFmt)+e.prompt,e.refs);
+    }).then(function(src){
       imgs[iidx]={src:src,idx:iidx+1};
       var habia=invalidarClip(iidx); // el clip de la imagen vieja ya no vale
       setSlotOk(slot,src,iidx);
@@ -2610,7 +2790,8 @@ async function genImages(){
   for(var i=0;i<totalImgs;i++){
     st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
     try{
-      var src=await genOneImage(imgPromptPrefix(imgFmt)+lastRes.c[i],imgRefs);
+      var esc=await prepararImagen(lastRes.c[i],imgRefs);
+      var src=await genOneImage(imgPromptPrefix(imgFmt)+esc.prompt,esc.refs);
       imgs[i]={src:src,idx:i+1};
       setSlotOk(slots[i],src,i);
       gen++;cost+=imgCost();updCost();chkExport();
@@ -2811,6 +2992,9 @@ async function genVideoForSlot(idx,box){
 // (autoridad financiera, nunca tristeza ni distorsion) y de que cualquier accion tenga sentido real.
 function buildVideoMotionPrompt(idx){
   var base=lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'';
+  // Fuera la marca [CON: id]: es una instruccion nuestra para elegir referencias,
+  // no algo que el generador de video deba leer (acabaria dibujando el texto).
+  base=String(base).replace(/\[CON:\s*[a-z0-9-]+\s*\]/gi,'').replace(/^\s+/,'');
   return 'ANIMATION STYLE (strict, must match the input image exactly): American 2D comic book illustration style, clean ink outlines, flat cel-shading with hard color blocks and visible shading edges -- NOT 3D, NOT 3D render, NOT CGI, NOT photorealistic, NOT realistic rendering, NOT Pixar style, NOT smooth 3D shading. The animation must preserve the flat 2D comic look of the source image throughout the entire clip.\n\n'
     // OJO: aqui NO se nombra la lluvia. Los modelos de video no manejan bien la
     // negacion: escribir "sin lluvia" mete la palabra en el prompt y acaba
@@ -4111,6 +4295,17 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   buildHistory();
   wireUnifyLang();
+  // La biblia se carga al entrar: el director la necesita ya en el primer guion.
+  cargarBiblia();
+  var bb=document.getElementById('bibliaBtn');
+  if(bb)bb.addEventListener('click',function(){
+    var o=document.getElementById('bibliaPanel').classList.toggle('on');
+    document.getElementById('ba').textContent=o?'▲':'▼';
+  });
+  var bt2=document.getElementById('bBibliaTodas');
+  if(bt2)bt2.addEventListener('click',generarVistasFaltantes);
+  var br2=document.getElementById('bBibliaRecargar');
+  if(br2)br2.addEventListener('click',function(){cargarBiblia();});
   var bt=document.getElementById('bthumb');
   if(bt)bt.addEventListener('click',genThumb);
   var bu=document.getElementById('bunify');
