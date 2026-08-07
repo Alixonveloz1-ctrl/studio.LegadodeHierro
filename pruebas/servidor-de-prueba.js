@@ -135,8 +135,8 @@ const server = http.createServer((req, res) => {
         // El insignia se devuelve con un HUECO (falta la vista 2), que es el caso
         // que antes descolocaba los botones ↺ y pasaba en silencio.
         const hechas = (MOCK_VISTAS[d.id]||[]).length;
-        const idx = d.id==='insignia' ? [0,2,3] : (hechas ? MOCK_VISTAS[d.id].map((_,k)=>k) : [0,1]);
-        return json(res,200,{success:true,id:d.id,total:4,
+        const idx = d.id==='insignia' ? [0,2] : (hechas ? MOCK_VISTAS[d.id].map((_,k)=>k) : [0,1]);
+        return json(res,200,{success:true,id:d.id,total:3,
           refs:idx.map(()=>TINY_PNG),indices:idx});
       }
       if(d.action==='generar'){
@@ -146,7 +146,7 @@ const server = http.createServer((req, res) => {
                       model:d.model,conRefs:!!(MOCK_VISTAS[d.personaje&&d.personaje.id])});
         const i=(typeof d.vista==='number')?d.vista:0;
         return json(res,200,{success:true,id:d.personaje&&d.personaje.id,vista:i,
-          vistas:[{i:i,b64:TINY_PNG}],conReferencia:MOCK_VISTAS[d.personaje&&d.personaje.id]?2:0,total:4});
+          vistas:[{i:i,b64:TINY_PNG}],conReferencia:MOCK_VISTAS[d.personaje&&d.personaje.id]?2:0,total:3});
       }
       if(d.action==='guardar'){
         const id=d.personaje&&d.personaje.id;
@@ -163,8 +163,7 @@ const server = http.createServer((req, res) => {
       const insignia={id:'insignia',nombre:'El hombre de Legado de Hierro',rol:'Protagonista del canal',
         fijo:true,encaja:'es el protagonista por defecto',
         base:['refs/personaje-1','refs/personaje-2','refs/personaje-3','refs/personaje-4'],
-        refs:['personajes/insignia/vista-1.png',null,
-              'personajes/insignia/vista-3.png','personajes/insignia/vista-4.png']};
+        refs:['personajes/insignia/vista-1.png',null,'personajes/insignia/vista-3.png']};
       const lista=[insignia].concat(REPARTO.map(p=>Object.assign({},p,{
         refs: (MOCK_VISTAS[p.id]||[]).map((_,k)=>'personajes/'+p.id+'/vista-'+(k+1)+'.png'),
       })));

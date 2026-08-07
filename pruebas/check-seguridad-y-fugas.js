@@ -65,6 +65,9 @@ const REPO = '/home/user/studio.LegadodeHierro';
   const page = await b.newPage();
   page.on('pageerror', e => console.log('PAGEERROR: ' + e.message));
   await page.route(/https:\/\/(fonts|i\.ibb|cdnjs)/, r => r.abort());
+  // Las pruebas comparten el mismo servidor: se limpia el estado de la biblia para
+  // que el orden en que se ejecuten no cambie el resultado.
+  await page.goto('http://localhost:8321/__bibliareset');
   await page.goto('http://localhost:8321/', { waitUntil: 'domcontentloaded' });
   await page.fill('#lp','test123'); await page.click('text=⚔ Entrar'); await page.waitForSelector('#pg-app.on');
 

@@ -45,6 +45,9 @@ Iron Legacy.`;
   let ok = 0, ko = 0;
   const t = (n, c, extra) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (extra ? '  (' + extra + ')' : '')); c ? ok++ : ko++; };
 
+  // Las pruebas comparten el mismo servidor: se limpia el estado de la biblia para
+  // que el orden en que se ejecuten no cambie el resultado.
+  await page.goto('http://localhost:8321/__bibliareset');
   await page.goto('http://localhost:8321/', { waitUntil: 'domcontentloaded' });
   await page.fill('#lp', 'test123'); await page.click('text=⚔ Entrar'); await page.waitForSelector('#pg-app.on');
 

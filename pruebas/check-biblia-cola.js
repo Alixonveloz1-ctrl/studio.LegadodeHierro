@@ -24,12 +24,12 @@ const { chromium } = require('playwright-core');
     const p = personajePorId('madre');
     return await generarVistasDe(p, null);
   });
-  t('genera las 4 vistas', res.hechas === 4, res.hechas + ' hechas, ' + res.fallos.length + ' fallos');
+  t('genera las 3 vistas', res.hechas === 3, res.hechas + ' hechas, ' + res.fallos.length + ' fallos');
 
   const log = await page.evaluate(() => fetch('/__biblialog').then(r => r.json()));
   const g = log.gen.filter(x => x.id === 'madre');
-  t('hace UNA petición por vista, no una con las cuatro', g.length === 4, g.length + ' peticiones');
-  t('pide las cuatro vistas distintas', new Set(g.map(x => x.vista)).size === 4,
+  t('hace UNA petición por vista, no una con las tres', g.length === 3, g.length + ' peticiones');
+  t('pide las tres vistas distintas', new Set(g.map(x => x.vista)).size === 3,
     'vistas ' + g.map(x => x.vista).join(','));
   t('empieza por la vista 1 (es la que fija la cara)', g[0].vista === 0);
 
@@ -45,8 +45,8 @@ const { chromium } = require('playwright-core');
   // LA CARA SE MANTIENE: de la 2 en adelante se generan CON referencia.
   const conRef = g.filter(x => x.conRefs).length;
   t('la vista 1 va sin referencia (define la cara)', !g[0].conRefs);
-  t('las siguientes SÍ usan las ya guardadas como referencia', conRef === 3,
-    conRef + ' de 3 con referencia');
+  t('las siguientes SÍ usan las ya guardadas como referencia', conRef === 2,
+    conRef + ' de 2 con referencia');
 
   // ---- rehacer una sola vista de un personaje que YA tiene cara ----
   await page.evaluate(() => fetch('/__biblialog'));

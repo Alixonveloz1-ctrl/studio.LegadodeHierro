@@ -40,7 +40,7 @@ const { chromium } = require('playwright-core');
   t('el que ya tiene vistas dice "Ver"', /Ver las vistas/.test(txtInsignia), txtInsignia);
   const txtSin = await page.evaluate(() =>
     document.querySelector('#bibliaGrid [data-id="madre"] .bibliaVer').textContent);
-  t('el que no las tiene ofrece generarlas', /Generar sus 4 vistas/.test(txtSin), txtSin);
+  t('el que no las tiene ofrece generarlas', /Generar sus 3 vistas/.test(txtSin), txtSin);
 
   // abrir las del insignia
   await page.evaluate(() => document.querySelector('#bibliaGrid [data-id="insignia"] .bibliaVer').click());
@@ -68,10 +68,11 @@ const { chromium } = require('playwright-core');
   t('hay un botón ↺ por cada vista, para rehacer solo la mala', vistas.reHacer === vistas.imgs);
   t('y uno para rehacer las cuatro', vistas.todas);
   // ---- la vista que falta: antes la ficha se quedaba coja y en silencio ----
-  t('cada imagen dice QUÉ vista es', /1 · de frente/.test(vistas.etiquetas) && /3 · de perfil/.test(vistas.etiquetas),
+  t('cada imagen dice QUÉ vista es',
+    /1 · la cara/.test(vistas.etiquetas) && /3 · el cuerpo de tres cuartos/.test(vistas.etiquetas),
     vistas.etiquetas);
   t('el botón ↺ apunta a la vista real, no a la posición en la lista',
-    vistas.indicesRe === '0,2,3', vistas.indicesRe);
+    vistas.indicesRe === '0,2', vistas.indicesRe);
   t('AVISA de la vista que falta', /vista 2/.test(vistas.aviso), vistas.aviso || 'no avisa');
   t('y ofrece generar solo esa', vistas.botonFaltan && vistas.faltanData === '1', vistas.faltanData);
 

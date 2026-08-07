@@ -25,6 +25,9 @@ const { REPARTO } = require('/home/user/studio.LegadodeHierro/api/_personajes.js
   t('el jefe NO está escrito como villano', /NUNCA como villano/.test(REPARTO.find(p => p.id === 'jefe').encaja));
 
   // ---- en la herramienta ----
+  // Las pruebas comparten el mismo servidor: se limpia el estado de la biblia para
+  // que el orden en que se ejecuten no cambie el resultado.
+  await page.goto('http://localhost:8321/__bibliareset');
   await page.goto('http://localhost:8321/', { waitUntil: 'domcontentloaded' });
   await page.fill('#lp', 'test123'); await page.click('text=⚔ Entrar'); await page.waitForSelector('#pg-app.on');
   await page.waitForFunction(() => typeof BIBLIA !== 'undefined' && BIBLIA.length > 5, null, { timeout: 10000 });

@@ -1049,6 +1049,12 @@ function modeloBiblia(){
 // Cache de las vistas ya descargadas para verlas, por id de personaje.
 var VISTAS_VISTAS={};
 
+// TRES vistas por personaje: una de la cara y dos del cuerpo. Eran cuatro; con
+// tres el generador tiene referencia de sobra y cada ficha cuesta una imagen menos.
+var N_VISTAS=3;
+var NOMBRE_VISTA=['la cara','el cuerpo de frente','el cuerpo de tres cuartos'];
+function TODAS_LAS_VISTAS(){var a=[];for(var i=0;i<N_VISTAS;i++)a.push(i);return a;}
+
 // Cuantas vistas tiene HECHAS un personaje. refs es una lista de 4 huecos y los
 // que faltan valen null, asi que .length mentiria: diria 4 aunque no haya ninguna.
 function nVistas(p){
@@ -1076,7 +1082,7 @@ function pintarBiblia(){
       +'<button type="button" class="bibliaVer" data-id="'+escHtml(p.id)+'" '
       +'style="width:100%;border:1px solid var(--border);background:var(--warm);border-radius:7px;'
       +'padding:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">'
-      +(listo?'👁 Ver las vistas':'⚡ Generar sus 4 vistas')+'</button>'
+      +(listo?'👁 Ver las vistas':'⚡ Generar sus '+N_VISTAS+' vistas')+'</button>'
       +'<div class="bibliaVistas" style="display:none;margin-top:8px"></div>';
     g.appendChild(el);
   });
@@ -1128,9 +1134,8 @@ async function abrirVistas(id){
   var vs=VISTAS_VISTAS[id];
   if(!vs.length){caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No se pudieron cargar las vistas.</div>';return;}
 
-  var NOMBRE_VISTA=['de frente','de tres cuartos','de perfil','de cuerpo (hasta la cintura)'];
   var hay={};vs.forEach(function(v){hay[v.i]=1;});
-  var faltan=[0,1,2,3].filter(function(i){return !hay[i];});
+  var faltan=TODAS_LAS_VISTAS().filter(function(i){return !hay[i];});
 
   var html='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px">';
   vs.forEach(function(v){
@@ -1157,7 +1162,7 @@ async function abrirVistas(id){
     +'Deben ser el MISMO personaje sobre fondo blanco. Si alguna sale con otra cara, con fondo o deformada, dale a ↺ en esa.</div>'
     +'<button type="button" class="bibliaReTodas" data-id="'+escHtml(id)+'" '
     +'style="width:100%;margin-top:6px;border:1px solid var(--border);background:#fff;border-radius:7px;'
-    +'padding:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">↺ Rehacer las cuatro</button>';
+    +'padding:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">↺ Rehacer las '+(N_VISTAS===3?'tres':'cuatro')+'</button>';
   caja.innerHTML=html;
   if(btn)btn.textContent='👁 Ocultar las vistas';
 
@@ -1172,7 +1177,7 @@ async function abrirVistas(id){
   });
 }
 
-// Rehace una vista concreta (o las cuatro). `cuales` null = todas.
+// Rehace una vista concreta (o todas). `cuales` null = todas.
 async function rehacerVista(id,cuales){
   var p=personajePorId(id);if(!p)return;
   var card=document.querySelector('#bibliaGrid [data-id="'+id+'"]');
@@ -1213,7 +1218,7 @@ async function rehacerVista(id,cuales){
 var PAUSA_VISTAS=1500;
 
 async function generarVistasDe(p,cuales,alProgreso){
-  var lista=cuales&&cuales.length?cuales.slice():[0,1,2,3];
+  var lista=cuales&&cuales.length?cuales.slice():TODAS_LAS_VISTAS();
   // La vista 1 primero SIEMPRE que este en la tanda: es la que fija la cara.
   lista.sort(function(a,b){return a-b;});
   var hechas=0,fallos=[],sinRef=0;
@@ -1254,11 +1259,20 @@ var BIBLIA_PARAR=false;
 async function generarVistasFaltantes(){
   var btn=document.getElementById('bBibliaTodas');
   var st=document.getElementById('bibliaSt');
-  var faltan=BIBLIA.filter(function(p){return !nVistas(p);});
+  // Los que van INCOMPLETOS tambien entran, y de cada uno solo se pide lo que le
+  // falta. Antes solo entraban los que no tenian NINGUNA, asi que un personaje al
+  // que se le hubiera caido una vista se quedaba cojo para siempre y el boton
+  // contestaba que ya estaba todo hecho.
+  var faltan=[],pendientes=[],totalImgs=0;
+  BIBLIA.forEach(function(p){
+    var hay={};((p.refs||[])).forEach(function(o,k){if(o)hay[k]=1;});
+    var suyas=TODAS_LAS_VISTAS().filter(function(i){return !hay[i];});
+    if(suyas.length){ faltan.push(p); pendientes.push(suyas); totalImgs+=suyas.length; }
+  });
   if(!faltan.length){ if(st){st.style.display='block';st.textContent='Todos los personajes ya tienen sus vistas.';} return; }
-  var nImgs=faltan.length*4;
+  var nImgs=totalImgs;
   var mins=Math.ceil(nImgs*(8+PAUSA_VISTAS/1000)/60);
-  if(!confirm('Se van a generar 4 vistas para '+faltan.length+' personaje(s): '+nImgs+' imágenes.\n\n'
+  if(!confirm('Faltan '+nImgs+' vista(s) repartidas en '+faltan.length+' personaje(s).\n\n'
     +'Coste aproximado: $'+(nImgs*costoBiblia()).toFixed(2)+'\n'
     +'Tiempo: unos '+mins+' minutos. Van UNA POR UNA para no rebasar el límite de Google.\n\n'
     +'Puedes parar cuando quieras: lo ya generado queda guardado.\n\n¿Seguimos?'))return;
@@ -1276,7 +1290,7 @@ async function generarVistasFaltantes(){
     if(BIBLIA_PARAR)break;
     var p=faltan[i];
     var idx=i,nombre=p.nombre;
-    var res=await generarVistasDe(p,null,function(n,tot){
+    var res=await generarVistasDe(p,pendientes[idx],function(n,tot){
       if(st)st.textContent='Personaje '+(idx+1)+' de '+faltan.length+' — '+nombre
         +' · vista '+n+' de '+tot+'   (puedes parar cuando quieras)';
     });

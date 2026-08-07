@@ -10,6 +10,9 @@ const { chromium } = require('playwright-core');
   await page.route(/https:\/\/(fonts|i\.ibb|cdnjs)/, r => r.abort());
   let ok=0,ko=0; const t=(n,c)=>{console.log((c?'PASS  ':'FAIL  ')+n);c?ok++:ko++;};
 
+  // Las pruebas comparten el mismo servidor: se limpia el estado de la biblia para
+  // que el orden en que se ejecuten no cambie el resultado.
+  await page.goto('http://localhost:8321/__bibliareset');
   await page.goto('http://localhost:8321/', { waitUntil: 'domcontentloaded' });
   await page.fill('#lp','test123'); await page.click('text=⚔ Entrar'); await page.waitForSelector('#pg-app.on');
 

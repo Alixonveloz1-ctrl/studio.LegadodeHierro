@@ -133,6 +133,10 @@ function limpiarId(s) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 }
 
+// Cuantas vistas tiene cada personaje. Eran 4; el canal pidio 3 (una de la cara
+// y dos del cuerpo), que dan de sobra como referencia y cuestan una imagen menos.
+const N_VISTAS = 3;
+
 // Ficha saneada: solo los campos que se esperan, y con tope de longitud. Lo que
 // escribe el usuario acaba dentro de un prompt, asi que no puede ser ilimitado.
 function sanearFicha(p) {
@@ -152,7 +156,7 @@ function sanearFicha(p) {
     // hacia filter(Boolean) al guardar, y si fallaba la vista 2 la lista se
     // compactaba: la vista 3 pasaba a ocupar el hueco de la 2, el boton de rehacer
     // apuntaba a la vista equivocada y al reintentar la 2 se machacaba la 3.
-    refs: Array.isArray(p.refs) ? p.refs.slice(0, 6).map(o => (o ? String(o).slice(0, 200) : null)) : [],
+    refs: Array.isArray(p.refs) ? p.refs.slice(0, N_VISTAS).map(o => (o ? String(o).slice(0, 200) : null)) : [],
     // base = las imagenes ANCLA del personaje: las que definen su cara de verdad y
     // que NUNCA se tocan. El insignia lleva aqui sus 4 imagenes de marca. Antes no
     // existia este campo: sus fotos de siempre vivian en refs, y la primera vez que
@@ -167,6 +171,28 @@ function sanearFicha(p) {
 // son el ancla, no un punto de partida que se pueda reemplazar.
 const BASE_INSIGNIA = ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3', 'refs/personaje-4'];
 
+// Carga una imagen ancla. Si no esta en el bucket, se baja de su origen y se deja
+// copiada — el mismo camino que ya usa el generador de reels.
+//
+// ESTO NO ES UN EXTRA. Al cambiar de bucket, refs/personaje-N puede no existir
+// todavia alli, y entonces readFromBucket devolvia null en silencio: el generador
+// se quedaba SIN ninguna referencia y dibujaba a un desconocido. El sintoma era
+// exactamente el que se veia — "no toma las fotos reales" — pero por dentro no era
+// que las ignorara, es que nunca llegaban.
+async function cargarAncla(token, bucket, objeto) {
+  let b64 = await readFromBucket(token, bucket, objeto);
+  if (b64) return b64;
+  const m = String(objeto).match(/^refs\/([a-z]+)-(\d+)$/);
+  if (!m || !SETS[m[1]]) return null;
+  const url = SETS[m[1]][Number(m[2]) - 1];
+  if (!url) return null;
+  const got = await fetchFromIbb(url);
+  if (!got) { console.warn('[refs] el ancla ' + objeto + ' no esta en el bucket y no se pudo recuperar'); return null; }
+  await writeToBucket(token, bucket, objeto, got.b64, got.ct);
+  console.log('[refs] ancla ' + objeto + ' recuperada y copiada al bucket');
+  return got.b64;
+}
+
 // Las 4 vistas que se piden al generador. Siempre sobre fondo blanco liso.
 //
 // EL ENCUADRE VA AQUI Y VA FUERTE. Con "head and shoulders" a secas, el modelo
@@ -174,15 +200,30 @@ const BASE_INSIGNIA = ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3
 // sirven, porque la cara ocupa cuatro pixeles y lo que se copia despues es un
 // borron. Cada vista dice ahora que parte del cuerpo entra Y cuanto del alto de
 // la imagen tiene que ocupar.
+// TRES VISTAS, no cuatro: una de la cara y dos del cuerpo. Con eso el generador
+// tiene de sobra para mantener al personaje, y son tres imagenes en vez de cuatro
+// cada vez que se rehace una ficha.
 const VISTAS = [
-  { a: 'FRONT VIEW: the character faces the camera straight on, looking directly at the lens, neutral expression.',
-    enc: 'TIGHT HEAD-AND-SHOULDERS PORTRAIT. Crop at mid-chest. The head alone fills at least 55% of the image height, top of the hair close to the top edge. This is a close portrait, NOT a distant full-body shot.' },
-  { a: 'THREE-QUARTER VIEW: the character is turned about 45 degrees to their left, still glancing toward the camera, neutral expression.',
-    enc: 'TIGHT HEAD-AND-SHOULDERS PORTRAIT. Crop at mid-chest. The head alone fills at least 55% of the image height. This is a close portrait, NOT a distant full-body shot.' },
-  { a: 'STRICT SIDE PROFILE: the character is turned exactly 90 degrees, seen from the side, not looking at the camera, neutral expression.',
-    enc: 'TIGHT HEAD-AND-SHOULDERS PORTRAIT. Crop at mid-chest. The head alone fills at least 55% of the image height. This is a close portrait, NOT a distant full-body shot.' },
-  { a: 'WAIST-UP VIEW: the character stands facing the camera, arms relaxed at their sides, neutral expression.',
-    enc: 'MEDIUM SHOT cropped at the waist. The figure fills the frame from top to bottom, head near the top edge, waist at the bottom edge. Do NOT leave large empty margins around the figure.' },
+  { nombre: 'la cara',
+    a: 'FACE CLOSE-UP. The character faces the camera straight on, looking directly at the lens, neutral expression.',
+    enc: 'EXTREME CLOSE-UP OF THE HEAD. Only the head and the very top of the shoulders are visible. '
+      + 'The head fills the frame from edge to edge: the chin is near the bottom of the image and the hair '
+      + 'touches the top of the image. The face alone must occupy at least 70% of the picture. '
+      + 'Do NOT show the torso. Do NOT show the arms. Do NOT show the full body. '
+      + 'Do NOT leave empty white space around the head.' },
+  { nombre: 'el cuerpo de frente',
+    a: 'FULL FIGURE, FRONT. The character stands facing the camera, arms relaxed at their sides, neutral expression.',
+    enc: 'FULL-LENGTH SHOT. The whole figure is visible from head to feet and FILLS the frame vertically: '
+      + 'the top of the head almost touches the top edge and the feet almost touch the bottom edge. '
+      + 'Do NOT render a small figure floating in the middle of a large white area. '
+      + 'The body must span the entire height of the image.' },
+  { nombre: 'el cuerpo de tres cuartos',
+    a: 'FULL FIGURE, THREE-QUARTER. The character stands turned about 45 degrees to their left, '
+      + 'head still turned toward the camera, arms relaxed, neutral expression.',
+    enc: 'FULL-LENGTH SHOT. The whole figure is visible from head to feet and FILLS the frame vertically: '
+      + 'the top of the head almost touches the top edge and the feet almost touch the bottom edge. '
+      + 'Do NOT render a small figure floating in the middle of a large white area. '
+      + 'The body must span the entire height of the image.' },
 ];
 
 // Que el reparto sea atractivo es una peticion del canal, no un capricho: son
@@ -213,9 +254,7 @@ function promptDeVista(f, vista, conReferencia) {
   // pide una LAMINA de personaje, y devolvia collages con dos y tres cabezas del
   // mismo hombre dentro de la misma imagen. Una lamina no sirve de referencia: hay
   // que pedir UN retrato, de UNA persona, en UN encuadre.
-  return 'A single character portrait illustration. ONE person only, ONE head, ONE figure, '
-    + 'in ONE single frame. This is NOT a model sheet, NOT a collage, NOT a grid, NOT a set of panels, '
-    + 'NOT several poses side by side, NOT multiple angles in the same image. Exactly one figure.\n'
+  return 'ONE single illustration of ONE single person, in ONE single frame.\n'
     + vista.a + '\n' + vista.enc + '\n'
     + 'PLAIN PURE WHITE BACKGROUND (#FFFFFF), completely empty, no scenery, no furniture, no props, '
     + 'no shadows on the background, no text, no labels, no watermark, no border, no frame. '
@@ -227,7 +266,16 @@ function promptDeVista(f, vista, conReferencia) {
     + ' ' + clausulaAspecto(f.edad)
     + '\nSTYLE (must match the channel exactly): 2D American comic book illustration, cinematic, '
     + 'clean bold ink lines, dramatic cel-shading, graphic-novel aesthetic. '
-    + 'NEVER photorealistic, never a photograph, never 3D or CGI.';
+    + 'NEVER photorealistic, never a photograph, never 3D or CGI.'
+    // Lo que NO se quiere va al FINAL y en bloque. Con esta frase al principio el
+    // modelo la perdia de vista y seguia devolviendo laminas con dos y tres
+    // cabezas del mismo hombre metidas en la misma imagen.
+    + '\nSTRICT OUTPUT RULES — the image is WRONG if it breaks any of these:'
+    + '\n- Exactly ONE person. Not two, not three. One body, one head, one face.'
+    + '\n- NOT a character model sheet. NOT a turnaround. NOT a collage, grid, diptych or contact sheet.'
+    + '\n- NO repeated versions of the character side by side, and no smaller inset drawings.'
+    + '\n- NO panel borders, NO dividing lines, NO empty second half of the canvas.'
+    + '\n- The subject FILLS the frame as described above.';
 }
 
 // Genera UNA vista con el mismo modelo de imagen que usa el resto de la app.
@@ -399,11 +447,31 @@ async function biblia(req, res) {
           if (faltan.length) { p.base = (p.base || []).concat(faltan).sort(); reparado++; }
         }
       }
-      // Los del reparto se anaden si faltan, SIN pisar los que ya tengan vistas
-      // generadas o los que el duenno haya editado.
+      // Los del reparto se anaden si faltan.
       for (const base of REPARTO) {
         if (lista.some(x => x.id === base.id)) continue;
         lista.push(sanearFicha(base));
+      }
+      // Y los que YA estaban se resincronizan con la descripcion del codigo.
+      // Antes solo se anadian los que faltaban: cambiar una descripcion en
+      // _personajes.js no servia de nada, porque la ficha vieja seguia guardada en
+      // el bucket y era esa la que se le mandaba al generador. Se cambio a la
+      // companera a rubia y siguio saliendo morena por esto exactamente.
+      // Las vistas ya generadas y el ancla NO se tocan.
+      for (const base of REPARTO) {
+        const p = lista.find(x => x.id === base.id);
+        if (!p) continue;
+        const campos = ['nombre', 'rol', 'edad', 'fisico', 'vestuario', 'habla', 'encaja'];
+        let cambio = false;
+        for (const c of campos) {
+          const nuevo = sanearFicha(base)[c];
+          if (p[c] !== nuevo) { p[c] = nuevo; cambio = true; }
+        }
+        if (cambio) reparado++;
+      }
+      // Las vistas pasaron de 4 a 3: la cuarta que hubiera guardada sobra.
+      for (const p of lista) {
+        if ((p.refs || []).length > VISTAS.length) { p.refs = p.refs.slice(0, VISTAS.length); reparado++; }
       }
       if (lista.length !== antes || reparado) {
         await escribirIndice(token, bucket, lista);
@@ -471,12 +539,17 @@ async function biblia(req, res) {
         // La vista que se esta rehaciendo NO se usa como referencia de si misma:
         // si no, se copia el fallo que se queria corregir.
         .filter((o, k) => o && k !== i);
-      const objetos = ancla.concat(propias);
       const refsB64 = [];
-      for (const o of objetos) {
+      for (const o of ancla) {
+        const b64 = await cargarAncla(token, bucket, o);
+        if (b64) refsB64.push(b64);
+        if (refsB64.length >= 3) break;
+      }
+      const conAncla = refsB64.length;
+      for (const o of propias) {
+        if (refsB64.length >= 4) break;
         const b64 = await readFromBucket(token, bucket, o);
         if (b64) refsB64.push(b64);
-        if (refsB64.length >= 4) break;
       }
 
       const b64 = await generarVista(token, projectId, modelo,
@@ -485,6 +558,7 @@ async function biblia(req, res) {
         success: true, id: f.id, vista: i,
         vistas: [{ i: i, b64: b64 }],          // formato que ya espera 'guardar'
         conReferencia: refsB64.length,          // para poder avisar si fue a ciegas
+        conAncla: conAncla,                     // cuantas fotos REALES viajaron
         total: VISTAS.length,
       });
     }
@@ -501,15 +575,15 @@ async function biblia(req, res) {
       const refs = (antes && antes.refs) ? antes.refs.slice() : [];
       for (const v of nuevas) {
         const i = Number(v.i);
-        if (!isFinite(i) || i < 0 || i > 5 || !v.b64) continue;
+        if (!isFinite(i) || i < 0 || i >= N_VISTAS || !v.b64) continue;
         const obj = 'personajes/' + f.id + '/vista-' + (i + 1) + '.png';
         const ok = await writeToBucket(token, bucket, obj, v.b64, 'image/png');
         if (ok) refs[i] = obj;
       }
       // Cada vista se queda en SU hueco. Los que falten valen null y siguen
       // valiendo null: compactar la lista descolocaba las vistas siguientes.
-      for (let k = 0; k < 4; k++) if (!refs[k]) refs[k] = null;
-      f.refs = refs.slice(0, 4);
+      for (let k = 0; k < N_VISTAS; k++) if (!refs[k]) refs[k] = null;
+      f.refs = refs.slice(0, N_VISTAS);
       // El ancla no se toca NUNCA al guardar. Este era el fallo grave: las fotos
       // reales del insignia vivian en refs y la primera vista nueva las borraba.
       f.base = (antes && antes.base && antes.base.length) ? antes.base.slice() : (f.fijo ? BASE_INSIGNIA.slice() : []);
