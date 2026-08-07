@@ -182,58 +182,6 @@ const ANCLAS_DEL_PROYECTO = {
   companera: ['biblia/companera-1.jpg', 'biblia/companera-2.jpg', 'biblia/companera-3.jpg'],
 };
 
-// EL CANON DEL ESTILO. Estos dos personajes ya estan dibujados como el canal
-// quiere, asi que sus caras son la vara de medir para todos los demas: mismo
-// trazo, mismo sombreado, misma paleta. Se mandan como referencia DE ESTILO, con
-// la orden de no copiar la cara.
-const CANON_ESTILO = ['insignia', 'companera'];
-
-// QUIEN ES PARIENTE DE QUIEN. Los hijos salian con una genetica que no tenia nada
-// que ver con la de sus padres — otro tono de piel, otro pelo, otros ojos — y eso
-// canta a la legua en cuanto los pones en la misma historia.
-const PARENTESCO = {
-  'hijo-pequeno': { de: ['insignia', 'companera'], que: 'su hijo pequeno' },
-  'hija-adolescente': { de: ['insignia', 'companera'], que: 'su hija adolescente' },
-  'padre-mayor': { de: ['insignia'], que: 'el padre del protagonista' },
-  'madre': { de: ['insignia'], que: 'la madre del protagonista' },
-  'hermano-menor': { de: ['insignia'], que: 'el hermano menor del protagonista' },
-};
-
-// La cara de un personaje: su primera vista si ya la tiene, y si no su ancla.
-async function caraDe(token, bucket, lista, id) {
-  const p = lista.find(x => x.id === id);
-  if (!p) return null;
-  const candidatos = ((p.refs || []).filter(Boolean)).concat(p.base || []);
-  for (const o of candidatos) {
-    const b64 = o.indexOf('personajes/') === 0
-      ? await readFromBucket(token, bucket, o)
-      : await cargarAncla(token, bucket, o);
-    if (b64) return b64;
-  }
-  return null;
-}
-
-async function imagenesDeCanon(token, bucket, lista, idActual) {
-  const out = [];
-  for (const id of CANON_ESTILO) {
-    if (id === idActual) continue;        // uno no es referencia de estilo de si mismo
-    const b64 = await caraDe(token, bucket, lista, id);
-    if (b64) out.push(b64);
-  }
-  return out;
-}
-
-async function imagenesDeParientes(token, bucket, lista, idActual) {
-  const rel = PARENTESCO[idActual];
-  if (!rel) return [];
-  const out = [];
-  for (const id of rel.de) {
-    const b64 = await caraDe(token, bucket, lista, id);
-    if (b64) out.push(b64);
-  }
-  return out;
-}
-
 // De donde se baja un ancla que no este todavia en el bucket.
 function origenDelAncla(objeto) {
   const m = String(objeto).match(/^refs\/([a-z]+)-(\d+)$/);
@@ -300,6 +248,29 @@ const VISTAS = [
       + 'The body must span the entire height of the image.' },
 ];
 
+// EL ESTILO DEL CANAL, EN PALABRAS.
+//
+// Antes esto eran dos lineas sueltas y cada personaje salia con un trazo distinto:
+// unos con linea gruesa y otros finita, unos con sombra plana y otros con degradado.
+// Y el intento de arreglarlo mandando la cara del protagonista como "referencia de
+// estilo" era peor el remedio: esa cara se colaba donde no debia.
+//
+// Se describe una sola vez, aqui, y va en TODAS las peticiones de la biblia.
+const ESTILO_CANAL =
+  'STYLE — this is fixed for the whole channel and must be identical in every image:\n'
+  + '- 2D American comic book / graphic novel illustration. Digitally inked and coloured.\n'
+  + '- Semi-realistic proportions and anatomy. Adult faces are realistic, not stylised or cartoonish; '
+  + 'no manga eyes, no caricature, no chibi.\n'
+  + '- Clean bold ink outlines of varying weight: heavier on the silhouette, finer inside the face.\n'
+  + '- Cel-shading: flat colour areas with hard-edged shadows, plus soft gradients on skin and fabric. '
+  + 'Subtle cross-hatching in the deepest shadows.\n'
+  + '- Warm muted palette, cinematic contrast, one clear light direction.\n'
+  + '- Detailed hair drawn in defined strands, detailed irises, visible eyelashes and eyebrows.\n'
+  + '- NEVER photorealistic, never a photograph, never 3D, never CGI, never watercolour, never sketch, '
+  + 'never flat vector, never halftone dots.\n'
+  + '- NO text of any kind in the image: no lettering, no speech bubbles, no captions, no labels, '
+  + 'no logos, no signature, no watermark.\n';
+
 // Que el reparto sea atractivo es una peticion del canal, no un capricho: son
 // personajes de comic y tienen que resultar agradables de mirar. Con los menores
 // no se usa esa palabra ni ese criterio, obviamente: para ellos solo se pide que
@@ -313,12 +284,17 @@ function clausulaAspecto(edad) {
     + 'an attractive comic-book lead. Attractive but believable and age-appropriate, never a caricature.';
 }
 
-function promptDeVista(f, vista, conReferencia, conFamilia, rel) {
+function promptDeVista(f, vista, conReferencia) {
   // Cuando viajan imagenes de referencia hay que decirlo EXPLICITAMENTE, y muy
   // fuerte: si no, el modelo las trata como inspiracion y dibuja a otra persona
   // parecida. Es lo que hacia que cada vista saliera con una cara distinta.
   const mismaCara = conReferencia
-    ? 'THIS IS THE SAME PERSON AS IN THE REFERENCE IMAGES. Copy the face exactly: same bone structure, '
+    // "las imagenes de referencia" a secas ya no vale: ahora llegan varias con
+    // papeles distintos. Esto habla SOLO de las de IDENTITY, y en particular de la
+    // ultima, que es la foto buena del personaje.
+    ? 'THE REFERENCE IMAGES SHOW THE SAME PERSON YOU MUST DRAW — and the LAST one is the definitive '
+      + 'one: if any other disagrees with it, the LAST one wins. '
+      + 'Copy the face exactly: same bone structure, '
       + 'same eyes, same nose, same mouth, same hairline, same beard, same skin tone. '
       + 'You are drawing ANOTHER ANGLE of that same person, not a similar-looking person. '
       + 'If the face differs from the reference, the image is wrong.\n'
@@ -335,17 +311,7 @@ function promptDeVista(f, vista, conReferencia, conFamilia, rel) {
   // que pedir UN retrato, de UNA persona, en UN encuadre.
   return 'ONE single illustration of ONE single person, in ONE single frame.\n'
     + vista.a + '\n' + vista.enc + '\n'
-    // Las referencias llegan etiquetadas por su papel (STYLE / FAMILY / IDENTITY),
-    // y hay que recordarselo aqui tambien: la etiqueta sola se le olvidaba en
-    // cuanto llegaba al final del prompt, y acababa copiando la cara del estilo.
-    + 'The reference images above are labelled. Obey each label: a STYLE reference gives you only the '
-    + 'drawing technique, a FAMILY reference only a family resemblance, and only an IDENTITY reference '
-    + 'gives you the face. NEVER draw the face of a STYLE reference.\n'
-    + (conFamilia && rel
-      ? 'THIS CHARACTER IS ' + rel.que.toUpperCase() + '. They are family with the people in the FAMILY '
-        + 'references: same household, same blood. Their skin tone, eye colour and hair colour must be a '
-        + 'believable mix of the family references — NOT a different ethnicity. Adapt it to their own age and sex.\n'
-      : '')
+
     + 'PLAIN PURE WHITE BACKGROUND (#FFFFFF), completely empty, no scenery, no furniture, no props, '
     + 'no shadows on the background, no text, no labels, no watermark, no border, no frame. '
     + 'Studio-flat even lighting.\n'
@@ -354,9 +320,7 @@ function promptDeVista(f, vista, conReferencia, conFamilia, rel) {
     + (f.edad ? ' Apparent age: ' + f.edad + '.' : '')
     + (f.vestuario ? ' Wearing: ' + f.vestuario + '.' : '')
     + ' ' + clausulaAspecto(f.edad)
-    + '\nSTYLE (must match the channel exactly): 2D American comic book illustration, cinematic, '
-    + 'clean bold ink lines, dramatic cel-shading, graphic-novel aesthetic. '
-    + 'NEVER photorealistic, never a photograph, never 3D or CGI.'
+    + '\n' + ESTILO_CANAL
     // Lo que NO se quiere va al FINAL y en bloque. Con esta frase al principio el
     // modelo la perdia de vista y seguia devolviendo laminas con dos y tres
     // cabezas del mismo hombre metidas en la misma imagen.
@@ -370,21 +334,12 @@ function promptDeVista(f, vista, conReferencia, conFamilia, rel) {
 
 // QUE PAPEL JUEGA CADA IMAGEN DE REFERENCIA.
 //
-// Antes todas las imagenes viajaban juntas y en silencio, y el modelo tenia que
-// adivinar para que era cada una. Con una sola no importaba; en cuanto empezaron a
-// viajar varias con papeles distintos — "de esta copia la cara", "de esta copia
-// SOLO el trazo" — hacia falta decirselo. Se dice intercalando texto ANTES de cada
-// imagen, que es la unica forma de etiquetarlas en esta API.
+// Hubo una version que mandaba tambien las caras del insignia y de la companera a
+// TODO el reparto, como referencia de estilo. Se quito: el estilo se puede pedir
+// con palabras, y meter la cara de otra persona en cada peticion solo servia para
+// que se colara donde no debia y para diluir la referencia buena. Hoy solo viaja
+// la identidad del propio personaje.
 const PAPELES = {
-  estilo:
-    'STYLE REFERENCE — the next image is a DIFFERENT character. Copy ONLY the drawing style from it: '
-    + 'line weight and inking, cel-shading, colour palette, level of detail, how eyes, hair and skin are rendered. '
-    + 'Do NOT copy this person\'s face, hair colour, age, sex, ethnicity or clothing.',
-  familia:
-    'FAMILY REFERENCE — the next image is a blood relative of the character you must draw. '
-    + 'They belong to the same family, so the character must share a believable family resemblance: '
-    + 'skin tone, eye colour, hair colour range and bone structure, adapted to the character\'s own age and sex. '
-    + 'Do NOT copy this face exactly — the character is a different person.',
   identidad:
     'IDENTITY REFERENCE — the next image IS the character you must draw. '
     + 'Copy the face exactly: same bone structure, same eyes, same nose, same mouth, same hairline, same hair colour.',
@@ -690,33 +645,38 @@ async function biblia(req, res) {
         ? body.ignorar.map(Number).filter(n => isFinite(n)) : [];
       const propias = ((guardado && guardado.refs) ? guardado.refs : [])
         .filter((o, k) => o && k !== i && ignorar.indexOf(k) < 0);
-      const refsB64 = [];
+      // SI HAY FOTO DEL PERSONAJE, ESA FOTO MANDA Y NO SE DILUYE.
+      //
+      // Antes se mandaba todo junto: dos caras de OTRA gente (las de estilo), la
+      // foto del personaje, y encima las vistas ya generadas. Con una sola foto
+      // subida, esa foto era una entre cuatro o cinco imagenes — y ademas iba en
+      // mitad del monton, cuando la posicion que manda es la ULTIMA, la pegada al
+      // prompt. Resultado: la primera vista salia bien y las otras se iban.
+      //
+      // La regla ahora es simple: si el personaje tiene foto propia, con eso basta.
+      // Ni estilo ni familia — su foto ya trae el estilo y ya trae la cara — y de
+      // sus vistas ya hechas se usa como mucho UNA, para que las tres se parezcan
+      // entre si sin tapar el original. La foto va la ULTIMA.
+      const tieneAncla = ancla.length > 0;
+
+      const idB64 = [];
+      for (const o of propias.slice(0, tieneAncla ? 1 : 3)) {
+        const b64 = await readFromBucket(token, bucket, o);
+        if (b64) idB64.push(b64);
+      }
+      let conAncla = 0;
       for (const o of ancla) {
         const b64 = await cargarAncla(token, bucket, o);
-        if (b64) refsB64.push(b64);
-        if (refsB64.length >= 3) break;
+        if (b64) { idB64.push(b64); conAncla++; }
+        if (conAncla >= 3) break;
       }
-      const conAncla = refsB64.length;
-      for (const o of propias) {
-        if (refsB64.length >= 4) break;
-        const b64 = await readFromBucket(token, bucket, o);
-        if (b64) refsB64.push(b64);
-      }
+      const refsB64 = idB64;
 
-      // EL ESTILO DEL CANAL, PARA TODOS. El insignia y la companera ya estan
-      // dibujados como el canal quiere; el resto salia con otro trazo, otro
-      // sombreado y otra paleta, y no parecian del mismo mundo. Ahora sus caras
-      // viajan como referencia DE ESTILO en cada generacion, con la instruccion
-      // explicita de copiar el dibujo y NO la cara.
-      const estilo = await imagenesDeCanon(token, bucket, lista, f.id);
-      // Y los de la familia se parecen entre ellos: los hijos salian de otra
-      // genetica distinta a la de sus padres, que es lo que canta a la legua.
-      const familia = await imagenesDeParientes(token, bucket, lista, f.id);
-
+      // EL ESTILO VA ESCRITO, NO CON LA CARA DE NADIE. Ver ESTILO_CANAL: describir
+      // el dibujo funciona igual de bien y no arrastra a otra persona dentro de la
+      // peticion. Aqui solo viaja la identidad del propio personaje.
       const b64 = await generarVistaConPapeles(token, projectId, modelo,
-        promptDeVista(f, VISTAS[i], refsB64.length > 0, familia.length > 0, PARENTESCO[f.id]), [
-          { papel: 'estilo', imgs: estilo },
-          { papel: 'familia', imgs: familia },
+        promptDeVista(f, VISTAS[i], refsB64.length > 0), [
           { papel: 'identidad', imgs: refsB64 },
         ]);
       return res.json({
@@ -724,7 +684,6 @@ async function biblia(req, res) {
         vistas: [{ i: i, b64: b64 }],          // formato que ya espera 'guardar'
         conReferencia: refsB64.length,          // para poder avisar si fue a ciegas
         conAncla: conAncla,                     // cuantas fotos REALES viajaron
-        conEstilo: estilo.length, conFamilia: familia.length,
         total: VISTAS.length,
       });
     }

@@ -152,7 +152,7 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
   t('y prohíbe repetir el personaje al lado', /NO repeated versions of the character side by side/.test(l.prompt));
   t('pide formato vertical', l.aspect === '3:4', String(l.aspect));
   t('sigue exigiendo fondo blanco', /PLAIN PURE WHITE BACKGROUND/.test(l.prompt));
-  t('y el estilo cómic del canal', /2D American comic book illustration/.test(l.prompt));
+  t('y el estilo cómic del canal', /2D American comic book \/ graphic novel illustration/.test(l.prompt));
   t('el reparto adulto se pide atractivo', /good-looking and well-groomed/.test(l.prompt));
 
   // ---- 4. GUARDAR NO PUEDE BORRAR EL ANCLA (el fallo grave) ----
@@ -165,11 +165,12 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
   // ---- 5. la vista 2 se genera contra las fotos reales, no contra la generada ----
   r = await llamar({ action: 'generar', personaje: ins, vista: 1 });
   l = LLAMADAS[LLAMADAS.length - 1];
-  t('la vista 2 recibe primero las fotos REALES del personaje',
-    l.refs.slice(0, 3).every(x => /IMAGEN-DE-MARCA/.test(x)), l.refs.length + ' referencias');
-  t('y además la vista 1 que ya se hizo',
-    l.refs.some(x => /IMAGEN-GENERADA/.test(x)));
-  t('se le dice al modelo que es LA MISMA persona', /THIS IS THE SAME PERSON/.test(l.prompt));
+  t('la vista 2 termina con las fotos REALES del personaje, que son las que mandan',
+    l.refs.slice(-3).every(x => /IMAGEN-DE-MARCA/.test(x)), l.refs.length + ' referencias');
+  t('y antes va la vista 1 que ya se hizo',
+    l.refs[0] && /IMAGEN-GENERADA/.test(l.refs[0]));
+  t('se le dice al modelo que es LA MISMA persona',
+    /THE REFERENCE IMAGES SHOW THE SAME PERSON YOU MUST DRAW/.test(l.prompt));
   await llamar({ action: 'guardar', personaje: ins, vistas: [{ i: 1, b64: GENERADA }] });
 
   // ---- 6. si falla una vista del medio, las demás NO se descolocan ----
@@ -361,51 +362,62 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
   r = await llamar({ action: 'quitar-ancla', id: 'insignia' });
   t('pero el insignia no puede quedarse sin ancla', r.code === 400);
 
-  // ---- 16. EL ESTILO DEL CANAL LLEGA A TODO EL REPARTO ----
-  // Los hijos salian con otro trazo, otro sombreado y otra paleta: no parecian del
-  // mismo mundo que sus padres. Y encima con otra genetica. Ahora las caras del
-  // insignia y de la companera viajan en CADA generacion como referencia DE
-  // ESTILO, etiquetadas para que se copie el dibujo y NO la cara.
+  // ---- 16. EL ESTILO VA ESCRITO, NO CON LA CARA DE NADIE ----
+  // Hubo una version que mandaba las caras del insignia y de la companera a TODO
+  // el reparto como "referencia de estilo". Se quito: esa cara se colaba donde no
+  // debia y diluia la referencia buena del propio personaje.
   BUCKET['personajes/index.json'] = Buffer.from(JSON.stringify([]), 'utf8').toString('base64');
-  let todos = (await llamar({ action: 'list' })).body.personajes;
-  // El insignia y la companera ya tienen cara (ancla), asi que sirven de canon.
+  const todos = (await llamar({ action: 'list' })).body.personajes;
   const jefe = ficha(todos, 'jefe');
   r = await llamar({ action: 'generar', personaje: jefe, vista: 0 });
   l = LLAMADAS[LLAMADAS.length - 1];
-  t('a un personaje cualquiera le llega el estilo del canal',
-    l.grupos.estilo.length === 2, l.grupos.estilo.length + ' referencias de estilo');
-  t('y van etiquetadas como ESTILO, no como identidad',
-    /STYLE REFERENCE/.test(JSON.stringify(l.orden)) || l.orden.indexOf('TI') === 0, l.orden);
-  t('el jefe no recibe referencia de identidad (aún no tiene cara)',
-    l.grupos.identidad.length === 0);
-  t('ni de familia (no es pariente de nadie)', l.grupos.familia.length === 0);
-  t('se le prohíbe copiar la cara de la referencia de estilo',
-    /NEVER draw the face of a STYLE reference/.test(l.prompt));
+  t('a un personaje sin fotos NO le llega la cara de nadie más',
+    l.grupos.estilo.length === 0 && l.grupos.familia.length === 0 && l.grupos.identidad.length === 0,
+    l.orden);
+  t('el estilo del canal va descrito en el prompt',
+    /2D American comic book \/ graphic novel illustration/.test(l.prompt));
+  t('con proporciones semirrealistas, no caricatura',
+    /Semi-realistic proportions/.test(l.prompt) && /no caricature/.test(l.prompt));
+  t('con el entintado y el sombreado definidos',
+    /Clean bold ink outlines of varying weight/.test(l.prompt) && /Cel-shading/.test(l.prompt));
+  t('y SIN texto de ningún tipo',
+    /NO text of any kind in the image/.test(l.prompt) && /no speech bubbles/.test(l.prompt));
+  t('el estilo se describe en UN solo sitio', (() => {
+    const R = require('fs').readFileSync(path.join(__dirname, '..', 'api', 'refs.js'), 'utf8');
+    return (R.match(/2D American comic book \/ graphic novel illustration/g) || []).length === 1;
+  })());
 
-  // ---- 17. LOS HIJOS SE PARECEN A SUS PADRES ----
+  // Los hijos ya no reciben las caras de sus padres: sus referencias las sube el
+  // dueno como cualquier otro personaje.
   const hijo = ficha(todos, 'hijo-pequeno');
-  r = await llamar({ action: 'generar', personaje: hijo, vista: 0 });
+  await llamar({ action: 'generar', personaje: hijo, vista: 0 });
   l = LLAMADAS[LLAMADAS.length - 1];
-  t('al hijo le llegan las caras de sus DOS padres',
-    l.grupos.familia.length === 2, l.grupos.familia.length + ' referencias de familia');
-  t('y se le dice que es su hijo pequeño',
-    /THIS CHARACTER IS SU HIJO PEQUENO/.test(l.prompt));
-  t('se exige parecido de familia, no otra etnia',
-    /believable mix of the family references/.test(l.prompt) && /NOT a different ethnicity/.test(l.prompt));
-  t('la ficha del hijo ya no dice que sea de otra genética',
-    /hijo de padre moreno y madre rubia/.test(hijo.fisico), hijo.fisico.slice(0, 55));
-  t('la hija, igual', /rubio oscuro/.test(ficha(todos, 'hija-adolescente').fisico));
-  t('y el padre del protagonista se parece a él',
-    /el protagonista dentro de 30 anos/.test(ficha(todos, 'padre-mayor').fisico));
+  t('a los hijos tampoco les llega la cara de sus padres', l.grupos.familia.length === 0);
 
-  // ---- 18. EL ORDEN IMPORTA: la identidad va la ULTIMA, pegada al prompt ----
-  const comp4 = ficha(todos, 'companera');
-  await llamar({ action: 'generar', personaje: comp4, vista: 0 });
-  l = LLAMADAS[LLAMADAS.length - 1];
-  t('la identidad viaja la última, que es la que más pesa',
-    l.orden.lastIndexOf('I') > l.orden.indexOf('I'), l.orden);
-  t('la compañera no es referencia de estilo de sí misma',
-    l.grupos.estilo.length === 1, l.grupos.estilo.length + ' (solo el insignia)');
+  // ---- 17. UNA SOLA FOTO SUBIDA BASTA PARA LAS TRES VISTAS ----
+  // Con una foto subida, esa foto era una entre cuatro o cinco imagenes y encima
+  // iba en mitad del monton: la vista 1 salia bien y las otras dos se iban.
+  const MIFOTO = Buffer.from('MI-FOTO-' + '-'.repeat(200)).toString('base64');
+  await llamar({ action: 'ancla', id: 'jefe', imagenes: [MIFOTO] });
+  let j2 = ficha((await llamar({ action: 'list' })).body.personajes, 'jefe');
+  const vistas = [];
+  for (let v = 0; v < 3; v++) {
+    const pend = []; for (let q = v; q < 3; q++) pend.push(q);
+    const g = await llamar({ action: 'generar', personaje: j2, vista: v, ignorar: pend });
+    vistas.push(LLAMADAS[LLAMADAS.length - 1]);
+    j2 = (await llamar({ action: 'guardar', personaje: j2, vistas: g.body.vistas })).body.personaje;
+  }
+  t('la foto subida llega a LAS TRES vistas, no solo a la primera',
+    vistas.every(v => v.grupos.identidad.some(x => /MI-FOTO/.test(x))),
+    vistas.map(v => v.grupos.identidad.length).join(' / '));
+  t('y en las tres va la ÚLTIMA, que es la posición que más pesa',
+    vistas.every(v => /MI-FOTO/.test(v.grupos.identidad[v.grupos.identidad.length - 1])));
+  t('no se diluye con caras de otros', vistas.every(v => v.grupos.estilo.length === 0));
+  t('como mucho la acompaña UNA vista ya hecha',
+    vistas.every(v => v.grupos.identidad.length <= 2),
+    vistas.map(v => v.grupos.identidad.length).join(' / '));
+  t('y se le dice al modelo que la última manda',
+    /the LAST one is the definitive/.test(vistas[2].prompt));
 
   console.log('\n' + ok + ' OK, ' + ko + ' fallos');
   process.exit(ko ? 1 : 0);

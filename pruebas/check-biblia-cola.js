@@ -73,7 +73,9 @@ const { chromium } = require('playwright-core');
   const fs = require('fs');
   const R = fs.readFileSync('/home/user/studio.LegadodeHierro/api/refs.js', 'utf8');
   t('el prompt exige copiar la cara de la referencia, no inspirarse',
-    /THIS IS THE SAME PERSON AS IN THE REFERENCE IMAGES/.test(R) && /Copy the face exactly/.test(R));
+    /THE REFERENCE IMAGES SHOW THE SAME PERSON YOU MUST DRAW/.test(R) && /Copy the face exactly/.test(R));
+  t('y ya NO se manda la cara de otro personaje como referencia de estilo',
+    !/CANON_ESTILO/.test(R) && /const ESTILO_CANAL/.test(R));
   // El comportamiento de verdad lo comprueba pruebas/check-biblia-ancla.js, que
   // llama al endpoint y mira que imagenes viajan. Aqui solo se vigila que la regla
   // siga escrita: la vista N se descarta por su INDICE, no por su nombre.
