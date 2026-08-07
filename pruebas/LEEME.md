@@ -24,6 +24,9 @@ La de subtitulos NO necesita el servidor, pero si `ffmpeg` y `ffprobe`:
   produccion, y que regenerar una imagen suelte el clip viejo.
 - **check-zip-dos-idiomas.js** — que el ZIP lleve los dos videos finales, que
   las imagenes y clips no se dupliquen, y que no se cuele el video de otro reel.
+- **check-modos-largos.js** — Profesor y Relato: que las duraciones cambien con
+  el modo, que el profesor pida SET + TOMAS + EJEMPLOS + MONTAJE, y que el
+  montaje reutilice las tomas (9 planos de 8 imagenes).
 - **check-reparto.js** — que los 31 personajes esten completos, que el director
   los reciba y que la marca [CON: id] traiga la cara correcta a la imagen.
 - **check-sincronia-subtitulos.js** — que los subtitulos del audio SUBIDO A MANO

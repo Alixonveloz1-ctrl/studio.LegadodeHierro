@@ -205,10 +205,21 @@ async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg, im
         clipFiles.push(f);
       }
     } else {
+      // La MISMA toma puede aparecer muchas veces en el montaje (modo profesor),
+      // asi que se descarga UNA vez por URL y se reutiliza el fichero. Sin esto,
+      // un video de 5 minutos bajaria el mismo clip veinte veces.
+      const yaBajado = {};
       for (let i = 0; i < videos.length; i++) {
+        const url = videos[i];
+        if (yaBajado[url]) { clipFiles.push(yaBajado[url]); continue; }
         const f = path.join(dir, 'clip' + i + '.mp4');
-        await download(videos[i], f);
+        await download(url, f);
+        yaBajado[url] = f;
         clipFiles.push(f);
+      }
+      const distintos = Object.keys(yaBajado).length;
+      if (distintos < videos.length) {
+        console.log('[' + jobId + '] ' + videos.length + ' planos a partir de ' + distintos + ' clips distintos (montaje con repeticion)');
       }
     }
     const partFiles = [];
@@ -509,9 +520,9 @@ const server = http.createServer((req, res) => {
     const videos = Array.isArray(data.videos) ? data.videos : [];
     const audioParts = Array.isArray(data.audioParts) ? data.audioParts : [];
     const imgs0 = Array.isArray(data.imagenes) ? data.imagenes.length : 0;
-    if ((!videos.length && !imgs0) || videos.length > 10) {
+    if ((!videos.length && !imgs0) || videos.length > 60) {
       res.statusCode = 400;
-      return res.end(JSON.stringify({ error: 'Se necesitan entre 1 y 10 clips, o imagenes con las que armarlo' }));
+      return res.end(JSON.stringify({ error: 'Se necesitan entre 1 y 60 planos, o imagenes con las que armarlo' }));
     }
     if (!audioParts.length) {
       res.statusCode = 400;

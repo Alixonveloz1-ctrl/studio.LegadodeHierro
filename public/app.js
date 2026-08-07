@@ -58,6 +58,16 @@ var DURS=[
   {id:'30',label:'30 segundos',sub:'Reel express — máximo impacto'},
   {id:'60',label:'60 segundos',sub:'Reel estándar — óptimo algoritmo'},
 ];
+// Duraciones de los modos LARGOS (Profesor y Relato). No se mezclan con las de
+// arriba: un reel de 5 minutos no existe, y un video de YouTube de 30 segundos
+// tampoco. Cada familia de modos ve solo las suyas.
+var DURS_LARGAS=[
+  {id:'180',label:'3 minutos',sub:'Clase corta — un método concreto'},
+  {id:'300',label:'5 minutos',sub:'Estándar de YouTube — el punto dulce'},
+  {id:'480',label:'8 minutos',sub:'Profundo — permite anuncios a mitad'},
+];
+function esModoLargo(m){ m=m||sMode; return m==='profesor'||m==='relato'; }
+function dursDe(m){ return esModoLargo(m)?DURS_LARGAS:DURS; }
 var HOOKS=[
   {id:'dato',      label:'📊 Dato Crudo',         desc:'Cifra que destruye una creencia'},
   {id:'pregunta',  label:'❓ Pregunta Disruptiva', desc:'Pregunta que no pueden ignorar'},
@@ -293,8 +303,100 @@ var SCHED_POOL=[
 
 
 
+// Los dos modos LARGOS comparten la misma cabecera de marca que los cortos, pero
+// cambian por completo la estructura: aqui no se trata de golpear en 30 segundos
+// sino de sostener a alguien varios minutos.
+function cabeceraLarga(){
+  return `CANAL: LEGADO DE HIERRO — video largo para YouTube. Forja personas libres a través de la autosuficiencia y la riqueza real.
+
+VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach, pero nunca fría ni tiesa. Sin porcentajes inventados. Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
+
+A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que depende de él. NO des por hecho su situación: puede estar empleado, puede tener ya algo propio, puede estar arrancando. No lo trates como una víctima ni le supongas un jefe al que culpar.
+
+SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario o al que ganó más como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro" y cualquier variante. Al que ya lo logró se le respeta. El único adversario del espectador es él mismo.
+
+`;
+}
+
 function buildSP(mode){
   mode=mode||sMode;
+
+  // ---------------- MODO PROFESOR (video largo) ----------------
+  // La idea: ENSEÑAR un método concreto para ganar, cuidar o hacer crecer el
+  // dinero. No es motivación: es una clase. Si el espectador no puede aplicar
+  // algo el lunes por la mañana, el video no sirve.
+  if(mode==='profesor')return cabeceraLarga()+`ESTE ES EL MODO PROFESOR: una CLASE. El protagonista enseña, no arenga.
+
+QUÉ SE ENSEÑA (obligatorio): UN método concreto y aplicable sobre dinero — cómo ahorrar de verdad, cómo ordenar las cuentas, cómo poner precio, cómo empezar a invertir con poco, cómo montar un servicio que ya funciona, cómo salir de una deuda, cómo cobrar por valor y no por horas, cómo elegir en qué negocio meterse. UN solo método por video, desarrollado hasta el final.
+
+REGLA DE UTILIDAD: al terminar, el espectador tiene que poder HACER algo concreto. Nada de "sé disciplinado" o "cambia tu mentalidad": eso es de los reels. Aquí se dan pasos, números, ejemplos y errores a evitar. Si lo que dices se puede resumir en una frase de cartel, no es una clase.
+
+HONESTIDAD: no prometas cifras concretas de ganancia ni plazos ("gana 1000 al mes en 30 días"). Habla de lo que el método hace y de lo que exige. Di también cuándo NO funciona y a quién no le sirve. Eso es lo que separa a un profesor de un vendedor de humo.
+
+ESTRUCTURA DEL GUION:
+1. GANCHO (0-15s): el problema concreto que este método resuelve, en la piel del espectador.
+2. PROMESA: qué va a saber hacer al terminar. Clara y sin exagerar.
+3. EL MÉTODO: los pasos, en orden, numerados al hablar ("el primero", "el segundo"). Cada paso con QUÉ es, POR QUÉ importa y CÓMO se hace.
+4. EJEMPLO REAL: el método aplicado a un caso concreto y creíble, con números redondos.
+5. LOS ERRORES: dos o tres fallos típicos al aplicarlo.
+6. CIERRE: el primer paso que puede dar hoy mismo, y la invitación a seguir el canal.
+
+BLOQUE A
+[El guion hablado en español, completo, de la duración pedida. Numera los pasos al hablar. Termina con: Legado de Hierro.]
+
+BLOQUE C
+[Aquí NO se piden escenas sueltas. Se pide un SET y unas TOMAS, como en una clase filmada de verdad.]
+SET: [UN solo lugar donde el protagonista da la clase — su oficina, un estudio sobrio, una sala con pizarra. Descríbelo una vez, con detalle: muebles, luz, qué hay al fondo. TODAS las tomas ocurren aquí y tienen que verse como el mismo sitio.]
+TOMA 1: [el protagonista hablando a cámara, plano medio, de frente]
+TOMA 2: [el mismo momento desde otro ángulo — de perfil, escorzo o más abierto]
+TOMA 3: [plano cerrado del rostro o de las manos explicando]
+TOMA 4: [plano del protagonista junto a la pizarra o señalando algo del set]
+TOMA 5: [plano general del set, el protagonista pequeño en el espacio]
+EJEMPLO 1: [una escena FUERA del set que ilustre el primer paso o el ejemplo real. Aquí sí puede haber otro lugar, otras personas del reparto, otro momento.]
+EJEMPLO 2: [otra escena que ilustre otro paso]
+EJEMPLO 3: [otra escena que ilustre el error típico o el resultado]
+
+BLOQUE M
+[EL MONTAJE: en qué orden se ven las tomas y los ejemplos a lo largo del video. Las TOMAS SE REPITEN — así es como se filma una clase: se vuelve a la cara del que habla entre ejemplo y ejemplo. Escribe una línea por corte, en orden, con el número de segundo en que entra. Alterna: nunca dos veces seguidas la misma toma. Cubre TODA la duración del guion.]
+0s: TOMA 1
+12s: EJEMPLO 1
+20s: TOMA 3
+[...sigue hasta cubrir el guion entero]
+
+BLOQUE F
+[El mismo guion en inglés natural, sin calcos. Termina con: Iron Legacy.]`;
+
+  // ---------------- MODO RELATO (video largo) ----------------
+  if(mode==='relato')return cabeceraLarga()+`ESTE ES EL MODO RELATO: una historia larga, contada con calma.
+
+QUÉ ES: el recorrido completo de alguien que cambió algo de su vida — no un consejo, una HISTORIA con principio, nudo y final. El espectador se queda porque quiere saber cómo termina.
+
+DE QUÉ TRATA: lo dicta el PILAR y el CONCEPTO. Puede ser levantar algo propio, salir de una deuda, ganarse una disciplina, sostener una decisión difícil, o aprender algo por las malas. No lo conviertas en una historia de negocios si el pilar no va de eso.
+
+CÓMO SE CUENTA: en segunda persona (tú) o desde la lección. No inventes un protagonista con nombre propio. SÍ pueden aparecer otras personas de su vida — el reparto del canal está más abajo — y de hecho una historia larga sin nadie más se hace plana.
+
+ESTRUCTURA:
+1. GANCHO (0-15s): el momento más tenso de la historia, contado antes de explicar cómo se llegó ahí.
+2. DE DÓNDE VIENE: la situación de partida, concreta, con detalles de su vida real.
+3. LO QUE SE ROMPIÓ: el momento en que ya no pudo seguir igual.
+4. LA DECISIÓN Y EL PRECIO: qué hizo y qué le costó. Aquí va la carne: lo que perdió, quién dudó de él, cuántas veces estuvo por dejarlo.
+5. EL CAMBIO: qué es distinto ahora. Sin fanfarria: mostrado en detalles pequeños.
+6. LA LECCIÓN: qué se lleva el espectador. Una sola, clara.
+
+RITMO: es largo, así que respira. Alterna frases cortas con otras más largas. Deja silencios donde la imagen habla sola.
+
+BLOQUE A
+[El guion hablado en español, completo, de la duración pedida. Termina con: Legado de Hierro.]
+
+BLOQUE C
+[Las escenas de la historia, EN ORDEN CRONOLÓGICO. Cada una es un momento del relato, no una ilustración suelta. La historia tiene que poder seguirse mirando solo las imágenes.]
+PROMPT 1: [la escena del gancho]
+PROMPT 2: [de dónde viene]
+[...una por cada momento importante, hasta el final]
+
+BLOQUE F
+[El mismo guion en inglés natural, sin calcos. Termina con: Iron Legacy.]`;
+
   if(mode==='impacto')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
 VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
@@ -702,20 +804,62 @@ function parseSuggestions(txt){
 // marcha y que en realidad no se ejecutaban nunca, porque #schedGrid ya no
 // existe en el HTML. Se eliminan para no construir encima de un fantasma.
 
+// Las duraciones que se ven dependen del modo: los cortos ven 30/60 y los largos
+// ven 3/5/8 minutos. Se repinta al cambiar de modo.
+// 16:9 para los modos largos (YouTube), 9:16 para los reels. Se puede cambiar a
+// mano despues: esto solo pone el valor sensato al cambiar de modo.
+function aplicarFormatoDelModo(){
+  var quiere=esModoLargo()?'16:9':'9:16';
+  [['selImgFmt',function(v){imgFmt=v;},'imgFmt'],['selVidFmt',function(v){vidFmt=v;},'vidFmt']].forEach(function(c){
+    var sel=document.getElementById(c[0]);
+    if(!sel)return;
+    for(var i=0;i<sel.options.length;i++){
+      if(sel.options[i].value===quiere){
+        sel.value=quiere;c[1](quiere);
+        if(typeof guardarAjuste==='function')guardarAjuste(c[2],quiere);
+        break;
+      }
+    }
+  });
+}
+
+function pintarDuraciones(){
+  var dg=document.getElementById('durGrid');
+  if(!dg)return;
+  var lista=dursDe(sMode);
+  // Si la duracion elegida no existe en este modo, se pasa a la primera del modo.
+  if(!lista.some(function(d){return d.id===sD;}))sD=lista[esModoLargo()?1:1]?lista[1].id:lista[0].id;
+  dg.innerHTML='';
+  lista.forEach(function(d){
+    var b=document.createElement('button');b.className='oc';b.dataset.id=d.id;
+    b.innerHTML='<span class="om">'+d.label+'</span><span class="os">'+d.sub+'</span>';
+    b.addEventListener('click',function(){sD=d.id;rfAll();updImgLabel();});
+    dg.appendChild(b);
+  });
+}
+
 function buildAll(){
   setTimeout(updImgLabel,100);
   // Selector de modo: Reel o Historia
   var modeWrap=document.getElementById('modeSelector');
   if(modeWrap){
     modeWrap.innerHTML='';
-    [{id:'reel',label:'🎬 Modo Reel',sub:'Consejo directo'},{id:'historia',label:'📖 Modo Historia',sub:'Narrativa de emprendimiento'},{id:'impacto',label:'⚡ Modo Impacto',sub:'Golpe de 30 segundos'}].forEach(function(m){
+    [{id:'reel',label:'🎬 Modo Reel',sub:'Consejo directo'},
+     {id:'historia',label:'📖 Modo Historia',sub:'Narrativa con continuidad'},
+     {id:'impacto',label:'⚡ Modo Impacto',sub:'Golpe de 30 segundos'},
+     {id:'profesor',label:'🎓 Modo Profesor',sub:'YouTube — enseña un método'},
+     {id:'relato',label:'🎞 Modo Relato',sub:'YouTube — historia larga'}].forEach(function(m){
       var b=document.createElement('button');b.className='oc'+(sMode===m.id?' sel':'');b.dataset.id=m.id;
       b.innerHTML='<span class="om">'+m.label+'</span><span class="os">'+m.sub+'</span>';
       b.style.borderColor=sMode===m.id?'#b8975a':'';
       b.style.background=sMode===m.id?'#f0e8d8':'';
       b.querySelector('.om').style.color=sMode===m.id?'#b8975a':'';
       b.addEventListener('click',function(){
-        sMode=m.id;SP=buildSP();updImgLabel();
+        sMode=m.id;SP=buildSP();pintarDuraciones();rfAll();
+        // YouTube es horizontal y los Reels verticales: al cambiar de familia de
+        // modos se ajusta el formato solo, que si no se olvida y sale al reves.
+        aplicarFormatoDelModo();
+        updImgLabel();
         modeWrap.querySelectorAll('.oc').forEach(function(x){
           var s=x.dataset.id===sMode;
           x.classList.toggle('sel',s);x.style.borderColor=s?'#b8975a':'';
@@ -733,13 +877,7 @@ function buildAll(){
     b.addEventListener('click',function(){sT=t.id;rfAll();});
     tg.appendChild(b);
   });
-  var dg=document.getElementById('durGrid');
-  DURS.forEach(function(d){
-    var b=document.createElement('button');b.className='oc';b.dataset.id=d.id;
-    b.innerHTML='<span class="om">'+d.label+'</span><span class="os">'+d.sub+'</span>';
-    b.addEventListener('click',function(){sD=d.id;rfAll();updImgLabel();});
-    dg.appendChild(b);
-  });
+  pintarDuraciones();
   var hg=document.getElementById('hookGrid');
   HOOKS.forEach(function(h){
     var b=document.createElement('button');b.className='oc';b.dataset.id=h.id;
@@ -1017,7 +1155,7 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   mode=mode||sMode;dId=dId||sD;
   var tO=THEMES.find(function(t){return t.id===tId;});
   var hO=HOOKS.find(function(h){return h.id===hId;});
-  var dO=DURS.find(function(d){return d.id===dId;});
+  var dO=DURS.concat(DURS_LARGAS).find(function(d){return d.id===dId;});
   var hi={dato:'Empieza con dato/cifra impactante.',pregunta:'Empieza con pregunta disruptiva.',afirmacion:'Empieza con verdad incomoda directa.',historia:'Empieza en primera persona con experiencia cruda.',pasos:'Desarrolla con Primero, Segundo, Tercero.'};
   var identidadBase='PERSONAJE FIJO — NO todas las imagenes tienen que mostrarlo (hay planos de detalle, de entorno o de otras personas), pero SIEMPRE que aparezca el protagonista es el MISMO hombre, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO EN TODA IMAGEN: lluvia, cualquier clima (nieve, tormenta, gotas de agua), cielos lluviosos, superficies mojadas, charcos -- NUNCA, ni dentro ni fuera del edificio; el clima es fuente de errores graves al animar. Tampoco robots, futurismo, sci-fi, cadenas rotas, magia ni fantasia. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad, contraste y sombras, jamas clima. ESCENAS LIMPIAS: incluye solo los objetos que la accion necesita; evita objetos sueltos irrelevantes (tazas de cafe, vasos, adornos) que no formen parte de la accion, porque al animar se deforman o se transforman en otra cosa. MIRADA (obligatorio): el personaje mira lo que exige la accion (lo que hace con las manos, la persona con quien trata, el lugar que supervisa, el horizonte de la ciudad), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
   // DIRECCION VISUAL: se le da al modelo el papel de DIRECTOR, no una lista de
@@ -1074,11 +1212,23 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   // instruccion de RAZONAMIENTO que se aplica a cualquier figura del guion.
   sceneDir+='INTERPRETACION DEL SENTIDO, NUNCA LITERAL (obligatorio, hazlo ANTES de escribir cada prompt): el guion esta lleno de lenguaje FIGURADO, metaforas y frases hechas. Tu trabajo NO es dibujar las palabras, es dibujar lo que esas palabras SIGNIFICAN en el mundo real de los negocios. Ante cualquier expresion figurada, primero razona "que quiere decir esto de verdad para un empresario" y describe UNA escena concreta y creible de ese significado; jamas el objeto literal de la metafora. Ejemplos del TIPO de razonamiento que debes aplicar (NO es una lista cerrada, es la logica para TODA metafora que aparezca): "apagar incendios" NO es fuego ni bomberos, es resolver crisis y urgencias del negocio con calma -> el empresario resolviendo un problema con su equipo o gestionando una urgencia. "engranajes", "maquinaria", "que la maquina funcione sola" NO son piezas mecanicas ni relojeria, son los SISTEMAS, procesos y automatizacion que hacen que el negocio opere sin depender de el -> una operacion organizada fluyendo, el equipo trabajando coordinado, el empresario supervisando el flujo sin tener que hacerlo todo. "sembrar y cosechar" -> invertir esfuerzo o dinero hoy y recoger resultados despues, con acciones reales de negocio. "el timon", "el motor", "construir puentes", "escalar la montana", "la batalla", "romper cadenas", "no morir en la orilla" -> traduce SIEMPRE el significado a una escena real de empresa, trabajo o finanzas, nunca el objeto de la metafora. REGLA FIRME: si un elemento de la escena solo tendria sentido como la metafora tomada literal (fuego, engranajes de reloj, cadenas, semillas en la tierra, un barco, una montana, espadas o armas, una guerra), esta MAL: reemplazalo por la accion de negocios que representa. Cada imagen debe poder entenderse como un momento real y cotidiano del mundo empresarial, no como el dibujo de un refran. ';
   var identidad=identidadBase+sceneDir;
-  var numPrompts=(mode==='impacto'||dId==='30')?3:dId==='90'?8:5;
-  var maxPalabras=(mode==='impacto'||dId==='30')?75:dId==='90'?225:150;
+  // CUANTAS IMAGENES Y CUANTAS PALABRAS.
+  // En los modos LARGOS no se genera una imagen por cada momento: seria carisimo
+  // y ademas innecesario. Profesor usa 5 tomas del mismo set (que se REPITEN a lo
+  // largo del video, como en una clase filmada) mas 3 ejemplos = 8 imagenes para
+  // 3, 5 u 8 minutos. Relato usa 10, encadenadas cronologicamente.
+  // Las palabras salen de ~2,5 por segundo, que es el ritmo real de la narracion.
+  var segs=parseInt(dId,10)||60;
+  var numPrompts, maxPalabras;
+  if(mode==='profesor'){ numPrompts=8; maxPalabras=Math.round(segs*2.5); }
+  else if(mode==='relato'){ numPrompts=10; maxPalabras=Math.round(segs*2.5); }
+  else{
+    numPrompts=(mode==='impacto'||dId==='30')?3:5;
+    maxPalabras=(mode==='impacto'||dId==='30')?75:150;
+  }
   // Sincronizacion guion-imagen: en historia y reel, cada imagen ilustra su parte del guion.
   // En impacto no aplica (son 3 golpes visuales independientes).
-  var syncRule=(mode!=='impacto')
+  var syncRule=(mode!=='impacto'&&mode!=='profesor')
     ? 'SINCRONIZACION GUION-IMAGEN (obligatorio en este modo): divide el BLOQUE A en EXACTAMENTE '+numPrompts+' partes consecutivas de peso similar, en el mismo orden en que se narra. El PROMPT k del BLOQUE C debe ILUSTRAR lo que se dice en la parte k del guion: el PROMPT 1 corresponde al inicio del guion, el PROMPT '+numPrompts+' al cierre, y los del medio en orden. Las imagenes van al ritmo de la narracion, como los fotogramas de lo que se esta diciendo; ninguna imagen puede ser una escena suelta ajena a su parte del guion.\n\n'
     : '';
   // Variedad mecánica: el código asigna el tipo de modelo al azar (el modelo de IA no elige).
@@ -1095,7 +1245,28 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
     semEnf=elegirConMemoria(ENFOQUES,'enf',ENFOQUES.length);
     seedRule='PUERTA DE ENTRADA ASIGNADA PARA ESTE GUION (variedad obligatoria, no la anuncies ni la nombres): entra al tema por '+semEnf+' Sigue tratando el PILAR y el CONCEPTO que te dieron, pero ábrelos por ESA puerta en vez de por el encuadre de siempre. Si esa puerta NO encaja con el pilar o con el concepto, MANDA EL PILAR: descártala y entra por donde el tema lo pida. Si al terminar el guion podría haber entrado por cualquier otra puerta sin cambiar nada, no lo hiciste bien.\n\n';
   }
-  var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+bloqueReparto()+bloqueYaDicho(25)+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
+  // El formato exigido cambia con el modo: profesor entrega SET+TOMAS+EJEMPLOS y
+  // un MONTAJE, no una lista de PROMPT 1..N.
+  var formato;
+  if(mode==='profesor'){
+    formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\n'
+      +'Genera los CUATRO bloques en este orden: BLOQUE A (guion hablado), BLOQUE C (SET + 5 TOMAS + 3 EJEMPLOS), BLOQUE M (el montaje) y BLOQUE F (el guion en ingles).\n'
+      +'En el BLOQUE C tiene que haber EXACTAMENTE una linea SET:, cinco lineas TOMA 1: a TOMA 5: y tres lineas EJEMPLO 1: a EJEMPLO 3:. Ni una mas ni una menos.\n'
+      +'El BLOQUE M tiene que cubrir los '+segs+' segundos completos del guion, con una linea por corte en formato "<segundo>s: TOMA <n>" o "<segundo>s: EJEMPLO <n>". '
+      +'Repite las tomas cuantas veces haga falta — para eso estan — pero nunca dos iguales seguidas. Un corte cada 8 a 15 segundos.\n'
+      +'Si falta cualquiera de los cuatro bloques, la respuesta es incompleta y falla el sistema.\n\n';
+  }else if(mode==='relato'){
+    formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\n'
+      +'Genera los 3 bloques en este orden: BLOQUE A (guion hablado en espanol), BLOQUE C (exactamente '+numPrompts+' prompts numerados PROMPT 1 a PROMPT '+numPrompts+', en orden cronologico de la historia) y BLOQUE F (el guion en ingles).\n'
+      +'Si no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema.\n\n';
+  }else{
+    formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n';
+  }
+  var recuerda=(mode==='profesor')
+    ? 'Recuerda: BLOQUE A es solo el texto hablado. BLOQUE C es el SET, las 5 TOMAS y los 3 EJEMPLOS. BLOQUE M es el montaje. BLOQUE F es el guion en ingles.'
+    : 'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
+
+  var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\n'+formato+syncRule+seedRule+bloqueReparto()+bloqueYaDicho(25)+recuerda;
   // Las semillas creativas viajan de vuelta para guardarlas en el historial. Sin
   // esto no hay forma de rotar sin repetir: el siguiente guion no sabria por que
   // puerta entro el anterior ni en que mundo visual estuvo.
@@ -1369,7 +1540,7 @@ var HIST_KEY='lh_hist';
 // 5-6 KB, asi que 300 caben de sobra en los ~5 MB de localStorage; y si algun dia
 // no cupieran, guardarHist() recorta en vez de reventar.
 var HIST_MAX=300;
-var MODE_LABELS={reel:'🎬 Reel',historia:'📖 Historia',impacto:'⚡ Impacto'};
+var MODE_LABELS={reel:'🎬 Reel',historia:'📖 Historia',impacto:'⚡ Impacto',profesor:'🎓 Profesor',relato:'🎞 Relato'};
 
 function getHistory(){
   try{var h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');return Array.isArray(h)?h:[];}
@@ -1382,6 +1553,9 @@ function saveHistory(res){
     var h=getHistory();
     h.unshift({
       a:res.a,f:res.f||'',c:res.c||[],cRaw:res.cRaw||'',topic:res.topic||'',
+      // Modo profesor: el montaje y cuantas tomas hay. Sin esto, al restaurar el
+      // reel se perderia el orden de los planos y el video saldria lineal.
+      montaje:res.montaje||null,nTomas:res.nTomas||0,nEjemplos:res.nEjemplos||0,set:res.set||'',
       t:res.tO?res.tO.id:'',d:res.dO?res.dO.id:'60',h:res.hO?res.hO.id:'dato',
       modo:res.modo||'reel',fecha:new Date().toISOString(),
       // ID estable: sin el no hay forma de colgar de un reel ni sus materiales ni
@@ -1510,9 +1684,10 @@ function restoreHistory(id,i){
   if(!item)return;
   applySelection(item.modo,item.t,item.d,item.h);
   var tO=THEMES.find(function(t){return t.id===item.t;});
-  var dO=DURS.find(function(d){return d.id===item.d;});
+  var dO=DURS.concat(DURS_LARGAS).find(function(d){return d.id===item.d;});
   var hO=HOOKS.find(function(x){return x.id===item.h;});
-  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,sem:item.sem||null,modo:item.modo||'reel',uid:nextUid()};
+  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,sem:item.sem||null,modo:item.modo||'reel',uid:nextUid(),
+    montaje:item.montaje||null,nTomas:item.nTomas||0,nEjemplos:item.nEjemplos||0,set:item.set||''};
   resetReelAssets();
   // El caption vuelve del historial en vez de volver a pedirselo (y pagarselo) a
   // Gemini. Se reescribe el id de la entrada al nuevo uid para que lo que se
@@ -1587,11 +1762,12 @@ function parseBlocks(raw){
     l=l.replace(/^#{1,6}\s+/,'');
     cleanLines.push(l);
   }
-  var posA=-1,posC=-1,posF=-1;
+  var posA=-1,posC=-1,posF=-1,posM=-1; // posM: el MONTAJE del modo profesor
   for(var i=0;i<cleanLines.length;i++){
     var upper=cleanLines[i].trim().toUpperCase().replace(/[*#_`:]/g,'').trim();
     if(posA===-1&&upper.indexOf('BLOQUE A')===0){posA=i;}
     else if(posC===-1&&upper.indexOf('BLOQUE C')===0){posC=i;}
+    else if(posM===-1&&upper.indexOf('BLOQUE M')===0){posM=i;}
     else if(posF===-1&&upper.indexOf('BLOQUE F')===0){posF=i;}
   }
   function extract(start,others){
@@ -1602,9 +1778,10 @@ function parseBlocks(raw){
     }
     return cleanLines.slice(start+1,end).join('\n').trim();
   }
-  var aRaw=extract(posA,[posC,posF]);
-  var cRaw=extract(posC,[posA,posF]);
-  var fRaw=extract(posF,[posA,posC]);
+  var aRaw=extract(posA,[posC,posM,posF]);
+  var cRaw=extract(posC,[posA,posM,posF]);
+  var mRaw=extract(posM,[posA,posC,posF]);
+  var fRaw=extract(posF,[posA,posC,posM]);
   if(!aRaw&&!fRaw){
     var firstPromptLine=-1;
     for(var i=0;i<cleanLines.length;i++){
@@ -1637,7 +1814,47 @@ function parseBlocks(raw){
     }
     if(currentPrompt.length>20)prompts.push(currentPrompt);
   }
-  return{a:cleanG(aRaw),f:cleanG(fRaw),c:prompts,cRaw:cRaw};
+  // MODO PROFESOR: el BLOQUE C no trae PROMPT 1..N sino un SET, unas TOMAS y unos
+  // EJEMPLOS. Las tomas son del MISMO sitio y se REUTILIZAN a lo largo del video
+  // (asi se filma una clase: se vuelve a la cara del que habla entre ejemplo y
+  // ejemplo), y el BLOQUE M dice en que orden. Eso es lo que permite hacer un
+  // video de minutos sin generar una imagen por segundo.
+  var set='',tomas=[],ejemplos=[];
+  if(cRaw&&!prompts.length){
+    var ls=cRaw.split('\n'),actual=null,buf='';
+    var cerrar=function(){
+      if(!actual||buf.trim().length<15)return;
+      if(actual==='set')set=buf.trim();
+      else if(actual==='toma')tomas.push(buf.trim());
+      else ejemplos.push(buf.trim());
+    };
+    for(var mi=0;mi<ls.length;mi++){
+      var lm=ls[mi].trim().replace(/\*+/g,'');
+      if(/^SET\s*[:\-.]/i.test(lm)){cerrar();actual='set';buf=lm.replace(/^SET\s*[:\-.]\s*/i,'');}
+      else if(/^TOMA\s*\d*\s*[:\-.]/i.test(lm)){cerrar();actual='toma';buf=lm.replace(/^TOMA\s*\d*\s*[:\-.]\s*/i,'');}
+      else if(/^EJEMPLO\s*\d*\s*[:\-.]/i.test(lm)){cerrar();actual='ejemplo';buf=lm.replace(/^EJEMPLO\s*\d*\s*[:\-.]\s*/i,'');}
+      else if(lm&&actual){buf+=' '+lm;}
+    }
+    cerrar();
+    // Las tomas van primero y los ejemplos despues: ese es el orden en que se
+    // generan las imagenes, y el montaje se refiere a ellas por ese numero.
+    if(tomas.length||ejemplos.length){
+      prompts=tomas.map(function(t){return (set?set+'. ':'')+t;}).concat(ejemplos);
+    }
+  }
+
+  // EL MONTAJE: "12s: TOMA 3" -> {seg:12, tipo:'toma', n:3}
+  var montaje=[];
+  if(mRaw){
+    mRaw.split('\n').forEach(function(l){
+      var m=/^\s*(\d+)\s*s?\s*[:\-.]\s*(TOMA|EJEMPLO)\s*(\d+)/i.exec(l.replace(/\*+/g,''));
+      if(m)montaje.push({seg:parseInt(m[1],10),tipo:m[2].toLowerCase(),n:parseInt(m[3],10)});
+    });
+    montaje.sort(function(x,y){return x.seg-y.seg;});
+  }
+
+  return{a:cleanG(aRaw),f:cleanG(fRaw),c:prompts,cRaw:cRaw,
+         set:set,nTomas:tomas.length,nEjemplos:ejemplos.length,montaje:montaje};
 }
 
 // RENDER
@@ -3362,6 +3579,28 @@ function selectedMusic(){
 // Cuantos clips componen el reel. Normalmente es el numero de imagenes, pero si
 // se trajeron videos YA GENERADOS del banco puede no haber imagenes nuevas: en
 // ese caso mandan los videos.
+// El orden en que se ven los planos. Normalmente es 0,1,2...N (uno por imagen),
+// pero en modo profesor lo dicta el BLOQUE M y las tomas se repiten.
+function ordenDelMontaje(){
+  var total=totalClips();
+  var m=(lastRes&&Array.isArray(lastRes.montaje))?lastRes.montaje:null;
+  if(!m||!m.length||lastRes.modo!=='profesor'){
+    var lineal=[];
+    for(var i=0;i<total;i++)lineal.push(i);
+    return lineal;
+  }
+  // En el BLOQUE C las TOMAS van primero y los EJEMPLOS despues, asi que
+  // "TOMA 3" es la imagen 2 (base 0) y "EJEMPLO 1" es la imagen nTomas+0.
+  var nT=lastRes.nTomas||5;
+  var out=[];
+  m.forEach(function(x){
+    var k=(x.tipo==='toma')?(x.n-1):(nT+x.n-1);
+    if(k>=0&&k<total&&(!out.length||out[out.length-1]!==k))out.push(k);
+  });
+  if(!out.length){ for(var j=0;j<total;j++)out.push(j); }
+  return out;
+}
+
 function totalClips(){
   var conImg=imgs.filter(function(x){return x&&x.src;}).length;
   var conVid=vids.filter(function(v){return v&&v.remoteUrl;}).length;
@@ -3444,11 +3683,18 @@ async function unifyVideo(){
     alert('Primero genera las imágenes y sus videos, o trae videos ya generados con "📼 Usar videos ya generados".');
     return;
   }
+  // EL MONTAJE DEL MODO PROFESOR. El director entrega 5 tomas del mismo set y 3
+  // ejemplos, y una lista de en que orden se ven. Las tomas SE REPITEN — asi se
+  // filma una clase de verdad: se vuelve a la cara del que habla entre ejemplo y
+  // ejemplo. Por eso un video de 5 minutos sale de 8 imagenes y no de 40.
+  var orden=ordenDelMontaje();
+
   var urls=[];
   if(!soloImagenes){
-    for(var i=0;i<total;i++){
-      if(!(vids[i]&&vids[i].remoteUrl)){alert('Falta el video del clip '+(i+1)+'. Genera todos los videos primero.');return;}
-      urls.push(vids[i].remoteUrl);
+    for(var oi=0;oi<orden.length;oi++){
+      var k=orden[oi];
+      if(!(vids[k]&&vids[k].remoteUrl)){alert('Falta el video del clip '+(k+1)+'. Genera todos los videos primero.');return;}
+      urls.push(vids[k].remoteUrl);
     }
   }else{
     if(!confirm('No hay clips de video, pero sí '+imgsListas.length+' imágenes.\n\n'
@@ -3489,7 +3735,7 @@ async function unifyVideo(){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({videos:urls,audioParts:aud.partsB64,music:music,
         srt:srt,targetSeconds:objetivo,
-        imagenes:soloImagenes?imgsListas.map(function(x){return dataUrlToB64(x.src);}):[]}),
+        imagenes:soloImagenes?orden.map(function(k){return dataUrlToB64(imgs[k].src);}):[]}),
     });
     var d=await r.json().catch(function(){return{};});
     if(!r.ok||!d.jobId)throw new Error(d.error||'Error '+r.status);

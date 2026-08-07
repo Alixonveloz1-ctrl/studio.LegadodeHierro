@@ -63,7 +63,10 @@ module.exports = async (req, res) => {
   if (!videos.length && !imagenes.length) {
     return res.status(400).json({ error: 'Faltan las URLs de los videos (videos[]) o las imagenes' });
   }
-  if (videos.length > 10) return res.status(400).json({ error: 'Maximo 10 clips' });
+  // El tope sube de 10 a 60 por los modos largos: en modo profesor las mismas 5
+  // tomas se repiten decenas de veces a lo largo de un video de minutos, asi que
+  // la lista de planos es larga aunque las imagenes generadas sean solo 8.
+  if (videos.length > 60) return res.status(400).json({ error: 'Maximo 60 planos' });
   if (!audioParts.length) return res.status(400).json({ error: 'Falta el audio de la narracion (audioParts[])' });
   for (let i = 0; i < videos.length; i++) {
     if (typeof videos[i] !== 'string' || videos[i].indexOf('https://storage.googleapis.com/') !== 0) {
