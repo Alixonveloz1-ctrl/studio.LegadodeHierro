@@ -972,7 +972,7 @@ function nextUid(){return ++uidSeq;}
 function resetReelAssets(){
   audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
   thumbImg=(lastRes&&THUMBS[lastRes.uid])?THUMBS[lastRes.uid]:null;
-  finalVid=null;
+  finalVid=null;FINALES={es:null,en:null};
   if(typeof stopMix==='function')stopMix(); // que no siga sonando la mezcla del reel anterior
 }
 
@@ -2763,7 +2763,10 @@ async function genAllVideos(){
 // 5 clips en orden, les ajusta la velocidad con UNA sola proporcion para que la
 // suma encaje con el audio de ElevenLabs (afinando el ultimo clip), le pega la
 // narracion encima y devuelve UN solo archivo final. En CapCut solo queda la musica.
-var finalVid=null; // {url, blob} del video final unificado
+var finalVid=null; // el ultimo video final unificado, el que se ve en pantalla
+// Los videos finales YA unificados, uno por idioma. Los dos salen de los MISMOS
+// clips (que ya estan pagados): solo cambian la voz y los subtitulos.
+var FINALES={es:null,en:null};
 
 // BIBLIOTECA DE MUSICA — las pistas se suben UNA vez a la carpeta musica/ del
 // bucket y quedan para siempre; en cada reel solo se elige cual va y a que
@@ -3125,7 +3128,11 @@ async function unifyVideo(){
     var vr=await fetch(videoUrl);
     if(!vr.ok)throw new Error('No se pudo descargar el video final.');
     var vb=await vr.blob();
-    finalVid={url:URL.createObjectURL(vb),blob:vb};
+    // Se guarda POR IDIOMA. Antes era una sola variable y el reel en ingles
+    // pisaba al de espanol: en el ZIP solo llegaba el ultimo que hubieras hecho.
+    // Ahora puedes unificar los dos y el ZIP se los lleva los dos.
+    finalVid={url:URL.createObjectURL(vb),blob:vb,lang:idioma};
+    FINALES[idioma]=finalVid;
     renderFinalVid();
     st.textContent=music?'Video final listo, con narración y música mezcladas. Listo para publicar.':'Video final listo (sin música de fondo).';
     chkExport();
@@ -3146,13 +3153,33 @@ function renderFinalVid(){
   vid.style.cssText='width:100%;max-width:280px;border-radius:10px;display:block;background:#000;margin-bottom:8px';
   box.appendChild(vid);
   var slug=(lastRes&&lastRes.topic?lastRes.topic:'reel').slice(0,25).replace(/[^a-zA-Z0-9]/g,'-');
-  var dl=document.createElement('a');
-  dl.href=finalVid.url;dl.download=slug+'-final.mp4';dl.textContent='⬇ Descargar video final';
-  dl.style.cssText='display:inline-block;background:linear-gradient(135deg,#7a9ec4,#9ab8d8);color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none';
-  box.appendChild(dl);
+  // Un boton por cada idioma que YA este unificado, no solo por el ultimo.
+  var fila=document.createElement('div');
+  fila.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+  [['es','🇪🇸 Español'],['en','🇺🇸 English']].forEach(function(par){
+    var f=FINALES[par[0]];
+    if(!f)return;
+    var dl=document.createElement('a');
+    dl.href=f.url;dl.download=slug+'-final-'+par[0]+'.mp4';
+    dl.textContent='⬇ '+par[1];
+    var activo=finalVid&&finalVid.lang===par[0];
+    dl.style.cssText='display:inline-block;background:'+(activo
+      ? 'linear-gradient(135deg,#7a9ec4,#9ab8d8)' : '#fff')
+      +';color:'+(activo?'#fff':'#7a9ec4')+';border:1.5px solid #7a9ec4;padding:8px 14px;'
+      +'border-radius:8px;font-size:12px;font-weight:600;text-decoration:none';
+    fila.appendChild(dl);
+  });
+  box.appendChild(fila);
+  // Si ya estan los dos, se dice: es la senal de que el ZIP se los llevara ambos.
+  var nota=document.createElement('div');
+  nota.style.cssText='font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:8px';
+  nota.textContent=(FINALES.es&&FINALES.en)
+    ? 'Los dos idiomas están unificados. El ZIP se lleva los dos vídeos finales, y las imágenes y los clips una sola vez.'
+    : 'Ya puedes cambiar el idioma arriba, generar su narración y unificar otra vez: los clips no se vuelven a generar ni a pagar.';
+  box.appendChild(nota);
 }
 
-function chkExport(){if(audES||audEN||imgs.length||thumbImg||finalVid)document.getElementById('expbtn').style.display='flex';}
+function chkExport(){if(audES||audEN||imgs.length||thumbImg||finalVid||FINALES.es||FINALES.en)document.getElementById('expbtn').style.display='flex';}
 
 function fmtSRTTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.round((s%1)*1000);return(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc+','+(ms<100?(ms<10?'00':'0'):'')+ms;}
 
@@ -3249,9 +3276,15 @@ async function exportAll(){
         zip.file('videos/'+slug+'-video-'+(vi+1)+'.mp4',vb);
       }
     }
-    if(finalVid&&finalVid.blob){
-      var fb=await finalVid.blob.arrayBuffer();
-      zip.file(slug+'-final.mp4',fb);
+    // Los dos videos finales, cada uno con su idioma en el nombre. Las imagenes y
+    // los clips de arriba van UNA sola vez: son los mismos para los dos reels.
+    var idiomas=['es','en'];
+    for(var li=0;li<idiomas.length;li++){
+      var fin=FINALES[idiomas[li]];
+      if(fin&&fin.blob){
+        var fb=await fin.blob.arrayBuffer();
+        zip.file(slug+'-final-'+idiomas[li]+'.mp4',fb);
+      }
     }
     var content=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
     var url=URL.createObjectURL(content);
@@ -3283,7 +3316,7 @@ function hideErr(){document.getElementById('ebox').style.display='none';}
 function reset(){
   document.getElementById('ow').style.display='none';
   document.getElementById('conc').value='';updCC();updGBtn();lastRes=null;
-  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;finalVid=null;sT='';rfAll();
+  audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;finalVid=null;FINALES={es:null,en:null};sT='';rfAll();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
