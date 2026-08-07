@@ -25,8 +25,10 @@ const REPARTO = [
   // ---------- FAMILIA Y ENTORNO INTIMO ----------
   {
     id: 'companera', nombre: 'La compañera', rol: 'Su pareja', edad: '33 anos',
-    fisico: 'mujer de 33 anos, guapa, cabello rubio claro ondulado hasta los hombros, rostro bonito de rasgos finos, ojos claros atentos, sonrisa calida, complexion esbelta',
-    vestuario: 'ropa de casa comoda y sencilla; blusa y pantalon discreto cuando sale',
+    // Esta descripcion va con sus fotos ancla (public/biblia/companera-*.jpg): son
+    // la misma mujer. El texto solo no bastaba — daba "una rubia", no ESTA.
+    fisico: 'mujer de 33 anos, muy guapa, cabello rubio dorado largo y ondulado por debajo de los hombros (a veces recogido en mono alto con mechones sueltos), rostro de rasgos finos y pomulos marcados, ojos verde grisaceo grandes, cejas oscuras definidas, labios llenos, piel calida, complexion alta y esbelta',
+    vestuario: 'en casa, vestido camisero corto de punto rosa palo con botones y cordon a la cintura; fuera, jersey crema de cuello redondo con pantalon beige de vestir; collar fino con colgante redondo',
     habla: 'directa pero sin gritar; pregunta lo que nadie mas se atreve',
     encaja: 'cuando el guion habla del precio que paga la familia, de la duda, del apoyo o de la conversacion dificil en casa',
   },

@@ -48,7 +48,7 @@ global.fetch = async (url, opts) => {
   });
   if (u.indexOf('oauth2.googleapis.com') > -1) return resp({ access_token: 'token-falso' });
   // Origen externo de las imagenes de marca (i.ibb.co), por si hay que recuperarlas
-  if (u.indexOf('i.ibb.co') > -1) {
+  if (u.indexOf('i.ibb.co') > -1 || u.indexOf('/biblia/') > -1) {
     IBB.push(u);
     return {
       ok: true, status: 200,
@@ -199,7 +199,8 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
   // ---- 9. un personaje normal no inventa ancla ----
   const comp = ficha(r.body.personajes, 'companera');
   t('la compañera existe en el reparto', !!comp);
-  t('y no tiene ancla: su cara la fija su primera vista', comp && (comp.base || []).length === 0);
+  t('la compañera trae sus fotos de referencia del proyecto',
+    comp && (comp.base || []).length === 3, comp && (comp.base || []).join(', '));
   t('la compañera es rubia y guapa, como se pidió',
     comp && /rubi/.test(comp.fisico) && /guapa|bonito/.test(comp.fisico), comp && comp.fisico.slice(0, 60));
 
@@ -279,8 +280,8 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
     usadas[1].map(x => x.slice(0, 18)).join(' | '));
   t('y la vista 2 sí usa la vista 1 recién hecha',
     usadas[1].some(x => /IMAGEN-GENERADA/.test(x)));
-  t('la vista 3 usa las dos nuevas y ninguna vieja',
-    usadas[2].length === 2 && usadas[2].every(x => /IMAGEN-GENERADA/.test(x)),
+  t('la vista 3 usa las nuevas y ninguna vieja',
+    usadas[2].length >= 2 && usadas[2].every(x => !/VISTA-VIEJA/.test(x)),
     usadas[2].length + ' referencias');
 
   // El encuadre no se hereda de la referencia
@@ -299,6 +300,49 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
   global.fetch = escribirOriginal;
   t('si no se pudo escribir la vista, se dice cuál',
     JSON.stringify(r.body.noGuardadas) === '[1]', JSON.stringify(r.body.noGuardadas));
+
+  // ---- 14. LA COMPANERA TRAE SUS FOTOS DE FABRICA ----
+  // Describirla por texto daba "una rubia", no ESA mujer. Ahora el proyecto trae
+  // sus imagenes y son ellas las que mandan.
+  BUCKET['personajes/index.json'] = Buffer.from(JSON.stringify([]), 'utf8').toString('base64');
+  let comp3 = ficha((await llamar({ action: 'list' })).body.personajes, 'companera');
+  t('la compañera nace con fotos de referencia del proyecto',
+    (comp3.base || []).length === 3, (comp3.base || []).join(', '));
+  t('y apuntan a public/biblia/', (comp3.base || []).every(o => /^biblia\/companera-\d\.jpg$/.test(o)));
+  IBB.length = 0;
+  for (const k of Object.keys(BUCKET)) if (k.indexOf('biblia/') === 0) delete BUCKET[k];
+  r = await llamar({ action: 'generar', personaje: comp3, vista: 0 });
+  t('sus fotos se bajan de la web y se copian al bucket',
+    IBB.length === 3 && !!BUCKET['biblia/companera-1.jpg'], IBB.length + ' descargas');
+  t('y la vista se genera CON esas fotos delante', r.body.conAncla === 3, 'conAncla=' + r.body.conAncla);
+  t('su descripción coincide con las fotos (rubia, ojos verdes)',
+    /rubio dorado/.test(comp3.fisico) && /verde/.test(comp3.fisico), comp3.fisico.slice(0, 60));
+
+  // ---- 15. SUBIR TUS PROPIAS FOTOS ----
+  const MIA = Buffer.from('FOTO-SUBIDA-POR-EL-DUENO-' + '-'.repeat(200)).toString('base64');
+  r = await llamar({ action: 'ancla', id: 'companera', imagenes: [MIA, MIA] });
+  t('se pueden subir fotos propias como ancla', r.code === 200, JSON.stringify(r.body && r.body.error));
+  comp3 = r.body.personaje;
+  t('el ancla pasa a ser la tuya', (comp3.base || []).length === 2
+    && comp3.base.every(o => /^personajes\/companera\/ancla-\d\.png$/.test(o)), (comp3.base || []).join(', '));
+  t('y las vistas viejas se borran (se hicieron con otra cara)',
+    (comp3.refs || []).filter(Boolean).length === 0);
+  r = await llamar({ action: 'generar', personaje: comp3, vista: 0 });
+  l = LLAMADAS[LLAMADAS.length - 1];
+  t('la vista nueva se genera con TUS fotos',
+    l.refs.length === 2 && l.refs.every(x => /FOTO-SUBIDA-POR-EL-DUENO/.test(x)), l.refs.length + ' referencias');
+
+  // Al recargar la biblia, el ancla propia NO se pisa con la de fabrica
+  comp3 = ficha((await llamar({ action: 'list' })).body.personajes, 'companera');
+  t('al recargar, tu ancla se respeta y no vuelve la de fábrica',
+    comp3.base.every(o => o.indexOf('personajes/') === 0), comp3.base.join(', '));
+
+  r = await llamar({ action: 'quitar-ancla', id: 'companera' });
+  t('se puede volver a las fotos del proyecto',
+    (r.body.personaje.base || []).join(',') === 'biblia/companera-1.jpg,biblia/companera-2.jpg,biblia/companera-3.jpg',
+    (r.body.personaje.base || []).join(', '));
+  r = await llamar({ action: 'quitar-ancla', id: 'insignia' });
+  t('pero el insignia no puede quedarse sin ancla', r.code === 400);
 
   console.log('\n' + ok + ' OK, ' + ko + ' fallos');
   process.exit(ko ? 1 : 0);

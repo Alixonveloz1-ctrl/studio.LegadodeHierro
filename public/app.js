@@ -1083,12 +1083,84 @@ function pintarBiblia(){
       +'style="width:100%;border:1px solid var(--border);background:var(--warm);border-radius:7px;'
       +'padding:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">'
       +(listo?'👁 Ver las vistas':'⚡ Generar sus '+N_VISTAS+' vistas')+'</button>'
+      // FOTOS TUYAS COMO ANCLA. Es lo que el insignia siempre tuvo: describir a
+      // alguien por texto da "una mujer rubia", no ESA mujer. Con las fotos
+      // delante el generador copia en vez de inventar.
+      +'<button type="button" class="bibliaSubir" data-id="'+escHtml(p.id)+'" '
+      +'style="width:100%;margin-top:4px;border:1px dashed var(--border);background:#fff;border-radius:7px;'
+      +'padding:5px;font-size:9.5px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">'
+      +(nAncla(p)?'📎 '+nAncla(p)+' foto(s) de referencia'+(anclaPropia(p)?' tuyas':'')
+                 :'📎 Usar mis propias fotos')+'</button>'
       +'<div class="bibliaVistas" style="display:none;margin-top:8px"></div>';
     g.appendChild(el);
   });
   Array.prototype.forEach.call(g.querySelectorAll('.bibliaVer'),function(b){
     b.addEventListener('click',function(){ abrirVistas(b.getAttribute('data-id')); });
   });
+  Array.prototype.forEach.call(g.querySelectorAll('.bibliaSubir'),function(b){
+    b.addEventListener('click',function(){ subirAncla(b.getAttribute('data-id')); });
+  });
+}
+
+function nAncla(p){ return ((p&&p.base)||[]).length; }
+function anclaPropia(p){
+  return ((p&&p.base)||[]).some(function(o){return String(o).indexOf('personajes/')===0;});
+}
+
+// Sube hasta 3 fotos tuyas como ANCLA de un personaje: las que definen su cara.
+// Se reducen EN EL NAVEGADOR antes de mandarlas — una foto del movil son varios
+// megas y la peticion no cabe; ademas, como referencia no aporta nada ese tamano.
+var ANCLA_LADO=1024;
+function encogerImagen(file){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onerror=function(){rej(new Error('no se pudo leer el archivo'));};
+    fr.onload=function(){
+      var im=new Image();
+      im.onerror=function(){rej(new Error('el archivo no es una imagen'));};
+      im.onload=function(){
+        var e=Math.min(1,ANCLA_LADO/Math.max(im.width,im.height));
+        var c=document.createElement('canvas');
+        c.width=Math.round(im.width*e);c.height=Math.round(im.height*e);
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        res(c.toDataURL('image/png').split(',')[1]);
+      };
+      im.src=fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+async function subirAncla(id){
+  var p=personajePorId(id);if(!p)return;
+  if(nAncla(p)&&!confirm('"'+p.nombre+'" ya tiene '+nAncla(p)+' foto(s) de referencia.\n\n'
+    +'Si subes otras, esas mandan y las vistas ya generadas se borran (se hicieron con otra cara).\n\n¿Sigo?'))return;
+  var inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';inp.multiple=true;
+  inp.addEventListener('change',async function(){
+    var files=Array.prototype.slice.call(inp.files||[]).slice(0,3);
+    if(!files.length)return;
+    var card=document.querySelector('#bibliaGrid [data-id="'+id+'"]');
+    var btn=card?card.querySelector('.bibliaSubir'):null;
+    var orig=btn?btn.textContent:'';
+    if(btn){btn.disabled=true;btn.textContent='Subiendo '+files.length+' foto(s)...';}
+    try{
+      var b64s=[];
+      for(var i=0;i<files.length;i++)b64s.push(await encogerImagen(files[i]));
+      var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'ancla',id:id,imagenes:b64s})});
+      var d=await r.json();
+      if(!r.ok||!d.success)throw new Error(d.error||'Error '+r.status);
+      delete VISTAS_VISTAS[id];delete REFS_PERSONAJE[id];
+      await cargarBiblia();
+      alert('Listo: '+b64s.length+' foto(s) de referencia para "'+p.nombre+'".\n\n'
+        +'Ahora dale a "Generar sus '+N_VISTAS+' vistas": saldrán con ESA cara.');
+    }catch(e){
+      alert('No se pudieron subir: '+(e.message||'error'));
+      if(btn){btn.disabled=false;btn.textContent=orig;}
+    }
+  });
+  inp.click();
 }
 
 // Abre (o cierra) las vistas de un personaje. Es lo que faltaba: sin poder VERLAS

@@ -105,6 +105,18 @@ const { chromium } = require('playwright-core');
     pedido ? 'vista ' + pedido.vista : 'no se capturó');
   t('y la pide con el modelo de la biblia', pedido && pedido.model === 'gemini-3-pro-image', pedido && pedido.model);
 
+  // ---- fotos propias como ancla ----
+  const anc = await page.evaluate(() => ({
+    hayBoton: !!document.querySelector('#bibliaGrid [data-id="companera"] .bibliaSubir'),
+    texto: (document.querySelector('#bibliaGrid [data-id="companera"] .bibliaSubir') || {}).textContent,
+    sinAncla: (document.querySelector('#bibliaGrid [data-id="madre"] .bibliaSubir') || {}).textContent,
+    encoge: typeof encogerImagen === 'function',
+  }));
+  t('cada personaje puede llevar fotos propias de referencia', anc.hayBoton);
+  t('la compañera ya trae las suyas', /3 foto/.test(anc.texto || ''), anc.texto);
+  t('quien no tiene, ve la invitación a subirlas', /Usar mis propias fotos/.test(anc.sinAncla || ''), anc.sinAncla);
+  t('las fotos se encogen en el navegador antes de subirlas', anc.encoge);
+
   console.log('\n' + ok + ' OK, ' + ko + ' fallos');
   await b.close(); process.exit(ko ? 1 : 0);
 })();

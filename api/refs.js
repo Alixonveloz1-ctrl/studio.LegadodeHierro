@@ -171,6 +171,30 @@ function sanearFicha(p) {
 // son el ancla, no un punto de partida que se pueda reemplazar.
 const BASE_INSIGNIA = ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3', 'refs/personaje-4'];
 
+// ANCLAS QUE VIENEN CON EL PROYECTO. Igual que el insignia tiene sus 4 imagenes
+// de marca, hay personajes cuyo aspecto ya esta decidido y no se negocia. Viven en
+// public/biblia/ y se copian al bucket la primera vez que hacen falta.
+//
+// La companera esta aqui porque describirla por texto NO funcionaba: "rubia guapa"
+// da una mujer rubia cualquiera, no ESTA mujer. Con la cara delante, el generador
+// deja de inventar.
+const ANCLAS_DEL_PROYECTO = {
+  companera: ['biblia/companera-1.jpg', 'biblia/companera-2.jpg', 'biblia/companera-3.jpg'],
+};
+
+// De donde se baja un ancla que no este todavia en el bucket.
+function origenDelAncla(objeto) {
+  const m = String(objeto).match(/^refs\/([a-z]+)-(\d+)$/);
+  if (m && SETS[m[1]]) return SETS[m[1]][Number(m[2]) - 1] || null;
+  // Las del proyecto se sirven desde la propia web (public/biblia/...).
+  const b = String(objeto).match(/^biblia\/[a-z0-9-]+\.(jpg|png)$/);
+  if (b) {
+    const base = (process.env.SITE_URL || 'https://studio.legadodehierro.com').replace(/\/+$/, '');
+    return base + '/' + objeto;
+  }
+  return null;
+}
+
 // Carga una imagen ancla. Si no esta en el bucket, se baja de su origen y se deja
 // copiada — el mismo camino que ya usa el generador de reels.
 //
@@ -182,9 +206,7 @@ const BASE_INSIGNIA = ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3
 async function cargarAncla(token, bucket, objeto) {
   let b64 = await readFromBucket(token, bucket, objeto);
   if (b64) return b64;
-  const m = String(objeto).match(/^refs\/([a-z]+)-(\d+)$/);
-  if (!m || !SETS[m[1]]) return null;
-  const url = SETS[m[1]][Number(m[2]) - 1];
+  const url = origenDelAncla(objeto);
   if (!url) return null;
   const got = await fetchFromIbb(url);
   if (!got) { console.warn('[refs] el ancla ' + objeto + ' no esta en el bucket y no se pudo recuperar'); return null; }
@@ -474,6 +496,15 @@ async function biblia(req, res) {
         }
         if (cambio) reparado++;
       }
+      // Los personajes que traen ancla de fabrica la reciben si no tienen ninguna.
+      // Va DESPUES de sembrar: si no, los que acaban de entrar en la lista se
+      // quedaban sin sus fotos hasta la siguiente vez que se abriera la biblia.
+      // Si el dueno subio las suyas (base propia), esas mandan y no se tocan.
+      for (const p of lista) {
+        if (!(p.base || []).length && ANCLAS_DEL_PROYECTO[p.id]) {
+          p.base = ANCLAS_DEL_PROYECTO[p.id].slice(); reparado++;
+        }
+      }
       // Las vistas pasaron de 4 a 3: la cuarta que hubiera guardada sobra.
       for (const p of lista) {
         if ((p.refs || []).length > VISTAS.length) { p.refs = p.refs.slice(0, VISTAS.length); reparado++; }
@@ -505,7 +536,20 @@ async function biblia(req, res) {
         const b64 = await readFromBucket(token, bucket, lst[i]);
         if (b64) { imgs.push(b64); indices.push(i); }
       }
-      return res.json({ success: true, id: p.id, refs: imgs, indices: indices, total: VISTAS.length });
+      // Las fotos ancla solo viajan si se piden: en la generacion de reels no hacen
+      // falta y son megas de mas en cada peticion.
+      const anclas = [];
+      if (body.conAncla) {
+        for (const o of (p.base || [])) {
+          const b = await cargarAncla(token, bucket, o);
+          if (b) anclas.push(b);
+        }
+      }
+      return res.json({
+        success: true, id: p.id, refs: imgs, indices: indices,
+        total: VISTAS.length, anclas: anclas, nAncla: (p.base || []).length,
+        anclaPropia: (p.base || []).some(o => o.indexOf('personajes/') === 0),
+      });
     }
 
     if (accion === 'generar') {
@@ -611,6 +655,57 @@ async function biblia(req, res) {
       console.log('[refs] personaje guardado: ' + f.id + ' (' + f.refs.filter(Boolean).length + '/' + N_VISTAS + ' vistas)'
         + (noGuardadas.length ? ' — NO se pudo escribir la(s) vista(s) ' + noGuardadas.map(x => x + 1).join(', ') : ''));
       return res.json({ success: true, personaje: f, noGuardadas: noGuardadas });
+    }
+
+    // FOTOS TUYAS COMO ANCLA. Lo que el insignia siempre tuvo, ahora lo puede tener
+    // cualquiera: describir a alguien por texto da "una mujer rubia", no ESA mujer.
+    // Con las fotos delante, el generador copia en vez de inventar.
+    if (accion === 'ancla') {
+      const id = limpiarId(body.id);
+      if (!id) return res.status(400).json({ error: 'Falta el personaje' });
+      const lista = await leerIndice(token, bucket);
+      const p = lista.find(x => x.id === id);
+      if (!p) return res.status(404).json({ error: 'No existe ese personaje' });
+
+      const imgs = Array.isArray(body.imagenes) ? body.imagenes.slice(0, 4) : [];
+      if (!imgs.length) return res.status(400).json({ error: 'No llego ninguna imagen' });
+      const objetos = [];
+      for (let k = 0; k < imgs.length; k++) {
+        const b64 = String(imgs[k] || '').replace(/^data:image\/[a-z+]+;base64,/, '');
+        if (b64.length < 100) continue;
+        // 4 MB por imagen ya decodificada: por encima de eso no cabe en la peticion
+        // y ademas no aporta nada como referencia.
+        if (b64.length > 5600000) return res.status(400).json({ error: 'Una de las imagenes es demasiado grande' });
+        const obj = 'personajes/' + id + '/ancla-' + (k + 1) + '.png';
+        const ok = await writeToBucket(token, bucket, obj, b64, 'image/png');
+        if (ok) objetos.push(obj);
+      }
+      if (!objetos.length) return res.status(500).json({ error: 'No se pudo guardar ninguna imagen' });
+
+      p.base = objetos;
+      // Las vistas que ya hubiera se generaron con OTRA cara: no valen. Se borran
+      // de la ficha para que no se usen de referencia ni se den por buenas.
+      p.refs = [];
+      const idx = lista.findIndex(x => x.id === id);
+      lista[idx] = sanearFicha(p);
+      await escribirIndice(token, bucket, lista);
+      console.log('[refs] ancla propia para ' + id + ': ' + objetos.length + ' imagen(es)');
+      return res.json({ success: true, personaje: lista[idx] });
+    }
+
+    // Quitar las fotos propias y volver a lo que trajera el proyecto (o a nada).
+    if (accion === 'quitar-ancla') {
+      const id = limpiarId(body.id);
+      const lista = await leerIndice(token, bucket);
+      const p = lista.find(x => x.id === id);
+      if (!p) return res.status(404).json({ error: 'No existe ese personaje' });
+      if (p.fijo) return res.status(400).json({ error: 'El insignia no puede quedarse sin ancla' });
+      p.base = (ANCLAS_DEL_PROYECTO[id] || []).slice();
+      p.refs = [];
+      const idx = lista.findIndex(x => x.id === id);
+      lista[idx] = sanearFicha(p);
+      await escribirIndice(token, bucket, lista);
+      return res.json({ success: true, personaje: lista[idx] });
     }
 
     if (accion === 'borrar') {

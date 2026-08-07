@@ -17,6 +17,7 @@ let lastAppKey = null;
 let lastAudioBody = null;
 let lastUnifyBody = null;
 let MOCK_VISTAS = {};
+let MOCK_ANCLA = {};
 let GEN_LOG = [];
 let musicTracks = [{ object: 'musica/epica-1.mp3', name: 'epica-1.mp3', size: 2000000 }];
 
@@ -60,7 +61,7 @@ function json(res, code, obj) {
 const server = http.createServer((req, res) => {
   if (req.url === '/__genlog') return json(res, 200, { maxConcurrent });
   if (req.url === '/__biblialog') return json(res, 200, { gen: GEN_LOG });
-  if (req.url === '/__bibliareset') { GEN_LOG = []; MOCK_VISTAS = {}; return json(res, 200, { ok: true }); }
+  if (req.url === '/__bibliareset') { GEN_LOG = []; MOCK_VISTAS = {}; MOCK_ANCLA = {}; return json(res, 200, { ok: true }); }
   if (req.url === '/__audiolog') return json(res, 200, lastAudioBody || {});
   if (req.url === '/__authlog') return json(res, 200, { lastKey: lastAppKey });
   // Puerta de seguridad simulada: modo abierto (sin APP_KEY) => siempre 200.
@@ -149,6 +150,11 @@ const server = http.createServer((req, res) => {
         return json(res,200,{success:true,id:d.personaje&&d.personaje.id,vista:i,
           vistas:[{i:i,b64:TINY_PNG}],conReferencia:MOCK_VISTAS[d.personaje&&d.personaje.id]?2:0,total:3});
       }
+      if(d.action==='ancla'){
+        MOCK_ANCLA[d.id]=(d.imagenes||[]).length;
+        return json(res,200,{success:true,personaje:{id:d.id,nombre:d.id,refs:[],
+          base:(d.imagenes||[]).map((_,k)=>'personajes/'+d.id+'/ancla-'+(k+1)+'.png')}});
+      }
       if(d.action==='guardar'){
         const id=d.personaje&&d.personaje.id;
         if(id){
@@ -167,6 +173,9 @@ const server = http.createServer((req, res) => {
         refs:['personajes/insignia/vista-1.png',null,'personajes/insignia/vista-3.png']};
       const lista=[insignia].concat(REPARTO.map(p=>Object.assign({},p,{
         refs: (MOCK_VISTAS[p.id]||[]).map((_,k)=>'personajes/'+p.id+'/vista-'+(k+1)+'.png'),
+        base: MOCK_ANCLA[p.id]
+          ? Array.from({length:MOCK_ANCLA[p.id]},(_,k)=>'personajes/'+p.id+'/ancla-'+(k+1)+'.png')
+          : (p.id==='companera'?['biblia/companera-1.jpg','biblia/companera-2.jpg','biblia/companera-3.jpg']:[]),
       })));
       json(res,200,{success:true,personajes:lista,
         conVistas:lista.filter(p=>p.refs.filter(Boolean).length).length});
