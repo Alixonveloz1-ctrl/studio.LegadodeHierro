@@ -1860,10 +1860,11 @@ async function genAudio(lang){
     // partsB64: los MP3 originales de ElevenLabs, tal como llegaron. El servicio de
     // unificacion (Cloud Run) los une el mismo; asi no se manda el WAV gigante.
     if(isEN){audEN={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};}
-    else{
-      audES={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};
-      if(typeof invalidateVoiceMix==='function')invalidateVoiceMix(); // la escucha usara ESTE audio nuevo
-    }
+    else{audES={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};}
+    // Se suelta el cache de la escucha con CUALQUIERA de los dos idiomas: ahora
+    // la vista previa tambien suena en ingles, asi que regenerar el audio EN
+    // tambien tiene que invalidarla.
+    if(typeof invalidateVoiceMix==='function')invalidateVoiceMix();
     document.getElementById(isEN?'pEN':'pES').src=url;
     document.getElementById(isEN?'dEN':'dES').href=url;
     document.getElementById(isEN?'rEN':'rES').style.display='block';
@@ -2154,23 +2155,29 @@ async function subirAudio(file,isEN){
     var blob=new Blob([bytes],{type:tipo});
     var url=URL.createObjectURL(blob);
 
-    // Duracion real: sirve para avisar si no cuadra con el guion.
-    var dur=0;
+    // Se MIDE el audio: cuanto dura y, sobre todo, en que segundo empieza y
+    // termina la voz. Antes solo se sacaba la duracion para enseñarla y se
+    // tiraba. Ese dato es justo el que hace falta para que los subtitulos vayan
+    // al ritmo del audio subido: sin el, el reparto de tiempos se hacia con una
+    // velocidad de habla inventada (130 palabras por minuto) y el desfase se iba
+    // acumulando hasta quedar muy por detras al final del reel.
+    var dur=0,vozIni=0,vozFin=0;
     try{
       var AC=window.AudioContext||window.webkitAudioContext;
       var ctx=new AC();
       var dec=await ctx.decodeAudioData(bytes.slice(0).buffer);
       dur=dec.duration;
+      var v=tramoDeVoz(dec);
+      vozIni=v.ini;vozFin=v.fin;
       if(ctx.close)ctx.close();
     }catch(e){/* si el navegador no sabe decodificarlo, se sigue igual */}
 
-    // Sin alignment: los subtitulos usan el calculo estimado, que ya existe.
-    var reg={blob:blob,url:url,alignment:null,partsB64:[b64]};
-    if(isEN){audEN=reg;}
-    else{
-      audES=reg;
-      if(typeof invalidateVoiceMix==='function')invalidateVoiceMix();
-    }
+    // Sin alignment de ElevenLabs (el plan gratis no da API), pero SI con la
+    // medida real del audio: los subtitulos se ajustan a ella.
+    var reg={blob:blob,url:url,alignment:null,partsB64:[b64],
+             dur:dur,vozIni:vozIni,vozFin:vozFin,subido:true};
+    if(isEN){audEN=reg;}else{audES=reg;}
+    if(typeof invalidateVoiceMix==='function')invalidateVoiceMix();
     var ext=/wav/.test(tipo)?'wav':/mp4|m4a/.test(tipo)?'m4a':/ogg/.test(tipo)?'ogg':'mp3';
     var pl=document.getElementById(isEN?'pEN':'pES');if(pl)pl.src=url;
     var dl=document.getElementById(isEN?'dEN':'dES');
@@ -2182,6 +2189,35 @@ async function subirAudio(file,isEN){
   }catch(e){
     di('No se pudo cargar el audio: '+(e.message||'archivo no valido'),true);
   }
+}
+
+// Busca en que segundo EMPIEZA y en cual TERMINA la voz dentro del audio.
+// Los archivos que salen de ElevenLabs suelen traer un poco de silencio delante
+// y detras; si se reparten los subtitulos sobre la duracion total, todos salen
+// corridos. Se recorre la onda en ventanas de 20 ms y se busca donde la energia
+// pasa de un umbral relativo al pico (no absoluto: asi da igual si el audio esta
+// grabado fuerte o flojo).
+function tramoDeVoz(buf){
+  var d=buf.getChannelData(0),sr=buf.sampleRate;
+  var vent=Math.max(1,Math.round(sr*0.02)),n=Math.floor(d.length/vent);
+  var e=new Float32Array(n),pico=0;
+  for(var i=0;i<n;i++){
+    var s=0,base=i*vent;
+    for(var j=0;j<vent;j++){var x=d[base+j];s+=x*x;}
+    e[i]=Math.sqrt(s/vent);
+    if(e[i]>pico)pico=e[i];
+  }
+  if(!pico)return {ini:0,fin:buf.duration};
+  var umbral=pico*0.06; // 6% del pico: por encima de eso ya es voz, no ruido de fondo
+  var a=0,b=n-1;
+  while(a<n&&e[a]<umbral)a++;
+  while(b>a&&e[b]<umbral)b--;
+  if(a>=n)return {ini:0,fin:buf.duration};
+  // Un pelin de margen para no cortar el ataque de la primera silaba.
+  var ini=Math.max(0,(a*vent)/sr-0.05);
+  var fin=Math.min(buf.duration,((b+1)*vent)/sr+0.05);
+  if(fin-ini<0.5)return {ini:0,fin:buf.duration}; // medida absurda: mejor no fiarse
+  return {ini:ini,fin:fin};
 }
 
 // Convierte un AudioBuffer a un Blob WAV valido
@@ -2891,7 +2927,10 @@ function stopMix(){
   MIX.srcs=[];MIX.gain=null;MIX.playing=false;
   if(MIX.ctx&&MIX.ctx.state==='running'){try{MIX.ctx.suspend();}catch(e){}}
   var btn=document.getElementById('bMusicPlay');
-  if(btn)btn.textContent='▶ Escuchar cómo quedará (narración + música)';
+  // El texto vuelve al del idioma elegido, no a uno fijo en espanol.
+  if(btn)btn.textContent=(typeof unifyLang==='function'&&unifyLang()==='en')
+    ? '▶ Escuchar cómo quedará (narración EN + música)'
+    : '▶ Escuchar cómo quedará (narración ES + música)';
 }
 
 // Al REGENERAR el Audio ES: se corta la mezcla si esta sonando y se borra la
@@ -2900,7 +2939,12 @@ function stopMix(){
 function invalidateVoiceMix(){
   try{
     stopMix();
-    if(lastRes&&lastRes.uid)delete MIX.bufs['voz-'+lastRes.uid];
+    if(lastRes&&lastRes.uid){
+      // Se sueltan los dos idiomas: la clave del cache lleva el idioma dentro.
+      delete MIX.bufs['voz-es-'+lastRes.uid];
+      delete MIX.bufs['voz-en-'+lastRes.uid];
+      delete MIX.bufs['voz-'+lastRes.uid]; // clave vieja, por si quedo alguna
+    }
   }catch(e){}
 }
 
@@ -2942,10 +2986,18 @@ async function toggleMixPreview(objectOverride){
       MIX.bufs[obj]=mb;
     }
     // Narracion (si ya se genero el Audio ES): la mezcla REAL
+    // La narracion es la del IDIOMA elegido arriba. Antes esto era siempre audES,
+    // asi que al poner el reel en ingles la vista previa te seguia sonando en
+    // espanol: no se podia comprobar como quedaba la mezcla real del reel EN.
+    var idiomaMix=(typeof unifyLang==='function')?unifyLang():'es';
+    var audMix=idiomaMix==='en'?audEN:audES;
     var vb=null;
-    if(audES&&audES.blob&&lastRes&&lastRes.uid){
-      var vkey='voz-'+lastRes.uid;
-      if(!MIX.bufs[vkey])MIX.bufs[vkey]=await MIX.ctx.decodeAudioData(await audES.blob.arrayBuffer());
+    if(audMix&&audMix.blob&&lastRes&&lastRes.uid){
+      // La clave del cache lleva el idioma: si no, la voz en ingles se guardaba
+      // bajo la misma clave que la espanola y se oia la que se hubiera cargado
+      // primero.
+      var vkey='voz-'+idiomaMix+'-'+lastRes.uid;
+      if(!MIX.bufs[vkey])MIX.bufs[vkey]=await MIX.ctx.decodeAudioData(await audMix.blob.arrayBuffer());
       vb=MIX.bufs[vkey];
     }
     var vol=mv?parseInt(mv.value,10)/100:0.18;
@@ -3036,11 +3088,26 @@ function setUnifyLang(l){
   });
   var btn=document.getElementById('bunify');
   if(btn)btn.textContent=UNIFY_LANG==='en'?'🎞 Unify video + English audio':'🎞 Unificar video + audio';
+  // La escucha previa suena en ESTE idioma: se dice en el propio boton para que
+  // no haya duda de que idioma vas a oir.
+  var play=document.getElementById('bMusicPlay');
+  if(play&&!MIX.playing){
+    play.textContent=UNIFY_LANG==='en'
+      ? '▶ Escuchar cómo quedará (narración EN + música)'
+      : '▶ Escuchar cómo quedará (narración ES + música)';
+  }
 }
 function wireUnifyLang(){
   Array.prototype.forEach.call(document.querySelectorAll('.unifyLang'),function(b){
     if(b.dataset.wired)return; b.dataset.wired='1';
-    b.addEventListener('click',function(){ setUnifyLang(b.getAttribute('data-l')); chkExport(); });
+    b.addEventListener('click',function(){
+      if(UNIFY_LANG===b.getAttribute('data-l'))return;
+      // Si la escucha esta sonando, se corta: seguiria con la voz del idioma
+      // anterior y daria la impresion de que el boton no hace nada.
+      if(typeof stopMix==='function')stopMix();
+      setUnifyLang(b.getAttribute('data-l'));
+      chkExport();
+    });
   });
   var g=null; try{g=localStorage.getItem('lh_unify_lang');}catch(e){}
   setUnifyLang(g==='en'?'en':'es');
@@ -3095,7 +3162,7 @@ async function unifyVideo(){
     // acababan en un .srt suelto dentro del ZIP y el reel tenia que pasar por
     // CapCut. Si el audio se subio a mano no hay alignment: se estima por texto.
     var texto=idioma==='en'?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
-    var srt=aud.alignment?makeSRTFromAlignment(aud.alignment):makeSRT(texto||'');
+    var srt=aud.alignment?makeSRTFromAlignment(aud.alignment):makeSRT(texto||'',aud);
     var objetivo=Number((lastRes&&lastRes.dO&&lastRes.dO.id)||0);
     var r=await fetch('/api/unify',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -3211,19 +3278,56 @@ function makeSRTFromAlignment(alignment){
   return segs.map(function(s,i){return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
 }
 
-function makeSRT(text){
-  var words=text.replace(/\n+/g,' ').replace(/\s+/g,' ').trim().split(' ').filter(function(w){return w.length>0;});
-  var WPM=130,secPerWord=60/WPM,segs=[],t=0,i=0;
+// Subtitulos SIN los tiempos de ElevenLabs (cuando el audio se sube a mano,
+// porque el plan gratis no da acceso a su API).
+//
+// Antes esto repartia el tiempo a 130 palabras por minuto FIJAS, sin mirar el
+// audio. Si la voz real iba a otro ritmo — y siempre va a otro ritmo — el
+// desfase se acumulaba palabra a palabra y al final del reel los subtitulos
+// estaban muy por detras de la voz.
+//
+// Ahora, cuando se conoce el audio (`aud`), se reparte DENTRO del tramo real de
+// voz: empieza donde empieza la voz y acaba donde acaba. Asi el error deja de
+// acumularse; como mucho queda un pequeno baile dentro de cada frase.
+// Y el peso de cada bloque se calcula por CARACTERES, no por numero de palabras
+// ("de" y "responsabilidad" no tardan lo mismo), con un extra de tiempo en la
+// puntuacion, que es donde la voz respira.
+function makeSRT(text,aud){
+  var words=String(text||'').replace(/\n+/g,' ').replace(/\s+/g,' ').trim().split(' ').filter(function(w){return w.length>0;});
+  if(!words.length)return '';
+  var grupos=[],i=0;
   while(i<words.length){
     var group=[];
     while(i<words.length&&group.length<4){
       group.push(words[i]);i++;
-      if(/[.!?,;]$/.test(group[group.length-1])&&group.length>=1)break;
+      if(/[.!?,;:]$/.test(group[group.length-1]))break;
     }
     if(!group.length)break;
-    var dur=group.length*secPerWord;
-    segs.push({text:group.join(' '),start:t,end:t+dur});
-    t+=dur;
+    grupos.push(group.join(' '));
+  }
+  // Peso de cada bloque: sus caracteres + una pausa segun el signo con que cierra.
+  var PAUSA={'.':9,'!':9,'?':9,';':6,':':6,',':4};
+  var pesos=grupos.map(function(g){
+    var fin=g.slice(-1),extra=PAUSA[fin]||0;
+    return Math.max(4,g.replace(/\s/g,'').length)+extra;
+  });
+  var suma=pesos.reduce(function(a,b){return a+b;},0);
+
+  // Ventana en la que hay que encajar el texto.
+  var t0=0,total;
+  if(aud&&isFinite(aud.vozFin)&&aud.vozFin>aud.vozIni+0.5){
+    t0=aud.vozIni;total=aud.vozFin-aud.vozIni;      // el tramo de voz medido
+  }else if(aud&&isFinite(aud.dur)&&aud.dur>0.5){
+    total=aud.dur;                                   // al menos la duracion real
+  }else{
+    total=suma*(60/130)/5.5;                         // sin audio: la estimacion de siempre
+  }
+
+  var segs=[],t=t0;
+  for(var k=0;k<grupos.length;k++){
+    var d=total*(pesos[k]/suma);
+    segs.push({text:grupos[k],start:t,end:t+d});
+    t+=d;
   }
   return segs.map(function(s,i){return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
 }
@@ -3247,8 +3351,8 @@ async function exportAll(){
       capFull+='===== YOUTUBE ('+lastYouTube.length+'/100 caracteres) =====\n\n'+lastYouTube+'\n';
     }
     if(capFull) zip.file(slug+'-caption.txt',capFull.trim()+'\n');
-    var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'');
-    var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'');
+    var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'',audES);
+    var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'',audEN);
     if(srtES) zip.file(slug+'-subtitulos-es.srt',srtES);
     if(srtEN) zip.file(slug+'-subtitulos-en.srt',srtEN);
     if(audES&&audES.blob){

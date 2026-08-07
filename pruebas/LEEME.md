@@ -24,6 +24,11 @@ La de subtitulos NO necesita el servidor, pero si `ffmpeg` y `ffprobe`:
   produccion, y que regenerar una imagen suelte el clip viejo.
 - **check-zip-dos-idiomas.js** — que el ZIP lleve los dos videos finales, que
   las imagenes y clips no se dupliquen, y que no se cuele el video de otro reel.
+- **check-sincronia-subtitulos.js** — que los subtitulos del audio SUBIDO A MANO
+  vayan al ritmo de la voz: se ajustan al tramo de voz medido en el propio
+  archivo, en vez de repartir el tiempo a una velocidad de habla inventada.
+- **check-escucha-por-idioma.js** — que la escucha previa suene en el idioma
+  elegido, con una entrada de cache por idioma.
 - **check-subtitulos-ffmpeg.js** — que los subtitulos SE PINTEN de verdad
   (se mide el brillo del fotograma, no los bytes del fichero: un reencode ya
   cambia los bytes aunque no dibuje nada, y asi se colo un falso positivo).
