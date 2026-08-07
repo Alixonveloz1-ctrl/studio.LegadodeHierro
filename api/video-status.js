@@ -85,10 +85,18 @@ export default async function handler(req) {
   };
 
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
-  // Puerta de seguridad (runtime edge): si APP_KEY esta configurada, exige la
-  // cabecera x-app-key. Sin APP_KEY, queda abierto (nunca te bloquea por accidente).
+  // Puerta de seguridad (runtime edge). Mismo criterio que api/_auth.js: sin
+  // APP_KEY se abre SOLO fuera de produccion, para que un fallo de configuracion
+  // no deje la API publica.
   const APP_KEY = process.env.APP_KEY || '';
-  if (APP_KEY && req.headers.get('x-app-key') !== APP_KEY) {
+  if (!APP_KEY) {
+    if ((process.env.VERCEL_ENV || 'development') === 'production') {
+      return new Response(JSON.stringify({
+        error: 'Falta configurar APP_KEY en Vercel. La API esta cerrada por seguridad hasta que la configures.',
+        code: 'APP_AUTH', sinClave: true,
+      }), { status: 401, headers: corsHeaders });
+    }
+  } else if (req.headers.get('x-app-key') !== APP_KEY) {
     return new Response(JSON.stringify({ error: 'No autorizado', code: 'APP_AUTH' }), { status: 401, headers: corsHeaders });
   }
   if (req.method !== 'POST') {

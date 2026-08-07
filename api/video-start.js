@@ -24,10 +24,19 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-app-key');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  // Puerta de seguridad en linea (este archivo es ESM: no usa require). Si APP_KEY
-  // esta configurada, exige la cabecera x-app-key; sin APP_KEY queda abierto.
+  // Puerta de seguridad en linea (este archivo es ESM: no usa require). Mismo
+  // criterio que api/_auth.js: sin APP_KEY se abre SOLO fuera de produccion.
+  // Este es el endpoint mas caro de todos (Veo cuesta por clip), asi que un
+  // fallo de configuracion aqui no puede dejarlo publico.
   const APP_KEY = process.env.APP_KEY || '';
-  if (APP_KEY && (req.headers['x-app-key'] || '') !== APP_KEY) {
+  if (!APP_KEY) {
+    if ((process.env.VERCEL_ENV || 'development') === 'production') {
+      return res.status(401).json({
+        error: 'Falta configurar APP_KEY en Vercel. La API esta cerrada por seguridad hasta que la configures.',
+        code: 'APP_AUTH', sinClave: true,
+      });
+    }
+  } else if ((req.headers['x-app-key'] || '') !== APP_KEY) {
     return res.status(401).json({ error: 'No autorizado. Vuelve a entrar con tu contrasena.', code: 'APP_AUTH' });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

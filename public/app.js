@@ -276,12 +276,6 @@ var SCHED_POOL=[
   {t:'millonario',concept:'Cómo pensar en décadas cuando todos piensan en la próxima quincena',h:'afirmacion'},
 ];
 
-function getRandomSuggestions(){
-  var pool=SCHED_POOL.slice();
-  for(var i=pool.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=pool[i];pool[i]=pool[j];pool[j]=tmp;}
-  return pool.slice(0,7);
-}
-var SCHED_CURRENT=getRandomSuggestions();
 
 
 
@@ -536,7 +530,13 @@ function doLogin(){
         try{localStorage.setItem('lh_key',p);}catch(_){}
         ANT=HARDCODED_ANT;EL=HARDCODED_EL;VOICE=HARDCODED_VOICE;NB=HARDCODED_NB;
         localStorage.setItem('lh_sess','1');
+        // El servidor avisa con {open:true} de que NO hay APP_KEY configurada:
+        // el candado esta abierto y cualquiera con la direccion puede gastar tus
+        // creditos. Antes esto se ignoraba y pasaba en silencio.
+        CANDADO_ABIERTO=res.d&&res.d.open===true;
         showApp();
+      }else if(res.d&&res.d.sinClave){
+        e.textContent='Falta configurar APP_KEY en Vercel. Configúrala y vuelve a entrar.';e.style.display='block';
       }else{
         e.textContent='Contrasena incorrecta';e.style.display='block';
       }
@@ -555,11 +555,32 @@ function logout(){
   document.getElementById('pg-login').classList.add('on');
 }
 
+// true cuando el servidor dice que NO hay APP_KEY configurada.
+var CANDADO_ABIERTO=false;
+
 function showApp(){
   document.getElementById('pg-login').classList.remove('on');
   document.getElementById('pg-app').classList.add('on');
   sessionStorage.setItem('lh_sess',localStorage.getItem('lh_sess')||'');
   showPills();
+  avisoCandado();
+}
+
+// Barra roja permanente cuando la API esta abierta al mundo. No se puede cerrar:
+// mientras siga abierta, cualquiera que conozca la direccion puede gastar tus
+// creditos de Veo y de Gemini.
+function avisoCandado(){
+  var id='avisoCandado',prev=document.getElementById(id);
+  if(!CANDADO_ABIERTO){ if(prev)prev.parentNode.removeChild(prev); return; }
+  if(prev)return;
+  var d=document.createElement('div');
+  d.id=id;
+  d.style.cssText='position:sticky;top:0;z-index:9999;background:#b03a3a;color:#fff;'
+    +'padding:10px 14px;font-size:12px;font-weight:700;line-height:1.4;text-align:center';
+  d.textContent='⚠ SIN CONTRASEÑA: la API está abierta y cualquiera puede gastar tus créditos. '
+    +'Configura APP_KEY en las variables de Vercel y vuelve a entrar.';
+  var app=document.getElementById('pg-app');
+  app.insertBefore(d,app.firstChild);
 }
 
 // STATE
@@ -603,17 +624,37 @@ function aspectHint(fmt){
 var CHAR_STYLE_ANCHOR='Recurring signature character: the SAME man in every image, his face IDENTICAL to the reference images -- a 35-year-old man, short black hair slicked back, short well-groomed dark beard, strong jawline, intense dark eyes, serious expression. Keep his face, hair and beard consistent across all images. Wardrobe and setting follow the scene described below (do not force a suit if the scene is humble). Cinematic American 2D comic-book illustration: bold clean ink outlines, dramatic cel-shading, rich cinematic lighting with depth, graphic-novel aesthetic. IMPORTANT: this describes the DRAWING STYLE only. Each image is ONE single scene that fills the entire frame as one continuous illustration. NEVER a multi-panel comic page, NEVER split into panels, boxes, vignettes, a grid or a collage, NO dividing lines or internal borders. STRICTLY NOT photorealistic, not a photograph, not a 3D render, not CGI. No text, no letters, no captions, no watermark anywhere in the image. ';
 function imgPromptPrefix(fmt){return CHAR_STYLE_ANCHOR+aspectHint(fmt);}
 // Conecta los <select> de modelo/formato con el estado global.
+// Los modelos elegidos SE RECUERDAN. Antes cada recarga los devolvia al valor por
+// defecto: si trabajabas con veo-3.1-fast y recargabas, volvias al lite sin
+// enterarte — o al reves, seguias pagando el caro creyendo que estabas en el
+// barato. Se guarda solo el valor elegido, y al leerlo se comprueba que la opcion
+// siga existiendo en el desplegable (si algun dia se retira un modelo, no se
+// queda un valor fantasma seleccionado).
+function guardarAjuste(k,v){ try{localStorage.setItem('lh_gen_'+k,v);}catch(e){} }
+function leerAjuste(k,sel,porDefecto){
+  var v=null;
+  try{ v=localStorage.getItem('lh_gen_'+k); }catch(e){}
+  if(!v||!sel)return porDefecto;
+  for(var i=0;i<sel.options.length;i++) if(sel.options[i].value===v) return v;
+  return porDefecto;
+}
+
 function wireGenSettings(){
-  var im=document.getElementById('selImgModel');
-  var iff=document.getElementById('selImgFmt');
-  var vm=document.getElementById('selVidModel');
-  var vf=document.getElementById('selVidFmt');
-  var pim=document.getElementById('selPostImgModel');
-  if(im&&!im.dataset.wired){im.dataset.wired='1';im.value=imgModel;im.addEventListener('change',function(){imgModel=im.value;});}
-  if(iff&&!iff.dataset.wired){iff.dataset.wired='1';iff.value=imgFmt;iff.addEventListener('change',function(){imgFmt=iff.value;});}
-  if(vm&&!vm.dataset.wired){vm.dataset.wired='1';vm.value=vidModel;vm.addEventListener('change',function(){vidModel=vm.value;});}
-  if(vf&&!vf.dataset.wired){vf.dataset.wired='1';vf.value=vidFmt;vf.addEventListener('change',function(){vidFmt=vf.value;});}
-  if(pim&&!pim.dataset.wired){pim.dataset.wired='1';pim.value=postImgModel;pim.addEventListener('change',function(){postImgModel=pim.value;});}
+  var campos=[
+    {k:'imgModel', sel:document.getElementById('selImgModel'),     get:function(){return imgModel;},     set:function(v){imgModel=v;}},
+    {k:'imgFmt',   sel:document.getElementById('selImgFmt'),       get:function(){return imgFmt;},       set:function(v){imgFmt=v;}},
+    {k:'vidModel', sel:document.getElementById('selVidModel'),     get:function(){return vidModel;},     set:function(v){vidModel=v;}},
+    {k:'vidFmt',   sel:document.getElementById('selVidFmt'),       get:function(){return vidFmt;},       set:function(v){vidFmt=v;}},
+    {k:'postImg',  sel:document.getElementById('selPostImgModel'), get:function(){return postImgModel;}, set:function(v){postImgModel=v;}},
+  ];
+  campos.forEach(function(c){
+    var sel=c.sel;
+    if(!sel||sel.dataset.wired)return;
+    sel.dataset.wired='1';
+    c.set(leerAjuste(c.k,sel,c.get()));
+    sel.value=c.get();
+    sel.addEventListener('change',function(){ c.set(sel.value); guardarAjuste(c.k,sel.value); });
+  });
 }
 
 function showPills(){
@@ -624,17 +665,8 @@ function showPills(){
   el.innerHTML=mk('Gemini · texto·imagen·video')+mk('ElevenLabs · audio');
 }
 
-function buildSuggestPrompt(){
-  var pilares=THEMES.map(function(t){return t.id;}).join(', ');
-  return 'Eres el estratega de contenido de LEGADO DE HIERRO, canal de Facebook Reels en español. Le hablas a un hombre que lleva años trabajando para otro y siente que la vida se le está yendo: cansado, atrapado, con la sospecha de que va a llegar a viejo sin nada suyo.\n\n'
-    +'NORTE: el canal empuja a UNA sola cosa — que deje de esperar y construya lo suyo. Libertad financiera, legado, disciplina, no rendirse, dejar de cambiar su vida por un sueldo, montar su propio negocio.\n\n'
-    +'PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto" ni "el negocio de aquello". Un negocio nombrado le habla a diez personas; el mensaje general le habla a todos. Habla en general, nunca en particular.\n\n'
-    +'VOZ: cruda, directa, que incomode y que mueva. Sin motivación de cartel ni frases de coach, pero nunca fría: la emoción sale de la PRECISIÓN — un detalle exacto de su vida golpea, una abstracción rebota. Los detalles los eliges tú y deben ser distintos en cada concepto; no repitas la misma imagen dos veces.\n\n'
-    +'Genera EXACTAMENTE 7 conceptos NUEVOS y variados para reels. Cada uno es una idea potente de máximo 15 palabras que haga que alguien se detenga. Sorpréndeme: nada de ideas típicas vistas mil veces. Usa pilares variados (máximo 2 por pilar). Español impecable, con mayúsculas y tildes.\n\n'
-    +'PILARES válidos: '+pilares+'\nGANCHOS válidos: dato, pregunta, afirmacion, historia, pasos\n\n'
-    +'FORMATO EXACTO — devuelve SOLO 7 líneas, sin numeración, sin texto extra, cada línea así:\npilar|gancho|concepto\n\nVariación aleatoria: '+Math.random().toString(36).slice(2,8);
-}
-
+// Convierte las lineas "pilar|gancho|concepto" que devuelve la investigacion de
+// tendencias en objetos usables. LA USA genTrends: no es codigo muerto.
 function parseSuggestions(txt){
   var validT={},validH={dato:1,pregunta:1,afirmacion:1,historia:1,pasos:1};
   THEMES.forEach(function(t){validT[t.id]=1;});
@@ -644,70 +676,19 @@ function parseSuggestions(txt){
     if(p.length<3)return;
     var norm=function(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');};
     var t=norm(p[0]),h=norm(p[1]),c=p.slice(2).join('|').trim();
-    c=c.replace(/^[-–—\d.\s"']+/,'').replace(/["']+$/,'').trim();
+    c=c.replace(/^[-\u2013\u2014\d.\s"']+/,'').replace(/["']+$/,'').trim();
     if(validT[t]&&validH[h]&&c.length>8&&c.length<200)out.push({t:t,concept:c,h:h});
   });
   return out;
 }
 
-var schedLoading=false;
-async function refreshSched(){
-  if(schedLoading)return;
-  var sg=document.getElementById('schedGrid');
-  if(!sg)return;
-  schedLoading=true;
-  sg.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:18px;color:var(--tx3);font-size:12px"><span class="spin"></span> Generando ideas nuevas con IA...</div>';
-  try{
-    var r=await fetch('/api/generate',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:buildSuggestPrompt()}),
-    });
-    var d=await r.json();
-    if(!r.ok||!d.text)throw new Error(d.error||'sin texto');
-    var parsed=parseSuggestions(d.text);
-    if(parsed.length<4)throw new Error('respuesta invalida');
-    SCHED_CURRENT=parsed.slice(0,7);
-  }catch(e){
-    // Fallback: pool local si la IA falla, para que el boton nunca quede muerto.
-    SCHED_CURRENT=getRandomSuggestions();
-  }
-  sg.innerHTML='';
-  buildSched();
-  schedLoading=false;
-}
-
-function buildSched(){
-  var sg=document.getElementById('schedGrid');
-  if(!sg)return; // la seccion de sugerencias ya no existe: la reemplazo la investigacion de tendencias
-  var lbl=document.getElementById('schedLbl');
-  if(lbl)lbl.textContent='Sugerencias de Reels · '+SCHED_CURRENT.length+' ideas';
-  SCHED_CURRENT.forEach(function(item){
-    var th=THEMES.find(function(t){return t.id===item.t;});
-    var hk=HOOKS.find(function(h){return h.id===item.h;});
-    var el=document.createElement('div');el.className='sitem';
-    el.style.cssText='background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;cursor:pointer;transition:border-color .15s';
-    el.innerHTML='<div class="sitop" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'
-      +'<span style="font-size:13px">'+(th?th.icon:'')+'</span>'
-      +'<span style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+(th?th.c:'#b8975a')+';text-transform:uppercase">'+(hk?hk.label.replace(/^[^ ]+ /,''):'')+' · '+(th?th.label:'')+'</span>'
-      +'</div>'
-      +'<div style="font-size:12px;font-weight:600;color:var(--tx1);line-height:1.4;margin-bottom:6px">'+item.concept+'</div>'
-      +'<div style="font-size:10px;color:'+(th?th.c:'#b8975a')+';font-weight:600">→ Usar este tema</div>';
-    el.addEventListener('mouseenter',function(){el.style.borderColor=(th?th.c+'88':'#b8975a88');});
-    el.addEventListener('mouseleave',function(){el.style.borderColor='var(--border)';});
-    el.addEventListener('click',function(){
-      sT=item.t;sH=item.h;
-      document.getElementById('conc').value=item.concept;
-      updCC();rfAll();
-      document.getElementById('schedPanel').classList.remove('on');
-      document.getElementById('sa').textContent='▼';
-      window.scrollTo({top:0,behavior:'smooth'});
-    });
-    sg.appendChild(el);
-  });
-}
+// El panel de "Sugerencias de Reels" se retiro hace tiempo (lo reemplazo la
+// investigacion de tendencias). Aqui vivian buildSuggestPrompt, refreshSched y
+// buildSched: ~80 lineas que parecian un sistema de sugerencias con IA en
+// marcha y que en realidad no se ejecutaban nunca, porque #schedGrid ya no
+// existe en el HTML. Se eliminan para no construir encima de un fantasma.
 
 function buildAll(){
-  buildSched();
   setTimeout(updImgLabel,100);
   // Selector de modo: Reel o Historia
   var modeWrap=document.getElementById('modeSelector');
@@ -789,6 +770,85 @@ function updCost(){document.getElementById('gcost').textContent='$'+cost.toFixed
 // Construye el mensaje completo de un episodio para /api/generate.
 // Parametrizado por concepto/pilar/gancho/modo/duracion para que el lote de 5
 // pueda variar TODO entre guiones (la generacion individual usa lo seleccionado).
+// ============ MEMORIA QUE SE USA AL ESCRIBIR ============
+// El problema que resuelve esto: el system prompt le ordena al modelo, en tres
+// sitios, "JAMAS repitas el mismo detalle de un guion a otro" y "cada guion debe
+// sentirse distinto al anterior" — pero al modelo NUNCA se le daba ni un guion
+// anterior. Eran ordenes imposibles de cumplir. Y toda la variedad era
+// Math.random() sin memoria: con 18 puertas de entrada, dos guiones seguidos
+// tenian 1 entre 18 de entrar por la misma, y en una tanda de 20 la colision era
+// segura. Estas funciones convierten el azar ciego en rotacion con memoria.
+
+// Las N entradas mas recientes del historial (ya viene del mas nuevo al mas viejo).
+function histRecientes(n){ return getHistory().slice(0,n); }
+
+// Elige de `lista` evitando lo ya usado en los ultimos `mirar` guiones. Si ya se
+// gastaron todas, vuelve a abrir la lista entera (nunca se queda sin opciones).
+function elegirConMemoria(lista,campo,mirar){
+  if(!lista||!lista.length)return null;
+  var usados={};
+  histRecientes(mirar||lista.length).forEach(function(it){
+    var v=it&&it.sem&&it.sem[campo];
+    if(typeof v==='string')usados[v]=true;
+  });
+  var libres=lista.filter(function(x){return !usados[x];});
+  var pool=libres.length?libres:lista;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+// Igual, pero devolviendo `cuantos` elementos distintos (para los registros visuales).
+function elegirVariosConMemoria(lista,campo,cuantos,mirar){
+  var usados={};
+  histRecientes(mirar||12).forEach(function(it){
+    var v=it&&it.sem&&it.sem[campo];
+    if(Array.isArray(v))v.forEach(function(x){usados[x]=true;});
+  });
+  var libres=shuffleArr(lista.filter(function(x){return !usados[x];}));
+  var resto=shuffleArr(lista.filter(function(x){return usados[x];}));
+  return libres.concat(resto).slice(0,cuantos);
+}
+
+// Primera frase de un guion (el gancho) y su cierre real. La ultima linea siempre
+// es "Legado de Hierro" — firma de marca, no cuenta como cierre.
+function ganchoDe(txt){
+  var s=String(txt||'').replace(/\s+/g,' ').trim();
+  var m=s.match(/^[^.!?¿¡]*[.!?]?/);
+  return (m?m[0]:s).trim().slice(0,110);
+}
+function cierreDe(txt){
+  var ls=String(txt||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);
+  // Descarta la firma de marca del final si esta.
+  while(ls.length&&/^legado de hierro\.?$/i.test(ls[ls.length-1]))ls.pop();
+  if(!ls.length)return '';
+  var ult=ls[ls.length-1];
+  // Ultima frase de esa linea. Sin lookbehind: Safari de iOS no lo soporta en
+  // versiones antiguas y este archivo es ES5 a proposito.
+  var fr=ult.match(/[^.!?]+[.!?]*/g)||[ult];
+  var last=fr[fr.length-1];
+  return String(last||ult).trim().slice(0,110);
+}
+
+// EL BLOQUE "YA DICHO". Le da al modelo lo que le faltaba para poder obedecer:
+// con que ganchos ya abrio, con que frases ya cerro y de que conceptos ya hablo.
+// No cuesta ni una llamada extra de API. Es el cambio que mas cambia los guiones.
+function bloqueYaDicho(mirar){
+  var h=histRecientes(mirar||25);
+  if(h.length<2)return '';
+  var ganchos=[],cierres=[],conceptos=[];
+  h.forEach(function(it){
+    var g=ganchoDe(it.a); if(g&&ganchos.indexOf(g)<0)ganchos.push(g);
+    var c=cierreDe(it.a);  if(c&&cierres.indexOf(c)<0)cierres.push(c);
+    var t=(it.topic||'').trim(); if(t&&conceptos.indexOf(t)<0)conceptos.push(t);
+  });
+  var s='LO QUE ESTE CANAL YA DIJO (memoria real de los ultimos '+h.length+' guiones — OBLIGATORIO leerlo antes de escribir):\n';
+  if(ganchos.length) s+='\nYA ABRI CON ESTAS FRASES. Tu primera frase no puede parecerse a ninguna, ni en idea ni en estructura:\n- '+ganchos.slice(0,25).join('\n- ')+'\n';
+  if(cierres.length) s+='\nYA CERRE CON ESTAS. Tu cierre tiene que ser otro:\n- '+cierres.slice(0,20).join('\n- ')+'\n';
+  if(conceptos.length)s+='\nYA HABLE DE ESTO. Si tu concepto se parece, atacalo por un lado que no se haya tocado:\n- '+conceptos.slice(0,25).join('\n- ')+'\n';
+  s+='\nREGLA: si al terminar tu guion pudiera confundirse con cualquiera de los de arriba, esta MAL y hay que reescribirlo. '
+    +'Esto no es un adorno: es la memoria del canal, y repetirse es exactamente lo que hunde el alcance.\n\n';
+  return s;
+}
+
 function buildEpisodeMsg(topic,tId,hId,mode,dId){
   mode=mode||sMode;dId=dId||sD;
   var tO=THEMES.find(function(t){return t.id===tId;});
@@ -808,9 +868,10 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   }else{
     sceneDir+='ESTE MODO acompana un consejo directo: cada imagen ILUSTRA lo que la narracion dice en ese momento, siguiendo su ritmo de principio a fin, con estetica de cine y poder tranquilo. ';
   }
-  // El CODIGO (no el modelo) asigna registros visuales al azar: es lo que impide
-  // que dos guiones seguidos caigan en el mismo mundo visual.
-  var regs=shuffleArr(VIS_REGISTROS.slice()).slice(0,3);
+  // El CODIGO (no el modelo) asigna los registros visuales. Ya no al azar ciego:
+  // se prefieren los que NO se han usado en los ultimos guiones. Con 12 registros
+  // y 3 por guion, el azar puro repetia mundo visual demasiado seguido.
+  var regs=elegirVariosConMemoria(VIS_REGISTROS,'regs',3,10);
   sceneDir+='LIBERTAD Y CRITERIO (lo mas importante): tienes libertad TOTAL para elegir escenas, encuadres y entornos. NO existe ninguna lista de escenas que debas seguir. Deriva cada imagen del CONTENIDO CONCRETO de su parte de ESTE guion: si el guion habla de tiempo, de una decision, de una perdida, de una relacion o de una rutina, la imagen debe ser de ESO, no una escena generica de trabajo. '
     +'MUNDOS VISUALES DE ESTE GUION (usalos como territorio de partida, mezclalos y sal de ellos si el guion pide otra cosa): '+regs.join(' / ')+'. '
     +'VARIEDAD DE PLANOS (obligatorio): NO todas las imagenes son un plano entero del protagonista trabajando. Alterna la escala — un primer plano de manos u objetos, un detalle cerrado sin rostro, un plano general amplio donde la persona es pequena en el espacio, un plano medio, un punto de vista subjetivo. NO todas las imagenes tienen que mostrar al protagonista: algunas pueden ser un entorno vacio, un objeto que cuenta la historia, otra persona, o un detalle. Al menos una imagen del conjunto NO debe mostrar su rostro. '
@@ -831,18 +892,23 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
     : '';
   // Variedad mecánica: el código asigna el tipo de modelo al azar (el modelo de IA no elige).
   // Se omite en impacto (muy corto), herramientas (el modelo es la guía del enlace) e inversión (el pilar ya define: activos).
-  var seedRule='';
+  var seedRule='',semEnf=null,semAng=null;
   if(mode!=='impacto'&&tId==='herramientas'){
-    var ang=HERRAM_ANGLES[Math.floor(Math.random()*HERRAM_ANGLES.length)];
-    seedRule='ÁNGULO ASIGNADO PARA ESTE GUION (variedad obligatoria): '+ang+' Desarrolla ESE contenido con sustancia real; SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDO repetir la fórmula de siempre.\n\n';
+    // Ya no al azar: se prefiere el angulo que lleve mas guiones sin salir.
+    semAng=elegirConMemoria(HERRAM_ANGLES,'ang',HERRAM_ANGLES.length);
+    seedRule='ÁNGULO ASIGNADO PARA ESTE GUION (variedad obligatoria): '+semAng+' Desarrolla ESE contenido con sustancia real; SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDO repetir la fórmula de siempre.\n\n';
   }else{
-    // El codigo asigna la PUERTA DE ENTRADA al azar (el modelo no la elige): es lo
-    // que evita que todos los guiones entren por "el sueldo es una trampa".
-    var enf=ENFOQUES[Math.floor(Math.random()*ENFOQUES.length)];
-    seedRule='PUERTA DE ENTRADA ASIGNADA PARA ESTE GUION (variedad obligatoria, no la anuncies ni la nombres): entra al tema por '+enf+' Sigue tratando el PILAR y el CONCEPTO que te dieron, pero ábrelos por ESA puerta en vez de por el encuadre de siempre. Si esa puerta NO encaja con el pilar o con el concepto, MANDA EL PILAR: descártala y entra por donde el tema lo pida. Si al terminar el guion podría haber entrado por cualquier otra puerta sin cambiar nada, no lo hiciste bien.\n\n';
+    // El codigo asigna la PUERTA DE ENTRADA (el modelo no la elige): es lo que
+    // evita que todos los guiones entren por "el sueldo es una trampa". Con
+    // memoria: no se repite una puerta hasta agotar las 18.
+    semEnf=elegirConMemoria(ENFOQUES,'enf',ENFOQUES.length);
+    seedRule='PUERTA DE ENTRADA ASIGNADA PARA ESTE GUION (variedad obligatoria, no la anuncies ni la nombres): entra al tema por '+semEnf+' Sigue tratando el PILAR y el CONCEPTO que te dieron, pero ábrelos por ESA puerta en vez de por el encuadre de siempre. Si esa puerta NO encaja con el pilar o con el concepto, MANDA EL PILAR: descártala y entra por donde el tema lo pida. Si al terminar el guion podría haber entrado por cualquier otra puerta sin cambiar nada, no lo hiciste bien.\n\n';
   }
-  var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
-  return {msg:msg,tO:tO,dO:dO,hO:hO};
+  var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\nINSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n'+syncRule+seedRule+bloqueYaDicho(25)+'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
+  // Las semillas creativas viajan de vuelta para guardarlas en el historial. Sin
+  // esto no hay forma de rotar sin repetir: el siguiente guion no sabria por que
+  // puerta entro el anterior ni en que mundo visual estuvo.
+  return {msg:msg,tO:tO,dO:dO,hO:hO,sem:{enf:semEnf,ang:semAng,regs:regs}};
 }
 
 // Llama a /api/generate y devuelve el episodio ya parseado (a, f, c, cRaw, raw).
@@ -871,7 +937,7 @@ async function generate(){
   try{
     var built=buildEpisodeMsg(topic,sT,sH,sMode,sD);
     var p=await fetchEpisode(built.msg);
-    lastRes=Object.assign({},p,{topic:topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:sMode,uid:nextUid()});
+    lastRes=Object.assign({},p,{topic:topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:sMode,uid:nextUid()});
     genCount++;cost+=0.015;updCost();
     resetReelAssets();
     saveHistory(lastRes);
@@ -938,14 +1004,44 @@ function batchJobs(){
   var topic=document.getElementById('conc').value.trim();
   // 5 conceptos distintos con pilares lo mas variados posible:
   // primero las sugerencias en pantalla, completando del pool local si hace falta.
-  var src=shuffleArr((SCHED_CURRENT&&SCHED_CURRENT.length?SCHED_CURRENT:[]).concat(shuffleArr(SCHED_POOL)));
+  // Antes esto era SCHED_CURRENT.concat(SCHED_POOL), y como SCHED_CURRENT eran 7
+  // elementos sacados al azar del PROPIO pool, esos 7 aparecian dos veces y el
+  // lote tiraba hacia ellos. Ahora el pool entero compite en igualdad.
+  var src=shuffleArr(SCHED_POOL.slice());
   var picked=[],usedT={},usedC={};
-  for(var pass=0;pass<2&&picked.length<5;pass++){
+  // MEMORIA ENTRE LOTES. Antes cada lote arrancaba de cero: evitaba repetir pilar
+  // DENTRO del lote, pero podias sacar tres lotes seguidos cargados de "libertad".
+  // Ahora los conceptos y pilares de los ultimos guiones entran ya marcados, asi
+  // que el lote nuevo tira hacia lo que lleva tiempo sin salir.
+  var recientes=histRecientes(15);
+  recientes.forEach(function(it){ if(it.topic)usedC[it.topic]=1; });
+  // Los pilares de los ultimos 6 pesan como "ya usados" en la primera pasada.
+  recientes.slice(0,6).forEach(function(it){ if(it.t)usedT[it.t]=1; });
+  var usadosPrevios=Object.keys(usedT).length;
+
+  for(var pass=0;pass<3&&picked.length<5;pass++){
+    // Pasada 2: se olvidan los pilares del historial y solo cuentan los de ESTE
+    // lote (si no, con 8 pilares y 6 marcados quedarian muy pocos donde elegir).
+    if(pass===1&&usadosPrevios){
+      usedT={};
+      picked.forEach(function(x){usedT[x.t]=1;});
+    }
     for(var i=0;i<src.length&&picked.length<5;i++){
       var it=src[i];
       if(usedC[it.concept])continue;
-      if(pass===0&&usedT[it.t])continue; // primera pasada: pilares sin repetir
+      if(pass<2&&usedT[it.t])continue; // pasadas 0 y 1: pilares sin repetir
       picked.push(it);usedT[it.t]=1;usedC[it.concept]=1;
+    }
+    // Ultima pasada: si el historial dejo fuera casi todo, se reabren los conceptos.
+    if(pass===1&&picked.length<5)usedC={};
+  }
+  // CUOTA DE MONETIZACION: al menos 1 de los 5 del pilar "herramientas", que es el
+  // unico que lleva al enlace del video. Antes entraba solo si el azar queria.
+  if(picked.length>=5&&!picked.some(function(x){return x.t==='herramientas';})){
+    var herr=src.filter(function(x){return x.t==='herramientas';});
+    if(herr.length){
+      var nuevo=herr.filter(function(x){return !usedC[x.concept];})[0]||herr[0];
+      picked[picked.length-1]=nuevo; // sustituye el ultimo, no anade un sexto
     }
   }
   // Si escribiste un concepto, el guion 1 es ese concepto con tu seleccion actual.
@@ -972,7 +1068,7 @@ async function generateBatch(customJobs){
     try{
       var built=buildEpisodeMsg(jobs[i].topic,jobs[i].t,jobs[i].h,jobs[i].mode,jobs[i].d);
       var p=await fetchEpisode(built.msg);
-      var res=Object.assign({},p,{topic:jobs[i].topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:jobs[i].mode,uid:nextUid()});
+      var res=Object.assign({},p,{topic:jobs[i].topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:jobs[i].mode,uid:nextUid()});
       batchResults[i]={status:'done',job:jobs[i],res:res};
       genCount++;cost+=0.015;updCost();
       saveHistory(res);
@@ -995,7 +1091,7 @@ async function retryBatchItem(i){
   try{
     var built=buildEpisodeMsg(br.job.topic,br.job.t,br.job.h,br.job.mode,br.job.d);
     var p=await fetchEpisode(built.msg);
-    var res=Object.assign({},p,{topic:br.job.topic,tO:built.tO,dO:built.dO,hO:built.hO,modo:br.job.mode,uid:nextUid()});
+    var res=Object.assign({},p,{topic:br.job.topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:br.job.mode,uid:nextUid()});
     batchResults[i]={status:'done',job:br.job,res:res};
     genCount++;cost+=0.015;updCost();
     saveHistory(res);
@@ -1075,7 +1171,11 @@ function openBatchResult(i){
 // HISTORIAL — ultimos 10 reels generados, guardados en el navegador para no
 // perder un guion si se cierra la pestana antes de descargar el ZIP.
 var HIST_KEY='lh_hist';
-var HIST_MAX=10;
+// La memoria del canal. Estaba en 10: el reel 11 borraba el 1, asi que a las dos
+// semanas el sistema no recordaba NADA y volvia a repetirse. Una entrada pesa
+// 5-6 KB, asi que 300 caben de sobra en los ~5 MB de localStorage; y si algun dia
+// no cupieran, guardarHist() recorta en vez de reventar.
+var HIST_MAX=300;
 var MODE_LABELS={reel:'🎬 Reel',historia:'📖 Historia',impacto:'⚡ Impacto'};
 
 function getHistory(){
@@ -1090,11 +1190,72 @@ function saveHistory(res){
     h.unshift({
       a:res.a,f:res.f||'',c:res.c||[],cRaw:res.cRaw||'',topic:res.topic||'',
       t:res.tO?res.tO.id:'',d:res.dO?res.dO.id:'60',h:res.hO?res.hO.id:'dato',
-      modo:res.modo||'reel',fecha:new Date().toISOString()
+      modo:res.modo||'reel',fecha:new Date().toISOString(),
+      // ID estable: sin el no hay forma de colgar de un reel ni sus materiales ni
+      // sus metricas. Antes solo se podia referenciar por POSICION en el array, y
+      // la posicion cambia cada vez que se genera otro guion (unshift).
+      id:res.uid?('r'+res.uid):('r'+Date.now().toString(36)),
+      // Semillas creativas: por que puerta entro, que angulo uso y en que mundos
+      // visuales estuvo. Es lo que permite NO repetirlas en el siguiente.
+      sem:res.sem||null,
+      // Estado editorial: sin esto la anti-repeticion penaliza guiones que nunca
+      // publicaste, y las metricas no tienen donde engancharse.
+      estado:'borrador',publicado:''
     });
-    if(h.length>HIST_MAX)h=h.slice(0,HIST_MAX); // al llegar el 11, se descarta el mas viejo
-    localStorage.setItem(HIST_KEY,JSON.stringify(h));
+    if(h.length>HIST_MAX)h=h.slice(0,HIST_MAX);
+    guardarHist(h);
   }catch(e){/* almacenamiento lleno o bloqueado: el historial nunca rompe la generacion */}
+  buildHistory();
+}
+
+// Actualiza campos del reel que esta en pantalla dentro del historial, buscandolo
+// por su id. Se usa para pegarle cosas que llegan DESPUES de generarlo (el caption,
+// el estado de publicado, y mas adelante las metricas).
+function guardarEnReel(campos){
+  if(!lastRes||!lastRes.uid)return false;
+  var id='r'+lastRes.uid;
+  try{
+    var h=getHistory(),tocado=false;
+    for(var i=0;i<h.length;i++){
+      if(h[i].id!==id)continue;
+      for(var k in campos) if(Object.prototype.hasOwnProperty.call(campos,k)) h[i][k]=campos[k];
+      tocado=true;break;
+    }
+    if(!tocado)return false;
+    guardarHist(h);
+    return true;
+  }catch(e){ return false; }
+}
+
+// Escribe el historial aguantando la cuota de localStorage (~5 MB). Si se llena,
+// va recortando los mas viejos en vez de perderlo TODO con una excepcion.
+function guardarHist(h){
+  for(var intento=0;intento<8;intento++){
+    try{ localStorage.setItem(HIST_KEY,JSON.stringify(h)); return h.length; }
+    catch(e){
+      if(h.length<=10)throw e;
+      h=h.slice(0,Math.floor(h.length*0.7)); // suelta el 30% mas antiguo y reintenta
+    }
+  }
+  return h.length;
+}
+
+// Marca (o desmarca) un reel como publicado. Es la casilla que faltaba: sin ella
+// la memoria trata igual un guion que subiste y uno que descartaste, y mas
+// adelante las metricas de Facebook no tendrian a que engancharse.
+function marcarPublicado(id){
+  if(!id)return;
+  try{
+    var h=getHistory();
+    for(var i=0;i<h.length;i++){
+      if(h[i].id!==id)continue;
+      var ya=h[i].estado==='publicado';
+      h[i].estado=ya?'borrador':'publicado';
+      h[i].publicado=ya?'':new Date().toISOString();
+      break;
+    }
+    guardarHist(h);
+  }catch(e){}
   buildHistory();
 }
 
@@ -1122,26 +1283,63 @@ function buildHistory(){
       +'<span style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+col+';text-transform:uppercase">'+(MODE_LABELS[item.modo]||item.modo)+' · '+(th?th.label:'')+'</span>'
       +'<span style="font-size:9px;color:var(--tx3)">'+fecha+'</span></div>'
       +'<div style="font-size:11.5px;font-weight:600;color:var(--tx1);line-height:1.4;margin-bottom:5px">'+escHtml(firstLine(item.a).slice(0,90))+'</div>'
-      +'<div style="font-size:10px;color:'+col+';font-weight:600">→ Restaurar este reel</div>';
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+      +'<span style="font-size:10px;color:'+col+';font-weight:600">→ Restaurar este reel</span>'
+      +'<button type="button" class="histPub" data-id="'+escHtml(item.id||'')+'" style="border:1px solid '
+      +(item.estado==='publicado'?'#7a9b8a;background:#eaf2ee;color:#456':'var(--border);background:#fff;color:var(--tx3)')
+      +';border-radius:6px;padding:3px 8px;font-size:9px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">'
+      +(item.estado==='publicado'?'✓ Publicado':'Marcar publicado')+'</button>'
+      +'</div>';
     el.addEventListener('mouseenter',function(){el.style.borderColor=col+'88';});
     el.addEventListener('mouseleave',function(){el.style.borderColor='var(--border)';});
-    (function(ii){el.addEventListener('click',function(){restoreHistory(ii);});})(i);
+    (function(id,ii){el.addEventListener('click',function(ev){
+      // El boton de publicado vive DENTRO de la tarjeta: si no se para aqui,
+      // marcarlo restauraria el reel de paso.
+      var b=ev.target&&ev.target.closest?ev.target.closest('.histPub'):null;
+      if(b){ ev.stopPropagation(); marcarPublicado(b.getAttribute('data-id')); return; }
+      restoreHistory(id,ii);
+    });})(item.id||'',i);
     grid.appendChild(el);
   });
 }
 
 // Restaura un guion del historial en pantalla, como recien generado:
 // desde ahi se pueden retomar imagenes, audio y ZIP.
-function restoreHistory(i){
+// Se busca por ID, no por posicion. La posicion cambia cada vez que se guarda un
+// guion nuevo (saveHistory hace unshift), asi que si generabas algo con el panel
+// del historial abierto, pulsar una tarjeta restauraba OTRO reel. El indice queda
+// solo como respaldo para las entradas viejas que aun no tienen id.
+function restoreHistory(id,i){
   var h=getHistory();
-  var item=h[i];if(!item)return;
+  var item=null;
+  if(id){ for(var k=0;k<h.length;k++){ if(h[k].id===id){item=h[k];break;} } }
+  if(!item)item=h[i];
+  if(!item)return;
   applySelection(item.modo,item.t,item.d,item.h);
   var tO=THEMES.find(function(t){return t.id===item.t;});
   var dO=DURS.find(function(d){return d.id===item.d;});
   var hO=HOOKS.find(function(x){return x.id===item.h;});
-  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,modo:item.modo||'reel',uid:nextUid()};
+  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,sem:item.sem||null,modo:item.modo||'reel',uid:nextUid()};
   resetReelAssets();
+  // El caption vuelve del historial en vez de volver a pedirselo (y pagarselo) a
+  // Gemini. Se reescribe el id de la entrada al nuevo uid para que lo que se
+  // guarde a partir de ahora siga cayendo en ESTE reel.
+  lastCaption=item.caption||'';lastTags=item.tags||'';
+  lastTikTok=item.tiktok||'';lastYouTube=item.youtube||'';
+  try{
+    var hh=getHistory();
+    for(var q=0;q<hh.length;q++){ if(hh[q].id===item.id){ hh[q].id='r'+lastRes.uid; break; } }
+    guardarHist(hh);
+    buildHistory(); // repinta las tarjetas con el id nuevo
+  }catch(e){}
   document.getElementById('conc').value=item.topic||'';updCC();updGBtn();
+  // Si ese reel ya tenia caption guardado, se muestra tal cual.
+  if(lastCaption||lastTags){
+    var cb=document.getElementById('capBox'),ct=document.getElementById('capText'),cg=document.getElementById('capTags');
+    if(ct)ct.textContent=lastCaption;
+    if(cg)cg.textContent=lastTags;
+    if(cb)cb.style.display='block';
+  }
   var hp=document.getElementById('histPanel');
   if(hp)hp.classList.remove('on');
   var ha=document.getElementById('ha');
@@ -1384,6 +1582,10 @@ async function genCaption(){
     if(!r.ok||!d.text)throw new Error(d.error||'No se pudo generar');
     var parsed=parseCaption(d.text);
     lastCaption=parsed.caption;lastTags=parsed.tags;
+    // Se pega al reel en el historial: antes eran variables en memoria y al
+    // restaurar un reel habia que volver a pedirle el caption a Gemini y pagarlo
+    // otra vez. Son cuatro cadenas, ~500 bytes.
+    guardarEnReel({caption:lastCaption,tags:lastTags,tiktok:lastTikTok,youtube:lastYouTube});
     document.getElementById('capText').textContent=lastCaption;
     document.getElementById('capTags').textContent=lastTags;
     box.style.display='block';st.style.display='none';
@@ -2163,6 +2365,20 @@ function setSlotLoading(slot,idx){
   slot.innerHTML='<span class="spin" style="width:16px;height:16px;border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span><span style="font-size:10px;color:var(--tx3)">Imagen '+(idx+1)+'...</span>';
 }
 
+// Al REGENERAR una imagen, el clip que se habia animado a partir de la imagen
+// VIEJA deja de valer. Antes no se tocaba: vidState[idx] seguia en 'done', el
+// clip viejo se seguia mostrando y entraba tal cual en la unificacion
+// (unifyVideo salta los que ya estan en 'done'). Resultado: corregias una imagen
+// y el video final seguia enseñando la version que habias descartado.
+// El clip viejo NO se pierde: sigue en el bucket y aparece en el banco.
+function invalidarClip(idx){
+  if(vidState[idx]!=='done'&&vidState[idx]!=='error')return false;
+  vidState[idx]='idle';
+  vids[idx]=null;
+  if(typeof vidErrMsg!=='undefined')vidErrMsg[idx]='';
+  return true;
+}
+
 function setSlotOk(slot,src,idx){
   slot.style.cssText='position:relative;border-radius:10px;overflow:visible;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
   slot.innerHTML='';
@@ -2179,7 +2395,10 @@ function setSlotOk(slot,src,idx){
     setSlotLoading(slot,iidx);
     var p=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
     genOneImage(imgPromptPrefix(imgFmt)+p,imgRefs).then(function(s){
-      imgs[iidx]={src:s,idx:iidx+1};setSlotOk(slot,s,iidx);cost+=imgCost();updCost();chkExport();
+      imgs[iidx]={src:s,idx:iidx+1};
+      var habia=invalidarClip(iidx); // el clip de la imagen vieja ya no vale
+      setSlotOk(slot,s,iidx);cost+=imgCost();updCost();chkExport();
+      if(habia)avisoClipInvalidado(iidx);
     }).catch(function(e){setSlotError(slot,iidx,e.message);});
   });
   rd.appendChild(rb);imWrap.appendChild(rd);
@@ -2187,6 +2406,23 @@ function setSlotOk(slot,src,idx){
   var videoBox=document.createElement('div');videoBox.className='vbox';videoBox.style.cssText='margin-top:6px';
   slot.appendChild(videoBox);
   renderVideoControls(videoBox,iidx);
+}
+
+// Aviso discreto y temporal: el clip de esa imagen se solto, hay que volver a
+// animar. Sin esto el boton cambiaria de "Ver video" a "Animar" sin explicar por que.
+function avisoClipInvalidado(idx){
+  var card=document.getElementById('imgCard');
+  if(!card)return;
+  var id='avisoClip',prev=document.getElementById(id);
+  if(prev)prev.parentNode.removeChild(prev);
+  var d=document.createElement('div');
+  d.id=id;
+  d.style.cssText='margin:8px 0;padding:8px 10px;border-radius:8px;background:#fdf3e3;'
+    +'border:1px solid #d8b878;font-size:11px;color:#7a5c2a;line-height:1.4';
+  d.textContent='La imagen '+(idx+1)+' cambió, así que su video anterior se soltó: vuelve a animarla. '
+    +'El clip viejo sigue guardado en el banco por si lo quieres.';
+  card.insertBefore(d,card.firstChild);
+  setTimeout(function(){ var x=document.getElementById(id); if(x)x.parentNode.removeChild(x); },9000);
 }
 
 function setSlotError(slot,idx,msg){
@@ -2205,8 +2441,10 @@ function setSlotError(slot,idx,msg){
     var prompt=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
     genOneImage(imgPromptPrefix(imgFmt)+prompt,imgRefs).then(function(src){
       imgs[iidx]={src:src,idx:iidx+1};
+      var habia=invalidarClip(iidx); // el clip de la imagen vieja ya no vale
       setSlotOk(slot,src,iidx);
       cost+=imgCost();updCost();chkExport();
+      if(habia)avisoClipInvalidado(iidx);
     }).catch(function(e){
       setSlotError(slot,iidx,e.message);
     });
@@ -3495,7 +3733,7 @@ async function genTrendOne(i){
     document.getElementById('conc').value=it.concept;updCC();updGBtn();
     var built=buildEpisodeMsg(it.concept,it.t,it.h,mode,d);
     var p=await fetchEpisode(built.msg);
-    lastRes=Object.assign({},p,{topic:it.concept,tO:built.tO,dO:built.dO,hO:built.hO,modo:mode,uid:nextUid()});
+    lastRes=Object.assign({},p,{topic:it.concept,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:mode,uid:nextUid()});
     genCount++;cost+=0.015;updCost();
     resetReelAssets();
     saveHistory(lastRes);
@@ -3719,6 +3957,12 @@ document.addEventListener('DOMContentLoaded',function(){
   if(sess){
     ANT=HARDCODED_ANT;EL=HARDCODED_EL;VOICE=HARDCODED_VOICE;NB=HARDCODED_NB;
     showApp();
+    // Al restaurar la sesion no pasamos por doLogin, asi que hay que preguntarle
+    // al servidor si el candado sigue abierto. Si lo esta, sale la barra roja.
+    fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'}})
+      .then(function(r){return r.json().catch(function(){return{};});})
+      .then(function(d){ CANDADO_ABIERTO=d&&d.open===true; avisoCandado(); })
+      .catch(function(){});
   }else{
     document.getElementById('pg-login').classList.add('on');
   }
