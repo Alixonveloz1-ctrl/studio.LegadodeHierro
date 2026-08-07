@@ -139,15 +139,77 @@ async function writeStatus(jobId, obj) {
     .save(JSON.stringify(obj), { contentType: 'application/json' });
 }
 
-async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg) {
+// IMAGEN FIJA -> CLIP CON MOVIMIENTO (respaldo cuando no hay creditos para Veo).
+//
+// Una imagen quieta durante 8 segundos mata la retencion: parece una diapositiva.
+// Aqui se le da un acercamiento lento y una deriva suave (lo que en television
+// llaman "Ken Burns"), que es lo que hace que se vea como plano de cine y no
+// como una foto pegada.
+//
+// COMO SE HACE, y por que asi: el filtro zoompan trabaja fotograma a fotograma y
+// si se aplica directo sobre la imagen final el borde "tiembla" (salta de pixel
+// en pixel). Por eso primero se AMPLIA la imagen 4x, se hace el movimiento sobre
+// esa version grande, y se reduce al tamano final: el temblor queda por debajo
+// del pixel y el movimiento sale liso.
+async function imagenAClip(imgFile, salida, segundos, ancho, alto, indice) {
+  const FPS = 30;
+  const frames = Math.max(2, Math.round(segundos * FPS));
+  const SUP = 4;                                   // factor de sobremuestreo
+  const zoomFinal = 1.14;                          // 14% de acercamiento total
+  const paso = (zoomFinal - 1) / frames;
+  // Se alterna el sentido para que dos imagenes seguidas no se muevan igual.
+  const modo = indice % 4;
+  const zExpr = (modo === 1 || modo === 3)
+    ? ('max(' + zoomFinal.toFixed(4) + '-on*' + paso.toFixed(8) + ',1.0)')  // alejarse
+    : ('min(1.0+on*' + paso.toFixed(8) + ',' + zoomFinal.toFixed(4) + ')'); // acercarse
+  // Deriva suave hacia un lado, distinta segun el indice.
+  const xs = ['iw/2-(iw/zoom/2)', 'iw/2-(iw/zoom/2)+(on/' + frames + ')*(iw*0.04)',
+              'iw/2-(iw/zoom/2)-(on/' + frames + ')*(iw*0.04)', 'iw/2-(iw/zoom/2)'];
+  const ys = ['ih/2-(ih/zoom/2)-(on/' + frames + ')*(ih*0.03)', 'ih/2-(ih/zoom/2)',
+              'ih/2-(ih/zoom/2)', 'ih/2-(ih/zoom/2)+(on/' + frames + ')*(ih*0.03)'];
+  const vf = 'scale=' + (ancho * SUP) + ':' + (alto * SUP)
+    + ':force_original_aspect_ratio=increase,crop=' + (ancho * SUP) + ':' + (alto * SUP) + ','
+    + "zoompan=z='" + zExpr + "':x='" + xs[modo] + "':y='" + ys[modo] + "'"
+    + ':d=' + frames + ':s=' + ancho + 'x' + alto + ':fps=' + FPS
+    + ',setsar=1';
+  await run('ffmpeg', ['-y', '-loop', '1', '-i', imgFile, '-frames:v', String(frames),
+    '-vf', vf, '-r', String(FPS), '-an',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', salida,
+  ], 300000);
+}
+
+async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg, imagenes) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'unify-'));
   try {
-    // 1. Descargar clips y escribir las partes de audio
+    // 1. Descargar clips y escribir las partes de audio.
+    //    Si no hay clips de video pero SI imagenes, se hace el reel con ellas:
+    //    es el respaldo para cuando no hay creditos de Veo. Cada imagen se
+    //    convierte en un plano con movimiento lento, asi no parece una
+    //    presentacion de diapositivas.
     const clipFiles = [];
-    for (let i = 0; i < videos.length; i++) {
-      const f = path.join(dir, 'clip' + i + '.mp4');
-      await download(videos[i], f);
-      clipFiles.push(f);
+    const soloImagenes = (!videos || !videos.length) && imagenes && imagenes.length;
+    if (soloImagenes) {
+      // El tamano lo marca la primera imagen; las demas se encajan luego.
+      const primera = path.join(dir, 'src0.png');
+      fs.writeFileSync(primera, Buffer.from(imagenes[0], 'base64'));
+      const t0 = await probeSize(primera);
+      console.log('[' + jobId + '] sin clips de video: se arma con ' + imagenes.length +
+        ' imagen(es) a ' + t0.w + 'x' + t0.h);
+      // Se reparte la narracion entre las imagenes por igual; el ajuste fino de
+      // duracion lo hace despues el mismo paso de siempre.
+      for (let i = 0; i < imagenes.length; i++) {
+        const src = i === 0 ? primera : path.join(dir, 'src' + i + '.png');
+        if (i > 0) fs.writeFileSync(src, Buffer.from(imagenes[i], 'base64'));
+        const f = path.join(dir, 'clip' + i + '.mp4');
+        await imagenAClip(src, f, 4, t0.w, t0.h, i);
+        clipFiles.push(f);
+      }
+    } else {
+      for (let i = 0; i < videos.length; i++) {
+        const f = path.join(dir, 'clip' + i + '.mp4');
+        await download(videos[i], f);
+        clipFiles.push(f);
+      }
     }
     const partFiles = [];
     for (let i = 0; i < audioParts.length; i++) {
@@ -446,9 +508,10 @@ const server = http.createServer((req, res) => {
     }
     const videos = Array.isArray(data.videos) ? data.videos : [];
     const audioParts = Array.isArray(data.audioParts) ? data.audioParts : [];
-    if (!videos.length || videos.length > 10) {
+    const imgs0 = Array.isArray(data.imagenes) ? data.imagenes.length : 0;
+    if ((!videos.length && !imgs0) || videos.length > 10) {
       res.statusCode = 400;
-      return res.end(JSON.stringify({ error: 'Se necesitan entre 1 y 10 clips' }));
+      return res.end(JSON.stringify({ error: 'Se necesitan entre 1 y 10 clips, o imagenes con las que armarlo' }));
     }
     if (!audioParts.length) {
       res.statusCode = 400;
@@ -469,11 +532,14 @@ const server = http.createServer((req, res) => {
     let srt = null;
     if (typeof data.srt === 'string' && data.srt.trim() && data.srt.length < 200000) srt = data.srt;
     const objetivoSeg = Number(data.targetSeconds) || 0;
+    // Imagenes en base64 para el modo de respaldo sin clips de video.
+    const imagenes = Array.isArray(data.imagenes)
+      ? data.imagenes.filter(x => typeof x === 'string' && x.length > 100).slice(0, 12) : [];
 
     const jobId = 'job-' + crypto.randomBytes(10).toString('hex');
     // Responder YA y trabajar en segundo plano (requiere --no-cpu-throttling).
     res.end(JSON.stringify({ jobId: jobId }));
-    processJob(jobId, videos, audioParts, music, srt, objetivoSeg);
+    processJob(jobId, videos, audioParts, music, srt, objetivoSeg, imagenes);
   });
 });
 

@@ -55,8 +55,14 @@ module.exports = async (req, res) => {
   // Duracion que se pretendia (30 o 60 s), para que el control de calidad avise
   // si el resultado se desvia.
   const targetSeconds = Number(req.body.targetSeconds) || 0;
+  // RESPALDO SIN CREDITOS: si no hay clips de Veo pero si imagenes, el reel se
+  // arma con ellas dandoles movimiento. Sale por centimos en vez de dolares.
+  const imagenes = Array.isArray(req.body.imagenes)
+    ? req.body.imagenes.filter(x => typeof x === 'string' && x.length > 100).slice(0, 12) : [];
 
-  if (!videos.length) return res.status(400).json({ error: 'Faltan las URLs de los videos (videos[])' });
+  if (!videos.length && !imagenes.length) {
+    return res.status(400).json({ error: 'Faltan las URLs de los videos (videos[]) o las imagenes' });
+  }
   if (videos.length > 10) return res.status(400).json({ error: 'Maximo 10 clips' });
   if (!audioParts.length) return res.status(400).json({ error: 'Falta el audio de la narracion (audioParts[])' });
   for (let i = 0; i < videos.length; i++) {
@@ -85,7 +91,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         videos: videos, audioParts: audioParts, music: music,
-        srt: srt, targetSeconds: targetSeconds,
+        srt: srt, targetSeconds: targetSeconds, imagenes: imagenes,
       }),
     });
     const text = await r.text();
@@ -96,7 +102,7 @@ module.exports = async (req, res) => {
       console.error('[unify] fallo al iniciar: ' + msg);
       return res.status(502).json({ error: msg });
     }
-    console.log('[unify] trabajo iniciado: ' + d.jobId + ' (' + videos.length + ' clips, ' + audioParts.length + ' partes de audio' + (music ? ', musica: ' + music.object + ' al ' + Math.round(music.volume * 100) + '%' : ', sin musica') + (srt ? ', con subtitulos' : ', sin subtitulos') + ')');
+    console.log('[unify] trabajo iniciado: ' + d.jobId + ' (' + (videos.length ? videos.length + ' clips' : imagenes.length + ' imagenes con movimiento') + ', ' + audioParts.length + ' partes de audio' + (music ? ', musica: ' + music.object + ' al ' + Math.round(music.volume * 100) + '%' : ', sin musica') + (srt ? ', con subtitulos' : ', sin subtitulos') + ')');
     return res.json({ success: true, jobId: d.jobId });
   } catch (e) {
     console.error('[unify] excepcion: ' + e.message);

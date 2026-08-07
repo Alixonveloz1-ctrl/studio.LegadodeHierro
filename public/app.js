@@ -1161,6 +1161,8 @@ function nextUid(){return ++uidSeq;}
 // Limpia todos los materiales del reel en pantalla (audio, imagenes, videos,
 // miniatura y video final) al pasar a otro guion.
 function resetReelAssets(){
+  lastCaption='';lastTags='';lastTikTok='';lastYouTube='';
+  lastCaptionEN='';lastTagsEN='';lastTikTokEN='';lastYouTubeEN='';
   audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
   thumbImg=(lastRes&&THUMBS[lastRes.uid])?THUMBS[lastRes.uid]:null;
   finalVid=null;FINALES={es:null,en:null};
@@ -1517,6 +1519,8 @@ function restoreHistory(id,i){
   // guarde a partir de ahora siga cayendo en ESTE reel.
   lastCaption=item.caption||'';lastTags=item.tags||'';
   lastTikTok=item.tiktok||'';lastYouTube=item.youtube||'';
+  lastCaptionEN=item.captionEN||'';lastTagsEN=item.tagsEN||'';
+  lastTikTokEN=item.tiktokEN||'';lastYouTubeEN=item.youtubeEN||'';
   try{
     var hh=getHistory();
     for(var q=0;q<hh.length;q++){ if(hh[q].id===item.id){ hh[q].id='r'+lastRes.uid; break; } }
@@ -1530,6 +1534,7 @@ function restoreHistory(id,i){
     if(ct)ct.textContent=lastCaption;
     if(cg)cg.textContent=lastTags;
     if(cb)cb.style.display='block';
+    pintarCaptionEN();
   }
   var hp=document.getElementById('histPanel');
   if(hp)hp.classList.remove('on');
@@ -1763,7 +1768,15 @@ async function genCaption(){
     +'CAPTION:\n[Para Facebook. 1 a 3 frases cortas y potentes que enganchen, en la voz de la marca, en espanol neutro. Puedes cerrar invitando a seguir el canal o a comentar. NO pongas hashtags aqui. Maximo 1 emoji, o ninguno.]\n\n'
     +'HASHTAGS:\n[Para Facebook. Entre 14 y 20 hashtags en UNA sola linea separados por espacios. El PRIMERO debe ser SIEMPRE #LegadoDeHierro. Los demas relevantes al tema del reel y al nicho (finanzas, disciplina, mentalidad, dinero, libertad financiera, emprendimiento, exito, negocios, inversion). Mezcla espanol y algunos universales. Sin repetir, sin numerar. Solo los hashtags, nada mas.]\n\n'
     +'TIKTOK:\n[Para TikTok. EXACTAMENTE 5 hashtags en una sola linea, ni uno mas, empezando SIEMPRE por #LegadoDeHierro. Elige los 5 mas relevantes de los que ya usaste arriba. Solo los hashtags, nada mas: NO repitas el caption aqui.]\n\n'
-    +'YOUTUBE:\n[Para YouTube Shorts. NO es una descripcion: es un TITULO corto y potente mas los hashtags que quepan, todo en UNA sola linea de MAXIMO 100 caracteres contando titulo, espacios y hashtags. Empieza por #LegadoDeHierro si cabe. Cuenta los caracteres antes de responder: si pasa de 100, acortalo. Sin comillas.]';
+    +'YOUTUBE:\n[Para YouTube Shorts. NO es una descripcion: es un TITULO corto y potente mas los hashtags que quepan, todo en UNA sola linea de MAXIMO 100 caracteres contando titulo, espacios y hashtags. Empieza por #LegadoDeHierro si cabe. Cuenta los caracteres antes de responder: si pasa de 100, acortalo. Sin comillas.]\n\n'
+    // La version en INGLES va en la MISMA llamada: no cuesta ni un centimo extra
+    // y evita tener que traducir a mano fuera de la herramienta.
+    // Los hashtags NO se traducen: los que funcionan en EE.UU. son otros
+    // (#hustle, #sidehustle, #financialfreedom), no la traduccion literal.
+    +'CAPTION_EN:\n[The same reel, written for a US English-speaking audience. NOT a translation: rewrite it the way it would be said in English. 1 to 3 short punchy sentences, brand voice, no coach cliches. No hashtags here. At most 1 emoji, or none.]\n\n'
+    +'HASHTAGS_EN:\n[For Facebook in English. Between 14 and 20 hashtags on ONE line separated by spaces. The FIRST must always be #IronLegacy. The rest must be hashtags that people actually use in the US in this niche (money, discipline, mindset, financial freedom, entrepreneurship, side hustle, investing) — do NOT translate the Spanish ones literally. No repeats, no numbering.]\n\n'
+    +'TIKTOK_EN:\n[For TikTok in English. EXACTLY 5 hashtags on one line, starting with #IronLegacy. Only the hashtags.]\n\n'
+    +'YOUTUBE_EN:\n[For YouTube Shorts in English. A short punchy TITLE plus whatever hashtags fit, all on ONE line of AT MOST 100 characters. Count the characters before answering.]';
   try{
     var r=await fetch('/api/generate',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -1776,9 +1789,11 @@ async function genCaption(){
     // Se pega al reel en el historial: antes eran variables en memoria y al
     // restaurar un reel habia que volver a pedirle el caption a Gemini y pagarlo
     // otra vez. Son cuatro cadenas, ~500 bytes.
-    guardarEnReel({caption:lastCaption,tags:lastTags,tiktok:lastTikTok,youtube:lastYouTube});
+    guardarEnReel({caption:lastCaption,tags:lastTags,tiktok:lastTikTok,youtube:lastYouTube,
+      captionEN:lastCaptionEN,tagsEN:lastTagsEN,tiktokEN:lastTikTokEN,youtubeEN:lastYouTubeEN});
     document.getElementById('capText').textContent=lastCaption;
     document.getElementById('capTags').textContent=lastTags;
+    pintarCaptionEN();
     box.style.display='block';st.style.display='none';
   }catch(e){
     er.textContent='Error: '+e.message;er.style.display='block';st.style.display='none';
@@ -1787,14 +1802,47 @@ async function genCaption(){
   }
 }
 
+// Pinta el bloque en ingles si lo hay. Se oculta cuando no, para no dejar un
+// hueco vacio en los reels viejos que se generaron antes de que existiera.
+function pintarCaptionEN(){
+  var c=document.getElementById('capBoxEN');
+  if(!c)return;
+  if(!lastCaptionEN&&!lastTagsEN){c.style.display='none';return;}
+  var t=document.getElementById('capTextEN'),g=document.getElementById('capTagsEN');
+  if(t)t.textContent=lastCaptionEN;
+  if(g)g.textContent=lastTagsEN;
+  c.style.display='block';
+}
+
 // Separa CAPTION / HASHTAGS y garantiza #LegadoDeHierro como primer hashtag.
 function parseCaption(txt){
   var caption='',tags='';
   var t=(txt||'').replace(/\r/g,'').replace(/\*/g,'').replace(/#{2,}/g,'');
-  var mC=t.match(/CAPTION\s*:\s*([\s\S]*?)(?:HASHTAGS\s*:|TIKTOK\s*:|YOUTUBE\s*:|$)/i);
-  var mH=t.match(/HASHTAGS\s*:\s*([\s\S]*?)(?:TIKTOK\s*:|YOUTUBE\s*:|$)/i);
-  var mT=t.match(/TIKTOK\s*:\s*([\s\S]*?)(?:YOUTUBE\s*:|$)/i);
-  var mY=t.match(/YOUTUBE\s*:\s*([\s\S]*)$/i);
+  // OJO con el orden: los bloques en ingles se llaman CAPTION_EN, HASHTAGS_EN...
+  // El guion bajo antes de los dos puntos hace que /CAPTION\s*:/ NO los capture,
+  // pero el de YOUTUBE si llegaba hasta el final del texto y se tragaba los
+  // cuatro bloques ingleses enteros. Por eso cada uno corta en el siguiente.
+  var FIN='(?:CAPTION_EN\\s*:|HASHTAGS_EN\\s*:|TIKTOK_EN\\s*:|YOUTUBE_EN\\s*:|$)';
+  var mC=t.match(/CAPTION\s*:\s*([\s\S]*?)(?:HASHTAGS\s*:|TIKTOK\s*:|YOUTUBE\s*:|CAPTION_EN\s*:|$)/i);
+  var mH=t.match(/HASHTAGS\s*:\s*([\s\S]*?)(?:TIKTOK\s*:|YOUTUBE\s*:|CAPTION_EN\s*:|$)/i);
+  var mT=t.match(/TIKTOK\s*:\s*([\s\S]*?)(?:YOUTUBE\s*:|CAPTION_EN\s*:|$)/i);
+  var mY=t.match(new RegExp('YOUTUBE\\s*:\\s*([\\s\\S]*?)'+FIN,'i'));
+  // Los cuatro en ingles
+  var mCe=t.match(/CAPTION_EN\s*:\s*([\s\S]*?)(?:HASHTAGS_EN\s*:|TIKTOK_EN\s*:|YOUTUBE_EN\s*:|$)/i);
+  var mHe=t.match(/HASHTAGS_EN\s*:\s*([\s\S]*?)(?:TIKTOK_EN\s*:|YOUTUBE_EN\s*:|$)/i);
+  var mTe=t.match(/TIKTOK_EN\s*:\s*([\s\S]*?)(?:YOUTUBE_EN\s*:|$)/i);
+  var mYe=t.match(/YOUTUBE_EN\s*:\s*([\s\S]*)$/i);
+  var corta=function(v){
+    v=String(v||'').replace(/\n+/g,' ').trim();
+    if(v.length<=100)return v;
+    var cut=v.slice(0,100),sp=cut.lastIndexOf(' ');
+    return (sp>60?cut.slice(0,sp):cut).trim();
+  };
+  lastCaptionEN=mCe?mCe[1].trim():'';
+  lastTagsEN=mHe?mHe[1].replace(/\n+/g,' ').replace(/\s{2,}/g,' ').trim():'';
+  lastTikTokEN=mTe?mTe[1].replace(/\n+/g,' ').trim():'';
+  lastYouTubeEN=corta(mYe?mYe[1]:'');
+  if(lastTagsEN&&lastTagsEN.toLowerCase().indexOf('#ironlegacy')<0)lastTagsEN='#IronLegacy '+lastTagsEN;
   if(mC)caption=mC[1].trim();
   if(mH)tags=mH[1].trim();
   lastTikTok=mT?mT[1].trim():'';
@@ -2459,6 +2507,9 @@ function combineAlignments(alignments,durations){
 var imgRefs=[];
 
 var lastTikTok='',lastYouTube='';
+// La version en ingles del caption y los hashtags: viene en la MISMA llamada a
+// Gemini que la espanola, asi que no cuesta nada extra.
+var lastCaptionEN='',lastTagsEN='',lastTikTokEN='',lastYouTubeEN='';
 // Ajustes de voz de ElevenLabs. Rangos reales de la API: stability/similarity/style 0-1;
 // speed 0.7-1.2 (fuera de ese rango la calidad se degrada).
 // Las 30 voces de Gemini con su caracter, para poder elegir con criterio.
@@ -3374,7 +3425,11 @@ function wireUnifyLang(){
 async function unifyVideo(){
   if(!lastRes){alert('Genera un reel primero.');return;}
   var total=totalClips();
-  if(!total){
+  // RESPALDO SIN CREDITOS: con imagenes pero sin clips, el reel se arma igual
+  // dandoles movimiento. Sale por centimos en vez de dolares.
+  var imgsListas=imgs.filter(function(x){return x&&x.src;});
+  var soloImagenes=(!total&&imgsListas.length>0);
+  if(!total&&!soloImagenes){
     // Caso tipico: se tocaron clips en el banco pero no se pulso el boton de
     // confirmar, asi que nunca llegaron a cargarse. Se dice tal cual.
     if(BANCO_SEL.length){
@@ -3390,9 +3445,15 @@ async function unifyVideo(){
     return;
   }
   var urls=[];
-  for(var i=0;i<total;i++){
-    if(!(vids[i]&&vids[i].remoteUrl)){alert('Falta el video del clip '+(i+1)+'. Genera todos los videos primero.');return;}
-    urls.push(vids[i].remoteUrl);
+  if(!soloImagenes){
+    for(var i=0;i<total;i++){
+      if(!(vids[i]&&vids[i].remoteUrl)){alert('Falta el video del clip '+(i+1)+'. Genera todos los videos primero.');return;}
+      urls.push(vids[i].remoteUrl);
+    }
+  }else{
+    if(!confirm('No hay clips de video, pero sí '+imgsListas.length+' imágenes.\n\n'
+      +'Se puede armar el reel con las imágenes, dándoles un movimiento lento para que no se vean estáticas. '
+      +'Los clips de Veo son lo caro, así que esto no cuesta prácticamente nada.\n\n¿Lo armo así?'))return;
   }
   // IDIOMA DEL REEL. El mismo lote de clips (que ya esta pagado) sirve para el
   // reel en espanol y para el de ingles: solo cambia la narracion y los
@@ -3412,7 +3473,9 @@ async function unifyVideo(){
   var box=document.getElementById('unifyRes');
   btn.disabled=true;btn.style.opacity='.6';
   er.style.display='none';box.style.display='none';
-  st.style.display='block';st.textContent='Enviando trabajo al servicio de unificación...';
+  st.style.display='block';st.textContent=soloImagenes
+    ? 'Armando el reel con '+imgsListas.length+' imágenes y movimiento...'
+    : 'Enviando trabajo al servicio de unificación...';
   try{
     var music=selectedMusic();
     // SUBTITULOS: se calculan aqui, con los tiempos por caracter que devuelve
@@ -3425,7 +3488,8 @@ async function unifyVideo(){
     var r=await fetch('/api/unify',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({videos:urls,audioParts:aud.partsB64,music:music,
-        srt:srt,targetSeconds:objetivo}),
+        srt:srt,targetSeconds:objetivo,
+        imagenes:soloImagenes?imgsListas.map(function(x){return dataUrlToB64(x.src);}):[]}),
     });
     var d=await r.json().catch(function(){return{};});
     if(!r.ok||!d.jobId)throw new Error(d.error||'Error '+r.status);
@@ -3608,7 +3672,20 @@ async function exportAll(){
     if(lastYouTube){
       capFull+='===== YOUTUBE ('+lastYouTube.length+'/100 caracteres) =====\n\n'+lastYouTube+'\n';
     }
-    if(capFull) zip.file(slug+'-caption.txt',capFull.trim()+'\n');
+    if(capFull) zip.file(slug+'-caption-es.txt',capFull.trim()+'\n');
+    // El mismo archivo en INGLES. Antes solo salia el espanol y habia que
+    // traducir a mano fuera de la herramienta cada vez.
+    var capEN='';
+    if(lastCaptionEN||lastTagsEN){
+      capEN+='===== FACEBOOK =====\n\n'+(lastCaptionEN||'')+(lastTagsEN?(lastCaptionEN?'\n\n':'')+lastTagsEN:'')+'\n\n\n';
+    }
+    if(lastTikTokEN){
+      capEN+='===== TIKTOK =====\n\n'+(lastCaptionEN||'')+(lastCaptionEN?'\n\n':'')+lastTikTokEN+'\n\n\n';
+    }
+    if(lastYouTubeEN){
+      capEN+='===== YOUTUBE ('+lastYouTubeEN.length+'/100 caracteres) =====\n\n'+lastYouTubeEN+'\n';
+    }
+    if(capEN) zip.file(slug+'-caption-en.txt',capEN.trim()+'\n');
     var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'',audES);
     var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'',audEN);
     if(srtES) zip.file(slug+'-subtitulos-es.srt',srtES);
