@@ -538,7 +538,18 @@ section{margin-bottom:20px}
           <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button>
         </div>
         <div class="sbody">
-          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">Necesita: todos los videos de los clips generados + el Audio ES. El resultado es UN solo MP4 con la narración y la música de fondo ya mezcladas — listo para publicar.</div>
+          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">Necesita: todos los videos de los clips generados + la narración del idioma elegido. El resultado es UN solo MP4 con la voz, la música de fondo y los <b>subtítulos ya quemados</b> — listo para publicar, sin pasar por CapCut.</div>
+          <div id="langBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🌐 Idioma de este reel</div>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="voxP unifyLang sel" data-l="es">🇪🇸 Español</button>
+              <button type="button" class="voxP unifyLang" data-l="en">🇺🇸 English</button>
+            </div>
+            <div style="font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:8px">
+              Los <b>mismos clips</b> sirven para los dos: solo cambian la voz y los subtítulos, así que el segundo reel no cuesta video.
+              El público de EE.UU. paga bastante más por mil vistas que el de LATAM.
+            </div>
+          </div>
           <div id="musicBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
             <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🎵 Música de fondo</div>
             <label class="genLbl">Pista (se guarda en tu biblioteca para siempre)

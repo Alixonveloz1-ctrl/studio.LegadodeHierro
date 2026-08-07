@@ -120,6 +120,73 @@ async function probeDuration(file) {
   return d;
 }
 
+// Tamano real del video. Hace falta porque el paso de concatenar usa "-c copy":
+// si se mezclan clips de distinta resolucion (algo perfectamente posible trayendo
+// clips del banco generados con otro aspecto), el resultado es un archivo roto
+// SIN que ffmpeg avise, y el trabajo se marcaba igualmente como terminado.
+async function probeSize(file) {
+  const { stdout } = await run('ffprobe', [
+    '-v', 'error', '-select_streams', 'v:0',
+    '-show_entries', 'stream=width,height',
+    '-of', 'csv=p=0:s=x', file,
+  ]);
+  const m = /(\d+)x(\d+)/.exec(String(stdout).trim());
+  if (!m) throw new Error('No se pudo medir el tamano de ' + path.basename(file));
+  return { w: parseInt(m[1], 10), h: parseInt(m[2], 10) };
+}
+
+// Los subtitulos llegan como SRT. Se escriben a fichero y se queman con el filtro
+// "subtitles". Hay que escapar la ruta: en el grafo de filtros de ffmpeg, los ":"
+// y las "," separan argumentos.
+function rutaParaFiltro(p) {
+  return p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
+}
+
+// Estilo de los subtitulos, como linea "Style:" de ASS.
+//
+// OJO CON LAS UNIDADES, que es donde esto falla en silencio: los valores de un
+// estilo ASS NO estan en pixeles del video, sino en el espacio de referencia que
+// declara el propio fichero (PlayResX/PlayResY). Cuando ffmpeg convierte un SRT
+// pone 384x288 por defecto, asi que un MarginV calculado sobre 1920 empuja el
+// texto fuera de la pantalla y el video sale SIN subtitulos, sin ningun error.
+// Por eso mas abajo se reescribe PlayRes al tamano real del video: asi estos
+// numeros si son pixeles de verdad y se pueden razonar.
+//
+// Blanco, negrita, borde negro grueso y sombra: se lee sobre cualquier imagen.
+// El margen inferior deja libre la franja donde Facebook pone sus botones.
+function estiloSubs(alto) {
+  const fs = Math.round(alto * 0.045);          // ~86 px con 1920 de alto
+  const margen = Math.round(alto * 0.17);       // despeja la interfaz de Reels
+  const outline = Math.max(3, Math.round(fs * 0.09));
+  const sombra = Math.max(1, Math.round(fs * 0.03));
+  // Orden de los campos del formato V4+ (no se puede alterar):
+  // Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,
+  // Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,
+  // Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
+  return 'Style: Default,DejaVu Sans,' + fs + ',&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,'
+    + '-1,0,0,0,100,100,0,0,1,' + outline + ',' + sombra + ',2,60,60,' + margen + ',1';
+}
+
+// Convierte el SRT en un ASS con la resolucion de referencia del VIDEO REAL y
+// con nuestro estilo. Devuelve la ruta del .ass listo para el filtro.
+async function prepararSubs(dir, srt, ancho, alto) {
+  const srtFile = path.join(dir, 'subs.srt');
+  fs.writeFileSync(srtFile, String(srt), 'utf8');
+  const assFile = path.join(dir, 'subs.ass');
+  // ffmpeg hace la conversion de formato; nosotros solo corregimos cabecera y estilo.
+  await run('ffmpeg', ['-y', '-i', srtFile, assFile], 60000);
+  let ass = fs.readFileSync(assFile, 'utf8');
+  ass = ass.replace(/PlayResX:\s*\d+/, 'PlayResX: ' + ancho)
+           .replace(/PlayResY:\s*\d+/, 'PlayResY: ' + alto)
+           .replace(/^Style: Default,.*$/m, estiloSubs(alto));
+  // Si alguna de las dos sustituciones no encajo, mejor fallar aqui que entregar
+  // un video sin subtitulos creyendo que los lleva.
+  if (ass.indexOf('Style: Default,DejaVu Sans,') < 0) throw new Error('No se pudo aplicar el estilo al ASS');
+  if (ass.indexOf('PlayResY: ' + alto) < 0) throw new Error('No se pudo fijar PlayRes en el ASS');
+  fs.writeFileSync(assFile, ass, 'utf8');
+  return assFile;
+}
+
 async function download(url, dest) {
   const r = await fetch(url);
   if (!r.ok) throw new Error('No se pudo descargar un clip (HTTP ' + r.status + '). Puede que la URL firmada haya expirado: regenera los videos e intenta de nuevo.');
@@ -133,7 +200,7 @@ async function writeStatus(jobId, obj) {
     .save(JSON.stringify(obj), { contentType: 'application/json' });
 }
 
-async function processJob(jobId, videos, audioParts, music) {
+async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'unify-'));
   try {
     // 1. Descargar clips y escribir las partes de audio
@@ -200,14 +267,31 @@ async function processJob(jobId, videos, audioParts, music) {
     const lastIdx = clipFiles.length - 1;
     if (lastTarget < 0.5) lastTarget = targets[lastIdx]; // caso raro: no forzar un ultimo clip absurdo
 
+    // 4b. TAMANO COMUN. El paso 6 concatena con "-c copy", que exige que todos los
+    //     clips midan exactamente igual. Trayendo clips del banco es facil mezclar
+    //     aspectos distintos, y antes eso producia un MP4 destrozado que se
+    //     marcaba como terminado igual. Se toma el tamano del primero como
+    //     objetivo y se encajan los demas con scale+pad (sin deformar).
+    const tam = [];
+    for (const f of clipFiles) tam.push(await probeSize(f));
+    const destino = tam[0];
+    const mezclados = tam.some(t => t.w !== destino.w || t.h !== destino.h);
+    if (mezclados) {
+      console.log('[' + jobId + '] clips de distinto tamano (' +
+        tam.map(t => t.w + 'x' + t.h).join(', ') + ') -> se normalizan a ' + destino.w + 'x' + destino.h);
+    }
+    const encaje = 'scale=' + destino.w + ':' + destino.h + ':force_original_aspect_ratio=decrease,'
+      + 'pad=' + destino.w + ':' + destino.h + ':(ow-iw)/2:(oh-ih)/2:color=black,setsar=1';
+
     // 5. Reescalar cada clip (video sin audio propio: los generadores no producen audio)
     const scaled = [];
     for (let i = 0; i < clipFiles.length; i++) {
       const target = i === lastIdx ? lastTarget : targets[i];
       const f = clipDurs[i] / target; // setpts=PTS/f
       const out = path.join(dir, 'scaled' + i + '.mp4');
+      const vf = 'setpts=PTS/' + f.toFixed(6) + (mezclados ? ',' + encaje : '');
       await run('ffmpeg', ['-y', '-i', clipFiles[i],
-        '-vf', 'setpts=PTS/' + f.toFixed(6),
+        '-vf', vf,
         '-r', '30', '-an',
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
         '-pix_fmt', 'yuv420p', out,
@@ -218,14 +302,47 @@ async function processJob(jobId, videos, audioParts, music) {
     // 6. Concatenar en orden
     const listFile = path.join(dir, 'list.txt');
     fs.writeFileSync(listFile, scaled.map(f => "file '" + f + "'").join('\n'));
-    const joined = path.join(dir, 'joined.mp4');
+    let joined = path.join(dir, 'joined.mp4');
     await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', joined]);
+
+    // 6b. SUBTITULOS QUEMADOS. En Facebook la mayoria mira SIN sonido: si en los
+    //     primeros segundos no hay texto en pantalla, se van antes de oir nada.
+    //     Los tiempos por caracter de ElevenLabs ya se calculan en el navegador y
+    //     hasta ahora solo acababan en un .srt suelto dentro del ZIP; el reel tenia
+    //     que pasar por CapCut solo por esto. Aqui se queman de una vez.
+    //     Obliga a reencodear el video en ESTE paso (antes era copy), pero el paso 7
+    //     ya no reencodea video, asi que sigue habiendo un solo encode de video.
+    let subsPuestos = false;
+    if (srt && String(srt).trim()) {
+      const conSubs = path.join(dir, 'joined_subs.mp4');
+      try {
+        const assFile = await prepararSubs(dir, srt, destino.w, destino.h);
+        const filtro = 'ass=' + rutaParaFiltro(assFile);
+        await run('ffmpeg', ['-y', '-i', joined, '-vf', filtro,
+          '-r', '30', '-an',
+          '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+          '-pix_fmt', 'yuv420p', conSubs,
+        ], 420000);
+        joined = conSubs;
+        subsPuestos = true;
+      } catch (e) {
+        // Si el quemado falla (una fuente que no esta, un SRT mal formado), NO se
+        // tira el trabajo entero: sale el video sin subtitulos y se avisa en el
+        // estado. Perder el reel por los subtitulos seria peor que no tenerlos.
+        console.warn('[' + jobId + '] no se pudieron quemar los subtitulos: ' + e.message);
+      }
+    }
 
     // 7. Pegar la narracion encima — y, si se pidio, la MUSICA DE FONDO debajo.
     //    Codificacion AAC UNA sola vez (256k), a partir del WAV sin perdida.
     const finalFile = path.join(dir, 'final.mp4');
     // Ajustes de codec de audio compartidos por ambos caminos: un solo encode AAC-LC 256k.
     const AAC = ['-c:a', 'aac', '-b:a', '256k', '-profile:a', 'aac_low', '-ar', '48000', '-ac', '2'];
+    // NIVELADO al estandar de redes (-14 LUFS). Sin esto, dos reels seguidos salen
+    // a volumenes distintos segun el motor de voz que se uso (ElevenLabs, Gemini-TTS
+    // y Chirp no coinciden), y Facebook aplica su propia normalizacion encima, que
+    // castiga al que llega bajo. Con esto todos los reels suenan igual de fuertes.
+    const LOUDNORM = 'loudnorm=I=-14:TP=-1:LRA=11';
     if (music && music.object) {
       const musicSrc = path.join(dir, 'music_src' + path.extname(music.object || '.mp3'));
       try {
@@ -286,7 +403,7 @@ async function processJob(jobId, videos, audioParts, music) {
         '[1:a]aformat=sample_fmts=fltp:channel_layouts=stereo,volume=1.0[nar];' +
         '[2:a]aformat=sample_fmts=fltp:channel_layouts=stereo,volume=' + vol.toFixed(3) + '[mus];' +
         '[nar][mus]amix=inputs=2:duration=first:normalize=0:dropout_transition=0[premix];' +
-        '[premix]alimiter=level=0:limit=0.891:attack=5:release=50:asc=1[a]';
+        '[premix]alimiter=level=0:limit=0.891:attack=5:release=50:asc=1,' + LOUDNORM + '[a]';
       await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull, '-i', musicBed,
         '-filter_complex', fc,
         '-map', '0:v:0', '-map', '[a]',
@@ -296,13 +413,39 @@ async function processJob(jobId, videos, audioParts, music) {
     } else {
       // Sin musica: video + narracion WAV -> UN encode AAC 256k (antes eran 2 encodes).
       await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull,
-        '-map', '0:v:0', '-map', '1:a:0',
+        '-filter_complex', '[1:a]' + LOUDNORM + '[a]',
+        '-map', '0:v:0', '-map', '[a]',
         '-c:v', 'copy'].concat(AAC, [
         '-movflags', '+faststart', '-shortest', finalFile,
       ]));
     }
 
-    // 8. Subir el resultado y marcar el trabajo como terminado
+    // 8. CONTROL DE CALIDAD. Antes el MP4 salia de aqui y se ofrecia para descargar
+    //    sin comprobar NADA: si algo habia salido mal, el estado decia "done"
+    //    igualmente. Ahora se mide el archivo terminado y los avisos viajan con el
+    //    resultado, para que no se publique un reel roto sin darse cuenta.
+    const avisos = [];
+    const finalSize = await probeSize(finalFile);
+    const finalDur = await probeDuration(finalFile);
+    if (finalSize.w > finalSize.h) {
+      avisos.push('El video salio horizontal (' + finalSize.w + 'x' + finalSize.h + '). Para Reels tiene que ser vertical.');
+    }
+    // La imagen y el sonido tienen que durar lo mismo: si no, hay un trozo mudo
+    // al final o la voz se corta.
+    if (Math.abs(finalDur - audioDur) > 1.0) {
+      avisos.push('La imagen dura ' + finalDur.toFixed(1) + 's y la narracion ' + audioDur.toFixed(1) + 's.');
+    }
+    // Duracion objetivo (30 o 60 s): si se pasa mucho, el reel no encaja.
+    const obj = Number(objetivoSeg);
+    if (isFinite(obj) && obj > 0 && Math.abs(finalDur - obj) / obj > 0.15) {
+      avisos.push('Dura ' + finalDur.toFixed(1) + 's y el objetivo eran ' + obj + 's.');
+    }
+    if (srt && String(srt).trim() && !subsPuestos) {
+      avisos.push('No se pudieron quemar los subtitulos; el video sale sin ellos.');
+    }
+    if (avisos.length) console.warn('[' + jobId + '] avisos de calidad: ' + avisos.join(' | '));
+
+    // Subir el resultado y marcar el trabajo como terminado
     const object = 'unify/' + jobId + '.mp4';
     await storage.bucket(BUCKET).upload(finalFile, {
       destination: object,
@@ -314,6 +457,11 @@ async function processJob(jobId, videos, audioParts, music) {
       factor: Number(factor.toFixed(4)),
       videoSeconds: Number(totalVideo.toFixed(2)),
       audioSeconds: Number(audioDur.toFixed(2)),
+      // Datos del archivo REAL que se subio, no de lo que se pretendia hacer.
+      ancho: finalSize.w, alto: finalSize.h,
+      duracion: Number(finalDur.toFixed(2)),
+      subtitulos: subsPuestos,
+      avisos: avisos,
     });
     console.log('[' + jobId + '] listo: ' + object + ' (factor ' + factor.toFixed(3) + ')');
   } catch (e) {
@@ -376,10 +524,17 @@ const server = http.createServer((req, res) => {
         music = { object: obj, volume: data.music.volume };
       }
     }
+    // Subtitulos ya cronometrados que manda el navegador (formato SRT). Se acota
+    // el tamano: un guion de 60 s son unos 2 KB, asi que 200 KB es de sobra y
+    // evita que un cuerpo enorme tumbe el servicio.
+    let srt = null;
+    if (typeof data.srt === 'string' && data.srt.trim() && data.srt.length < 200000) srt = data.srt;
+    const objetivoSeg = Number(data.targetSeconds) || 0;
+
     const jobId = 'job-' + crypto.randomBytes(10).toString('hex');
     // Responder YA y trabajar en segundo plano (requiere --no-cpu-throttling).
     res.end(JSON.stringify({ jobId: jobId }));
-    processJob(jobId, videos, audioParts, music);
+    processJob(jobId, videos, audioParts, music, srt, objetivoSeg);
   });
 });
 

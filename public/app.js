@@ -3022,6 +3022,27 @@ function updUnifyCard(){
   }
 }
 
+// Idioma con el que se va a unificar. Se recuerda entre sesiones.
+var UNIFY_LANG='es';
+function unifyLang(){ return UNIFY_LANG==='en'?'en':'es'; }
+function setUnifyLang(l){
+  UNIFY_LANG=(l==='en')?'en':'es';
+  try{localStorage.setItem('lh_unify_lang',UNIFY_LANG);}catch(e){}
+  Array.prototype.forEach.call(document.querySelectorAll('.unifyLang'),function(b){
+    b.classList.toggle('sel',b.getAttribute('data-l')===UNIFY_LANG);
+  });
+  var btn=document.getElementById('bunify');
+  if(btn)btn.textContent=UNIFY_LANG==='en'?'🎞 Unify video + English audio':'🎞 Unificar video + audio';
+}
+function wireUnifyLang(){
+  Array.prototype.forEach.call(document.querySelectorAll('.unifyLang'),function(b){
+    if(b.dataset.wired)return; b.dataset.wired='1';
+    b.addEventListener('click',function(){ setUnifyLang(b.getAttribute('data-l')); chkExport(); });
+  });
+  var g=null; try{g=localStorage.getItem('lh_unify_lang');}catch(e){}
+  setUnifyLang(g==='en'?'en':'es');
+}
+
 async function unifyVideo(){
   if(!lastRes){alert('Genera un reel primero.');return;}
   var total=totalClips();
@@ -3045,7 +3066,18 @@ async function unifyVideo(){
     if(!(vids[i]&&vids[i].remoteUrl)){alert('Falta el video del clip '+(i+1)+'. Genera todos los videos primero.');return;}
     urls.push(vids[i].remoteUrl);
   }
-  if(!(audES&&audES.partsB64&&audES.partsB64.length)){alert('Genera el Audio ES primero (la narración que se pega al video).');return;}
+  // IDIOMA DEL REEL. El mismo lote de clips (que ya esta pagado) sirve para el
+  // reel en espanol y para el de ingles: solo cambia la narracion y los
+  // subtitulos. Con el RPM de LATAM por los suelos, el reel en ingles es la via
+  // mas barata que hay para subirlo, porque el video no se vuelve a generar.
+  var idioma=unifyLang();
+  var aud=idioma==='en'?audEN:audES;
+  if(!(aud&&aud.partsB64&&aud.partsB64.length)){
+    alert(idioma==='en'
+      ? 'Genera (o sube) el Audio EN primero: es la narración en inglés que se pega a estos mismos clips.'
+      : 'Genera el Audio ES primero (la narración que se pega al video).');
+    return;
+  }
   var btn=document.getElementById('bunify');
   var st=document.getElementById('unifySt');
   var er=document.getElementById('unifyErr');
@@ -3055,9 +3087,17 @@ async function unifyVideo(){
   st.style.display='block';st.textContent='Enviando trabajo al servicio de unificación...';
   try{
     var music=selectedMusic();
+    // SUBTITULOS: se calculan aqui, con los tiempos por caracter que devuelve
+    // ElevenLabs, y se mandan para QUEMARLOS en el video. Hasta ahora solo
+    // acababan en un .srt suelto dentro del ZIP y el reel tenia que pasar por
+    // CapCut. Si el audio se subio a mano no hay alignment: se estima por texto.
+    var texto=idioma==='en'?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
+    var srt=aud.alignment?makeSRTFromAlignment(aud.alignment):makeSRT(texto||'');
+    var objetivo=Number((lastRes&&lastRes.dO&&lastRes.dO.id)||0);
     var r=await fetch('/api/unify',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({videos:urls,audioParts:audES.partsB64,music:music}),
+      body:JSON.stringify({videos:urls,audioParts:aud.partsB64,music:music,
+        srt:srt,targetSeconds:objetivo}),
     });
     var d=await r.json().catch(function(){return{};});
     if(!r.ok||!d.jobId)throw new Error(d.error||'Error '+r.status);
@@ -3859,6 +3899,7 @@ document.addEventListener('DOMContentLoaded',function(){
     document.getElementById('ha').textContent=o?'▲':'▼';
   });
   buildHistory();
+  wireUnifyLang();
   var bt=document.getElementById('bthumb');
   if(bt)bt.addEventListener('click',genThumb);
   var bu=document.getElementById('bunify');
