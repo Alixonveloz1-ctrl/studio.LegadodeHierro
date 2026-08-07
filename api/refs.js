@@ -160,11 +160,21 @@ const VISTAS = [
   'waist-up view, standing, arms relaxed at his sides, neutral expression',
 ];
 
-function promptDeVista(f, vista) {
+function promptDeVista(f, vista, conReferencia) {
+  // Cuando viajan imagenes de referencia hay que decirlo EXPLICITAMENTE, y muy
+  // fuerte: si no, el modelo las trata como inspiracion y dibuja a otra persona
+  // parecida. Es lo que hacia que cada vista saliera con una cara distinta.
+  const mismaCara = conReferencia
+    ? 'THIS IS THE SAME PERSON AS IN THE REFERENCE IMAGES. Copy the face exactly: same bone structure, '
+      + 'same eyes, same nose, same mouth, same hairline, same beard, same skin tone. '
+      + 'You are drawing ANOTHER ANGLE of that same person, not a similar-looking person. '
+      + 'If the face differs from the reference, the image is wrong. '
+      + 'Only the camera angle and the pose change.\n'
+    : '';
   return 'Character reference sheet image. ' + vista + '. '
     + 'PLAIN PURE WHITE BACKGROUND (#FFFFFF), completely empty, no scenery, no furniture, no props, '
-    + 'no shadows on the background, no text, no watermark, no border. Studio-flat even lighting. '
-    + 'The SAME character in every image of this set.\n'
+    + 'no shadows on the background, no text, no watermark, no border. Studio-flat even lighting.\n'
+    + mismaCara
     + 'CHARACTER: ' + (f.fisico || f.nombre) + '.'
     + (f.edad ? ' Apparent age: ' + f.edad + '.' : '')
     + (f.vestuario ? ' Wearing: ' + f.vestuario + '.' : '')
@@ -351,6 +361,11 @@ async function biblia(req, res) {
     }
 
     if (accion === 'generar') {
+      // UNA VISTA POR PETICION. Antes se generaban las cuatro en la misma
+      // llamada: cuatro imagenes tardan 40-60 s y esta funcion se corta a los 30,
+      // asi que el trabajo moria a medias y no se guardaba nada. Ahora el
+      // navegador pide una, espera, y pide la siguiente — igual que ya hacia el
+      // lote de reels.
       const f = sanearFicha(body.personaje || {});
       if (!f.fisico) return res.status(400).json({ error: 'Describe primero como es fisicamente el personaje' });
       if (!f.id) return res.status(400).json({ error: 'El personaje necesita un nombre' });
@@ -359,21 +374,39 @@ async function biblia(req, res) {
       const modelo = /^gemini-[0-9.]+(-flash|-pro)?-image/.test(String(body.model || ''))
         ? String(body.model) : 'gemini-2.5-flash-image';
 
-      // Cuantas vistas se piden. Por defecto las 4; se puede pedir una sola para
-      // rehacer la que no gusto sin pagar las otras tres.
-      const cuales = Array.isArray(body.vistas) && body.vistas.length
-        ? body.vistas.filter(i => i >= 0 && i < VISTAS.length)
-        : [0, 1, 2, 3];
-
-      const generadas = [], previas = [];
-      for (const i of cuales) {
-        // Las vistas ya hechas en ESTA tanda viajan como referencia: asi la 2, la
-        // 3 y la 4 son el mismo hombre que la 1 y no cuatro personas distintas.
-        const b64 = await generarVista(token, projectId, modelo, promptDeVista(f, VISTAS[i]), previas.slice(0, 2));
-        previas.push(b64);
-        generadas.push({ i: i, b64: b64 });
+      let i = Number(body.vista);
+      if (!isFinite(i) || i < 0 || i >= VISTAS.length) {
+        // Compatibilidad: si llega la lista antigua, se hace solo la primera.
+        i = (Array.isArray(body.vistas) && body.vistas.length) ? Number(body.vistas[0]) : 0;
+        if (!isFinite(i) || i < 0 || i >= VISTAS.length) i = 0;
       }
-      return res.json({ success: true, id: f.id, vistas: generadas });
+
+      // LA CARA TIENE QUE SER LA MISMA. Se cargan las vistas que ese personaje YA
+      // tiene guardadas y viajan como referencia. Sin esto, cada vista se generaba
+      // a partir del texto y salia una persona distinta cada vez — y al personaje
+      // insignia ni siquiera se le pasaban sus 4 imagenes de siempre, que son la
+      // cara de la marca desde hace un ano.
+      const lista = await leerIndice(token, bucket);
+      const guardado = lista.find(x => x.id === f.id);
+      const objetos = (guardado && guardado.refs) ? guardado.refs.slice() : [];
+      const refsB64 = [];
+      for (const o of objetos) {
+        // La vista que se esta rehaciendo NO se usa como referencia de si misma:
+        // si no, se copia el fallo que se queria corregir.
+        if (o.indexOf('/vista-' + (i + 1) + '.png') > -1) continue;
+        const b64 = await readFromBucket(token, bucket, o);
+        if (b64) refsB64.push(b64);
+        if (refsB64.length >= 3) break;
+      }
+
+      const b64 = await generarVista(token, projectId, modelo,
+        promptDeVista(f, VISTAS[i], refsB64.length > 0), refsB64);
+      return res.json({
+        success: true, id: f.id, vista: i,
+        vistas: [{ i: i, b64: b64 }],          // formato que ya espera 'guardar'
+        conReferencia: refsB64.length,          // para poder avisar si fue a ciegas
+        total: VISTAS.length,
+      });
     }
 
     if (accion === 'guardar') {

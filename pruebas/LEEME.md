@@ -27,6 +27,9 @@ La de subtitulos NO necesita el servidor, pero si `ffmpeg` y `ffprobe`:
 - **check-modos-largos.js** — Profesor y Relato: que las duraciones cambien con
   el modo, que el profesor pida SET + TOMAS + EJEMPLOS + MONTAJE, y que el
   montaje reutilice las tomas (9 planos de 8 imagenes).
+- **check-biblia-cola.js** — que las vistas se generen UNA POR UNA y en cola (no
+  las cuatro de golpe, que reventaba el limite de tiempo y el de Vertex), y que
+  cada vista use como referencia las ya guardadas para que la cara no cambie.
 - **check-biblia-vista-previa.js** — que se pueda elegir el modelo dentro de la
   biblia y VER las vistas generadas, con un boton por vista para rehacer solo la
   que salio mal.

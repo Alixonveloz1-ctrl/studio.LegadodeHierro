@@ -15,6 +15,7 @@ let lastAppKey = null;
 let lastAudioBody = null;
 let lastUnifyBody = null;
 let MOCK_VISTAS = {};
+let GEN_LOG = [];
 let musicTracks = [{ object: 'musica/epica-1.mp3', name: 'epica-1.mp3', size: 2000000 }];
 
 const SCRIPT_TEXT = (n, concepto) => `BLOQUE A
@@ -56,6 +57,8 @@ function json(res, code, obj) {
 
 const server = http.createServer((req, res) => {
   if (req.url === '/__genlog') return json(res, 200, { maxConcurrent });
+  if (req.url === '/__biblialog') return json(res, 200, { gen: GEN_LOG });
+  if (req.url === '/__bibliareset') { GEN_LOG = []; MOCK_VISTAS = {}; return json(res, 200, { ok: true }); }
   if (req.url === '/__audiolog') return json(res, 200, lastAudioBody || {});
   if (req.url === '/__authlog') return json(res, 200, { lastKey: lastAppKey });
   // Puerta de seguridad simulada: modo abierto (sin APP_KEY) => siempre 200.
@@ -130,19 +133,29 @@ const server = http.createServer((req, res) => {
         return json(res,200,{success:true,id:d.id,refs:[TINY_PNG,TINY_PNG]});
       }
       if(d.action==='generar'){
-        return json(res,200,{success:true,id:d.personaje&&d.personaje.id,
-          vistas:[0,1,2,3].map(i=>({i:i,b64:TINY_PNG}))});
+        // Se apunta CADA peticion con su instante, para poder comprobar desde la
+        // prueba que van en cola y no todas a la vez.
+        GEN_LOG.push({t:Date.now(),id:d.personaje&&d.personaje.id,vista:d.vista,
+                      model:d.model,conRefs:!!(MOCK_VISTAS[d.personaje&&d.personaje.id])});
+        const i=(typeof d.vista==='number')?d.vista:0;
+        return json(res,200,{success:true,id:d.personaje&&d.personaje.id,vista:i,
+          vistas:[{i:i,b64:TINY_PNG}],conReferencia:MOCK_VISTAS[d.personaje&&d.personaje.id]?2:0,total:4});
       }
       if(d.action==='guardar'){
         const id=d.personaje&&d.personaje.id;
-        if(id)MOCK_VISTAS[id]=true;
-        return json(res,200,{success:true,personaje:d.personaje});
+        if(id){
+          MOCK_VISTAS[id]=MOCK_VISTAS[id]||[];
+          (d.vistas||[]).forEach(v=>{ MOCK_VISTAS[id]['v'+v.i]=1; });
+          MOCK_VISTAS[id].push(1);
+        }
+        const refs=(MOCK_VISTAS[id]||[]).map((_,k)=>'personajes/'+id+'/vista-'+(k+1)+'.png');
+        return json(res,200,{success:true,personaje:Object.assign({},d.personaje,{refs:refs})});
       }
       const insignia={id:'insignia',nombre:'El hombre de Legado de Hierro',rol:'Protagonista del canal',
         fijo:true,encaja:'es el protagonista por defecto',
         refs:['refs/personaje-1','refs/personaje-2','refs/personaje-3','refs/personaje-4']};
       const lista=[insignia].concat(REPARTO.map(p=>Object.assign({},p,{
-        refs: MOCK_VISTAS[p.id] ? ['personajes/'+p.id+'/vista-1.png'] : [],
+        refs: (MOCK_VISTAS[p.id]||[]).map((_,k)=>'personajes/'+p.id+'/vista-'+(k+1)+'.png'),
       })));
       json(res,200,{success:true,personajes:lista,conVistas:lista.filter(p=>p.refs.length).length});
     });

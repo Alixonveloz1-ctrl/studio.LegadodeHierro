@@ -10,6 +10,9 @@ const { chromium } = require('playwright-core');
   let ok = 0, ko = 0;
   const t = (n, c, extra) => { console.log((c ? 'PASS  ' : 'FAIL  ') + n + (extra ? '  (' + extra + ')' : '')); c ? ok++ : ko++; };
 
+  // Se limpia el estado del mock: otras pruebas dejan vistas ya generadas y aqui
+  // hace falta un personaje SIN ellas para comprobar el botón de generar.
+  await page.goto('http://localhost:8321/__bibliareset');
   await page.goto('http://localhost:8321/', { waitUntil: 'domcontentloaded' });
   await page.fill('#lp', 'test123'); await page.click('text=⚔ Entrar'); await page.waitForSelector('#pg-app.on');
   await page.waitForFunction(() => typeof BIBLIA !== 'undefined' && BIBLIA.length > 5, null, { timeout: 10000 });
@@ -80,9 +83,10 @@ const { chromium } = require('playwright-core');
     window.fetch = of;
     return capt;
   });
+  // El servidor genera UNA vista por peticion: el campo es `vista`, no `vistas`.
   t('rehacer una vista pide SOLO esa (no paga las otras tres)',
-    pedido && Array.isArray(pedido.vistas) && pedido.vistas.length === 1 && pedido.vistas[0] === 2,
-    pedido ? JSON.stringify(pedido.vistas) : 'no se capturó');
+    pedido && pedido.vista === 2,
+    pedido ? 'vista ' + pedido.vista : 'no se capturó');
   t('y la pide con el modelo de la biblia', pedido && pedido.model === 'gemini-3-pro-image', pedido && pedido.model);
 
   console.log('\n' + ok + ' OK, ' + ko + ' fallos');

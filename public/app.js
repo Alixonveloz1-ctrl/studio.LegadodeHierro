@@ -1058,9 +1058,16 @@ async function abrirVistas(id){
   caja.style.display='block';
 
   if(!(p.refs||[]).length){
-    caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Generando sus 4 vistas...</div>';
-    var okGen=await generarVistasDe(p,null);
-    if(!okGen){caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No se pudieron generar. Inténtalo otra vez.</div>';return;}
+    caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Generando la vista 1 de 4...</div>';
+    var res=await generarVistasDe(p,null,function(n,tot){
+      caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Generando la vista '+n+' de '+tot
+        +'... (una por una, para no rebasar el límite de Google)</div>';
+    });
+    if(!res.ok){
+      caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No se pudo generar ninguna vista.<br>'
+        +escHtml(res.fallos.slice(0,2).join(' · '))+'</div>';
+      return;
+    }
     p=personajePorId(id)||p;
   }
 
@@ -1105,72 +1112,107 @@ async function rehacerVista(id,cuales){
   var p=personajePorId(id);if(!p)return;
   var card=document.querySelector('#bibliaGrid [data-id="'+id+'"]');
   var caja=card?card.querySelector('.bibliaVistas'):null;
-  if(caja)caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Rehaciendo '
-    +(cuales?'la vista '+(cuales[0]+1):'las cuatro vistas')+'...</div>';
-  var okGen=await generarVistasDe(p,cuales);
+  if(caja)caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Rehaciendo...</div>';
+  var res=await generarVistasDe(p,cuales,function(n,tot,i){
+    if(caja)caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Rehaciendo la vista '+(i+1)
+      +(tot>1?' ('+n+' de '+tot+')':'')+'...</div>';
+  });
   delete VISTAS_VISTAS[id];
   if(caja)caja.style.display='none';
-  if(okGen)await abrirVistas(id);
-  else if(caja){caja.style.display='block';caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No salió. Prueba otra vez o con otro modelo.</div>';}
+  if(res.ok)await abrirVistas(id);
+  else if(caja){caja.style.display='block';caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No salió: '
+    +escHtml(res.fallos.slice(0,2).join(' · '))+'</div>';}
 }
 
-// Genera y guarda las vistas de UN personaje. Devuelve true si fue bien.
-async function generarVistasDe(p,cuales){
-  try{
-    var cuerpo={action:'generar',personaje:p,model:modeloBiblia()};
-    if(cuales)cuerpo.vistas=cuales;
-    var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cuerpo)});
-    var d=await r.json();
-    if(!r.ok||!d.vistas)throw new Error(d.error||'Error '+r.status);
-    var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
-    var gd=await g.json();
-    if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
-    cost+=d.vistas.length*costoBiblia();updCost();
-    // Se suelta la cache de referencias: la proxima imagen usara las nuevas.
-    delete REFS_PERSONAJE[p.id];
-    delete VISTAS_VISTAS[p.id];
-    await cargarBiblia();
-    return true;
-  }catch(e){
-    console.warn('[biblia] '+p.id+': '+(e.message||e));
-    return false;
+// Genera y guarda las vistas de UN personaje, UNA POR UNA y en cola.
+//
+// Antes se pedian las cuatro en una sola llamada: cuatro imagenes tardan 40-60 s
+// y la funcion de Vercel se corta a los 30, asi que el trabajo moria a medias y
+// no se guardaba nada. Ademas, sin pausa entre ellas se rebasaba el limite por
+// minuto de Vertex. El lote de reels ya lo hacia bien (una llamada tras otra con
+// 1,5 s de pausa); esto no lo hacia, y era el mismo problema.
+//
+// El ORDEN importa: la vista 1 se genera primero y queda guardada, y las otras
+// tres se generan DESPUES usandola como referencia. Asi las cuatro son la misma
+// persona. Si se hicieran a la vez, cada una saldria con otra cara.
+var PAUSA_VISTAS=1500;
+
+async function generarVistasDe(p,cuales,alProgreso){
+  var lista=cuales&&cuales.length?cuales.slice():[0,1,2,3];
+  // La vista 1 primero SIEMPRE que este en la tanda: es la que fija la cara.
+  lista.sort(function(a,b){return a-b;});
+  var hechas=0,fallos=[],sinRef=0;
+  for(var k=0;k<lista.length;k++){
+    var i=lista[k];
+    if(alProgreso)alProgreso(k+1,lista.length,i);
+    try{
+      var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'generar',personaje:p,model:modeloBiblia(),vista:i})});
+      var d=await r.json();
+      if(!r.ok||!d.vistas||!d.vistas.length)throw new Error(d.error||'Error '+r.status);
+      if(!d.conReferencia)sinRef++;
+      // Se guarda ENSEGUIDA: asi la siguiente vista ya la puede usar de
+      // referencia, y si algo falla a media tanda no se pierde lo hecho.
+      var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
+      var gd=await g.json();
+      if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
+      if(gd.personaje)p=gd.personaje; // la ficha vuelve con la ref nueva incluida
+      hechas++;
+      cost+=costoBiblia();updCost();
+    }catch(e){ fallos.push('vista '+(i+1)+': '+(e.message||'error')); }
+    // Pausa entre llamadas, como en el lote de reels.
+    if(k<lista.length-1)await new Promise(function(rs){setTimeout(rs,PAUSA_VISTAS);});
   }
+  delete REFS_PERSONAJE[p.id];
+  delete VISTAS_VISTAS[p.id];
+  await cargarBiblia();
+  return {ok:hechas>0,hechas:hechas,fallos:fallos,sinRef:sinRef};
 }
 
-// Genera las vistas que falten, de una en una para poder ir contando y para que
-// un fallo suelto no tire toda la tanda.
+// Genera las vistas que falten: personaje por personaje, y dentro de cada uno
+// vista por vista, todo en COLA. Cuatro imagenes por 31 personajes son 124
+// llamadas: lanzarlas de golpe rebasa el limite por minuto de Vertex y no se
+// genera nada. Se puede parar a mitad y lo hecho queda guardado.
+var BIBLIA_PARAR=false;
+
 async function generarVistasFaltantes(){
   var btn=document.getElementById('bBibliaTodas');
   var st=document.getElementById('bibliaSt');
   var faltan=BIBLIA.filter(function(p){return !(p.refs||[]).length;});
   if(!faltan.length){ if(st){st.style.display='block';st.textContent='Todos los personajes ya tienen sus vistas.';} return; }
-  if(!confirm('Se van a generar 4 vistas para '+faltan.length+' personaje(s).\n\nCoste aproximado: $'
-    +(faltan.length*4*costoBiblia()).toFixed(2)+'. Se hace una sola vez: luego son gratis para siempre.\n\n¿Seguimos?'))return;
+  var nImgs=faltan.length*4;
+  var mins=Math.ceil(nImgs*(8+PAUSA_VISTAS/1000)/60);
+  if(!confirm('Se van a generar 4 vistas para '+faltan.length+' personaje(s): '+nImgs+' imágenes.\n\n'
+    +'Coste aproximado: $'+(nImgs*costoBiblia()).toFixed(2)+'\n'
+    +'Tiempo: unos '+mins+' minutos. Van UNA POR UNA para no rebasar el límite de Google.\n\n'
+    +'Puedes parar cuando quieras: lo ya generado queda guardado.\n\n¿Seguimos?'))return;
+
+  BIBLIA_PARAR=false;
   var orig=btn?btn.textContent:'';
-  if(btn){btn.disabled=true;btn.style.opacity='.6';}
+  if(btn){
+    btn.textContent='⏹ Parar';
+    btn.dataset.parando='1';
+  }
   if(st)st.style.display='block';
+
   var hechos=0,fallos=[];
   for(var i=0;i<faltan.length;i++){
+    if(BIBLIA_PARAR)break;
     var p=faltan[i];
-    if(st)st.textContent='Generando '+(i+1)+' de '+faltan.length+': '+p.nombre+'... (4 vistas cada uno)';
-    try{
-      var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'generar',personaje:p,model:modeloBiblia()})});
-      var d=await r.json();
-      if(!r.ok||!d.vistas)throw new Error(d.error||'Error '+r.status);
-      var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
-      var gd=await g.json();
-      if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
-      hechos++;
-      cost+=4*costoBiblia();updCost();
-    }catch(e){ fallos.push(p.nombre+': '+(e.message||'error')); }
+    var idx=i,nombre=p.nombre;
+    var res=await generarVistasDe(p,null,function(n,tot){
+      if(st)st.textContent='Personaje '+(idx+1)+' de '+faltan.length+' — '+nombre
+        +' · vista '+n+' de '+tot+'   (puedes parar cuando quieras)';
+    });
+    if(res.ok)hechos++;
+    if(res.fallos.length)fallos.push(nombre+' ('+res.fallos.length+' vista/s)');
   }
-  await cargarBiblia();
-  if(btn){btn.disabled=false;btn.style.opacity='1';btn.textContent=orig;}
-  if(st)st.textContent=hechos+' personaje(s) listos.'
-    +(fallos.length?' No salieron '+fallos.length+': '+fallos.slice(0,3).join(' · ')+'. Puedes volver a darle al botón para reintentar solo esos.':'');
+
+  if(btn){btn.textContent=orig;btn.dataset.parando='';}
+  if(st)st.textContent=(BIBLIA_PARAR?'Parado. ':'')+hechos+' personaje(s) listos.'
+    +(fallos.length?' Con fallos: '+fallos.slice(0,3).join(' · ')+'. Vuelve a darle al botón: solo reintenta los que falten.':'');
+  BIBLIA_PARAR=false;
 }
 
 function personajePorId(id){
@@ -4743,7 +4785,16 @@ document.addEventListener('DOMContentLoaded',function(){
     document.getElementById('ba').textContent=o?'▲':'▼';
   });
   var bt2=document.getElementById('bBibliaTodas');
-  if(bt2)bt2.addEventListener('click',generarVistasFaltantes);
+  if(bt2)bt2.addEventListener('click',function(){
+    // El mismo boton para arrancar y para parar: mientras corre dice "Parar".
+    if(bt2.dataset.parando==='1'){
+      BIBLIA_PARAR=true;
+      var st2=document.getElementById('bibliaSt');
+      if(st2)st2.textContent='Parando al terminar la vista en curso...';
+      return;
+    }
+    generarVistasFaltantes();
+  });
   var br2=document.getElementById('bBibliaRecargar');
   if(br2)br2.addEventListener('click',function(){cargarBiblia();});
   var bt=document.getElementById('bthumb');
