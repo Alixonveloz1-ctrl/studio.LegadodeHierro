@@ -61,3 +61,7 @@ index.js embebido en los instaladores de Cloud Run siga al dia.
   bucket y Vertex simulados. Comprueba que las 4 fotos de marca del insignia
   viajan SIEMPRE como referencia y que guardar una vista nueva no las borra
   (nacio de ahi: se borraban, y el protagonista salia siendo otro hombre).
+- **check-biblia-ritmo.js** — que la biblia vaya a la MISMA cadencia que los
+  reels (60 s de margen en el servidor, 10 s de pausa), que una vista que falla
+  se reintente esperando en vez de saltarse, y que la tanda pare en vez de
+  repartir huecos por toda la biblia.

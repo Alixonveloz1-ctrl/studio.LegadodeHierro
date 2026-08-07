@@ -1177,9 +1177,11 @@ async function abrirVistas(id){
 
   if(!nVistas(p)){
     caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Generando la vista 1 de 4...</div>';
-    var res=await generarVistasDe(p,null,function(n,tot){
-      caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Generando la vista '+n+' de '+tot
-        +'... (una por una, para no rebasar el límite de Google)</div>';
+    var res=await generarVistasDe(p,null,function(n,tot,vi,aviso){
+      caja.innerHTML='<div style="font-size:10px;color:'+(aviso?'#8a6a2a':'var(--tx3)')+'">'
+        +(aviso?'Vista '+n+' de '+tot+': '+escHtml(aviso)
+               :'Generando la vista '+n+' de '+tot+'... (una por una, para no rebasar el límite de Google)')
+        +'</div>';
     });
     if(!res.ok){
       caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No se pudo generar ninguna vista.<br>'
@@ -1255,9 +1257,10 @@ async function rehacerVista(id,cuales){
   var card=document.querySelector('#bibliaGrid [data-id="'+id+'"]');
   var caja=card?card.querySelector('.bibliaVistas'):null;
   if(caja)caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Rehaciendo...</div>';
-  var res=await generarVistasDe(p,cuales,function(n,tot,i){
-    if(caja)caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Rehaciendo la vista '+(i+1)
-      +(tot>1?' ('+n+' de '+tot+')':'')+'...</div>';
+  var res=await generarVistasDe(p,cuales,function(n,tot,i,aviso){
+    if(caja)caja.innerHTML='<div style="font-size:10px;color:'+(aviso?'#8a6a2a':'var(--tx3)')+'">'
+      +'Vista '+(i+1)+(tot>1?' ('+n+' de '+tot+')':'')
+      +(aviso?': '+escHtml(aviso):'...')+'</div>';
   });
   delete VISTAS_VISTAS[id];
   if(caja)caja.style.display='none';
@@ -1303,7 +1306,22 @@ async function rehacerVista(id,cuales){
 // El ORDEN importa: la vista 1 se genera primero y queda guardada, y las otras
 // tres se generan DESPUES usandola como referencia. Asi las cuatro son la misma
 // persona. Si se hicieran a la vez, cada una saldria con otra cara.
-var PAUSA_VISTAS=1500;
+// LA MISMA CADENCIA QUE LOS REELS, que es la que funciona.
+//
+// La biblia iba con 1,5 s entre imagenes y con la funcion del servidor cortada a
+// los 30 s, mientras que la generacion de reels va con 10 s de pausa y 60 s de
+// margen. Con una imagen de calidad tardando 20-45 s, la biblia se quedaba a
+// medias: el servidor mataba la peticion, el navegador lo daba por fallo y saltaba
+// a la siguiente. De ahi las vistas sueltas y los personajes con huecos.
+var PAUSA_VISTAS=10000;
+
+// Y SI FALLA, SE ESPERA Y SE REINTENTA. No se salta. La mayoria de los fallos son
+// el limite por minuto de Google, que se arregla solo esperando; saltar a la
+// siguiente solo garantiza que esa tambien lo encuentre.
+var ESPERAS_REINTENTO=[15000,30000,60000];
+function esLimite(msg){
+  return /429|RESOURCE_EXHAUSTED|quota|rate limit|too many/i.test(msg||'');
+}
 
 async function generarVistasDe(p,cuales,alProgreso){
   var lista=cuales&&cuales.length?cuales.slice():TODAS_LAS_VISTAS();
@@ -1319,19 +1337,25 @@ async function generarVistasDe(p,cuales,alProgreso){
     // ignore las que aun no se han rehecho en esta tanda.
     var pendientes=lista.slice(k);
     var ultimoError='';
-    // Un reintento: la mitad de los fallos del generador son pasajeros.
-    for(var intento=0;intento<2;intento++){
+    // Hasta 4 intentos por vista, esperando cada vez mas. No se pasa a la
+    // siguiente vista mientras esta se pueda recuperar.
+    for(var intento=0;intento<=ESPERAS_REINTENTO.length;intento++){
+      if(BIBLIA_PARAR){ ultimoError='parado a mano'; break; }
       try{
         var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({action:'generar',personaje:p,model:modeloBiblia(),vista:i,ignorar:pendientes})});
-        var d=await r.json();
+        // Si la funcion se pasa de tiempo, Vercel devuelve un 504 con HTML: al
+        // intentar leerlo como JSON saltaba un "Unexpected token" que no decia
+        // nada. Ahora se traduce a lo que de verdad paso.
+        if(r.status===504)throw new Error('el servidor tardó más de 60 s');
+        var d=await r.json().catch(function(){return {};});
         if(!r.ok||!d.vistas||!d.vistas.length)throw new Error(d.error||'Error '+r.status);
         if(!d.conReferencia)sinRef++;
         // Se guarda ENSEGUIDA: asi la siguiente vista ya la puede usar de
         // referencia, y si algo falla a media tanda no se pierde lo hecho.
         var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
-        var gd=await g.json();
+        var gd=await g.json().catch(function(){return {};});
         if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
         // Si la escritura fallo, la imagen VIEJA sigue ahi: en pantalla parece que
         // "no cambio nada". Eso cuenta como fallo, no como exito.
@@ -1343,7 +1367,16 @@ async function generarVistasDe(p,cuales,alProgreso){
         break;
       }catch(e){
         ultimoError=e.message||'error';
-        if(intento===0)await new Promise(function(rs){setTimeout(rs,PAUSA_VISTAS);});
+        if(intento<ESPERAS_REINTENTO.length){
+          var espera=ESPERAS_REINTENTO[intento];
+          // Si es el limite por minuto, se espera el doble: no sirve de nada
+          // volver a llamar antes de que el contador se reinicie.
+          if(esLimite(ultimoError))espera*=2;
+          if(alProgreso)alProgreso(k+1,lista.length,i,
+            'falló ('+ultimoError.slice(0,50)+'). Reintento '+(intento+1)
+            +' de '+ESPERAS_REINTENTO.length+' en '+Math.round(espera/1000)+' s');
+          await new Promise(function(rs){setTimeout(rs,espera);});
+        }
       }
     }
     if(ultimoError){ fallos.push('vista '+(i+1)+': '+ultimoError); malas.push(i); }
@@ -1353,7 +1386,11 @@ async function generarVistasDe(p,cuales,alProgreso){
   delete REFS_PERSONAJE[p.id];
   delete VISTAS_VISTAS[p.id];
   await cargarBiblia();
-  return {ok:hechas>0,hechas:hechas,fallos:fallos,sinRef:sinRef,malas:malas};
+  // `rendido` = alguna vista agoto sus reintentos. Quien llame decide, pero la
+  // generacion en tanda PARA: seguir con el siguiente personaje cuando el limite
+  // esta saturado solo deja mas huecos.
+  return {ok:hechas>0,hechas:hechas,fallos:fallos,sinRef:sinRef,malas:malas,
+          rendido:malas.length>0&&!BIBLIA_PARAR};
 }
 
 // Genera las vistas que falten: personaje por personaje, y dentro de cada uno
@@ -1396,12 +1433,22 @@ async function generarVistasFaltantes(){
     if(BIBLIA_PARAR)break;
     var p=faltan[i];
     var idx=i,nombre=p.nombre;
-    var res=await generarVistasDe(p,pendientes[idx],function(n,tot){
+    var res=await generarVistasDe(p,pendientes[idx],function(n,tot,vi,aviso){
       if(st)st.textContent='Personaje '+(idx+1)+' de '+faltan.length+' — '+nombre
-        +' · vista '+n+' de '+tot+'   (puedes parar cuando quieras)';
+        +' · vista '+n+' de '+tot
+        +(aviso?'   ⚠ '+aviso:'   (puedes parar cuando quieras)');
     });
     if(res.ok)hechos++;
     if(res.fallos.length)fallos.push(nombre+' ('+res.fallos.length+' vista/s)');
+    // NO SE SALTA AL SIGUIENTE PERSONAJE con una vista sin terminar. Si una vista
+    // agoto sus cuatro intentos es que el limite esta saturado de verdad: seguir
+    // con el siguiente solo reparte huecos por toda la biblia.
+    if(res.rendido){
+      if(st)st.textContent='PARADO en "'+nombre+'": '+res.fallos[0]
+        +'.\n\nNo se sigue con los demás para no dejar personajes a medias. '
+        +'Espera un par de minutos y vuelve a darle al botón: retoma justo donde se quedó.';
+      break;
+    }
   }
 
   if(btn){btn.textContent=orig;btn.dataset.parando='';}
