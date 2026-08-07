@@ -99,14 +99,126 @@ async function fetchFromIbb(url) {
   return null;
 }
 
+// ===================== BIBLIA DE PERSONAJES =====================
+// Los personajes del canal viven en el bucket:
+//   personajes/index.json        -> la lista con la ficha de cada uno
+//   personajes/<id>/vista-N.png  -> sus vistas de referencia, sobre FONDO BLANCO
+//
+// El fondo blanco importa: si una referencia trae escenario, ese escenario se
+// cuela en todas las imagenes que se generen con ella.
+//
+// Va dentro de este archivo y no en uno nuevo a proposito: Vercel limita el
+// numero de funciones en el plan gratuito y ya hay 13.
+
+const INDICE = 'personajes/index.json';
+
+async function leerIndice(token, bucket) {
+  const b64 = await readFromBucket(token, bucket, INDICE);
+  if (!b64) return [];
+  try {
+    const d = JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
+    return Array.isArray(d) ? d : [];
+  } catch (e) { return []; }
+}
+
+async function escribirIndice(token, bucket, lista) {
+  const b64 = Buffer.from(JSON.stringify(lista, null, 1), 'utf8').toString('base64');
+  return writeToBucket(token, bucket, INDICE, b64, 'application/json');
+}
+
+function limpiarId(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+}
+
+// Ficha saneada: solo los campos que se esperan, y con tope de longitud. Lo que
+// escribe el usuario acaba dentro de un prompt, asi que no puede ser ilimitado.
+function sanearFicha(p) {
+  const txt = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+  return {
+    id: limpiarId(p.id || p.nombre),
+    nombre: txt(p.nombre, 40),
+    rol: txt(p.rol, 60),
+    edad: txt(p.edad, 30),
+    fisico: txt(p.fisico, 400),
+    vestuario: txt(p.vestuario, 300),
+    habla: txt(p.habla, 200),
+    encaja: txt(p.encaja, 200),
+    fijo: p.fijo === true,
+    refs: Array.isArray(p.refs) ? p.refs.slice(0, 6).map(o => String(o).slice(0, 200)) : [],
+    creado: p.creado || new Date().toISOString(),
+  };
+}
+
+// Las 4 vistas que se piden al generador. Siempre sobre fondo blanco liso.
+const VISTAS = [
+  'front view, looking straight at the camera, neutral expression, head and shoulders',
+  'three-quarter view turned slightly to his left, neutral expression, head and shoulders',
+  'strict side profile view, neutral expression, head and shoulders',
+  'waist-up view, standing, arms relaxed at his sides, neutral expression',
+];
+
+function promptDeVista(f, vista) {
+  return 'Character reference sheet image. ' + vista + '. '
+    + 'PLAIN PURE WHITE BACKGROUND (#FFFFFF), completely empty, no scenery, no furniture, no props, '
+    + 'no shadows on the background, no text, no watermark, no border. Studio-flat even lighting. '
+    + 'The SAME character in every image of this set.\n'
+    + 'CHARACTER: ' + (f.fisico || f.nombre) + '.'
+    + (f.edad ? ' Apparent age: ' + f.edad + '.' : '')
+    + (f.vestuario ? ' Wearing: ' + f.vestuario + '.' : '')
+    + '\nSTYLE (must match the channel exactly): 2D American comic book illustration, cinematic, '
+    + 'clean bold ink lines, dramatic cel-shading, graphic-novel aesthetic. '
+    + 'NEVER photorealistic, never a photograph, never 3D or CGI.';
+}
+
+// Genera UNA vista con el mismo modelo de imagen que usa el resto de la app.
+async function generarVista(token, projectId, modelo, prompt, refsB64) {
+  const region = /^gemini-2\.5-flash-image/.test(modelo) ? 'us-central1' : 'global';
+  const host = region === 'global' ? 'aiplatform.googleapis.com' : region + '-aiplatform.googleapis.com';
+  const url = 'https://' + host + '/v1/projects/' + projectId + '/locations/' + region +
+    '/publishers/google/models/' + modelo + ':generateContent';
+  const parts = [];
+  // Si ya hay vistas de este personaje, viajan como referencia para que la cara
+  // no cambie entre una vista y otra.
+  (refsB64 || []).forEach(b => parts.push({ inlineData: { mimeType: 'image/png', data: b } }));
+  parts.push({ text: prompt });
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'X-Goog-User-Project': projectId,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: parts }],
+      generationConfig: { responseModalities: ['IMAGE'] },
+    }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((d.error && d.error.message) || ('HTTP ' + r.status));
+  const cand = d.candidates && d.candidates[0];
+  const ps = cand && cand.content && cand.content.parts;
+  if (ps) {
+    for (const p of ps) {
+      const inl = p.inlineData || p.inline_data;
+      if (inl && inl.data) return inl.data;
+    }
+  }
+  throw new Error('el modelo no devolvio imagen' +
+    (cand && cand.finishReason ? ' (' + cand.finishReason + ')' : ''));
+}
+
 const { checkAuth } = require('./_auth');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-app-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (!checkAuth(req, res)) return;
+
+  // ---- POST: la biblia de personajes ----
+  if (req.method === 'POST') return biblia(req, res);
 
   let set = 'post';
   try {
@@ -165,3 +277,129 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: e.message, refs: [] });
   }
 };
+
+// ---- Las acciones de la biblia ----
+async function biblia(req, res) {
+  let body = req.body;
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  if (!body) {
+    try {
+      const chunks = [];
+      for await (const c of req) chunks.push(c);
+      body = JSON.parse(Buffer.concat(chunks).toString());
+    } catch (e) { body = {}; }
+  }
+  const accion = body.action || 'list';
+
+  const bucket = bucketName();
+  if (!bucket) return res.status(500).json({ error: 'GCS_OUTPUT_BUCKET no configurado en Vercel' });
+  if (!process.env.GCP_SERVICE_ACCOUNT) return res.status(500).json({ error: 'GCP_SERVICE_ACCOUNT no configurado' });
+
+  try {
+    const token = await getGCPToken();
+
+    if (accion === 'list') {
+      const lista = await leerIndice(token, bucket);
+      // Si aun no hay nada, se siembra con el personaje INSIGNIA usando sus 4
+      // imagenes de siempre. No se regenera: su cara lleva un ano siendo la marca.
+      if (!lista.length) {
+        lista.push(sanearFicha({
+          id: 'insignia', nombre: 'El hombre de Legado de Hierro', rol: 'Protagonista del canal',
+          edad: '35 anos',
+          fisico: 'hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria',
+          vestuario: 'traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes',
+          habla: 'directo, crudo, sin adornos',
+          encaja: 'cualquier reel del canal: es el protagonista por defecto',
+          fijo: true,
+          refs: ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3', 'refs/personaje-4'],
+        }));
+        await escribirIndice(token, bucket, lista);
+        console.log('[refs] biblia sembrada con el personaje insignia');
+      }
+      return res.json({ success: true, personajes: lista });
+    }
+
+    if (accion === 'imagenes') {
+      // Devuelve las vistas de un personaje, en base64, para pintarlas o para
+      // mandarlas como referencia al generar imagenes del reel.
+      const lista = await leerIndice(token, bucket);
+      const p = lista.find(x => x.id === limpiarId(body.id));
+      if (!p) return res.status(404).json({ error: 'No existe ese personaje' });
+      const imgs = [];
+      for (const o of (p.refs || [])) {
+        const b64 = await readFromBucket(token, bucket, o);
+        if (b64) imgs.push(b64);
+      }
+      return res.json({ success: true, id: p.id, refs: imgs });
+    }
+
+    if (accion === 'generar') {
+      const f = sanearFicha(body.personaje || {});
+      if (!f.fisico) return res.status(400).json({ error: 'Describe primero como es fisicamente el personaje' });
+      if (!f.id) return res.status(400).json({ error: 'El personaje necesita un nombre' });
+      const projectId = process.env.GCP_PROJECT_ID;
+      if (!projectId) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
+      const modelo = /^gemini-[0-9.]+(-flash|-pro)?-image/.test(String(body.model || ''))
+        ? String(body.model) : 'gemini-2.5-flash-image';
+
+      // Cuantas vistas se piden. Por defecto las 4; se puede pedir una sola para
+      // rehacer la que no gusto sin pagar las otras tres.
+      const cuales = Array.isArray(body.vistas) && body.vistas.length
+        ? body.vistas.filter(i => i >= 0 && i < VISTAS.length)
+        : [0, 1, 2, 3];
+
+      const generadas = [], previas = [];
+      for (const i of cuales) {
+        // Las vistas ya hechas en ESTA tanda viajan como referencia: asi la 2, la
+        // 3 y la 4 son el mismo hombre que la 1 y no cuatro personas distintas.
+        const b64 = await generarVista(token, projectId, modelo, promptDeVista(f, VISTAS[i]), previas.slice(0, 2));
+        previas.push(b64);
+        generadas.push({ i: i, b64: b64 });
+      }
+      return res.json({ success: true, id: f.id, vistas: generadas });
+    }
+
+    if (accion === 'guardar') {
+      const f = sanearFicha(body.personaje || {});
+      if (!f.id) return res.status(400).json({ error: 'El personaje necesita un nombre' });
+      const lista = await leerIndice(token, bucket);
+      const antes = lista.find(x => x.id === f.id);
+      if (antes && antes.fijo && !f.fijo) f.fijo = true; // el insignia no deja de serlo
+
+      // Las vistas nuevas llegan en base64 y se guardan como objetos del bucket.
+      const nuevas = Array.isArray(body.vistas) ? body.vistas : [];
+      const refs = (antes && antes.refs) ? antes.refs.slice() : [];
+      for (const v of nuevas) {
+        const i = Number(v.i);
+        if (!isFinite(i) || i < 0 || i > 5 || !v.b64) continue;
+        const obj = 'personajes/' + f.id + '/vista-' + (i + 1) + '.png';
+        const ok = await writeToBucket(token, bucket, obj, v.b64, 'image/png');
+        if (ok && refs.indexOf(obj) < 0) refs[i] = obj;
+      }
+      f.refs = refs.filter(Boolean);
+      if (!f.refs.length) return res.status(400).json({ error: 'Genera al menos una vista antes de guardar' });
+
+      const idx = lista.findIndex(x => x.id === f.id);
+      if (idx > -1) lista[idx] = f; else lista.push(f);
+      await escribirIndice(token, bucket, lista);
+      console.log('[refs] personaje guardado: ' + f.id + ' (' + f.refs.length + ' vistas)');
+      return res.json({ success: true, personaje: f });
+    }
+
+    if (accion === 'borrar') {
+      const id = limpiarId(body.id);
+      const lista = await leerIndice(token, bucket);
+      const p = lista.find(x => x.id === id);
+      if (!p) return res.status(404).json({ error: 'No existe ese personaje' });
+      if (p.fijo) return res.status(400).json({ error: 'El personaje insignia del canal no se puede borrar' });
+      await escribirIndice(token, bucket, lista.filter(x => x.id !== id));
+      console.log('[refs] personaje borrado: ' + id);
+      return res.json({ success: true });
+    }
+
+    return res.status(400).json({ error: 'Accion no valida' });
+  } catch (e) {
+    console.error('[refs/biblia] ' + e.message);
+    return res.status(500).json({ error: e.message });
+  }
+}

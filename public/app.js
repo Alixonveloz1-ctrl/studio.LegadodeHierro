@@ -123,6 +123,20 @@ var VIS_REGISTROS=[
   'la composicion conceptual con objetos reales: una mesa, una silla vacia, una ventana, una sombra larga — fuerza simbolica sin salirse del mundo real',
   'la rutina que se repite: el mismo trayecto, el mismo gesto, la misma hora, mostrado como un ciclo que aprieta',
   'el momento de la decision: el umbral, la salida, el sobre sobre la mesa, el instante justo antes de cambiar algo',
+  // Con 12 mundos y 3 por guion, dos guiones seguidos compartian mundo casi
+  // siempre. Estos 12 mas abren territorio nuevo sin salirse de la marca.
+  'el oficio y las manos que trabajan: la herramienta gastada, el mostrador, el taller pequeno, el delantal, el gesto repetido mil veces con orgullo',
+  'el aprendizaje a solas: los libros de segunda mano, la pantalla de madrugada, los apuntes, el cuaderno lleno de numeros, aprender lo que nadie enseno',
+  'la espera y el tramite: la sala de espera, el numero en la mano, la ventanilla, la fila del banco, el tiempo que se va sentado',
+  'el cuerpo que aguanta: el cansancio real, la espalda, los ojos, las manos sucias, el sudor, dormir poco y levantarse igual',
+  'la mesa compartida: comer con los suyos, la conversacion dificil, la silla vacia, la cena en silencio, quien depende de el',
+  'el dinero como objeto fisico: los billetes contados, el sobre, la alcancia, el recibo, la calculadora, la deuda escrita en un papel',
+  'la ciudad de arriba: el edificio de cristal visto desde abajo, las oficinas encendidas de noche, el ascensor, la vista desde un piso alto',
+  'los margenes de la ciudad: el barrio, el taller de la esquina, el mercado, la bodega del vecino, donde de verdad empieza todo',
+  'el movimiento y la salida: el carro cargado, la maleta, la carretera de noche, la estacion, irse de un sitio para llegar a otro',
+  'el trato entre dos: el apreton de manos, la negociacion, el que pide y el que da, la mirada que decide, el contrato sobre la mesa',
+  'el paso del tiempo: el calendario, la foto vieja, la ropa que ya no queda, el mismo lugar diez anos despues, las canas',
+  'lo que se construye con las manos: los cimientos, la pared a medias, el plano extendido, la llave nueva, algo que antes no existia',
 ];
 
 var SCHED_POOL=[
@@ -828,6 +842,39 @@ function cierreDe(txt){
   return String(last||ult).trim().slice(0,110);
 }
 
+// MEMORIA DE ESCENAS. Hasta ahora la unica defensa contra las imagenes repetidas
+// era una lista de escenas prohibidas escrita A MANO ("cargando cajas", "obra en
+// construccion"...) que yo anadia cada vez que el dueno notaba que una se habia
+// gastado. Eso no escala: la escena numero 13 que se gaste seguira saliendo
+// hasta que alguien la vea y la apunte.
+// Esto lo automatiza: de cada prompt de imagen ya generado se guarda un resumen
+// corto, y los de los ultimos reels se le pasan al director como "esto ya lo
+// usaste". Asi la lista se mantiene sola.
+function resumirEscena(prompt){
+  var p=String(prompt||'').replace(/\s+/g,' ').trim();
+  if(!p)return '';
+  // Fuera la parte tecnica del prompt (planos, luz, estilo): lo que importa para
+  // no repetirse es QUE se ve, no como esta fotografiado.
+  p=p.replace(/\b(plano|angulo|ángulo|encuadre|contrapicado|picado|primer plano|primerisimo|primerísimo|close-?up|luz|iluminacion|iluminación|camara|cámara|lente|profundidad de campo|cel-?shading|comic|cómic|ilustracion|ilustración|2d|cinematograf\w*)\b[^,.]*/gi,'');
+  p=p.replace(/\s*,\s*,+/g,', ').replace(/^[\s,;.-]+/,'').replace(/\s+/g,' ').trim();
+  return p.slice(0,90);
+}
+
+function bloqueEscenasUsadas(mirar){
+  var vistas=[],h=histRecientes(mirar||8);
+  h.forEach(function(it){
+    var lista=(it.sem&&it.sem.escenas)?it.sem.escenas:null;
+    if(!lista&&Array.isArray(it.c))lista=it.c.map(resumirEscena); // reels viejos: se saca del prompt guardado
+    if(!lista)return;
+    lista.forEach(function(e){ if(e&&vistas.indexOf(e)<0)vistas.push(e); });
+  });
+  if(vistas.length<4)return '';
+  return 'ESCENAS QUE ESTE CANAL YA USO (las de los ultimos '+h.length+' reels). '
+    +'NINGUNA de tus imagenes puede repetir ninguna de estas, ni con otro encuadre ni con otra luz: '
+    +'si tu idea se parece a una de abajo, DESCARTALA y busca otra cosa que contar de este guion:\n- '
+    +vistas.slice(0,40).join('\n- ')+'\n\n';
+}
+
 // EL BLOQUE "YA DICHO". Le da al modelo lo que le faltaba para poder obedecer:
 // con que ganchos ya abrio, con que frases ya cerro y de que conceptos ya hablo.
 // No cuesta ni una llamada extra de API. Es el cambio que mas cambia los guiones.
@@ -862,7 +909,23 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   // siempre las mismas imagenes. Ahora decide el como a partir de ESTE guion.
   var sceneDir='DIRECCION VISUAL — ERES EL DIRECTOR: actua como director de cine y fotografia especialista en contenido de libertad financiera, no como un generador de escenas sueltas. ANTES de escribir nada, LEE el guion completo que acabas de escribir y planifica la secuencia entera como una pieza: decide que momento merece cada imagen, que se muestra y que se sugiere, y como avanza visualmente de la primera a la ultima. Cada prompt es UNA sola imagen, un unico plano que llena el cuadro — NUNCA vinetas, cuadros ni collage. ';
   if(mode==='historia'){
-    sceneDir+='ESTE MODO cuenta un recorrido que AVANZA: las imagenes en conjunto deben sentirse como una progresion con principio y final, no como la misma escena repetida con otro fondo. TU decides cual es ese recorrido segun lo que dice ESTE guion en particular — puede ser de esfuerzo a logro, de duda a decision, de aislamiento a construccion, de rutina a ruptura, o cualquier otro que el guion pida. No existe un arco obligatorio. ';
+    // MODO HISTORIA = CONTINUIDAD. Antes este modo recibia practicamente la misma
+    // orden que los otros dos ("cada imagen un fotograma distinto"), y por eso
+    // salia una sucesion de escenas sueltas sin relacion: exactamente lo contrario
+    // de contar una historia. Aqui se le exige que las imagenes sean la MISMA
+    // escena avanzando, no cinco escenas diferentes.
+    sceneDir+='ESTE MODO ES UNA HISTORIA CONTINUA, y esa es la diferencia con los otros modos. '
+      +'NO son imagenes sueltas: son fotogramas SEGUIDOS de una misma escena que avanza, como si filmaras a la misma persona '
+      +'durante un rato sin cortar a otro sitio. Piensa en una secuencia de pelicula, no en cinco portadas.\n'
+      +'REGLAS DE CONTINUIDAD (obligatorias en este modo):\n'
+      +'1. UN SOLO HILO: decide UN momento concreto de la vida del protagonista (una noche, una manana, una jornada, una conversacion) y quedate ahi. '
+      +'Todas las imagenes ocurren dentro de ese mismo momento y en orden cronologico.\n'
+      +'2. ESPACIO CONTINUO: como maximo DOS localizaciones, y si hay dos, la segunda tiene que ser un sitio al que se llega desde la primera (sale de casa y llega al taller; sale de la oficina y baja a la calle). Nada de saltar a un lugar sin relacion.\n'
+      +'3. EL MISMO DIA: la misma ropa, la misma hora aproximada, la misma luz. Si el guion pide un salto de tiempo grande (anos despues), se permite UN solo salto y se hace evidente en la imagen; el resto sigue siendo continuo.\n'
+      +'4. CADA IMAGEN CONTINUA LA ANTERIOR: la imagen k+1 tiene que poder explicarse mirando la k. Cambia el encuadre, la distancia o el angulo, y avanza la accion — pero no cambies de escena. Si el espectador no puede decir "esto pasa justo despues de lo otro", esta MAL.\n'
+      +'5. VARIA LA CAMARA, NO EL MUNDO: la variedad de este modo viene de los PLANOS (general, medio, detalle de las manos, escorzo, desde atras), no de saltar de escenario. Esa es la diferencia entre una historia y un muestrario.\n'
+      +'6. QUE PASE ALGO: entre la primera y la ultima imagen tiene que haber cambiado ALGO visible — lo que hace, su postura, quien esta con el, lo que hay sobre la mesa. Que el final no pueda confundirse con el principio.\n'
+      +'ESCRIBE CADA PROMPT COMO PARTE DE LA SECUENCIA: menciona en el el lugar exacto y la hora, iguales en todos, para que el generador no invente otro sitio. ';
   }else if(mode==='impacto'){
     sceneDir+='ESTE MODO son 3 golpes visuales para detener el scroll: composicion audaz, alto contraste, mucha fuerza emocional, cada imagen un impacto distinto ligado a un momento del mensaje. Puedes usar contraste simbolico, un detalle brutal o una escena potente — lo que MEJOR sirva a lo que dice este guion. ';
   }else{
@@ -871,12 +934,23 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   // El CODIGO (no el modelo) asigna los registros visuales. Ya no al azar ciego:
   // se prefieren los que NO se han usado en los ultimos guiones. Con 12 registros
   // y 3 por guion, el azar puro repetia mundo visual demasiado seguido.
-  var regs=elegirVariosConMemoria(VIS_REGISTROS,'regs',3,10);
+  // En HISTORIA se pide UN mundo (la escena es continua); en los otros modos, tres.
+  var esHistoria=(mode==='historia');
+  var regs=elegirVariosConMemoria(VIS_REGISTROS,'regs',esHistoria?1:3,10);
   sceneDir+='LIBERTAD Y CRITERIO (lo mas importante): tienes libertad TOTAL para elegir escenas, encuadres y entornos. NO existe ninguna lista de escenas que debas seguir. Deriva cada imagen del CONTENIDO CONCRETO de su parte de ESTE guion: si el guion habla de tiempo, de una decision, de una perdida, de una relacion o de una rutina, la imagen debe ser de ESO, no una escena generica de trabajo. '
-    +'MUNDOS VISUALES DE ESTE GUION (usalos como territorio de partida, mezclalos y sal de ellos si el guion pide otra cosa): '+regs.join(' / ')+'. '
-    +'VARIEDAD DE PLANOS (obligatorio): NO todas las imagenes son un plano entero del protagonista trabajando. Alterna la escala — un primer plano de manos u objetos, un detalle cerrado sin rostro, un plano general amplio donde la persona es pequena en el espacio, un plano medio, un punto de vista subjetivo. NO todas las imagenes tienen que mostrar al protagonista: algunas pueden ser un entorno vacio, un objeto que cuenta la historia, otra persona, o un detalle. Al menos una imagen del conjunto NO debe mostrar su rostro. '
+    +(esHistoria
+      ? 'MUNDO DE ESTA HISTORIA (aqui transcurre TODA la secuencia, no saltes a otro): '+regs.join(' / ')+'. '
+      : 'MUNDOS VISUALES DE ESTE GUION (usalos como territorio de partida, mezclalos y sal de ellos si el guion pide otra cosa): '+regs.join(' / ')+'. ')
+    +(esHistoria
+      // En una secuencia continua la variedad viene de la CAMARA. La regla de
+      // "ningun entorno repetido" del resto de modos aqui destruiria la historia.
+      ? 'VARIEDAD DE PLANOS (obligatorio, y aqui es lo UNICO que varia): la escena es la misma, asi que cambia la CAMARA en cada imagen — plano general del lugar, plano medio, primer plano del rostro, detalle cerrado de las manos o de un objeto, plano desde atras, escorzo. Al menos una imagen NO debe mostrar su rostro. Repetir el mismo encuadre dos veces seguidas esta PROHIBIDO; repetir el mismo LUGAR es obligatorio. '
+      : 'VARIEDAD DE PLANOS (obligatorio): NO todas las imagenes son un plano entero del protagonista trabajando. Alterna la escala — un primer plano de manos u objetos, un detalle cerrado sin rostro, un plano general amplio donde la persona es pequena en el espacio, un plano medio, un punto de vista subjetivo. NO todas las imagenes tienen que mostrar al protagonista: algunas pueden ser un entorno vacio, un objeto que cuenta la historia, otra persona, o un detalle. Al menos una imagen del conjunto NO debe mostrar su rostro. ')
     +'IMAGENES QUEMADAS — PROHIBIDAS salvo que el guion lo pida literalmente: el protagonista cargando cajas o bultos, apilando o moviendo mercancia, en una bodega o almacen con cajas de carton, cargando materiales en una obra en construccion, senalando o dirigiendo obreros con casco y chaleco en una fabrica o planta industrial, revisando o firmando papeles en un escritorio. Esas escenas ya se usaron demasiadas veces en este canal y estan gastadas; si tu primera idea es una de esas, DESCARTALA y busca otra. '
-    +'ANTIRREPETICION: PROHIBIDO que dos imagenes de este conjunto compartan la misma accion, el mismo tipo de entorno o el mismo encuadre. Si dos prompts se parecen, reescribe uno. Piensa cada imagen como un fotograma distinto de una pelicula, no como un retrato del personaje posando. ';
+    +(esHistoria
+      ? 'ANTIRREPETICION EN ESTE MODO: lo que no se puede repetir es el ENCUADRE y la ACCION, no el lugar. Dos imagenes seguidas con la misma camara y al personaje haciendo lo mismo estan MAL; dos imagenes en el mismo sitio, vistas distinto y con la accion avanzando, estan BIEN — es justo lo que se pide. '
+      : 'ANTIRREPETICION: PROHIBIDO que dos imagenes de este conjunto compartan la misma accion, el mismo tipo de entorno o el mismo encuadre. Si dos prompts se parecen, reescribe uno. Piensa cada imagen como un fotograma distinto de una pelicula, no como un retrato del personaje posando. ')
+    +bloqueEscenasUsadas(8);
   // Regla clave: el guion habla en METAFORAS. Sin esto, el modelo dibuja las
   // palabras al pie de la letra (fuego real por "apagar incendios", engranajes de
   // reloj por "engranajes") en vez del significado. No es una lista negra: es una
