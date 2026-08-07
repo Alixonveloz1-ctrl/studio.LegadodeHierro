@@ -132,7 +132,12 @@ const server = http.createServer((req, res) => {
       let d={}; try{ d=JSON.parse(b3); }catch(e){}
       const { REPARTO } = require('/home/user/studio.LegadodeHierro/api/_personajes.js');
       if(d.action==='imagenes'){
-        return json(res,200,{success:true,id:d.id,refs:[TINY_PNG,TINY_PNG]});
+        // El insignia se devuelve con un HUECO (falta la vista 2), que es el caso
+        // que antes descolocaba los botones ↺ y pasaba en silencio.
+        const hechas = (MOCK_VISTAS[d.id]||[]).length;
+        const idx = d.id==='insignia' ? [0,2,3] : (hechas ? MOCK_VISTAS[d.id].map((_,k)=>k) : [0,1]);
+        return json(res,200,{success:true,id:d.id,total:4,
+          refs:idx.map(()=>TINY_PNG),indices:idx});
       }
       if(d.action==='generar'){
         // Se apunta CADA peticion con su instante, para poder comprobar desde la
@@ -153,13 +158,18 @@ const server = http.createServer((req, res) => {
         const refs=(MOCK_VISTAS[id]||[]).map((_,k)=>'personajes/'+id+'/vista-'+(k+1)+'.png');
         return json(res,200,{success:true,personaje:Object.assign({},d.personaje,{refs:refs})});
       }
+      // Como en el servidor de verdad: las 4 fotos de marca van en `base` (el ancla,
+      // intocable) y en `refs` solo las vistas generadas, con su hueco si falta una.
       const insignia={id:'insignia',nombre:'El hombre de Legado de Hierro',rol:'Protagonista del canal',
         fijo:true,encaja:'es el protagonista por defecto',
-        refs:['refs/personaje-1','refs/personaje-2','refs/personaje-3','refs/personaje-4']};
+        base:['refs/personaje-1','refs/personaje-2','refs/personaje-3','refs/personaje-4'],
+        refs:['personajes/insignia/vista-1.png',null,
+              'personajes/insignia/vista-3.png','personajes/insignia/vista-4.png']};
       const lista=[insignia].concat(REPARTO.map(p=>Object.assign({},p,{
         refs: (MOCK_VISTAS[p.id]||[]).map((_,k)=>'personajes/'+p.id+'/vista-'+(k+1)+'.png'),
       })));
-      json(res,200,{success:true,personajes:lista,conVistas:lista.filter(p=>p.refs.length).length});
+      json(res,200,{success:true,personajes:lista,
+        conVistas:lista.filter(p=>p.refs.filter(Boolean).length).length});
     });
     return;
   }

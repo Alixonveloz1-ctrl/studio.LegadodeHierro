@@ -147,18 +147,56 @@ function sanearFicha(p) {
     habla: txt(p.habla, 200),
     encaja: txt(p.encaja, 200),
     fijo: p.fijo === true,
-    refs: Array.isArray(p.refs) ? p.refs.slice(0, 6).map(o => String(o).slice(0, 200)) : [],
+    // refs = las vistas GENERADAS. Es una lista de 4 huecos: refs[0] es la vista 1,
+    // refs[1] la vista 2... Un hueco vacio vale null y SE QUEDA como null. Antes se
+    // hacia filter(Boolean) al guardar, y si fallaba la vista 2 la lista se
+    // compactaba: la vista 3 pasaba a ocupar el hueco de la 2, el boton de rehacer
+    // apuntaba a la vista equivocada y al reintentar la 2 se machacaba la 3.
+    refs: Array.isArray(p.refs) ? p.refs.slice(0, 6).map(o => (o ? String(o).slice(0, 200) : null)) : [],
+    // base = las imagenes ANCLA del personaje: las que definen su cara de verdad y
+    // que NUNCA se tocan. El insignia lleva aqui sus 4 imagenes de marca. Antes no
+    // existia este campo: sus fotos de siempre vivian en refs, y la primera vez que
+    // se guardaba una vista nueva refs[0] las pisaba. A partir de ahi el ancla ya no
+    // existia y cada regeneracion copiaba a un desconocido inventado.
+    base: Array.isArray(p.base) ? p.base.filter(Boolean).slice(0, 6).map(o => String(o).slice(0, 200)) : [],
     creado: p.creado || new Date().toISOString(),
   };
 }
 
+// Las 4 imagenes de marca del protagonista. Llevan un ano siendo la cara del canal:
+// son el ancla, no un punto de partida que se pueda reemplazar.
+const BASE_INSIGNIA = ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3', 'refs/personaje-4'];
+
 // Las 4 vistas que se piden al generador. Siempre sobre fondo blanco liso.
+//
+// EL ENCUADRE VA AQUI Y VA FUERTE. Con "head and shoulders" a secas, el modelo
+// devolvia figuras diminutas en medio de un mar de blanco: como referencia no
+// sirven, porque la cara ocupa cuatro pixeles y lo que se copia despues es un
+// borron. Cada vista dice ahora que parte del cuerpo entra Y cuanto del alto de
+// la imagen tiene que ocupar.
 const VISTAS = [
-  'front view, looking straight at the camera, neutral expression, head and shoulders',
-  'three-quarter view turned slightly to his left, neutral expression, head and shoulders',
-  'strict side profile view, neutral expression, head and shoulders',
-  'waist-up view, standing, arms relaxed at his sides, neutral expression',
+  { a: 'FRONT VIEW: the character faces the camera straight on, looking directly at the lens, neutral expression.',
+    enc: 'TIGHT HEAD-AND-SHOULDERS PORTRAIT. Crop at mid-chest. The head alone fills at least 55% of the image height, top of the hair close to the top edge. This is a close portrait, NOT a distant full-body shot.' },
+  { a: 'THREE-QUARTER VIEW: the character is turned about 45 degrees to their left, still glancing toward the camera, neutral expression.',
+    enc: 'TIGHT HEAD-AND-SHOULDERS PORTRAIT. Crop at mid-chest. The head alone fills at least 55% of the image height. This is a close portrait, NOT a distant full-body shot.' },
+  { a: 'STRICT SIDE PROFILE: the character is turned exactly 90 degrees, seen from the side, not looking at the camera, neutral expression.',
+    enc: 'TIGHT HEAD-AND-SHOULDERS PORTRAIT. Crop at mid-chest. The head alone fills at least 55% of the image height. This is a close portrait, NOT a distant full-body shot.' },
+  { a: 'WAIST-UP VIEW: the character stands facing the camera, arms relaxed at their sides, neutral expression.',
+    enc: 'MEDIUM SHOT cropped at the waist. The figure fills the frame from top to bottom, head near the top edge, waist at the bottom edge. Do NOT leave large empty margins around the figure.' },
 ];
+
+// Que el reparto sea atractivo es una peticion del canal, no un capricho: son
+// personajes de comic y tienen que resultar agradables de mirar. Con los menores
+// no se usa esa palabra ni ese criterio, obviamente: para ellos solo se pide que
+// se vean sanos y cuidados.
+function clausulaAspecto(edad) {
+  const n = parseInt(String(edad || '').replace(/[^0-9]/g, ''), 10);
+  if (isFinite(n) && n < 18) {
+    return 'The character looks healthy, well-groomed and natural, like a real kid, never stylised as an adult.';
+  }
+  return 'The character is good-looking and well-groomed: clean features, healthy skin, tidy hair, '
+    + 'an attractive comic-book lead. Attractive but believable and age-appropriate, never a caricature.';
+}
 
 function promptDeVista(f, vista, conReferencia) {
   // Cuando viajan imagenes de referencia hay que decirlo EXPLICITAMENTE, y muy
@@ -171,13 +209,22 @@ function promptDeVista(f, vista, conReferencia) {
       + 'If the face differs from the reference, the image is wrong. '
       + 'Only the camera angle and the pose change.\n'
     : '';
-  return 'Character reference sheet image. ' + vista + '. '
+  // "Character reference sheet" era un error de bulto: al modelo esa expresion le
+  // pide una LAMINA de personaje, y devolvia collages con dos y tres cabezas del
+  // mismo hombre dentro de la misma imagen. Una lamina no sirve de referencia: hay
+  // que pedir UN retrato, de UNA persona, en UN encuadre.
+  return 'A single character portrait illustration. ONE person only, ONE head, ONE figure, '
+    + 'in ONE single frame. This is NOT a model sheet, NOT a collage, NOT a grid, NOT a set of panels, '
+    + 'NOT several poses side by side, NOT multiple angles in the same image. Exactly one figure.\n'
+    + vista.a + '\n' + vista.enc + '\n'
     + 'PLAIN PURE WHITE BACKGROUND (#FFFFFF), completely empty, no scenery, no furniture, no props, '
-    + 'no shadows on the background, no text, no watermark, no border. Studio-flat even lighting.\n'
+    + 'no shadows on the background, no text, no labels, no watermark, no border, no frame. '
+    + 'Studio-flat even lighting.\n'
     + mismaCara
     + 'CHARACTER: ' + (f.fisico || f.nombre) + '.'
     + (f.edad ? ' Apparent age: ' + f.edad + '.' : '')
     + (f.vestuario ? ' Wearing: ' + f.vestuario + '.' : '')
+    + ' ' + clausulaAspecto(f.edad)
     + '\nSTYLE (must match the channel exactly): 2D American comic book illustration, cinematic, '
     + 'clean bold ink lines, dramatic cel-shading, graphic-novel aesthetic. '
     + 'NEVER photorealistic, never a photograph, never 3D or CGI.';
@@ -203,7 +250,10 @@ async function generarVista(token, projectId, modelo, prompt, refsB64) {
     },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: parts }],
-      generationConfig: { responseModalities: ['IMAGE'] },
+      // 3:4 vertical en las cuatro vistas: una persona encaja en vertical, las
+      // miniaturas quedan todas del mismo tamano y la cara ocupa mas pixeles, que
+      // es lo que importa cuando esta imagen se use luego como referencia.
+      generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '3:4' } },
     }),
   });
   const d = await r.json().catch(() => ({}));
@@ -327,8 +377,27 @@ async function biblia(req, res) {
           habla: 'directo, crudo, sin adornos',
           encaja: 'es el protagonista por defecto y aparece en practicamente todos los reels',
           fijo: true,
-          refs: ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3', 'refs/personaje-4'],
+          base: BASE_INSIGNIA.slice(),
         }));
+      }
+      // REPARACION de las fichas que ya estan en el bucket. El insignia nacio con
+      // sus 4 imagenes de marca dentro de refs, y guardar la primera vista nueva
+      // las borro. Aqui se le devuelve el ancla, y si alguna imagen de marca sigue
+      // colgada en refs se mueve a base en vez de contarse como vista generada.
+      let reparado = 0;
+      for (const p of lista) {
+        const sueltas = (p.refs || []).filter(o => o && o.indexOf('refs/') === 0);
+        if (sueltas.length) {
+          p.base = (p.base || []).concat(sueltas.filter(o => (p.base || []).indexOf(o) < 0));
+          p.refs = (p.refs || []).map(o => (o && o.indexOf('refs/') === 0 ? null : o));
+          reparado++;
+        }
+        // El insignia lleva SIEMPRE sus cuatro. Recuperar solo la que quedo suelta
+        // no basta: las otras tres tambien las borro el fallo.
+        if (p.fijo) {
+          const faltan = BASE_INSIGNIA.filter(o => (p.base || []).indexOf(o) < 0);
+          if (faltan.length) { p.base = (p.base || []).concat(faltan).sort(); reparado++; }
+        }
       }
       // Los del reparto se anaden si faltan, SIN pisar los que ya tengan vistas
       // generadas o los que el duenno haya editado.
@@ -336,13 +405,14 @@ async function biblia(req, res) {
         if (lista.some(x => x.id === base.id)) continue;
         lista.push(sanearFicha(base));
       }
-      if (lista.length !== antes) {
+      if (lista.length !== antes || reparado) {
         await escribirIndice(token, bucket, lista);
-        console.log('[refs] biblia sembrada: ' + (lista.length - antes) + ' personajes nuevos, ' + lista.length + ' en total');
+        if (lista.length !== antes) console.log('[refs] biblia sembrada: ' + (lista.length - antes) + ' personajes nuevos, ' + lista.length + ' en total');
+        if (reparado) console.log('[refs] ancla restaurada en ' + reparado + ' ficha(s)');
       }
       return res.json({
         success: true, personajes: lista,
-        conVistas: lista.filter(p => (p.refs || []).length).length,
+        conVistas: lista.filter(p => (p.refs || []).filter(Boolean).length).length,
       });
     }
 
@@ -352,12 +422,17 @@ async function biblia(req, res) {
       const lista = await leerIndice(token, bucket);
       const p = lista.find(x => x.id === limpiarId(body.id));
       if (!p) return res.status(404).json({ error: 'No existe ese personaje' });
-      const imgs = [];
-      for (const o of (p.refs || [])) {
-        const b64 = await readFromBucket(token, bucket, o);
-        if (b64) imgs.push(b64);
+      // Viajan tambien los INDICES: refs es una lista de 4 huecos y alguno puede
+      // estar vacio. Sin el indice, el navegador pintaba las que hubiera una detras
+      // de otra y el boton de rehacer apuntaba a la vista equivocada.
+      const imgs = [], indices = [];
+      const lst = p.refs || [];
+      for (let i = 0; i < lst.length; i++) {
+        if (!lst[i]) continue;
+        const b64 = await readFromBucket(token, bucket, lst[i]);
+        if (b64) { imgs.push(b64); indices.push(i); }
       }
-      return res.json({ success: true, id: p.id, refs: imgs });
+      return res.json({ success: true, id: p.id, refs: imgs, indices: indices, total: VISTAS.length });
     }
 
     if (accion === 'generar') {
@@ -388,15 +463,20 @@ async function biblia(req, res) {
       // cara de la marca desde hace un ano.
       const lista = await leerIndice(token, bucket);
       const guardado = lista.find(x => x.id === f.id);
-      const objetos = (guardado && guardado.refs) ? guardado.refs.slice() : [];
-      const refsB64 = [];
-      for (const o of objetos) {
+      // PRIMERO EL ANCLA. Las imagenes de base mandan sobre las vistas generadas:
+      // en el insignia son sus 4 fotos de marca, y su cara no se negocia. Despues,
+      // si quedan huecos, se rellenan con las vistas que ya tenga hechas.
+      const ancla = (guardado && guardado.base) ? guardado.base.slice(0, 3) : [];
+      const propias = ((guardado && guardado.refs) ? guardado.refs : [])
         // La vista que se esta rehaciendo NO se usa como referencia de si misma:
         // si no, se copia el fallo que se queria corregir.
-        if (o.indexOf('/vista-' + (i + 1) + '.png') > -1) continue;
+        .filter((o, k) => o && k !== i);
+      const objetos = ancla.concat(propias);
+      const refsB64 = [];
+      for (const o of objetos) {
         const b64 = await readFromBucket(token, bucket, o);
         if (b64) refsB64.push(b64);
-        if (refsB64.length >= 3) break;
+        if (refsB64.length >= 4) break;
       }
 
       const b64 = await generarVista(token, projectId, modelo,
@@ -424,15 +504,21 @@ async function biblia(req, res) {
         if (!isFinite(i) || i < 0 || i > 5 || !v.b64) continue;
         const obj = 'personajes/' + f.id + '/vista-' + (i + 1) + '.png';
         const ok = await writeToBucket(token, bucket, obj, v.b64, 'image/png');
-        if (ok && refs.indexOf(obj) < 0) refs[i] = obj;
+        if (ok) refs[i] = obj;
       }
-      f.refs = refs.filter(Boolean);
-      if (!f.refs.length) return res.status(400).json({ error: 'Genera al menos una vista antes de guardar' });
+      // Cada vista se queda en SU hueco. Los que falten valen null y siguen
+      // valiendo null: compactar la lista descolocaba las vistas siguientes.
+      for (let k = 0; k < 4; k++) if (!refs[k]) refs[k] = null;
+      f.refs = refs.slice(0, 4);
+      // El ancla no se toca NUNCA al guardar. Este era el fallo grave: las fotos
+      // reales del insignia vivian en refs y la primera vista nueva las borraba.
+      f.base = (antes && antes.base && antes.base.length) ? antes.base.slice() : (f.fijo ? BASE_INSIGNIA.slice() : []);
+      if (!f.refs.filter(Boolean).length) return res.status(400).json({ error: 'Genera al menos una vista antes de guardar' });
 
       const idx = lista.findIndex(x => x.id === f.id);
       if (idx > -1) lista[idx] = f; else lista.push(f);
       await escribirIndice(token, bucket, lista);
-      console.log('[refs] personaje guardado: ' + f.id + ' (' + f.refs.length + ' vistas)');
+      console.log('[refs] personaje guardado: ' + f.id + ' (' + f.refs.filter(Boolean).length + '/4 vistas)');
       return res.json({ success: true, personaje: f });
     }
 

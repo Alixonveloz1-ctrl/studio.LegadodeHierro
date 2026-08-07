@@ -57,3 +57,7 @@ index.js embebido en los instaladores de Cloud Run siga al dia.
 - **check-version-montaje.js** — que la herramienta diga SOLA si el Cloud Run
   esta al dia o le falta la ultima actualizacion. Levanta sus propios servidores
   (8331 y 8332), no necesita el de siempre.
+- **check-biblia-ancla.js** — no abre navegador: llama al endpoint real con el
+  bucket y Vertex simulados. Comprueba que las 4 fotos de marca del insignia
+  viajan SIEMPRE como referencia y que guardar una vista nueva no las borra
+  (nacio de ahi: se borraban, y el protagonista salia siendo otro hombre).

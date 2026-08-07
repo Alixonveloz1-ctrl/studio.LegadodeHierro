@@ -1049,14 +1049,20 @@ function modeloBiblia(){
 // Cache de las vistas ya descargadas para verlas, por id de personaje.
 var VISTAS_VISTAS={};
 
+// Cuantas vistas tiene HECHAS un personaje. refs es una lista de 4 huecos y los
+// que faltan valen null, asi que .length mentiria: diria 4 aunque no haya ninguna.
+function nVistas(p){
+  return ((p&&p.refs)||[]).filter(function(o){return !!o;}).length;
+}
+
 function pintarBiblia(){
   var g=document.getElementById('bibliaGrid');if(!g)return;
   var lbl=document.getElementById('bibliaLbl');
-  var conVistas=BIBLIA.filter(function(p){return (p.refs||[]).length;}).length;
+  var conVistas=BIBLIA.filter(function(p){return nVistas(p);}).length;
   if(lbl)lbl.textContent='Biblia de personajes · '+BIBLIA.length+' en el reparto, '+conVistas+' con vistas';
   g.innerHTML='';
   BIBLIA.forEach(function(p){
-    var listo=(p.refs||[]).length>0;
+    var listo=nVistas(p)>0;
     var el=document.createElement('div');
     el.setAttribute('data-id',p.id);
     el.style.cssText='background:#fff;border:1.5px solid '+(p.fijo?'#b8975a':'var(--border)')
@@ -1091,7 +1097,7 @@ async function abrirVistas(id){
   if(!p)return;
   caja.style.display='block';
 
-  if(!(p.refs||[]).length){
+  if(!nVistas(p)){
     caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Generando la vista 1 de 4...</div>';
     var res=await generarVistasDe(p,null,function(n,tot){
       caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Generando la vista '+n+' de '+tot
@@ -1111,22 +1117,43 @@ async function abrirVistas(id){
       var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({action:'imagenes',id:id})});
       var d=await r.json();
-      VISTAS_VISTAS[id]=(d&&Array.isArray(d.refs))?d.refs:[];
+      // Los indices dicen QUE vista es cada imagen. Sin ellos, si faltaba la 2 se
+      // pintaban tres seguidas y el boton ↺ de la tercera rehacia la vista 3
+      // creyendo que era la 4: cada reintento descolocaba mas la ficha.
+      VISTAS_VISTAS[id]=(d&&Array.isArray(d.refs))?d.refs.map(function(b64,k){
+        return {b64:b64,i:(d.indices&&d.indices.length===d.refs.length)?d.indices[k]:k};
+      }):[];
     }catch(e){ VISTAS_VISTAS[id]=[]; }
   }
   var vs=VISTAS_VISTAS[id];
   if(!vs.length){caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No se pudieron cargar las vistas.</div>';return;}
 
+  var NOMBRE_VISTA=['de frente','de tres cuartos','de perfil','de cuerpo (hasta la cintura)'];
+  var hay={};vs.forEach(function(v){hay[v.i]=1;});
+  var faltan=[0,1,2,3].filter(function(i){return !hay[i];});
+
   var html='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px">';
-  vs.forEach(function(b64,i){
+  vs.forEach(function(v){
     html+='<div style="position:relative">'
-      +'<img src="data:image/png;base64,'+b64+'" style="width:100%;display:block;border-radius:6px;background:#fff;border:1px solid var(--border)">'
-      +'<button type="button" class="bibliaRe" data-id="'+escHtml(id)+'" data-i="'+i+'" title="Rehacer esta vista" '
+      +'<img src="data:image/png;base64,'+v.b64+'" style="width:100%;display:block;border-radius:6px;background:#fff;border:1px solid var(--border)">'
+      +'<span style="position:absolute;bottom:3px;left:3px;background:rgba(255,255,255,.9);border-radius:4px;'
+      +'padding:1px 5px;font-size:8.5px;font-weight:700;color:var(--tx3)">'+(v.i+1)+' · '+NOMBRE_VISTA[v.i]+'</span>'
+      +'<button type="button" class="bibliaRe" data-id="'+escHtml(id)+'" data-i="'+v.i+'" title="Rehacer la vista '+(v.i+1)+'" '
       +'style="position:absolute;top:3px;right:3px;background:rgba(255,255,255,.9);border:none;border-radius:5px;'
       +'padding:2px 6px;font-size:11px;cursor:pointer;line-height:1">↺</button></div>';
   });
-  html+='</div>'
-    +'<div style="font-size:9.5px;color:var(--tx3);line-height:1.4;margin-top:6px">'
+  html+='</div>';
+  // Si alguna vista no salio, se DICE. Antes la ficha se quedaba con tres imagenes
+  // sin una sola palabra: parecia que estaba completa.
+  if(faltan.length){
+    html+='<div style="margin-top:6px;background:#fdf6ee;border:1px solid #e0c89a;border-radius:7px;padding:6px 8px">'
+      +'<div style="font-size:10px;color:#8a6a2a;font-weight:600;line-height:1.4">Falta'+(faltan.length>1?'n':'')+' '
+      +faltan.map(function(i){return 'la vista '+(i+1)+' ('+NOMBRE_VISTA[i]+')';}).join(' y ')+'.</div>'
+      +'<button type="button" class="bibliaFaltan" data-id="'+escHtml(id)+'" data-f="'+faltan.join(',')+'" '
+      +'style="width:100%;margin-top:5px;border:1px solid var(--gold);background:#fff;color:var(--gold);border-radius:6px;'
+      +'padding:5px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">⚡ Generar la'+(faltan.length>1?'s':'')+' que falta'+(faltan.length>1?'n':'')+'</button></div>';
+  }
+  html+='<div style="font-size:9.5px;color:var(--tx3);line-height:1.4;margin-top:6px">'
     +'Deben ser el MISMO personaje sobre fondo blanco. Si alguna sale con otra cara, con fondo o deformada, dale a ↺ en esa.</div>'
     +'<button type="button" class="bibliaReTodas" data-id="'+escHtml(id)+'" '
     +'style="width:100%;margin-top:6px;border:1px solid var(--border);background:#fff;border-radius:7px;'
@@ -1139,6 +1166,10 @@ async function abrirVistas(id){
   });
   var rt=caja.querySelector('.bibliaReTodas');
   if(rt)rt.addEventListener('click',function(){ rehacerVista(id,null); });
+  var bf=caja.querySelector('.bibliaFaltan');
+  if(bf)bf.addEventListener('click',function(){
+    rehacerVista(id,bf.getAttribute('data-f').split(',').map(function(x){return parseInt(x,10);}));
+  });
 }
 
 // Rehace una vista concreta (o las cuatro). `cuales` null = todas.
@@ -1153,7 +1184,17 @@ async function rehacerVista(id,cuales){
   });
   delete VISTAS_VISTAS[id];
   if(caja)caja.style.display='none';
-  if(res.ok)await abrirVistas(id);
+  if(res.ok){
+    await abrirVistas(id);
+    // SI ALGUNA FALLO, SE DICE. Antes con que saliera una sola ya se daba por
+    // bueno: la ficha quedaba con tres vistas y ni un aviso de por que.
+    if(res.fallos.length&&caja){
+      var av=document.createElement('div');
+      av.style.cssText='margin-top:6px;font-size:10px;color:#8a4a3a;line-height:1.4';
+      av.textContent='No salieron: '+res.fallos.slice(0,3).join(' · ');
+      caja.appendChild(av);
+    }
+  }
   else if(caja){caja.style.display='block';caja.innerHTML='<div style="font-size:10px;color:#8a4a3a">No salió: '
     +escHtml(res.fallos.slice(0,2).join(' · '))+'</div>';}
 }
@@ -1213,7 +1254,7 @@ var BIBLIA_PARAR=false;
 async function generarVistasFaltantes(){
   var btn=document.getElementById('bBibliaTodas');
   var st=document.getElementById('bibliaSt');
-  var faltan=BIBLIA.filter(function(p){return !(p.refs||[]).length;});
+  var faltan=BIBLIA.filter(function(p){return !nVistas(p);});
   if(!faltan.length){ if(st){st.style.display='block';st.textContent='Todos los personajes ya tienen sus vistas.';} return; }
   var nImgs=faltan.length*4;
   var mins=Math.ceil(nImgs*(8+PAUSA_VISTAS/1000)/60);

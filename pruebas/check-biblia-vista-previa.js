@@ -54,12 +54,27 @@ const { chromium } = require('playwright-core');
       reHacer: c.querySelectorAll('.bibliaRe').length,
       todas: !!c.querySelector('.bibliaReTodas'),
       visible: c.style.display === 'block',
+      // Que vista dice ser cada imagen, y si avisa de la que falta
+      etiquetas: [...c.querySelectorAll('span')].map(x => x.textContent).join(' | '),
+      indicesRe: [...c.querySelectorAll('.bibliaRe')].map(x => x.getAttribute('data-i')).join(','),
+      aviso: (c.textContent.match(/Falta[^.]*\./) || [''])[0],
+      botonFaltan: !!c.querySelector('.bibliaFaltan'),
+      faltanData: (c.querySelector('.bibliaFaltan') || {}).getAttribute
+        ? c.querySelector('.bibliaFaltan').getAttribute('data-f') : '',
     };
   });
   t('SE VEN las vistas del personaje', vistas.visible && vistas.imgs > 0, vistas.imgs + ' imágenes');
   t('las imágenes tienen contenido real', vistas.conFuente);
   t('hay un botón ↺ por cada vista, para rehacer solo la mala', vistas.reHacer === vistas.imgs);
   t('y uno para rehacer las cuatro', vistas.todas);
+  // ---- la vista que falta: antes la ficha se quedaba coja y en silencio ----
+  t('cada imagen dice QUÉ vista es', /1 · de frente/.test(vistas.etiquetas) && /3 · de perfil/.test(vistas.etiquetas),
+    vistas.etiquetas);
+  t('el botón ↺ apunta a la vista real, no a la posición en la lista',
+    vistas.indicesRe === '0,2,3', vistas.indicesRe);
+  t('AVISA de la vista que falta', /vista 2/.test(vistas.aviso), vistas.aviso || 'no avisa');
+  t('y ofrece generar solo esa', vistas.botonFaltan && vistas.faltanData === '1', vistas.faltanData);
+
   t('avisa de qué mirar (misma cara, fondo blanco)',
     /fondo blanco/.test(await page.evaluate(() =>
       document.querySelector('#bibliaGrid [data-id="insignia"] .bibliaVistas').textContent)));
