@@ -907,10 +907,26 @@ function rfAll(){
 }
 
 function updCC(){document.getElementById('cc').textContent=document.getElementById('conc').value.length;}
+// CUANTAS IMAGENES LLEVA UN REEL. Esto estaba calculado con la MISMA formula
+// copiada en tres sitios (la etiqueta, el prompt y el generador), y al anadir los
+// modos largos actualice solo uno: los otros dos seguian creyendo que un video de
+// profesor eran 5 imagenes y RECORTABAN las 8, con lo que el montaje apuntaba a
+// imagenes que ya no existian. Ahora se calcula en un unico sitio.
+function imagenesDe(mode,dId){
+  mode=mode||sMode; dId=dId||sD;
+  if(mode==='profesor')return 8;   // 5 tomas del set + 3 ejemplos
+  if(mode==='relato')return 10;    // la historia, en orden
+  if(mode==='impacto'||dId==='30')return 3;
+  return 5;
+}
+
 function updImgLabel(){
   var el=document.getElementById('imgCountLabel');if(!el)return;
-  var n=sMode==='impacto'?3:sD==='90'?8:sD==='30'?3:5;
-  el.textContent=n+' imágenes · Personaje en acción acorde al guion';
+  var n=imagenesDe();
+  var det=sMode==='profesor'?' · 5 tomas del set (se repiten en el montaje) + 3 ejemplos'
+    :sMode==='relato'?' · la historia en orden, con continuidad'
+    :' · Personaje en acción acorde al guion';
+  el.textContent=n+' imágenes'+det;
 }
 
 function updGBtn(){
@@ -1378,13 +1394,9 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   // 3, 5 u 8 minutos. Relato usa 10, encadenadas cronologicamente.
   // Las palabras salen de ~2,5 por segundo, que es el ritmo real de la narracion.
   var segs=parseInt(dId,10)||60;
-  var numPrompts, maxPalabras;
-  if(mode==='profesor'){ numPrompts=8; maxPalabras=Math.round(segs*2.5); }
-  else if(mode==='relato'){ numPrompts=10; maxPalabras=Math.round(segs*2.5); }
-  else{
-    numPrompts=(mode==='impacto'||dId==='30')?3:5;
-    maxPalabras=(mode==='impacto'||dId==='30')?75:150;
-  }
+  var numPrompts=imagenesDe(mode,dId);
+  var maxPalabras=esModoLargo(mode)?Math.round(segs*2.5)
+    :((mode==='impacto'||dId==='30')?75:150);
   // Sincronizacion guion-imagen: en historia y reel, cada imagen ilustra su parte del guion.
   // En impacto no aplica (son 3 golpes visuales independientes).
   var syncRule=(mode!=='impacto'&&mode!=='profesor')
@@ -1568,12 +1580,25 @@ function batchJobs(){
     }
   }
   // Si escribiste un concepto, el guion 1 es ese concepto con tu seleccion actual.
-  var firstJob=topic?{topic:topic,t:sT||picked[0].t,h:sH,mode:sMode,d:sMode==='impacto'?'30':sD}:null;
+  // Si el modo actual es largo, el primer trabajo se pasa a Reel: el lote es de
+  // reels y un guion de 5 minutos no encaja entre ellos.
+  var mode1=esModoLargo()?'reel':sMode;
+  var d1=mode1==='impacto'?'30':(esModoLargo()?'60':sD);
+  var firstJob=topic?{topic:topic,t:sT||picked[0].t,h:sH,mode:mode1,d:d1}:null;
   return jobsFromIdeas(picked,firstJob);
 }
 
 async function generateBatch(customJobs){
   if(loading||batchLoading)return;
+  // El lote de 5 es una herramienta de REELS: mezcla los tres modos cortos y
+  // duraciones de 30/60. En un modo largo no tiene sentido — serian cinco videos
+  // de YouTube de golpe, con su coste — y ademas el primer trabajo heredaria el
+  // modo largo y saldria un guion de 750 palabras mezclado entre reels.
+  if(!customJobs&&esModoLargo()){
+    alert('El lote de 5 es para reels cortos.\n\nEstás en '+(MODE_LABELS[sMode]||sMode)
+      +', que hace un solo vídeo largo. Genera este de uno en uno, o cambia a Reel, Historia o Impacto para usar el lote.');
+    return;
+  }
   batchLoading=true;loading=true;updGBtn();hideErr();
   var b5=document.getElementById('gbtn5');
   if(b5){b5.disabled=true;b5.innerHTML='<span class="spin" style="border-color:rgba(184,151,90,.3);border-top-color:#b8975a"></span> Forjando lote...';}
@@ -3180,7 +3205,19 @@ function dataUrlToB64(dataUrl){
 async function genImages(){
   if(!lastRes||!lastRes.c||!lastRes.c.length){alert('No hay prompts. Regenera el episodio.');return;}
   // Determinar cuántas imágenes según modo y duración
-  var totalImgsTarget=lastRes.modo==='impacto'?3:lastRes.dO&&lastRes.dO.id==='90'?8:lastRes.dO&&lastRes.dO.id==='30'?3:5;
+  var totalImgsTarget=imagenesDe(lastRes.modo,lastRes.dO&&lastRes.dO.id);
+  // Un video largo son 8-10 imagenes y, si luego se animan, otros tantos clips de
+  // Veo. Eso son varios dolares, muy por encima de un reel: se avisa ANTES.
+  if(esModoLargo(lastRes.modo)){
+    var cImg=totalImgsTarget*imgCost(), cVid=totalImgsTarget*vidCost();
+    if(!confirm('Vídeo largo ('+(MODE_LABELS[lastRes.modo]||lastRes.modo)+'): '+totalImgsTarget+' imágenes.\n\n'
+      +'Imágenes: $'+cImg.toFixed(2)+'\n'
+      +'Si luego las animas todas con Veo: +$'+cVid.toFixed(2)+'\n\n'
+      +(lastRes.modo==='profesor'
+        ? 'Las 5 tomas del set se REPITEN en el montaje, así que con estas 8 imágenes se cubre el vídeo entero.\n\n'
+        : '')
+      +'También puedes unificar solo con las imágenes (con movimiento) y no pagar los clips.\n\n¿Genero las imágenes?'))return;
+  }
   while(lastRes.c.length<totalImgsTarget){lastRes.c.push(lastRes.c[lastRes.c.length-1]);}
   if(lastRes.c.length>totalImgsTarget){lastRes.c=lastRes.c.slice(0,totalImgsTarget);}
   var btn=document.getElementById('bimg');

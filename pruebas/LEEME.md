@@ -24,6 +24,10 @@ La de subtitulos NO necesita el servidor, pero si `ffmpeg` y `ffprobe`:
   produccion, y que regenerar una imagen suelte el clip viejo.
 - **check-zip-dos-idiomas.js** — que el ZIP lleve los dos videos finales, que
   las imagenes y clips no se dupliquen, y que no se cuele el video de otro reel.
+- **check-coherencia-modos.js** — que TODAS las reglas que dependen del modo
+  conozcan los modos nuevos, no solo la que se toco al implementarlos. Nacio de
+  un fallo real: el numero de imagenes se calculaba en tres sitios y al anadir
+  los largos se actualizo uno.
 - **check-modos-largos.js** — Profesor y Relato: que las duraciones cambien con
   el modo, que el profesor pida SET + TOMAS + EJEMPLOS + MONTAJE, y que el
   montaje reutilice las tomas (9 planos de 8 imagenes).
