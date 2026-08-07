@@ -34,35 +34,38 @@ const REPARTO = [
   },
   {
     id: 'hijo-pequeno', nombre: 'El hijo pequeno', rol: 'Su hijo', edad: '7 anos',
-    fisico: 'nino latino de 7 anos, cabello negro corto y algo despeinado, cara redonda, ojos oscuros grandes, delgado',
+    // Hijo de ESTA pareja: padre moreno de ojos oscuros, madre rubia de ojos
+    // verdes. Salia con otra genetica distinta a la de sus padres y cantaba.
+    fisico: 'nino de 7 anos, hijo de padre moreno y madre rubia: cabello castano claro con reflejos dorados, corto y algo despeinado, ojos verde avellana grandes, cara redonda, piel clara calida, delgado',
     vestuario: 'camiseta sencilla y pantalon corto; uniforme escolar en escenas de manana',
     habla: 'pocas palabras, preguntas que dan en el blanco sin querer',
     encaja: 'cuando el guion habla del para que, del tiempo que no vuelve, del ejemplo que se deja',
   },
   {
     id: 'hija-adolescente', nombre: 'La hija adolescente', rol: 'Su hija', edad: '15 anos',
-    fisico: 'adolescente latina de 15 anos, cabello negro largo y liso recogido en cola, rostro delgado, mirada observadora',
+    // Hija de la misma pareja: saca el pelo de la madre y la mirada del padre.
+    fisico: 'adolescente de 15 anos, hija de padre moreno y madre rubia: cabello rubio oscuro largo y ondulado recogido en cola alta, ojos verde grisaceo, cejas oscuras, rostro delgado de pomulos marcados, piel clara calida, mirada observadora',
     vestuario: 'sudadera y jeans; mochila del colegio',
     habla: 'ironica, corta, ve mas de lo que dice',
     encaja: 'cuando el guion habla de lo que los hijos observan, del respeto que se gana o se pierde, del legado',
   },
   {
     id: 'padre-mayor', nombre: 'El padre', rol: 'Su padre', edad: '68 anos',
-    fisico: 'hombre latino de 68 anos, cabello blanco corto, bigote canoso, rostro curtido con arrugas marcadas, espalda algo encorvada, manos grandes y gastadas',
+    fisico: 'hombre de 68 anos, el protagonista dentro de 30 anos: la misma mandibula y los mismos ojos oscuros, cabello blanco corto, bigote canoso, rostro curtido con arrugas marcadas, espalda algo encorvada, manos grandes y gastadas',
     vestuario: 'camisa de trabajo desteñida, pantalon de tela, sueter viejo',
     habla: 'lento, resignado, con orgullo de haber cumplido aunque no le alcanzara',
     encaja: 'cuando el guion habla de trabajar 40 anos para otro, de la jubilacion que no alcanza, del ciclo que se repite entre generaciones',
   },
   {
     id: 'madre', nombre: 'La madre', rol: 'Su madre', edad: '64 anos',
-    fisico: 'mujer latina de 64 anos, cabello canoso recogido, rostro amable con arrugas de expresion, complexion menuda, manos trabajadas',
+    fisico: 'mujer de 64 anos, madre del protagonista y de sus mismos ojos oscuros, cabello canoso recogido, rostro amable con arrugas de expresion, complexion menuda, manos trabajadas',
     vestuario: 'blusa sencilla y delantal en casa',
     habla: 'poco y bajito; se le nota lo que calla',
     encaja: 'cuando el guion habla del sacrificio silencioso, de lo que costo llegar hasta aqui, de la deuda con quien te crio',
   },
   {
     id: 'hermano-menor', nombre: 'El hermano menor', rol: 'Su hermano', edad: '26 anos',
-    fisico: 'hombre latino de 26 anos, cabello negro con corte moderno, sin barba o con barba muy corta, complexion delgada, parecido de rasgos al protagonista pero mas joven',
+    fisico: 'hombre de 26 anos, hermano del protagonista y muy parecido a el pero mas joven y menos hecho: mismos ojos oscuros y misma mandibula, cabello negro con corte moderno, sin barba o con barba muy corta, complexion delgada',
     vestuario: 'ropa urbana casual, sudadera, tenis',
     habla: 'inseguro, busca aprobacion, todavia no sabe que quiere',
     encaja: 'cuando el guion habla de a quien arrastras contigo, del ejemplo hacia abajo, de empezar tarde o temprano',

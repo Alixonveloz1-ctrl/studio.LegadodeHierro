@@ -74,9 +74,26 @@ global.fetch = async (url, opts) => {
   if (u.indexOf(':generateContent') > -1) {
     const body = JSON.parse(opts.body);
     const parts = body.contents[0].parts;
+    // Las imagenes llegan ETIQUETADAS: antes de cada grupo va un texto que dice
+    // para que sirven (estilo / familia / identidad). Se reparten por su etiqueta.
+    const grupos = { estilo: [], familia: [], identidad: [], sinEtiqueta: [] };
+    let actual = 'sinEtiqueta';
+    const textos = [];
+    for (const pt of parts) {
+      if (pt.text) {
+        textos.push(pt.text);
+        if (/^STYLE REFERENCE/.test(pt.text)) actual = 'estilo';
+        else if (/^FAMILY REFERENCE/.test(pt.text)) actual = 'familia';
+        else if (/^IDENTITY REFERENCE/.test(pt.text)) actual = 'identidad';
+      } else if (pt.inlineData) {
+        grupos[actual].push(Buffer.from(pt.inlineData.data, 'base64').toString());
+      }
+    }
     LLAMADAS.push({
-      refs: parts.filter(p => p.inlineData).map(p => Buffer.from(p.inlineData.data, 'base64').toString()),
-      prompt: (parts.find(p => p.text) || {}).text || '',
+      refs: grupos.identidad.slice(),   // "referencias" = las de identidad
+      grupos: grupos,
+      orden: parts.map(pt => (pt.text ? 'T' : 'I')).join(''),
+      prompt: textos[textos.length - 1] || '',
       aspect: body.generationConfig && body.generationConfig.imageConfig
         && body.generationConfig.imageConfig.aspectRatio,
     });
@@ -343,6 +360,52 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
     (r.body.personaje.base || []).join(', '));
   r = await llamar({ action: 'quitar-ancla', id: 'insignia' });
   t('pero el insignia no puede quedarse sin ancla', r.code === 400);
+
+  // ---- 16. EL ESTILO DEL CANAL LLEGA A TODO EL REPARTO ----
+  // Los hijos salian con otro trazo, otro sombreado y otra paleta: no parecian del
+  // mismo mundo que sus padres. Y encima con otra genetica. Ahora las caras del
+  // insignia y de la companera viajan en CADA generacion como referencia DE
+  // ESTILO, etiquetadas para que se copie el dibujo y NO la cara.
+  BUCKET['personajes/index.json'] = Buffer.from(JSON.stringify([]), 'utf8').toString('base64');
+  let todos = (await llamar({ action: 'list' })).body.personajes;
+  // El insignia y la companera ya tienen cara (ancla), asi que sirven de canon.
+  const jefe = ficha(todos, 'jefe');
+  r = await llamar({ action: 'generar', personaje: jefe, vista: 0 });
+  l = LLAMADAS[LLAMADAS.length - 1];
+  t('a un personaje cualquiera le llega el estilo del canal',
+    l.grupos.estilo.length === 2, l.grupos.estilo.length + ' referencias de estilo');
+  t('y van etiquetadas como ESTILO, no como identidad',
+    /STYLE REFERENCE/.test(JSON.stringify(l.orden)) || l.orden.indexOf('TI') === 0, l.orden);
+  t('el jefe no recibe referencia de identidad (aún no tiene cara)',
+    l.grupos.identidad.length === 0);
+  t('ni de familia (no es pariente de nadie)', l.grupos.familia.length === 0);
+  t('se le prohíbe copiar la cara de la referencia de estilo',
+    /NEVER draw the face of a STYLE reference/.test(l.prompt));
+
+  // ---- 17. LOS HIJOS SE PARECEN A SUS PADRES ----
+  const hijo = ficha(todos, 'hijo-pequeno');
+  r = await llamar({ action: 'generar', personaje: hijo, vista: 0 });
+  l = LLAMADAS[LLAMADAS.length - 1];
+  t('al hijo le llegan las caras de sus DOS padres',
+    l.grupos.familia.length === 2, l.grupos.familia.length + ' referencias de familia');
+  t('y se le dice que es su hijo pequeño',
+    /THIS CHARACTER IS SU HIJO PEQUENO/.test(l.prompt));
+  t('se exige parecido de familia, no otra etnia',
+    /believable mix of the family references/.test(l.prompt) && /NOT a different ethnicity/.test(l.prompt));
+  t('la ficha del hijo ya no dice que sea de otra genética',
+    /hijo de padre moreno y madre rubia/.test(hijo.fisico), hijo.fisico.slice(0, 55));
+  t('la hija, igual', /rubio oscuro/.test(ficha(todos, 'hija-adolescente').fisico));
+  t('y el padre del protagonista se parece a él',
+    /el protagonista dentro de 30 anos/.test(ficha(todos, 'padre-mayor').fisico));
+
+  // ---- 18. EL ORDEN IMPORTA: la identidad va la ULTIMA, pegada al prompt ----
+  const comp4 = ficha(todos, 'companera');
+  await llamar({ action: 'generar', personaje: comp4, vista: 0 });
+  l = LLAMADAS[LLAMADAS.length - 1];
+  t('la identidad viaja la última, que es la que más pesa',
+    l.orden.lastIndexOf('I') > l.orden.indexOf('I'), l.orden);
+  t('la compañera no es referencia de estilo de sí misma',
+    l.grupos.estilo.length === 1, l.grupos.estilo.length + ' (solo el insignia)');
 
   console.log('\n' + ok + ' OK, ' + ko + ' fallos');
   process.exit(ko ? 1 : 0);
