@@ -76,3 +76,7 @@ index.js embebido en los instaladores de Cloud Run siga al dia.
   al espectador no se le inventa un pasado: se le habla en presente de lo que le
   pasa y en imperativo de lo que tiene que hacer, y si hay una historia ya
   ocurrida, es de otro y en tercera persona.
+- **check-set-y-miniatura.js** — que en modo profesor se fijen el vestuario y el
+  set ANTES de las tomas y que las dos anclas viajen en cada toma (los ejemplos
+  no, ocurren fuera), y que la miniatura sea una portada de verdad y no el
+  personaje centrado sobre un fondo negro.

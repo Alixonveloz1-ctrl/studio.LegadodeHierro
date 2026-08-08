@@ -3577,6 +3577,69 @@ function dataUrlToB64(dataUrl){
   return idx>-1?dataUrl.slice(idx+1):dataUrl;
 }
 
+// LAS DOS ANCLAS DEL EPISODIO (modo profesor).
+//
+// Una clase se graba en UN set, con UNA ropa. Lo que salia era otra cosa: cada
+// toma inventaba su propio despacho — cambiaba la lampara, la pared, el traje —
+// porque cada imagen se generaba por su cuenta con el SET descrito en palabras, y
+// las palabras no fijan un decorado.
+//
+// Asi que antes de la primera toma se generan DOS imagenes de referencia:
+//   1. EL PRESENTADOR con la ropa de ESTE video, de cuerpo entero.
+//   2. EL SET vacio, en plano general, para que se vea entero.
+// Las dos viajan como referencia en cada toma. Cuestan dos imagenes de mas por
+// video, y ahorran que las ocho salgan en ocho sitios distintos.
+async function generarAnclasEpisodio(res,refsBase,st){
+  var out={personaje:null,set:null,fallos:[]};
+  var pre=imgPromptPrefix(imgFmt);
+
+  if(st)st.textContent='Fijando el vestuario del presentador para este vídeo...';
+  try{
+    out.personaje=await genOneImage(pre
+      +'WARDROBE REFERENCE for this episode. The presenter standing, full length, facing the camera, '
+      +'arms relaxed, neutral expression. Plain neutral grey studio background, nothing else in frame. '
+      +'Choose ONE outfit that suits a man teaching a class about money and lock it in: this exact outfit '
+      +'is what he wears in every single shot of this video. Show it complete, head to feet.',refsBase);
+  }catch(e){ out.fallos.push('el vestuario: '+(e.message||'error')); }
+
+  if(out.personaje&&st)st.textContent='Fijando el set donde se graba...';
+  if(res.set){
+    try{
+      // El set va SIN personas y sin referencias del personaje: si viaja su cara,
+      // se cuela dentro del decorado y sale un tipo de pie en medio del despacho.
+      out.set=await genOneImage(pre
+        +'SET REFERENCE. WIDE ESTABLISHING SHOT of an empty room, seen from a corner so that three walls, '
+        +'the floor and the whole depth of the room are visible at once. '
+        +'NO PEOPLE in the image, not one figure. '
+        +'THE ROOM: '+res.set+'. '
+        +'Every object, its colour, its material and its position must be clear enough to be reproduced '
+        +'from other angles later. Even, natural lighting so nothing is hidden in shadow.',[]);
+    }catch(e){ out.fallos.push('el set: '+(e.message||'error')); }
+  }
+  return out;
+}
+
+// Las referencias y el texto que le tocan a UNA imagen del video largo.
+// Las tomas del set llevan las dos anclas; los ejemplos ocurren fuera y no.
+function conAnclasDeEpisodio(prompt,refs,ancla,esToma){
+  if(!ancla||(!ancla.personaje&&!ancla.set))return {prompt:prompt,refs:refs};
+  if(!esToma)return {prompt:prompt,refs:refs};
+  var extra=[],aviso='';
+  if(ancla.set){
+    extra.push(ancla.set.replace(/^data:image\/[a-z+]+;base64,/,''));
+    aviso+='THE SET IS ALREADY DECIDED. One of the reference images is a wide shot of the empty room where '
+      +'this video is filmed. This shot happens in THAT room: same walls, same furniture, same lamp, same '
+      +'colours, same objects in the same places. You are only moving the camera inside it. '
+      +'Do NOT invent a different room, do NOT add or remove furniture. ';
+  }
+  if(ancla.personaje){
+    extra.push(ancla.personaje.replace(/^data:image\/[a-z+]+;base64,/,''));
+    aviso+='THE WARDROBE IS ALREADY DECIDED. The last reference image shows the presenter in the exact '
+      +'outfit he wears in this video. Same garments, same colours. Do NOT change his clothes. ';
+  }
+  return {prompt:aviso+prompt,refs:(refs||[]).concat(extra)};
+}
+
 async function genImages(){
   if(!lastRes||!lastRes.c||!lastRes.c.length){alert('No hay prompts. Regenera el episodio.');return;}
   // Determinar cuántas imágenes según modo y duración
@@ -3584,8 +3647,12 @@ async function genImages(){
   // Un video largo son 8-10 imagenes y, si luego se animan, otros tantos clips de
   // Veo. Eso son varios dolares, muy por encima de un reel: se avisa ANTES.
   if(esModoLargo(lastRes.modo)){
-    var cImg=totalImgsTarget*imgCost(), cVid=totalImgsTarget*vidCost();
-    if(!confirm('Vídeo largo ('+(MODE_LABELS[lastRes.modo]||lastRes.modo)+'): '+totalImgsTarget+' imágenes.\n\n'
+    // El modo profesor genera 2 imagenes mas: la del vestuario y la del set. No
+    // salen en el video, pero fijan los dos y hay que contarlas en el coste.
+    var extras=lastRes.modo==='profesor'?2:0;
+    var cImg=(totalImgsTarget+extras)*imgCost(), cVid=totalImgsTarget*vidCost();
+    if(!confirm('Vídeo largo ('+(MODE_LABELS[lastRes.modo]||lastRes.modo)+'): '+totalImgsTarget+' imágenes'
+      +(extras?' + '+extras+' de referencia (el vestuario y el set, para que no cambien entre tomas)':'')+'.\n\n'
       +'Imágenes: $'+cImg.toFixed(2)+'\n'
       +'Si luego las animas todas con Veo: +$'+cVid.toFixed(2)+'\n\n'
       +(lastRes.modo==='profesor'
@@ -3625,12 +3692,28 @@ async function genImages(){
     grid.appendChild(slot);
     slots.push(slot);
   }
+  // En modo profesor, primero se fija el set y la ropa. Sin esto cada toma se
+  // inventa su propio despacho y su propio traje.
+  var anclaEp=null;
+  if(lastRes.modo==='profesor'){
+    anclaEp=await generarAnclasEpisodio(lastRes,imgRefs,st);
+    var hechas=(anclaEp.personaje?1:0)+(anclaEp.set?1:0);
+    cost+=hechas*imgCost();updCost();
+    if(anclaEp.fallos.length){
+      er.textContent='Aviso: no se pudo fijar '+anclaEp.fallos.join(' ni ')
+        +'. Las tomas pueden salir en sitios distintos. Puedes parar y volver a intentarlo.';
+      er.style.display='block';
+    }
+  }
+  var nTomas=Number(lastRes.nTomas)||0;
+
   var gen=0;
   for(var i=0;i<totalImgs;i++){
     st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
     try{
       var esc=await prepararImagen(lastRes.c[i],imgRefs);
-      var src=await genOneImage(imgPromptPrefix(imgFmt)+esc.prompt,esc.refs);
+      var conj=conAnclasDeEpisodio(esc.prompt,esc.refs,anclaEp,i<nTomas);
+      var src=await genOneImage(imgPromptPrefix(imgFmt)+conj.prompt,conj.refs);
       imgs[i]={src:src,idx:i+1};
       setSlotOk(slots[i],src,i);
       gen++;cost+=imgCost();updCost();chkExport();
@@ -3652,14 +3735,43 @@ async function genImages(){
 var thumbImg=null; // data URL de la miniatura del reel EN PANTALLA (o null)
 var THUMBS={};     // THUMBS[uid del reel] = data URL de su miniatura
 
+// LA MINIATURA.
+//
+// La que habia era el personaje centrado sobre un fondo negro vacio. Para un reel
+// pasa; para YouTube no vale: en la parrilla compite con veinte miniaturas y una
+// silueta sobre negro no llama a nadie. Una portada de YouTube tiene cara grande y
+// legible en pequeno, un fondo que CUENTA algo del tema, contraste fuerte, y un
+// hueco limpio a un lado para el titulo.
 function buildThumbPrompt(){
   var hookLine=lastRes&&lastRes.a?firstLine(lastRes.a):'';
-  return CHAR_STYLE_ANCHOR+aspectHint(imgFmt)
-    +'THUMBNAIL COVER IMAGE for a Facebook Reel — this is the COVER of the video, NOT a scene from the story. Its only job: stop the scroll before the viewer taps play. '
-    +'COMPOSITION: the character CENTERED and dominant in the frame, medium close-up, ONE single powerful hooking gesture or intense commanding expression, direct eye contact with the camera. '
-    +'HIGH CONTRAST dramatic cinematic lighting, strong rim light, clean dark uncluttered background. '
-    +'Leave clear EMPTY negative space in the upper third of the image so a title text can be overlaid later (do NOT draw any text yourself). '
-    +'The emotional theme of the cover follows this message: "'+hookLine+'"';
+  var horizontal=imgFmt==='16:9';
+  var comun='THUMBNAIL COVER IMAGE — this is the COVER of the video, NOT a scene from the story. '
+    +'Its only job: make someone stop and click.\n'
+    +'THE FACE IS THE PRODUCT: the character\'s face must be large, sharp and readable even when the '
+    +'image is shown the size of a thumbnail. ONE clear, strong emotion — not a neutral pose. '
+    +'Direct eye contact with the camera, or looking at the thing that matters in the frame.\n'
+    +'LIGHT AND COLOUR: high contrast, strong rim light separating the character from the background, '
+    +'saturated cinematic colour. Never flat, never washed out, never a grey mush.\n'
+    +'NO TEXT: do not draw letters, numbers, logos or watermarks anywhere. The title is added later.\n';
+  if(horizontal){
+    // YouTube: la cara a un lado, el tema al otro, y sitio para el titulo.
+    return CHAR_STYLE_ANCHOR+aspectHint(imgFmt)+comun
+      +'LAYOUT (YouTube, 16:9): the character occupies ONE SIDE of the frame — left or right, not the '
+      +'centre — from the chest up, taking about 45% of the width and almost the full height. '
+      +'The OTHER SIDE holds a single strong visual element that says what the video is about at a glance: '
+      +'the object, the place or the consequence the video talks about. One element, big and clear, never a '
+      +'cluttered collage. Behind everything, the real environment of the video, darkened and out of focus '
+      +'so it gives depth without stealing attention. '
+      +'Leave that side\'s upper area breathable: a big title will be laid over it later.\n'
+      +'It must read at 320 pixels wide. If an element would be unreadable that small, make it bigger or drop it.\n'
+      +'WHAT THE COVER IS ABOUT: "'+hookLine+'"';
+  }
+  // Reels: vertical, la cara arriba y el gancho abajo.
+  return CHAR_STYLE_ANCHOR+aspectHint(imgFmt)+comun
+    +'LAYOUT (Reels, 9:16): the character from the chest up, filling the middle of the frame, with ONE '
+    +'powerful hooking gesture. Behind him, the real environment of the video, darkened and out of focus. '
+    +'Leave clear empty space in the upper third for a title to be overlaid later.\n'
+    +'WHAT THE COVER IS ABOUT: "'+hookLine+'"';
 }
 
 async function genThumb(){
