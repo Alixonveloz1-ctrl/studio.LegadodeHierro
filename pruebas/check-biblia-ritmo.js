@@ -28,7 +28,7 @@ const RAIZ = '/home/user/studio.LegadodeHierro';
     Object.keys(V.functions).every(k => V.functions[k].maxDuration <= 60));
 
   const A = fs.readFileSync(RAIZ + '/public/app.js', 'utf8');
-  const pausaReels = (A.match(/if\(i<totalImgs-1\)await new Promise\(function\(resolve\)\{setTimeout\(resolve,(\d+)\)/) || [])[1];
+  const pausaReels = (A.match(/var PAUSA_IMAGENES=(\d+);/) || [])[1];
   const pausaBiblia = (A.match(/var PAUSA_VISTAS=(\d+);/) || [])[1];
   t('la pausa entre imagenes es la misma en las dos rutas',
     pausaReels === pausaBiblia, 'reels ' + pausaReels + ' ms vs biblia ' + pausaBiblia + ' ms');

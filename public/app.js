@@ -420,6 +420,7 @@ BLOQUE A
 
 BLOQUE C
 [Las escenas de la historia, EN ORDEN CRONOLÓGICO. Cada una es un momento del relato, no una ilustración suelta. La historia tiene que poder seguirse mirando solo las imágenes.]
+LUGARES QUE SE REPITEN (obligatorio): si una escena ocurre en un sitio que YA sale en otra escena de este mismo guion — su cocina, su despacho, el portal, el taller — empieza ese prompt con [LUGAR: id-corto] usando SIEMPRE el mismo id para el mismo sitio (ej. [LUGAR: cocina]). El primer prompt que use un id describe ese sitio COMPLETO: paredes, muebles, objetos, luz. Los siguientes ya no lo describen entero, solo dicen qué pasa y desde dónde se ve. Los sitios que salen una sola vez NO llevan marca. Así el mismo sitio se ve igual en todas sus escenas en vez de cambiar de una a otra.
 PROMPT 1: [la escena del gancho]
 PROMPT 2: [de dónde viene]
 [...una por cada momento importante, hasta el final]`;
@@ -555,6 +556,7 @@ BLOQUE A
 
 BLOQUE C
 [Prompts que ILUSTRAN en orden las partes del guion. Cada prompt: acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje. Entorno diferente en cada prompt.]
+LUGARES QUE SE REPITEN (obligatorio): si una escena ocurre en un sitio que YA sale en otra escena de este mismo guion — su cocina, su despacho, el portal, el taller — empieza ese prompt con [LUGAR: id-corto] usando SIEMPRE el mismo id para el mismo sitio (ej. [LUGAR: cocina]). El primer prompt que use un id describe ese sitio COMPLETO: paredes, muebles, objetos, luz. Los siguientes ya no lo describen entero, solo dicen qué pasa y desde dónde se ve. Los sitios que salen una sola vez NO llevan marca. Así el mismo sitio se ve igual en todas sus escenas en vez de cambiar de una a otra.
 PROMPT 1: [acción + entorno + ángulo + luz]
 PROMPT 2: [acción + entorno diferente + ángulo + luz]
 PROMPT 3: [acción + entorno diferente + ángulo + luz]
@@ -3401,7 +3403,10 @@ var REFS_PERSONAJE={};
 async function refsDeEscena(prompt){
   var ids=[],re=/\[CON:\s*([a-z0-9-]+)\s*\]/gi,m;
   while((m=re.exec(prompt))!==null){ if(ids.indexOf(m[1])<0)ids.push(m[1]); }
-  var limpio=prompt.replace(/\[CON:\s*[a-z0-9-]+\s*\]/gi,'').replace(/^\s+/,'');
+  // [LUGAR: id] se quita aqui igual que [CON: id]: es una marca para la
+  // herramienta, no algo que tenga que leer el generador de imagenes.
+  var limpio=prompt.replace(/\[CON:\s*[a-z0-9-]+\s*\]/gi,'')
+    .replace(/\[LUGAR:\s*[a-z0-9-]+\s*\]/gi,'').replace(/^\s+/,'');
   if(!ids.length)return {prompt:limpio,refs:null,ids:[]};
 
   var extra=[],fichas=[];
@@ -3577,67 +3582,118 @@ function dataUrlToB64(dataUrl){
   return idx>-1?dataUrl.slice(idx+1):dataUrl;
 }
 
-// LAS DOS ANCLAS DEL EPISODIO (modo profesor).
+// La pausa entre imagenes. 10 s es lo que aguanta el limite por minuto de Google
+// con imagenes de calidad. Esta en una constante para poder bajarla en las pruebas.
+var PAUSA_IMAGENES=10000;
+
+// LAS ANCLAS DEL EPISODIO: la ropa y los escenarios que se repiten.
 //
-// Una clase se graba en UN set, con UNA ropa. Lo que salia era otra cosa: cada
-// toma inventaba su propio despacho — cambiaba la lampara, la pared, el traje —
-// porque cada imagen se generaba por su cuenta con el SET descrito en palabras, y
-// las palabras no fijan un decorado.
+// El problema: cada imagen se genera por su cuenta a partir de una descripcion en
+// palabras, y las palabras no fijan un decorado ni un traje. En modo profesor se
+// veia a la legua — las tomas de "el mismo despacho" salian en despachos
+// distintos, con otra lampara y otra ropa — pero pasa igual en cualquier modo con
+// continuidad: la cocina de la escena 1 no es la misma que la de la escena 7.
 //
-// Asi que antes de la primera toma se generan DOS imagenes de referencia:
-//   1. EL PRESENTADOR con la ropa de ESTE video, de cuerpo entero.
-//   2. EL SET vacio, en plano general, para que se vea entero.
-// Las dos viajan como referencia en cada toma. Cuestan dos imagenes de mas por
-// video, y ahorran que las ocho salgan en ocho sitios distintos.
+// La solucion es generar PRIMERO las imagenes de referencia del episodio y
+// mandarlas con cada escena:
+//   - EL VESTUARIO: el presentador de cuerpo entero, con la ropa de este video.
+//   - LOS ESCENARIOS: cada sitio que se repite, vacio y en plano general.
+// En modo profesor el escenario es uno solo y viene del SET del guion. En historia
+// y relato salen de las marcas [LUGAR: id] que pone el director.
+var MODOS_CON_ANCLA={profesor:1,relato:1,historia:1};
+var MAX_LUGARES=2;   // tope: cada lugar es una imagen mas
+
+// Que lugares se repiten y con que texto se describen por primera vez.
+function lugaresRepetidos(prompts){
+  var vistos={},orden=[];
+  (prompts||[]).forEach(function(p,i){
+    var m=/\[LUGAR:\s*([a-z0-9-]+)\s*\]/i.exec(p||'');
+    if(!m)return;
+    var id=m[1].toLowerCase();
+    if(!vistos[id]){ vistos[id]={id:id,veces:0,desc:String(p).replace(/\[LUGAR:[^\]]*\]/i,'').trim(),escenas:[]}; orden.push(id); }
+    vistos[id].veces++; vistos[id].escenas.push(i);
+  });
+  return orden.map(function(id){return vistos[id];})
+    .filter(function(l){return l.veces>1;})       // uno solo no necesita ancla
+    .sort(function(a,b){return b.veces-a.veces;}) // primero el que mas sale
+    .slice(0,MAX_LUGARES);
+}
+
+// Cuantas imagenes de referencia va a costar este episodio, para avisar antes.
+function nAnclasEpisodio(res){
+  if(!res||!MODOS_CON_ANCLA[res.modo])return 0;
+  var n=1;                                        // el vestuario
+  if(res.modo==='profesor')n+=res.set?1:0;
+  else n+=lugaresRepetidos(res.c).length;
+  return n;
+}
+
 async function generarAnclasEpisodio(res,refsBase,st){
-  var out={personaje:null,set:null,fallos:[]};
+  var out={personaje:null,lugares:{},fallos:[]};
   var pre=imgPromptPrefix(imgFmt);
 
-  if(st)st.textContent='Fijando el vestuario del presentador para este vídeo...';
+  if(st)st.textContent='Fijando el vestuario del personaje para este vídeo...';
   try{
     out.personaje=await genOneImage(pre
-      +'WARDROBE REFERENCE for this episode. The presenter standing, full length, facing the camera, '
+      +'WARDROBE REFERENCE for this episode. The character standing, full length, facing the camera, '
       +'arms relaxed, neutral expression. Plain neutral grey studio background, nothing else in frame. '
-      +'Choose ONE outfit that suits a man teaching a class about money and lock it in: this exact outfit '
-      +'is what he wears in every single shot of this video. Show it complete, head to feet.',refsBase);
+      +'Choose ONE outfit that fits this episode and lock it in: this exact outfit is what he wears in '
+      +'every shot of this video. Show it complete, head to feet.',refsBase);
   }catch(e){ out.fallos.push('el vestuario: '+(e.message||'error')); }
 
-  if(out.personaje&&st)st.textContent='Fijando el set donde se graba...';
-  if(res.set){
+  // Los escenarios. En profesor es el SET del guion; en los demas, los lugares
+  // que el director marco como repetidos.
+  var sitios=res.modo==='profesor'
+    ? (res.set?[{id:'set',desc:res.set,veces:99}]:[])
+    : lugaresRepetidos(res.c);
+
+  for(var k=0;k<sitios.length;k++){
+    var sitio=sitios[k];
+    if(st)st.textContent='Fijando el escenario '+(k+1)+' de '+sitios.length+'...';
+    await new Promise(function(r){setTimeout(r,PAUSA_IMAGENES);});   // la misma cadencia que el resto
     try{
-      // El set va SIN personas y sin referencias del personaje: si viaja su cara,
-      // se cuela dentro del decorado y sale un tipo de pie en medio del despacho.
-      out.set=await genOneImage(pre
-        +'SET REFERENCE. WIDE ESTABLISHING SHOT of an empty room, seen from a corner so that three walls, '
-        +'the floor and the whole depth of the room are visible at once. '
+      // El escenario va SIN personas y sin referencias del personaje: si viaja su
+      // cara, se cuela un tipo de pie en medio del decorado.
+      out.lugares[sitio.id]=await genOneImage(pre
+        +'SET REFERENCE. WIDE ESTABLISHING SHOT of an empty place, seen from a corner or from far enough '
+        +'back that the whole space and its depth are visible at once. '
         +'NO PEOPLE in the image, not one figure. '
-        +'THE ROOM: '+res.set+'. '
+        +'THE PLACE: '+sitio.desc+'. '
         +'Every object, its colour, its material and its position must be clear enough to be reproduced '
         +'from other angles later. Even, natural lighting so nothing is hidden in shadow.',[]);
-    }catch(e){ out.fallos.push('el set: '+(e.message||'error')); }
+    }catch(e){ out.fallos.push('el escenario "'+sitio.id+'": '+(e.message||'error')); }
   }
   return out;
 }
 
-// Las referencias y el texto que le tocan a UNA imagen del video largo.
-// Las tomas del set llevan las dos anclas; los ejemplos ocurren fuera y no.
-function conAnclasDeEpisodio(prompt,refs,ancla,esToma){
-  if(!ancla||(!ancla.personaje&&!ancla.set))return {prompt:prompt,refs:refs};
-  if(!esToma)return {prompt:prompt,refs:refs};
+// Lo que le toca a UNA escena: su escenario (si lo tiene) y el vestuario.
+// En profesor, las TOMAS van en el set y los EJEMPLOS ocurren fuera.
+function conAnclasDeEpisodio(promptCrudo,promptLimpio,refs,ancla,esToma){
+  if(!ancla)return {prompt:promptLimpio,refs:refs};
   var extra=[],aviso='';
-  if(ancla.set){
-    extra.push(ancla.set.replace(/^data:image\/[a-z+]+;base64,/,''));
-    aviso+='THE SET IS ALREADY DECIDED. One of the reference images is a wide shot of the empty room where '
-      +'this video is filmed. This shot happens in THAT room: same walls, same furniture, same lamp, same '
-      +'colours, same objects in the same places. You are only moving the camera inside it. '
-      +'Do NOT invent a different room, do NOT add or remove furniture. ';
+  var sinData=function(x){return String(x).replace(/^data:image\/[a-z+]+;base64,/,'');};
+
+  var lugar=null;
+  if(esToma&&ancla.lugares.set)lugar=ancla.lugares.set;         // modo profesor
+  else{
+    var m=/\[LUGAR:\s*([a-z0-9-]+)\s*\]/i.exec(promptCrudo||'');
+    if(m&&ancla.lugares[m[1].toLowerCase()])lugar=ancla.lugares[m[1].toLowerCase()];
+  }
+  if(lugar){
+    extra.push(sinData(lugar));
+    aviso+='THE PLACE IS ALREADY DECIDED. One of the reference images is a wide shot of the empty place '
+      +'where this scene happens: same walls, same furniture, same lamps, same colours, same objects in '
+      +'the same positions. You are only moving the camera inside it. Do NOT invent a different place, '
+      +'do NOT add or remove furniture. ';
   }
   if(ancla.personaje){
-    extra.push(ancla.personaje.replace(/^data:image\/[a-z+]+;base64,/,''));
-    aviso+='THE WARDROBE IS ALREADY DECIDED. The last reference image shows the presenter in the exact '
-      +'outfit he wears in this video. Same garments, same colours. Do NOT change his clothes. ';
+    extra.push(sinData(ancla.personaje));
+    aviso+='THE WARDROBE IS ALREADY DECIDED. The last reference image shows the character in the exact '
+      +'outfit he wears in this video. Same garments, same colours. Do NOT change his clothes '
+      +'unless this scene explicitly describes different clothing. ';
   }
-  return {prompt:aviso+prompt,refs:(refs||[]).concat(extra)};
+  if(!extra.length)return {prompt:promptLimpio,refs:refs};
+  return {prompt:aviso+promptLimpio,refs:(refs||[]).concat(extra)};
 }
 
 async function genImages(){
@@ -3649,10 +3705,11 @@ async function genImages(){
   if(esModoLargo(lastRes.modo)){
     // El modo profesor genera 2 imagenes mas: la del vestuario y la del set. No
     // salen en el video, pero fijan los dos y hay que contarlas en el coste.
-    var extras=lastRes.modo==='profesor'?2:0;
+    var extras=nAnclasEpisodio(lastRes);
     var cImg=(totalImgsTarget+extras)*imgCost(), cVid=totalImgsTarget*vidCost();
     if(!confirm('Vídeo largo ('+(MODE_LABELS[lastRes.modo]||lastRes.modo)+'): '+totalImgsTarget+' imágenes'
-      +(extras?' + '+extras+' de referencia (el vestuario y el set, para que no cambien entre tomas)':'')+'.\n\n'
+      +(extras?' + '+extras+' de referencia (el vestuario y '
+        +(extras>2?'los escenarios que se repiten':'el escenario')+', para que no cambien entre escenas)':'')+'.\n\n'
       +'Imágenes: $'+cImg.toFixed(2)+'\n'
       +'Si luego las animas todas con Veo: +$'+cVid.toFixed(2)+'\n\n'
       +(lastRes.modo==='profesor'
@@ -3695,15 +3752,16 @@ async function genImages(){
   // En modo profesor, primero se fija el set y la ropa. Sin esto cada toma se
   // inventa su propio despacho y su propio traje.
   var anclaEp=null;
-  if(lastRes.modo==='profesor'){
+  if(MODOS_CON_ANCLA[lastRes.modo]&&nAnclasEpisodio(lastRes)){
     anclaEp=await generarAnclasEpisodio(lastRes,imgRefs,st);
-    var hechas=(anclaEp.personaje?1:0)+(anclaEp.set?1:0);
+    var hechas=(anclaEp.personaje?1:0)+Object.keys(anclaEp.lugares).length;
     cost+=hechas*imgCost();updCost();
     if(anclaEp.fallos.length){
       er.textContent='Aviso: no se pudo fijar '+anclaEp.fallos.join(' ni ')
-        +'. Las tomas pueden salir en sitios distintos. Puedes parar y volver a intentarlo.';
+        +'. Esas escenas pueden salir en sitios distintos. Puedes parar y volver a intentarlo.';
       er.style.display='block';
     }
+    await new Promise(function(r){setTimeout(r,PAUSA_IMAGENES);});
   }
   var nTomas=Number(lastRes.nTomas)||0;
 
@@ -3712,7 +3770,7 @@ async function genImages(){
     st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
     try{
       var esc=await prepararImagen(lastRes.c[i],imgRefs);
-      var conj=conAnclasDeEpisodio(esc.prompt,esc.refs,anclaEp,i<nTomas);
+      var conj=conAnclasDeEpisodio(lastRes.c[i],esc.prompt,esc.refs,anclaEp,i<nTomas);
       var src=await genOneImage(imgPromptPrefix(imgFmt)+conj.prompt,conj.refs);
       imgs[i]={src:src,idx:i+1};
       setSlotOk(slots[i],src,i);
@@ -3720,7 +3778,7 @@ async function genImages(){
     }catch(e){
       setSlotError(slots[i],i,e.message);
     }
-    if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,10000);});
+    if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,PAUSA_IMAGENES);});
   }
   st.textContent=gen+'/'+totalImgs+' imagenes generadas.';
   if(gen>0){var bv=document.getElementById('ballvids');if(bv)bv.style.display='block';}

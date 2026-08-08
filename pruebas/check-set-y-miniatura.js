@@ -37,6 +37,7 @@ const { chromium } = require('playwright-core');
       }
       return real.apply(window, arguments);
     };
+    PAUSA_IMAGENES = 20;   // en la prueba no hace falta esperar de verdad
     lastRes = {
       modo: 'profesor', uid: 99, topic: 'el metodo de los tres sobres',
       dO: { id: '180', secs: 180 },
@@ -63,8 +64,8 @@ const { chromium } = require('playwright-core');
   t('y va con las referencias de la cara del personaje', p[0].refs > 0, p[0].refs + ' referencias');
   t('la segunda es EL SET, en plano general', /SET REFERENCE/.test(p[1].prompt)
     && /WIDE ESTABLISHING SHOT/.test(p[1].prompt));
-  t('se ve la habitación entera, para poder mirarla desde otros ángulos',
-    /three walls, the floor and the whole depth of the room/.test(p[1].prompt));
+  t('se ve el sitio entero, para poder mirarlo desde otros ángulos',
+    /the whole space and its depth are visible at once/.test(p[1].prompt));
   t('el set va VACÍO', /NO PEOPLE in the image/.test(p[1].prompt));
   t('y sin la cara del personaje, para que no se cuele dentro del decorado',
     p[1].refs === 0, p[1].refs + ' referencias');
@@ -73,7 +74,7 @@ const { chromium } = require('playwright-core');
   // ---- las TOMAS llevan las dos anclas; los EJEMPLOS no ----
   const tomas = p.slice(2, 7), ejemplos = p.slice(7);
   t('las 5 tomas llevan las dos anclas',
-    tomas.every(x => /THE SET IS ALREADY DECIDED/.test(x.prompt) && /THE WARDROBE IS ALREADY DECIDED/.test(x.prompt)),
+    tomas.every(x => /THE PLACE IS ALREADY DECIDED/.test(x.prompt) && /THE WARDROBE IS ALREADY DECIDED/.test(x.prompt)),
     tomas.length + ' tomas');
   t('se les dice que solo mueven la cámara dentro de esa habitación',
     /You are only moving the camera inside it/.test(tomas[0].prompt));
@@ -81,7 +82,59 @@ const { chromium } = require('playwright-core');
   t('cada toma lleva 2 referencias más que un reel normal',
     tomas.every(x => x.refs >= 2), tomas.map(x => x.refs).join(','));
   t('los 3 ejemplos NO llevan el set: ocurren fuera',
-    ejemplos.every(x => !/THE SET IS ALREADY DECIDED/.test(x.prompt)), ejemplos.length + ' ejemplos');
+    ejemplos.every(x => !/THE PLACE IS ALREADY DECIDED/.test(x.prompt)), ejemplos.length + ' ejemplos');
+  t('pero sí llevan el vestuario: es el mismo hombre y la misma ropa',
+    ejemplos.every(x => /THE WARDROBE IS ALREADY DECIDED/.test(x.prompt)));
+
+  // ---- LO MISMO EN MODO HISTORIA: los lugares que se REPITEN ----
+  // Aqui no hay un set unico: la historia se mueve. Pero los sitios que salen mas
+  // de una vez tienen que verse iguales, y el director los marca con [LUGAR: id].
+  const hist = await page.evaluate(async () => {
+    const pedidos = [];
+    const real = window.fetch;
+    window.fetch = function (u, o) {
+      if (String(u) === '/api/image' && o && o.body) {
+        const d = JSON.parse(o.body);
+        pedidos.push({ prompt: d.prompt, refs: (d.refImages || []).length });
+      }
+      return real.apply(window, arguments);
+    };
+    PAUSA_IMAGENES = 20;
+    lastRes = {
+      modo: 'historia', uid: 100, topic: 'salir de la deuda', dO: { id: '60', secs: 60 },
+      a: 'Guion.', f: 'Script.',
+      c: [
+        '[LUGAR: cocina] la cocina pequena de azulejo verde, mesa de formica, nevera vieja: mira las facturas',
+        'el metro a las seis de la manana, gente de pie, luz fria',
+        '[LUGAR: cocina] de noche, sentado a esa misma mesa con la calculadora',
+        'el portal del edificio, buzon abierto',
+        '[LUGAR: cocina] por la manana, la mesa despejada y el cafe servido',
+      ],
+    };
+    imgFmt = '9:16';
+    const oc = window.confirm; window.confirm = () => true;
+    await genImages();
+    window.confirm = oc; window.fetch = real;
+    return { pedidos, lugares: lugaresRepetidos(lastRes.c), n: nAnclasEpisodio(lastRes) };
+  });
+
+  t('detecta el sitio que se repite', hist.lugares.length === 1 && hist.lugares[0].id === 'cocina',
+    JSON.stringify(hist.lugares.map(l => l.id + '×' + l.veces)));
+  t('y no hace ancla de los que salen una sola vez', hist.n === 2, hist.n + ' anclas (vestuario + cocina)');
+  t('se generan las 2 anclas y luego las 5 escenas', hist.pedidos.length === 7, hist.pedidos.length + ' imágenes');
+  t('la descripción completa de la cocina viaja en su ancla',
+    /azulejo verde/.test(hist.pedidos[1].prompt) && /SET REFERENCE/.test(hist.pedidos[1].prompt));
+  const esc = hist.pedidos.slice(2);
+  t('las 3 escenas de la cocina llevan su ancla',
+    [0, 2, 4].every(i => /THE PLACE IS ALREADY DECIDED/.test(esc[i].prompt)));
+  t('el metro y el portal NO la llevan: son otros sitios',
+    !/THE PLACE IS ALREADY DECIDED/.test(esc[1].prompt) && !/THE PLACE IS ALREADY DECIDED/.test(esc[3].prompt));
+  t('todas llevan el vestuario', esc.every(x => /THE WARDROBE IS ALREADY DECIDED/.test(x.prompt)));
+  t('la marca [LUGAR: ...] no se le manda al generador de imágenes',
+    esc.every(x => !/\[LUGAR:/i.test(x.prompt)));
+  t('el director recibe la instrucción de marcarlos',
+    await page.evaluate(() => /LUGARES QUE SE REPITEN/.test(buildSP('historia'))
+      && /LUGARES QUE SE REPITEN/.test(buildSP('relato'))));
 
   // ---- LA MINIATURA ----
   const th16 = await page.evaluate(() => { imgFmt = '16:9'; return buildThumbPrompt(); });
