@@ -72,3 +72,7 @@ index.js embebido en los instaladores de Cloud Run siga al dia.
 - **check-ingles-completo.js** — que el ingles sea EL MISMO video que el espanol:
   traduccion completa, mismas frases y mismo orden, con palabras de Estados
   Unidos pero sin resumir. Y que si viene corto se reclame en vez de colarlo.
+- **check-tiempo-verbal.js** — que a los CINCO modos les llegue la regla de que
+  al espectador no se le inventa un pasado: se le habla en presente de lo que le
+  pasa y en imperativo de lo que tiene que hacer, y si hay una historia ya
+  ocurrida, es de otro y en tercera persona.

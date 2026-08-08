@@ -306,6 +306,16 @@ var SCHED_POOL=[
 // Los dos modos LARGOS comparten la misma cabecera de marca que los cortos, pero
 // cambian por completo la estructura: aqui no se trata de golpear en 30 segundos
 // sino de sostener a alguien varios minutos.
+function reglaTiempo(){
+  return `EN QUÉ TIEMPO SE LE HABLA (regla firme, por encima de todo lo demás):
+Al espectador se le habla de lo que le pasa HOY y de lo que TIENE QUE HACER. Presente e imperativo. NUNCA le inventes un pasado que no ha vivido.
+PROHIBIDO en segunda persona y en pasado: "hace años creías", "tomaste la decisión", "registraste tu empresa", "ese martes viste cómo despedían a tu compañero", "fueron meses duros", "estuviste a punto de rendirte", "el primer pago entró mientras...". Eso es contarle al espectador una vida que no es la suya: en cuanto no le cuadra, deja de creerte y se va.
+ASÍ SÍ: "esto es lo que te está pasando cada mes", "lo que tienes que hacer es...", "el primer paso es...", "cuando lo montes vas a...", "deja de...", "empieza por...".
+SI HACE FALTA CONTAR ALGO QUE YA OCURRIÓ, es de OTRO y en TERCERA persona: "un hombre de 40 años", "el que llevaba veinte años en el mismo puesto". Sin nombre propio. El espectador ESCUCHA esa historia; no la protagoniza. Y en cuanto termina, se vuelve a él en presente: qué hace él con eso.
+
+`;
+}
+
 function cabeceraLarga(){
   return `CANAL: LEGADO DE HIERRO — video largo para YouTube. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
@@ -315,7 +325,7 @@ A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que d
 
 SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario o al que ganó más como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro" y cualquier variante. Al que ya lo logró se le respeta. El único adversario del espectador es él mismo.
 
-`;
+` + reglaTiempo();
 }
 
 function buildSP(mode){
@@ -370,15 +380,17 @@ QUÉ ES: el recorrido completo de alguien que cambió algo de su vida — no un 
 
 DE QUÉ TRATA: lo dicta el PILAR y el CONCEPTO. Puede ser levantar algo propio, salir de una deuda, ganarse una disciplina, sostener una decisión difícil, o aprender algo por las malas. No lo conviertas en una historia de negocios si el pilar no va de eso.
 
-CÓMO SE CUENTA: en segunda persona (tú) o desde la lección. No inventes un protagonista con nombre propio. SÍ pueden aparecer otras personas de su vida — el reparto del canal está más abajo — y de hecho una historia larga sin nadie más se hace plana.
+CÓMO SE CUENTA: la historia es de OTRO, en TERCERA persona — "un hombre de 40 años", "el que llevaba veinte años en el mismo turno". Sin nombre propio. JAMÁS en segunda persona y en pasado: al espectador no se le inventa una vida. Él escucha la historia; no la protagoniza.
+Al espectador se le habla directo en DOS sitios y siempre en presente: el gancho (lo que le pasa a ÉL hoy) y el cierre (lo que TIENE QUE HACER a partir de mañana). En medio, la historia es de ese otro hombre.
+SÍ pueden aparecer otras personas de su vida — el reparto del canal está más abajo — y de hecho una historia larga sin nadie más se hace plana.
 
 ESTRUCTURA:
-1. GANCHO (0-15s): el momento más tenso de la historia, contado antes de explicar cómo se llegó ahí.
-2. DE DÓNDE VIENE: la situación de partida, concreta, con detalles de su vida real.
-3. LO QUE SE ROMPIÓ: el momento en que ya no pudo seguir igual.
+1. GANCHO (0-15s): AL ESPECTADOR, en presente. Lo que le está pasando a él hoy, en una frase que no pueda ignorar. Todavía no hay historia.
+2. DE DÓNDE VIENE ÉL: la situación de partida del hombre de la historia, concreta, en tercera persona y en pasado.
+3. LO QUE SE LE ROMPIÓ: el momento en que ya no pudo seguir igual.
 4. LA DECISIÓN Y EL PRECIO: qué hizo y qué le costó. Aquí va la carne: lo que perdió, quién dudó de él, cuántas veces estuvo por dejarlo.
-5. EL CAMBIO: qué es distinto ahora. Sin fanfarria: mostrado en detalles pequeños.
-6. LA LECCIÓN: qué se lleva el espectador. Una sola, clara.
+5. EN QUÉ SE CONVIRTIÓ: qué es distinto en su vida ahora. Sin fanfarria: mostrado en detalles pequeños.
+6. Y AHORA TÚ: se vuelve al espectador, en presente y en imperativo. Qué tiene que hacer ÉL con lo que acaba de oír, empezando por el primer paso concreto. Esta parte NO es un resumen de la historia: es la orden de marcha.
 
 RITMO: es largo, así que respira. Alterna frases cortas con otras más largas. Deja silencios donde la imagen habla sola.
 
@@ -447,7 +459,7 @@ VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra e
 
 PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
 CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
+` + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Máximo 75 palabras. Termina con: Legado de Hierro.]
@@ -506,7 +518,7 @@ EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cam
 - Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
 
 MODO HISTORIA — el arco del que cambia:
-Un recorrido con principio y final: el punto en que se hartó, la decisión, lo que costó sostenerla, y en qué se convirtió. QUÉ cambia lo dicta el PILAR y el CONCEPTO — puede ser levantar algo propio, pero también puede ser ganarse una disciplina, romper un hábito, dejar de postergar o aprender a confiar en sí mismo. No lo conviertas en una historia de negocios si el pilar no va de eso. Cuéntalo en segunda persona (tú) o desde la lección. No inventes un protagonista con nombre propio: el que cambia es el espectador. Sí pueden aparecer OTRAS personas de su vida (quien lo espera en casa, quien le dio el primer sí, quien no cambió) — el reparto del canal está más abajo.
+Un recorrido con principio y final: el punto en que se hartó, la decisión, lo que costó sostenerla, y en qué se convirtió. QUÉ cambia lo dicta el PILAR y el CONCEPTO — puede ser levantar algo propio, pero también puede ser ganarse una disciplina, romper un hábito, dejar de postergar o aprender a confiar en sí mismo. No lo conviertas en una historia de negocios si el pilar no va de eso. Cuéntalo de OTRO, en tercera persona y sin nombre propio ("un hombre de 40 años"). NUNCA en segunda persona y en pasado: al espectador no se le inventa un pasado que no vivió. El gancho y el cierre SÍ le hablan a él, en presente y diciéndole qué hacer. Sí pueden aparecer OTRAS personas de su vida (quien lo espera en casa, quien le dio el primer sí, quien no cambió) — el reparto del canal está más abajo.
 Esto es el esqueleto, NO una plantilla: entra por donde quieras, dale la vuelta al orden, sorprende.
 
 NUNCA UN PERSONAJE INVENTADO: nada de "Marcos", "Carlos", "Pedro" ni la fórmula "[Nombre] vivía en un barrio... un día entendió...". Nada de biografías ficticias.
@@ -515,7 +527,7 @@ VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra e
 
 PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
 CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
+` + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
@@ -585,7 +597,7 @@ VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra e
 
 PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
 CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
+` + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
