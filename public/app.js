@@ -333,6 +333,59 @@ Y UNA HISTORIA NO TIENE QUE IR EN PASADO POR SER UNA HISTORIA: se puede contar e
 `;
 }
 
+// LO QUE ANUNCIAS, LO ENSEÑAS.
+//
+// De un video real del canal: el guion prometia "te voy a dar el metodo para
+// registrar una LLC", y el paso uno decia "el primer paso es abrir una LLC, es tu
+// escudo y tu motor", soltaba Wyoming y el numero fiscal, y saltaba al paso dos.
+// Nunca enseno a registrar nada. Prometio una clase y entrego un recordatorio.
+//
+// Y el arreglo NO es ensenar el papeleo: es que el papeleo no es lo que ensena
+// este canal. Aqui se ensenan modelos de negocio y como llegar a la libertad
+// financiera; el tramite es un requisito del camino que se nombra y se manda a un
+// tutorial. Lo que no puede pasar es anunciarlo como enseñanza y no darla.
+function reglaPromesa(largo){
+  var t=`LO QUE ANUNCIAS, LO ENSEÑAS (regla firme): si el guion dice que va a enseñar algo, eso tiene que quedar enseñado DENTRO del propio guion. Prometer una cosa y entregar otra es la forma más rápida de perder al que te está escuchando. Antes de dar el guion por bueno, busca cada frase en la que prometes — "te voy a enseñar", "te voy a dar el método", "vas a aprender a", "hoy vas a saber" — y comprueba que eso está de verdad más abajo. Si no está: o lo enseñas, o cambias la promesa por lo que sí vas a dar. La promesa de la entrada tiene que ser exactamente la suma de lo que viene después, ni más ni menos.
+
+`;
+  if(!largo)return t;
+  return t+`ESTE CANAL NO ENSEÑA PAPELEO, y de ahí salió el fallo que hay que evitar. En un video real el guion prometió "te voy a dar el método para registrar una LLC", y luego el paso uno dijo "el primer paso es abrir una LLC, es tu escudo y tu motor", nombró Wyoming y el número fiscal, y saltó al paso siguiente. No enseñó a registrar nada.
+
+QUÉ ENSEÑA ESTE CANAL: modelos de negocio, cómo conseguir a quien pague, cómo poner precio, cómo hacer capital, cómo montar algo que funcione sin ti, cómo llegar a la libertad financiera. Eso es la clase, y ahí es donde tiene que estar todo el detalle.
+QUÉ NO ENSEÑA: el trámite. Registrar una empresa, darse de alta, abrir una cuenta, un impuesto, un formulario. Es burocracia: hace falta, pero es aburrida, cambia según el país y no es a lo que viene la gente a este canal.
+
+CÓMO SE COLOCA UN TRÁMITE: se nombra en una frase, se dice PARA QUÉ sirve, y se manda fuera del video.
+BIEN: "Vas a necesitar una empresa registrada, porque es lo que separa tu dinero del dinero del negocio y lo que te abre la cuenta. Ese papeleo, paso a paso, lo buscas en un tutorial que te lleve de la mano; no vamos a gastar el video en eso. Lo que sí vamos a ver es lo difícil: qué vendes y quién te lo paga."
+MAL: "Te voy a dar el método para registrar una LLC. El primer paso es abrir una LLC."
+En el primero el trámite queda en su sitio y el video sigue hacia lo que importa. En el segundo se anuncia una clase que no llega.
+
+Y UN TRÁMITE NO ES EL PASO NÚMERO UNO: numerar la burocracia como primer paso gasta el minuto más valioso del video en lo menos útil, y encima contradice lo que este canal predica — primero se consigue a quien paga, después se monta la estructura. Si hace falta, entra como requisito previo, nunca como paso del método.
+
+`;
+}
+
+// LA EMOCIÓN, QUE ES LO QUE HACE QUE SE QUEDE.
+//
+// Estaba copiada palabra por palabra en los tres modos cortos y NO estaba en los
+// largos — y los largos son justo donde mas falta hace, porque hay seis minutos
+// que perder. Ahora sale de un solo sitio.
+function fuerzaEmocional(largo){
+  var largoTxt=largo?`QUE SE QUEDE HASTA EL FINAL (en un video largo esto decide si sirve de algo): el espectador no se va de golpe, se va por goteo, en un momento cualquiera en que deja de sentir nada. Y no se queda por lo que le vas a enseñar: se queda por lo que SIENTE mientras se lo enseñas. Un video correcto y frío se abandona en el minuto dos. Enseñar bien y mover no se pelean — sin lo segundo, lo primero no llega vivo al final.
+- CADA TRAMO SE GANA AL ESPECTADOR OTRA VEZ: antes de cada paso, media frase de por qué esto le importa A ÉL y qué se le está yendo mientras no lo hace. Después, qué cambia de verdad en su vida cuando lo hace — concreto, no "vas a tener libertad".
+- DEJA ABIERTO LO QUE VIENE: "esto es lo fácil; el que sigue es el que casi todos hacen mal". Nadie se va en mitad de una promesa.
+- EL EJEMPLO ES EMOCIÓN, NO SOLO ARITMÉTICA: cuando cuentes un caso, que se vea a la persona y no solo sus números. Qué tenía delante el día que se decidió.
+
+`:'';
+  return largoTxt+`FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Un detalle exacto de su vida golpea; una abstracción rebota. Mientras más específico, más duele.
+- RECONOCIMIENTO: que piense "ese soy yo". Un detalle concreto de su día real, no una generalidad.
+- LA HERIDA: lo que no dice en voz alta. Su miedo verdadero, el que no admite ni dentro de su propia cabeza.
+- LO QUE CUESTA NO CAMBIAR: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
+- EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
+NO SOLO AL PRINCIPIO: no vale abrir fuerte y enfriarse después. La emoción va repartida de la primera frase a la última; en cuanto el guion deja de tocarle algo, deja de mirar.
+LOS DETALLES LOS ELIGES TÚ, y ahí está tu trabajo de verdad: NO uses el primero que se te ocurra, porque ese es el que usaría cualquiera. JAMÁS repitas el mismo detalle de un guion a otro: si ya usaste una imagen concreta, esa queda quemada. Búscate una nueva cada vez.
+La crudeza y la emoción no pelean: la frase más dura es la que más mueve.`;
+}
+
 function cabeceraLarga(){
   return `CANAL: LEGADO DE HIERRO — video largo para YouTube. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
@@ -342,7 +395,9 @@ A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que d
 
 SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario o al que ganó más como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro" y cualquier variante. Al que ya lo logró se le respeta. El único adversario del espectador es él mismo.
 
-` + reglaTiempo();
+` + fuerzaEmocional(true) + `
+
+` + reglaPromesa(true) + reglaTiempo();
 }
 
 function buildSP(mode){
@@ -350,9 +405,14 @@ function buildSP(mode){
 
   // ---------------- MODO PROFESOR (video largo) ----------------
   // La idea: ENSEÑAR un método concreto para ganar, cuidar o hacer crecer el
-  // dinero. No es motivación: es una clase. Si el espectador no puede aplicar
-  // algo el lunes por la mañana, el video no sirve.
-  if(mode==='profesor')return cabeceraLarga()+`ESTE ES EL MODO PROFESOR: una CLASE. El protagonista enseña, no arenga.
+  // dinero. Si el espectador no puede aplicar algo el lunes por la mañana, el
+  // video no sirve.
+  //
+  // Aqui ponia "no es motivacion: es una clase", y eso salio caro: los guiones
+  // salian correctos y frios, y a un video de seis minutos que no toca nada se le
+  // va la gente en el minuto dos. Ensenar y mover no se pelean. Lo que sigue
+  // prohibido es la arenga hueca, no la emocion.
+  if(mode==='profesor')return cabeceraLarga()+`ESTE ES EL MODO PROFESOR: una CLASE, pero dada por alguien a quien le importa lo que le pase al que escucha. Enseña de verdad — y al mismo tiempo le toca donde le duele, porque si no siente nada no llega al final por muy bueno que sea el método. Lo prohibido es la arenga hueca: el discurso motivacional que no enseña nada. La emoción no solo está permitida, hace falta.
 
 QUÉ SE ENSEÑA (obligatorio): UN método concreto y aplicable sobre dinero — cómo ahorrar de verdad, cómo ordenar las cuentas, cómo poner precio, cómo empezar a invertir con poco, cómo montar un servicio que ya funciona, cómo salir de una deuda, cómo cobrar por valor y no por horas, cómo elegir en qué negocio meterse. UN solo método por video, desarrollado hasta el final.
 
@@ -362,8 +422,9 @@ HONESTIDAD: no prometas cifras concretas de ganancia ni plazos ("gana 1000 al me
 
 ESTRUCTURA DEL GUION:
 1. GANCHO (0-15s): el problema concreto que este método resuelve, en la piel del espectador.
-2. PROMESA: qué va a saber hacer al terminar. Clara y sin exagerar.
+2. PROMESA: qué va a saber hacer al terminar. Clara, sin exagerar, y EXACTAMENTE lo que el video entrega después. Aquí no se promete ningún trámite ni ningún papeleo: se promete lo que de verdad vas a enseñar.
 3. EL MÉTODO: los pasos, en orden, numerados al hablar ("el primero", "el segundo"). Cada paso con QUÉ es, POR QUÉ importa y CÓMO se hace.
+   EL CÓMO ES EL QUE NO PUEDE FALTAR: un paso con qué y con porqué pero sin cómo es un titular, no una clase — y es justo donde el espectador nota que le han vendido humo. Si a un paso no le puedes dar un cómo que quepa en este video, entonces no es un paso: es un requisito previo, y va nombrado en una frase antes de empezar el método, no numerado dentro de él.
 4. EJEMPLO REAL: el método aplicado a un caso concreto y creíble, con números redondos.
 5. LOS ERRORES: dos o tres fallos típicos al aplicarlo.
 6. CIERRE: el primer paso que puede dar hoy mismo, y la invitación a seguir el canal.
@@ -444,13 +505,7 @@ RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los
 - LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
 - EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
 
-FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Un detalle exacto de su vida golpea; una abstracción rebota. Mientras más específico, más duele.
-- RECONOCIMIENTO: que piense "ese soy yo". Un detalle concreto de su día real, no una generalidad.
-- LA HERIDA: lo que no dice en voz alta. Su miedo verdadero, el que no admite ni dentro de su propia cabeza.
-- LO QUE CUESTA NO CAMBIAR: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
-- EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
-LOS DETALLES LOS ELIGES TÚ, y ahí está tu trabajo de verdad: NO uses el primero que se te ocurra, porque ese es el que usaría cualquiera. JAMÁS repitas el mismo detalle de un guion a otro: si ya usaste una imagen concreta, esa queda quemada. Búscate una nueva cada vez.
-La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
+` + fuerzaEmocional(false) + `
 
 PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
 
@@ -482,7 +537,7 @@ VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra e
 
 PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
 CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-` + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
+` + reglaPromesa(false) + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Máximo 75 palabras. Termina con: Legado de Hierro.]
@@ -511,13 +566,7 @@ RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los
 - LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
 - EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
 
-FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Un detalle exacto de su vida golpea; una abstracción rebota. Mientras más específico, más duele.
-- RECONOCIMIENTO: que piense "ese soy yo". Un detalle concreto de su día real, no una generalidad.
-- LA HERIDA: lo que no dice en voz alta. Su miedo verdadero, el que no admite ni dentro de su propia cabeza.
-- LO QUE CUESTA NO CAMBIAR: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
-- EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
-LOS DETALLES LOS ELIGES TÚ, y ahí está tu trabajo de verdad: NO uses el primero que se te ocurra, porque ese es el que usaría cualquiera. JAMÁS repitas el mismo detalle de un guion a otro: si ya usaste una imagen concreta, esa queda quemada. Búscate una nueva cada vez.
-La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
+` + fuerzaEmocional(false) + `
 
 PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
 
@@ -550,7 +599,7 @@ VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra e
 
 PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
 CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-` + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
+` + reglaPromesa(false) + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
@@ -585,13 +634,7 @@ RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los
 - LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
 - EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
 
-FUERZA EMOCIONAL: el guion tiene que MOVER, no solo informar. Si no siente nada, se va. La emoción NO sale de frases de coach: sale de la PRECISIÓN. Un detalle exacto de su vida golpea; una abstracción rebota. Mientras más específico, más duele.
-- RECONOCIMIENTO: que piense "ese soy yo". Un detalle concreto de su día real, no una generalidad.
-- LA HERIDA: lo que no dice en voz alta. Su miedo verdadero, el que no admite ni dentro de su propia cabeza.
-- LO QUE CUESTA NO CAMBIAR: no es dinero. Es tiempo y dignidad. La vida que no vuelve.
-- EL FUEGO: que termine con ganas de levantarse y hacer algo hoy.
-LOS DETALLES LOS ELIGES TÚ, y ahí está tu trabajo de verdad: NO uses el primero que se te ocurra, porque ese es el que usaría cualquiera. JAMÁS repitas el mismo detalle de un guion a otro: si ya usaste una imagen concreta, esa queda quemada. Búscate una nueva cada vez.
-La crudeza y la emoción no pelean: la frase más dura es la que más mueve.
+` + fuerzaEmocional(false) + `
 
 PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
 
@@ -621,7 +664,7 @@ VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra e
 
 PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
 CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-` + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
+` + reglaPromesa(false) + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
 
 BLOQUE A
 [Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
