@@ -308,10 +308,27 @@ var SCHED_POOL=[
 // sino de sostener a alguien varios minutos.
 function reglaTiempo(){
   return `EN QUÉ TIEMPO SE LE HABLA (regla firme, por encima de todo lo demás):
-Al espectador se le habla de lo que le pasa HOY y de lo que TIENE QUE HACER. Presente e imperativo. NUNCA le inventes un pasado que no ha vivido.
-PROHIBIDO en segunda persona y en pasado: "hace años creías", "tomaste la decisión", "registraste tu empresa", "ese martes viste cómo despedían a tu compañero", "fueron meses duros", "estuviste a punto de rendirte", "el primer pago entró mientras...". Eso es contarle al espectador una vida que no es la suya: en cuanto no le cuadra, deja de creerte y se va.
-ASÍ SÍ: "esto es lo que te está pasando cada mes", "lo que tienes que hacer es...", "el primer paso es...", "cuando lo montes vas a...", "deja de...", "empieza por...".
-SI HACE FALTA CONTAR ALGO QUE YA OCURRIÓ, es de OTRO y en TERCERA persona: "un hombre de 40 años", "el que llevaba veinte años en el mismo puesto". Sin nombre propio. El espectador ESCUCHA esa historia; no la protagoniza. Y en cuanto termina, se vuelve a él en presente: qué hace él con eso.
+
+LO ÚNICO PROHIBIDO es darle al espectador un pasado por hecho. Él no ha vivido lo que tú te inventes.
+MAL: "hace años creías tener todo bajo control", "ese martes viste cómo despedían a tu compañero", "tomaste la decisión", "registraste tu empresa", "estuviste a punto de rendirte mil veces", "decidiste sistematizar".
+Eso le cuenta al que mira una vida que no es la suya, y en cuanto no le cuadra deja de creerte.
+
+LA MISMA ESCENA, BIEN DICHA — esto es exactamente lo que se espera:
+MAL: "Estuviste a punto de rendirte mil veces. El cansancio te pedía volver a la comodidad de lo predecible. Decidiste sistematizar."
+BIEN: "Vas a estar a punto de rendirte mil veces. El cansancio te va a pedir volver a la comodidad de lo predecible, y abandonar se va a sentir como descansar. Ahí es donde tienes que sistematizar en vez de seguir haciéndolo todo a mano."
+Fíjate en lo que cambia: el mismo contenido, los mismos detalles, la misma emoción — pero por delante de él, no por detrás.
+
+HABLÁNDOLE A ÉL (segunda persona) tienes TRES tiempos, y los tres valen:
+- PRESENTE: lo que le está pasando hoy. "Cada mes se te va el sueldo y no sabes en qué."
+- FUTURO Y ANTICIPACIÓN: lo que le va a pasar cuando lo intente. "Vas a...", "cuando estés...", "llegará el día en que...", "te va a pedir...". Aquí es donde va la carne del camino: el cansancio, la duda, quién no lo va a entender.
+- IMPERATIVO: lo que tiene que hacer. "Lo que tienes que hacer es...", "el primer paso es...", "empieza por...", "deja de...".
+
+EL PASADO SÍ SE USA, en dos casos, y ahí es libre:
+- PRIMERA PERSONA (yo): el que habla cuenta algo suyo. El gancho de Historia Personal va así.
+- TERCERA PERSONA: se cuenta lo de otro — "un hombre de 40 años", "el que llevaba veinte años en el mismo turno", sin nombre propio.
+En los dos casos el espectador ESCUCHA la historia; no es él quien la vivió. Y cuando la historia termina, se vuelve a él.
+
+Y UNA HISTORIA NO TIENE QUE IR EN PASADO POR SER UNA HISTORIA: se puede contar en presente, como si estuviera ocurriendo ahora ("son las dos de la mañana y sigue delante de la pantalla"), o en futuro, como algo que todavía no pasa. Elige el tiempo que más golpee — la única condición es la de arriba.
 
 `;
 }
@@ -380,17 +397,21 @@ QUÉ ES: el recorrido completo de alguien que cambió algo de su vida — no un 
 
 DE QUÉ TRATA: lo dicta el PILAR y el CONCEPTO. Puede ser levantar algo propio, salir de una deuda, ganarse una disciplina, sostener una decisión difícil, o aprender algo por las malas. No lo conviertas en una historia de negocios si el pilar no va de eso.
 
-CÓMO SE CUENTA: la historia es de OTRO, en TERCERA persona — "un hombre de 40 años", "el que llevaba veinte años en el mismo turno". Sin nombre propio. JAMÁS en segunda persona y en pasado: al espectador no se le inventa una vida. Él escucha la historia; no la protagoniza.
-Al espectador se le habla directo en DOS sitios y siempre en presente: el gancho (lo que le pasa a ÉL hoy) y el cierre (lo que TIENE QUE HACER a partir de mañana). En medio, la historia es de ese otro hombre.
+CÓMO SE CUENTA: elige una de estas tres formas, la que mejor le venga a ESTE relato. No siempre la misma.
+- DE OTRO, en tercera persona: "un hombre de 40 años", "el que llevaba veinte años en el mismo turno". Sin nombre propio. En pasado, o en presente como si estuviera ocurriendo ahora.
+- EN PRIMERA PERSONA: el que habla cuenta algo suyo, con lo que le costó.
+- HACIA DELANTE, hablándole a él en futuro: el camino que va a recorrer si se decide. "Vas a...", "cuando llegues a...", "el día que...".
+LO QUE NO PUEDE SER: contárselo a él en pasado, como si ya lo hubiera vivido. Eso está prohibido en todo el canal.
+Sea cual sea la forma, el CIERRE vuelve a él y le dice qué hacer.
 SÍ pueden aparecer otras personas de su vida — el reparto del canal está más abajo — y de hecho una historia larga sin nadie más se hace plana.
 
-ESTRUCTURA:
-1. GANCHO (0-15s): AL ESPECTADOR, en presente. Lo que le está pasando a él hoy, en una frase que no pueda ignorar. Todavía no hay historia.
-2. DE DÓNDE VIENE ÉL: la situación de partida del hombre de la historia, concreta, en tercera persona y en pasado.
-3. LO QUE SE LE ROMPIÓ: el momento en que ya no pudo seguir igual.
-4. LA DECISIÓN Y EL PRECIO: qué hizo y qué le costó. Aquí va la carne: lo que perdió, quién dudó de él, cuántas veces estuvo por dejarlo.
-5. EN QUÉ SE CONVIRTIÓ: qué es distinto en su vida ahora. Sin fanfarria: mostrado en detalles pequeños.
-6. Y AHORA TÚ: se vuelve al espectador, en presente y en imperativo. Qué tiene que hacer ÉL con lo que acaba de oír, empezando por el primer paso concreto. Esta parte NO es un resumen de la historia: es la orden de marcha.
+ESTRUCTURA (los pasos son estos; el tiempo verbal de cada uno depende de la forma que elegiste arriba):
+1. GANCHO (0-15s): AL ESPECTADOR, en presente. Lo que le está pasando a él hoy, en una frase que no pueda ignorar.
+2. EL PUNTO DE PARTIDA: la situación concreta de la que se sale, con detalles de una vida real.
+3. LO QUE SE ROMPE: el momento en que ya no se puede seguir igual.
+4. LA DECISIÓN Y EL PRECIO: qué hay que hacer y qué cuesta. Aquí va la carne: lo que se pierde, quién duda, las veces que se está por dejarlo. Si le hablas a él, esto va en futuro y anticipación — "vas a", "cuando estés", "te va a pedir" — nunca en pasado.
+5. EN QUÉ SE CONVIERTE: qué es distinto después. Sin fanfarria: mostrado en detalles pequeños.
+6. Y AHORA TÚ: se vuelve al espectador, en presente y en imperativo. Qué tiene que hacer ÉL, empezando por el primer paso concreto. Esta parte NO es un resumen de la historia: es la orden de marcha.
 
 RITMO: es largo, así que respira. Alterna frases cortas con otras más largas. Deja silencios donde la imagen habla sola.
 
@@ -518,7 +539,7 @@ EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cam
 - Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
 
 MODO HISTORIA — el arco del que cambia:
-Un recorrido con principio y final: el punto en que se hartó, la decisión, lo que costó sostenerla, y en qué se convirtió. QUÉ cambia lo dicta el PILAR y el CONCEPTO — puede ser levantar algo propio, pero también puede ser ganarse una disciplina, romper un hábito, dejar de postergar o aprender a confiar en sí mismo. No lo conviertas en una historia de negocios si el pilar no va de eso. Cuéntalo de OTRO, en tercera persona y sin nombre propio ("un hombre de 40 años"). NUNCA en segunda persona y en pasado: al espectador no se le inventa un pasado que no vivió. El gancho y el cierre SÍ le hablan a él, en presente y diciéndole qué hacer. Sí pueden aparecer OTRAS personas de su vida (quien lo espera en casa, quien le dio el primer sí, quien no cambió) — el reparto del canal está más abajo.
+Un recorrido con principio y final: el punto en que se hartó, la decisión, lo que costó sostenerla, y en qué se convirtió. QUÉ cambia lo dicta el PILAR y el CONCEPTO — puede ser levantar algo propio, pero también puede ser ganarse una disciplina, romper un hábito, dejar de postergar o aprender a confiar en sí mismo. No lo conviertas en una historia de negocios si el pilar no va de eso. Cuéntalo como mejor le venga a ESTE guion: de otro en tercera persona y sin nombre propio ("un hombre de 40 años"), en primera persona, o hacia delante hablándole a él en futuro ("vas a llegar a un punto en que..."). Lo único prohibido es contárselo a él en pasado, como si ya lo hubiera vivido. El cierre siempre vuelve a él diciéndole qué hacer. Sí pueden aparecer OTRAS personas de su vida (quien lo espera en casa, quien le dio el primer sí, quien no cambió) — el reparto del canal está más abajo.
 Esto es el esqueleto, NO una plantilla: entra por donde quieras, dale la vuelta al orden, sorprende.
 
 NUNCA UN PERSONAJE INVENTADO: nada de "Marcos", "Carlos", "Pedro" ni la fórmula "[Nombre] vivía en un barrio... un día entendió...". Nada de biografías ficticias.

@@ -40,33 +40,56 @@ const { chromium } = require('playwright-core');
       /EN QUÉ TIEMPO SE LE HABLA/.test(sp[m]));
   });
   MODOS.forEach((m) => {
-    t('modo ' + m + ': prohíbe el pasado inventado en segunda persona',
-      /PROHIBIDO en segunda persona y en pasado/.test(sp[m])
+    t('modo ' + m + ': lo único prohibido es darle un pasado por hecho',
+      /LO ÚNICO PROHIBIDO es darle al espectador un pasado por hecho/.test(sp[m])
       && /tomaste la decisión/.test(sp[m]) && /registraste tu empresa/.test(sp[m]));
   });
   MODOS.forEach((m) => {
-    t('modo ' + m + ': le dice cómo SÍ — presente e imperativo',
-      /lo que tienes que hacer es/.test(sp[m]) && /el primer paso es/.test(sp[m]));
+    t('modo ' + m + ': hablándole a él valen los TRES tiempos',
+      /PRESENTE: lo que le está pasando hoy/.test(sp[m])
+      && /FUTURO Y ANTICIPACIÓN/.test(sp[m])
+      && /IMPERATIVO: lo que tiene que hacer/.test(sp[m]));
   });
   MODOS.forEach((m) => {
-    t('modo ' + m + ': si hay pasado, es de OTRO y en tercera persona',
-      /es de OTRO y en TERCERA persona/.test(sp[m]) && /no la protagoniza/.test(sp[m]));
+    t('modo ' + m + ': el pasado SÍ vale en primera y en tercera persona',
+      /EL PASADO SÍ SE USA, en dos casos/.test(sp[m])
+      && /PRIMERA PERSONA \(yo\)/.test(sp[m]) && /TERCERA PERSONA/.test(sp[m]));
+  });
+  MODOS.forEach((m) => {
+    t('modo ' + m + ': y una historia no tiene que ir en pasado por serlo',
+      /UNA HISTORIA NO TIENE QUE IR EN PASADO POR SER UNA HISTORIA/.test(sp[m])
+      && /o en futuro, como algo que todavía no pasa/.test(sp[m]));
   });
 
-  // ---- lo que se pedía antes ya NO se pide ----
-  t('el modo Historia ya no pide contarlo en segunda persona',
-    !/Cuéntalo en segunda persona \(tú\) o desde la lección/.test(sp.historia));
-  t('y dice que el que cambia es OTRO, no el espectador',
-    /Cuéntalo de OTRO, en tercera persona/.test(sp.historia));
-  t('el modo Relato ya no pide la historia en segunda persona',
-    !/CÓMO SE CUENTA: en segunda persona/.test(sp.relato));
-  t('su historia es de un tercero', /la historia es de OTRO, en TERCERA persona/.test(sp.relato));
+  // El ejemplo concreto que se pidio, con la frase real que salio mal.
+  MODOS.forEach((m) => {
+    t('modo ' + m + ': lleva el ejemplo de la frase mal y bien dicha',
+      /MAL: "Estuviste a punto de rendirte mil veces/.test(sp[m])
+      && /BIEN: "Vas a estar a punto de rendirte mil veces/.test(sp[m]));
+  });
+  t('el ejemplo mantiene los mismos detalles, solo cambia el tiempo',
+    /el mismo contenido, los mismos detalles, la misma emoción — pero por delante de él, no por detrás/
+      .test(sp.relato));
 
-  // ---- la estructura del Relato: el espectador entra al principio y al final ----
+  // ---- lo que se pedía antes ya NO se pide ----
+  t('el modo Historia ya no obliga a la segunda persona',
+    !/Cuéntalo en segunda persona \(tú\) o desde la lección/.test(sp.historia));
+  t('y deja elegir la forma que le venga a ese guion',
+    /de otro en tercera persona/.test(sp.historia) && /en primera persona/.test(sp.historia)
+    && /hablándole a él en futuro/.test(sp.historia));
+  t('el modo Relato tampoco obliga a una sola forma',
+    /elige una de estas tres formas/.test(sp.relato));
+  t('pero ninguno permite contárselo a él en pasado',
+    /Lo único prohibido es contárselo a él en pasado/.test(sp.historia)
+    && /LO QUE NO PUEDE SER: contárselo a él en pasado/.test(sp.relato));
+
+  // ---- la estructura del Relato ----
   t('el relato engancha hablándole al espectador en presente',
     /GANCHO \(0-15s\): AL ESPECTADOR, en presente/.test(sp.relato));
-  t('la historia del medio va en tercera persona y en pasado',
-    /DE DÓNDE VIENE ÉL/.test(sp.relato) && /en tercera persona y en pasado/.test(sp.relato));
+  t('el tiempo verbal de cada paso depende de la forma elegida',
+    /el tiempo verbal de cada uno depende de la forma que elegiste arriba/.test(sp.relato));
+  t('la parte dura, si le habla a él, va en futuro y anticipación',
+    /esto va en futuro y anticipación/.test(sp.relato) && /nunca en pasado/.test(sp.relato));
   t('y el cierre vuelve a él con lo que tiene que hacer',
     /Y AHORA TÚ/.test(sp.relato) && /es la orden de marcha/.test(sp.relato));
   t('el cierre no es un resumen de la historia',
