@@ -16,7 +16,7 @@ const { checkAuth } = require('./_auth');
 // La version de cloudrun/unify/index.js que espera ESTA copia del repositorio.
 // Si el Cloud Run desplegado devuelve otra, es que le falta la actualizacion.
 // comprobar.sh vigila que las dos vayan siempre a la par.
-const VERSION_ESPERADA = '2026-08-07.1';
+const VERSION_ESPERADA = '2026-08-08.1';
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');

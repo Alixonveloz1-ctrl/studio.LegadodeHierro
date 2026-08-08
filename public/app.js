@@ -379,9 +379,10 @@ TOMA 2: [el mismo momento desde otro ángulo — de perfil, escorzo o más abier
 TOMA 3: [plano cerrado del rostro o de las manos explicando]
 TOMA 4: [plano del protagonista junto a la pizarra o señalando algo del set]
 TOMA 5: [plano general del set, el protagonista pequeño en el espacio]
-EJEMPLO 1: [una escena FUERA del set que ilustre el primer paso o el ejemplo real. Aquí sí puede haber otro lugar, otras personas del reparto, otro momento.]
-EJEMPLO 2: [otra escena que ilustre otro paso]
-EJEMPLO 3: [otra escena que ilustre el error típico o el resultado]
+LOS EJEMPLOS SON DE OTRA GENTE, NO DEL PROFESOR (regla firme): el que da la clase NO aparece en los ejemplos. En un ejemplo se ve a OTRA persona haciéndolo bien o metiendo la pata — alguien del reparto, o una persona cualquiera sin nombre. Si el profesor sale en la escena del error, deja de ser el profesor y pasa a ser uno más que también está perdido; y el espectador tiene que verse a SÍ MISMO en esa escena, no al que le está enseñando. Escribe cada EJEMPLO indicando quién sale y que NO es el protagonista.
+EJEMPLO 1: [una escena FUERA del set, con OTRA persona, que ilustre el primer paso hecho bien]
+EJEMPLO 2: [otra escena, con otra persona distinta, que ilustre otro paso]
+EJEMPLO 3: [otra escena, con otra persona, que ilustre el error típico o el resultado]
 
 BLOQUE M
 [EL MONTAJE: en qué orden se ven las tomas y los ejemplos a lo largo del video. Las TOMAS SE REPITEN — así es como se filma una clase: se vuelve a la cara del que habla entre ejemplo y ejemplo. Escribe una línea por corte, en orden, con el número de segundo en que entra. Alterna: nunca dos veces seguidas la misma toma. Cubre TODA la duración del guion.]
@@ -1669,6 +1670,7 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
     formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\n'
       +'Genera los TRES bloques en este orden: BLOQUE A (guion hablado), BLOQUE C (SET + 5 TOMAS + 3 EJEMPLOS) y BLOQUE M (el montaje). El ingles NO va aqui: se pide aparte.\n'
       +'En el BLOQUE C tiene que haber EXACTAMENTE una linea SET:, cinco lineas TOMA 1: a TOMA 5: y tres lineas EJEMPLO 1: a EJEMPLO 3:. Ni una mas ni una menos.\n'
+      +'En las TOMAS sale el protagonista dando la clase. En los EJEMPLOS sale OTRA persona: el profesor no aparece en ellos.\n'
       +'El BLOQUE M tiene que cubrir los '+segs+' segundos completos del guion, con una linea por corte en formato "<segundo>s: TOMA <n>" o "<segundo>s: EJEMPLO <n>". '
       +'Repite las tomas cuantas veces haga falta — para eso estan — pero nunca dos iguales seguidas. Un corte cada 8 a 15 segundos.\n'
       +'Si falta cualquiera de los cuatro bloques, la respuesta es incompleta y falla el sistema.\n\n';
@@ -3178,21 +3180,21 @@ async function subirAudio(file,isEN){
     // al ritmo del audio subido: sin el, el reparto de tiempos se hacia con una
     // velocidad de habla inventada (130 palabras por minuto) y el desfase se iba
     // acumulando hasta quedar muy por detras al final del reel.
-    var dur=0,vozIni=0,vozFin=0;
+    var dur=0,vozIni=0,vozFin=0,vozTramos=null;
     try{
       var AC=window.AudioContext||window.webkitAudioContext;
       var ctx=new AC();
       var dec=await ctx.decodeAudioData(bytes.slice(0).buffer);
       dur=dec.duration;
       var v=tramoDeVoz(dec);
-      vozIni=v.ini;vozFin=v.fin;
+      vozIni=v.ini;vozFin=v.fin;vozTramos=v.tramos;
       if(ctx.close)ctx.close();
     }catch(e){/* si el navegador no sabe decodificarlo, se sigue igual */}
 
     // Sin alignment de ElevenLabs (el plan gratis no da API), pero SI con la
     // medida real del audio: los subtitulos se ajustan a ella.
     var reg={blob:blob,url:url,alignment:null,partsB64:[b64],
-             dur:dur,vozIni:vozIni,vozFin:vozFin,subido:true};
+             dur:dur,vozIni:vozIni,vozFin:vozFin,vozTramos:vozTramos,subido:true};
     if(isEN){audEN=reg;}else{audES=reg;}
     if(typeof invalidateVoiceMix==='function')invalidateVoiceMix();
     var ext=/wav/.test(tipo)?'wav':/mp4|m4a/.test(tipo)?'m4a':/ogg/.test(tipo)?'ogg':'mp3';
@@ -3224,17 +3226,55 @@ function tramoDeVoz(buf){
     e[i]=Math.sqrt(s/vent);
     if(e[i]>pico)pico=e[i];
   }
-  if(!pico)return {ini:0,fin:buf.duration};
+  if(!pico)return {ini:0,fin:buf.duration,tramos:null};
   var umbral=pico*0.06; // 6% del pico: por encima de eso ya es voz, no ruido de fondo
   var a=0,b=n-1;
   while(a<n&&e[a]<umbral)a++;
   while(b>a&&e[b]<umbral)b--;
-  if(a>=n)return {ini:0,fin:buf.duration};
+  if(a>=n)return {ini:0,fin:buf.duration,tramos:null};
   // Un pelin de margen para no cortar el ataque de la primera silaba.
   var ini=Math.max(0,(a*vent)/sr-0.05);
   var fin=Math.min(buf.duration,((b+1)*vent)/sr+0.05);
-  if(fin-ini<0.5)return {ini:0,fin:buf.duration}; // medida absurda: mejor no fiarse
-  return {ini:ini,fin:fin};
+  if(fin-ini<0.5)return {ini:0,fin:buf.duration,tramos:null}; // medida absurda: mejor no fiarse
+
+  // LOS TRAMOS DE VOZ, uno por cada trozo hablado entre silencios.
+  //
+  // Con el tramo entero bastaba en un reel de 40 s. En un video de tres minutos
+  // no: repartir el texto proporcionalmente sobre TODO el tramo mete dentro los
+  // silencios entre parrafos, que no son texto, y el desfase se va acumulando
+  // hasta que al final los subtitulos van por otro lado. Sabiendo donde calla,
+  // el texto se reparte solo por el tiempo en el que de verdad habla.
+  var SILENCIO=Math.round(0.28/0.02);   // 280 ms callado ya cuenta como pausa
+  var tramos=[],dentro=false,desde=0,callado=0;
+  for(var k=a;k<=b;k++){
+    if(e[k]>=umbral){
+      if(!dentro){dentro=true;desde=k;}
+      callado=0;
+    }else if(dentro){
+      callado++;
+      if(callado>=SILENCIO){
+        tramos.push({ini:(desde*vent)/sr,fin:((k-callado+1)*vent)/sr});
+        dentro=false;
+      }
+    }
+  }
+  if(dentro)tramos.push({ini:(desde*vent)/sr,fin:((b+1)*vent)/sr});
+  tramos=tramos.filter(function(t){return t.fin-t.ini>0.15;});
+  if(!tramos.length)tramos=null;
+  return {ini:ini,fin:fin,tramos:tramos};
+}
+
+// Pasa una posicion medida en TIEMPO HABLADO a la posicion real del audio,
+// saltandose los silencios. Si no hay tramos medidos, reparte lineal.
+function tiempoRealDeVoz(tramos,ini,fin,tVoz){
+  if(!tramos||!tramos.length)return ini+tVoz;
+  var acum=0;
+  for(var i=0;i<tramos.length;i++){
+    var d=tramos[i].fin-tramos[i].ini;
+    if(tVoz<=acum+d)return tramos[i].ini+(tVoz-acum);
+    acum+=d;
+  }
+  return tramos[tramos.length-1].fin;
 }
 
 // Convierte un AudioBuffer a un Blob WAV valido
@@ -3454,18 +3494,132 @@ function apuntarPersonajes(ids){
   guardarEnReel({sem:lastRes.sem});
 }
 
+// DESCARGAR UN ARCHIVO DESDE EL IPHONE.
+//
+// Todo se bajaba con <a download>. En un ordenador funciona; en iOS Safari el
+// atributo download se ignora para blob: y data:, asi que el boton parpadeaba y
+// no pasaba nada — ni las imagenes, ni los clips, ni el video final, ni el ZIP,
+// que encima decia "ZIP descargado" mintiendo.
+//
+// En el iPhone lo que si funciona es la hoja de compartir: navigator.share con un
+// File deja guardarlo en Archivos o en Fotos. Hay que llamarla DENTRO del toque,
+// que es lo que pasa aqui porque todo esto cuelga de un click.
+function puedeCompartirArchivos(){
+  try{ return !!(navigator.canShare&&navigator.share&&navigator.canShare({files:[new File([new Blob([1])],'x.txt',{type:'text/plain'})]})); }
+  catch(e){ return false; }
+}
+
+async function comoBlob(origen){
+  if(origen instanceof Blob)return origen;
+  var r=await fetch(origen);          // vale igual para blob:, data: y https:
+  return await r.blob();
+}
+
+// Devuelve 'compartido' | 'descargado' | 'cancelado', para poder decir la verdad
+// en pantalla en vez de dar por hecho que se guardo.
+async function descargarArchivo(origen,nombre,tipo){
+  var blob=await comoBlob(origen);
+  if(tipo&&blob.type!==tipo)blob=new Blob([blob],{type:tipo});
+  if(puedeCompartirArchivos()){
+    try{
+      await navigator.share({files:[new File([blob],nombre,{type:blob.type||'application/octet-stream'})]});
+      return 'compartido';
+    }catch(e){
+      // AbortError = el usuario cerro la hoja. Cualquier otro fallo cae al plan B.
+      if(e&&e.name==='AbortError')return 'cancelado';
+    }
+  }
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=nombre;a.rel='noopener';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},4000);
+  return 'descargado';
+}
+
+// Un boton de descarga ya montado, para no repetir esto en seis sitios.
+function botonDescarga(getOrigen,nombre,tipo,texto,estilo){
+  var b=document.createElement('button');
+  b.type='button';
+  b.textContent=texto;
+  b.style.cssText=estilo||'';
+  b.addEventListener('click',async function(){
+    var t0=b.textContent;
+    b.disabled=true;b.textContent='...';
+    try{
+      var r=await descargarArchivo(await getOrigen(),nombre,tipo);
+      b.textContent=r==='compartido'?'✓':(r==='cancelado'?t0:'✓');
+      setTimeout(function(){b.textContent=t0;b.disabled=false;},1200);
+    }catch(e){
+      b.textContent=t0;b.disabled=false;
+      alert('No se pudo guardar: '+(e.message||'error'));
+    }
+  });
+  return b;
+}
+
+// LAS REFERENCIAS VIAJAN ENCOGIDAS.
+//
+// Cada referencia iba tal cual, en base64, dentro del JSON de la peticion. Cuatro
+// PNG grandes ya rozaban el limite de 4,5 MB que acepta Vercel; al anadir las dos
+// anclas del episodio se paso, y la respuesta era un 413 seco — "Error 413" en
+// cinco imagenes seguidas. Encogidas a 1024 px y en JPEG, seis referencias ocupan
+// menos que una sola de antes, y como referencia siguen valiendo igual.
+var REF_LADO=896;
+// Tope de lo que puede pesar el conjunto de referencias de UNA peticion. Vercel
+// corta en 4,5 MB; se deja margen para el prompt y para el propio JSON.
+var REF_TOPE=3200000;
+var CACHE_ENCOGIDAS={};
+function encogerRef(b64){
+  if(!b64)return Promise.resolve(b64);
+  var clave=b64.length+':'+b64.slice(0,32);
+  if(CACHE_ENCOGIDAS[clave])return Promise.resolve(CACHE_ENCOGIDAS[clave]);
+  return new Promise(function(res){
+    var im=new Image();
+    im.onerror=function(){res(b64);};             // si no se puede, va como estaba
+    im.onload=function(){
+      try{
+        var e=Math.min(1,REF_LADO/Math.max(im.width,im.height));
+        var c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(im.width*e));c.height=Math.max(1,Math.round(im.height*e));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        var out=c.toDataURL('image/jpeg',0.85).split(',')[1];
+        if(out&&out.length<b64.length){CACHE_ENCOGIDAS[clave]=out;res(out);}
+        else res(b64);
+      }catch(err){res(b64);}
+    };
+    im.src=/^data:/.test(b64)?b64:'data:image/png;base64,'+b64;
+  });
+}
+async function encogerRefs(refs){
+  if(!refs||!refs.length)return refs;
+  var out=[];
+  for(var i=0;i<refs.length;i++)out.push(await encogerRef(refs[i]));
+  // Y si aun asi el conjunto se pasa, se sueltan referencias por DELANTE. Las
+  // ultimas son las que mas mandan (el ancla del episodio va al final), asi que
+  // las que se caen son las menos decisivas. Mejor generar con tres referencias
+  // que recibir un 413 y no generar nada.
+  var peso=function(a){var n=0;for(var i=0;i<a.length;i++)n+=a[i].length;return n;};
+  while(out.length>1&&peso(out)>REF_TOPE)out.shift();
+  return out;
+}
+
 async function genOneImage(prompt,refs){
   var ir;
+  var refsLigeras=await encogerRefs(refs);
   try{
     ir=await fetch('/api/image',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt,refImages:refs,model:imgModel,aspectRatio:imgFmt}),
+      body:JSON.stringify({prompt:prompt,refImages:refsLigeras,model:imgModel,aspectRatio:imgFmt}),
     });
   }catch(e){
     throw new Error('Error de conexion. Usa Regenerar.');
   }
   if(ir.status===504){
     throw new Error('Tiempo agotado. Usa Regenerar en unos segundos.');
+  }
+  if(ir.status===413){
+    throw new Error('la petición pesaba demasiado ('+refsLigeras.length+' referencias)');
   }
   var id;
   try{
@@ -3503,7 +3657,8 @@ function setSlotOk(slot,src,idx){
   var imWrap=document.createElement('div');imWrap.style.cssText='position:relative;border-radius:10px;overflow:hidden';
   var im=document.createElement('img');im.src=src;im.style.cssText='width:100%;display:block;border-radius:10px';imWrap.appendChild(im);
   var dd=document.createElement('div');dd.style.cssText='position:absolute;bottom:6px;right:6px';
-  var da=document.createElement('a');da.href=src;da.download='legado-img-'+(idx+1)+'.png';da.textContent='⬇';da.style.cssText='background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none;display:block';
+  var da=botonDescarga(function(){return src;},'legado-img-'+(idx+1)+'.png','image/png','⬇',
+    'background:rgba(255,255,255,.93);border:none;border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;display:block;cursor:pointer;font-family:inherit');
   dd.appendChild(da);imWrap.appendChild(dd);
   var rd=document.createElement('div');rd.style.cssText='position:absolute;top:6px;right:6px';
   var rb=document.createElement('button');rb.textContent='↺';rb.title='Regenerar';
@@ -3668,8 +3823,31 @@ async function generarAnclasEpisodio(res,refsBase,st){
 
 // Lo que le toca a UNA escena: su escenario (si lo tiene) y el vestuario.
 // En profesor, las TOMAS van en el set y los EJEMPLOS ocurren fuera.
-function conAnclasDeEpisodio(promptCrudo,promptLimpio,refs,ancla,esToma){
+// `esToma` = esta escena ocurre en el set fijo del episodio (modo profesor).
+//
+// LA ROPA SOLO SE FIJA DONDE HAY CONTINUIDAD. En modo profesor eso son las TOMAS:
+// la clase se graba de una sentada y ahi no puede cambiar de camisa. Los EJEMPLOS
+// son otro momento y otro sitio; obligarles la misma ropa no aporta nada y ademas
+// gastaba dos referencias de mas en cada peticion.
+function conAnclasDeEpisodio(promptCrudo,promptLimpio,refs,ancla,esToma,modo){
+  // EN LOS EJEMPLOS DEL PROFESOR NO SALE EL PROFESOR.
+  //
+  // El prefijo de estilo dice "el MISMO hombre en todas las imagenes", asi que
+  // hasta ahora el protagonista se colaba en los ejemplos — incluido el del error
+  // tipico. Y ahi deja de ser el profesor: pasa a ser uno mas que tampoco sabe. El
+  // espectador tiene que verse a SI MISMO en esa escena, no al que le ensena.
+  if(modo==='profesor'&&!esToma){
+    return {
+      prompt:'IMPORTANT OVERRIDE: the recurring signature character does NOT appear in this image. '
+        +'This is an example of what happens to SOMEONE ELSE. Draw a different person — different face, '
+        +'different age or build, different clothes. Do not draw the bearded man from the reference '
+        +'images anywhere in this scene.\n'+promptLimpio,
+      // Sin las referencias de su cara: si viajan, sale el.
+      refs:null,
+    };
+  }
   if(!ancla)return {prompt:promptLimpio,refs:refs};
+  var conVestuario=(modo==='profesor')?!!esToma:true;
   var extra=[],aviso='';
   var sinData=function(x){return String(x).replace(/^data:image\/[a-z+]+;base64,/,'');};
 
@@ -3686,14 +3864,19 @@ function conAnclasDeEpisodio(promptCrudo,promptLimpio,refs,ancla,esToma){
       +'the same positions. You are only moving the camera inside it. Do NOT invent a different place, '
       +'do NOT add or remove furniture. ';
   }
-  if(ancla.personaje){
+  if(ancla.personaje&&conVestuario){
     extra.push(sinData(ancla.personaje));
     aviso+='THE WARDROBE IS ALREADY DECIDED. The last reference image shows the character in the exact '
-      +'outfit he wears in this video. Same garments, same colours. Do NOT change his clothes '
-      +'unless this scene explicitly describes different clothing. ';
+      +'outfit he wears in these shots. Same garments, same colours. Do NOT change his clothes. ';
   }
   if(!extra.length)return {prompt:promptLimpio,refs:refs};
-  return {prompt:aviso+promptLimpio,refs:(refs||[]).concat(extra)};
+  // EL ANCLA SUSTITUYE A LAS 4 DE MARCA, no se suma. El ancla del vestuario se
+  // genero A PARTIR de ellas: ya lleva la misma cara y ademas la ropa de este
+  // video. Mandar las seis juntas solo servia para pasarse del limite de tamano
+  // de la peticion — el 413 que salia en cinco imagenes seguidas — y para diluir
+  // justo la referencia que manda.
+  var base=(ancla.personaje&&conVestuario)?[]:(refs||[]);
+  return {prompt:aviso+promptLimpio,refs:base.concat(extra)};
 }
 
 async function genImages(){
@@ -3767,17 +3950,34 @@ async function genImages(){
 
   var gen=0;
   for(var i=0;i<totalImgs;i++){
-    st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
-    try{
-      var esc=await prepararImagen(lastRes.c[i],imgRefs);
-      var conj=conAnclasDeEpisodio(lastRes.c[i],esc.prompt,esc.refs,anclaEp,i<nTomas);
-      var src=await genOneImage(imgPromptPrefix(imgFmt)+conj.prompt,conj.refs);
-      imgs[i]={src:src,idx:i+1};
-      setSlotOk(slots[i],src,i);
-      gen++;cost+=imgCost();updCost();chkExport();
-    }catch(e){
-      setSlotError(slots[i],i,e.message);
+    // SE ESPERA Y SE REINTENTA, no se salta. Es lo mismo que ya se arreglo en la
+    // biblia: la mayoria de los fallos son el limite por minuto de Google, y
+    // pasar a la siguiente imagen solo garantiza que esa tambien lo encuentre.
+    // Salian ocho imagenes seguidas en rojo por esto.
+    var ultimo='';
+    for(var intento=0;intento<=ESPERAS_REINTENTO.length;intento++){
+      try{
+        st.textContent='Generando imagen '+(i+1)+' de '+totalImgs+'...';
+        var esc=await prepararImagen(lastRes.c[i],imgRefs);
+        var conj=conAnclasDeEpisodio(lastRes.c[i],esc.prompt,esc.refs,anclaEp,i<nTomas,lastRes.modo);
+        var src=await genOneImage(imgPromptPrefix(imgFmt)+conj.prompt,conj.refs);
+        imgs[i]={src:src,idx:i+1};
+        setSlotOk(slots[i],src,i);
+        gen++;cost+=imgCost();updCost();chkExport();
+        ultimo='';
+        break;
+      }catch(e){
+        ultimo=e.message||'error';
+        if(intento<ESPERAS_REINTENTO.length){
+          var esp=ESPERAS_REINTENTO[intento];
+          if(esLimite(ultimo))esp*=2;   // el limite por minuto no se arregla insistiendo antes
+          st.textContent='Imagen '+(i+1)+': '+ultimo.slice(0,50)
+            +' — reintento '+(intento+1)+' de '+ESPERAS_REINTENTO.length+' en '+Math.round(esp/1000)+' s';
+          await new Promise(function(rs){setTimeout(rs,esp);});
+        }
+      }
     }
+    if(ultimo)setSlotError(slots[i],i,ultimo);
     if(i<totalImgs-1)await new Promise(function(resolve){setTimeout(resolve,PAUSA_IMAGENES);});
   }
   st.textContent=gen+'/'+totalImgs+' imagenes generadas.';
@@ -3877,8 +4077,9 @@ function renderThumb(){
   var im=document.createElement('img');im.src=thumbImg;im.style.cssText='width:100%;display:block';
   wrap.appendChild(im);
   var dd=document.createElement('div');dd.style.cssText='position:absolute;bottom:6px;right:6px;display:flex;gap:5px';
-  var da=document.createElement('a');da.href=thumbImg;da.download='legado-miniatura.png';da.textContent='⬇';
-  da.style.cssText='background:rgba(255,255,255,.93);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600;color:#2a2a3a;text-decoration:none';
+  var da=botonDescarga(function(){return thumbImg;},'legado-miniatura.png','image/png','⬇',
+    'background:rgba(255,255,255,.93);border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;color:#2a2a3a;cursor:pointer;font-family:inherit');
+
   var rb=document.createElement('button');rb.textContent='↺';rb.title='Regenerar miniatura';
   rb.style.cssText='background:rgba(255,255,255,.93);border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;line-height:1';
   rb.addEventListener('click',genThumb);
@@ -3913,8 +4114,8 @@ function renderVideoControls(box,idx){
     vid.src=vids[idx].url;vid.controls=true;vid.style.cssText='width:100%;border-radius:8px;display:block;background:#000';
     box.appendChild(vid);
     var row=document.createElement('div');row.style.cssText='display:flex;gap:6px;margin-top:5px';
-    var dl=document.createElement('a');dl.href=vids[idx].url;dl.download='legado-video-'+(idx+1)+'.mp4';dl.textContent='⬇ Descargar';
-    dl.style.cssText='flex:1;text-align:center;background:#fff;border:1.5px solid #9ab47a;border-radius:6px;padding:6px;font-size:10px;font-weight:600;color:#9ab47a;text-decoration:none';
+    var dl=botonDescarga(function(){return vids[idx].url;},'legado-video-'+(idx+1)+'.mp4','video/mp4','⬇ Descargar',
+      'flex:1;text-align:center;background:#fff;border:1.5px solid #9ab47a;border-radius:6px;padding:6px;font-size:10px;font-weight:600;color:#9ab47a;cursor:pointer;font-family:inherit');
     var rg=document.createElement('button');rg.textContent='↺ Regenerar';
     rg.style.cssText='flex:1;background:#fff;border:1.5px solid #b8975a;border-radius:6px;padding:6px;font-size:10px;font-weight:600;color:#b8975a;cursor:pointer;font-family:inherit';
     rg.addEventListener('click',function(){genVideoForSlot(idx,box);});
@@ -4571,9 +4772,7 @@ function renderFinalVid(){
   [['es','🇪🇸 Español'],['en','🇺🇸 English']].forEach(function(par){
     var f=FINALES[par[0]];
     if(!f)return;
-    var dl=document.createElement('a');
-    dl.href=f.url;dl.download=slug+'-final-'+par[0]+'.mp4';
-    dl.textContent='⬇ '+par[1];
+    var dl=botonDescarga(function(){return f.url;},slug+'-final-'+par[0]+'.mp4','video/mp4','⬇ '+par[1],'');
     var activo=finalVid&&finalVid.lang===par[0];
     dl.style.cssText='display:inline-block;background:'+(activo
       ? 'linear-gradient(135deg,#7a9ec4,#9ab8d8)' : '#fff')
@@ -4593,7 +4792,21 @@ function renderFinalVid(){
 
 function chkExport(){if(audES||audEN||imgs.length||thumbImg||finalVid||FINALES.es||FINALES.en)document.getElementById('expbtn').style.display='flex';}
 
-function fmtSRTTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60),ms=Math.round((s%1)*1000);return(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc+','+(ms<100?(ms<10?'00':'0'):'')+ms;}
+// El tiempo de un subtitulo, en el formato exacto del SRT.
+//
+// Ojo con el redondeo de los milisegundos: 56,9997 s redondeaba a "1000" ms y
+// salia "00:00:56,1000", que NO es un tiempo valido de SRT. Un solo timestamp
+// invalido puede tirar el resto del archivo cuando ffmpeg lo lee. Se redondea
+// primero el total en milisegundos y luego se reparte, que es lo unico que no
+// puede desbordar.
+function fmtSRTTime(s){
+  var tot=Math.max(0,Math.round(Number(s||0)*1000));
+  var ms=tot%1000; tot=(tot-ms)/1000;
+  var sc=tot%60;   tot=(tot-sc)/60;
+  var m=tot%60;    var h=(tot-m)/60;
+  var dd=function(n){return(n<10?'0':'')+n;};
+  return dd(h)+':'+dd(m)+':'+dd(sc)+','+(ms<100?(ms<10?'00':'0'):'')+ms;
+}
 
 function makeSRTFromAlignment(alignment){
   if(!alignment||!alignment.characters)return '';
@@ -4659,20 +4872,39 @@ function makeSRT(text,aud){
   var suma=pesos.reduce(function(a,b){return a+b;},0);
 
   // Ventana en la que hay que encajar el texto.
-  var t0=0,total;
+  var t0=0,total,tramos=null;
   if(aud&&isFinite(aud.vozFin)&&aud.vozFin>aud.vozIni+0.5){
     t0=aud.vozIni;total=aud.vozFin-aud.vozIni;      // el tramo de voz medido
+    tramos=aud.vozTramos||null;
   }else if(aud&&isFinite(aud.dur)&&aud.dur>0.5){
     total=aud.dur;                                   // al menos la duracion real
   }else{
     total=suma*(60/130)/5.5;                         // sin audio: la estimacion de siempre
   }
 
-  var segs=[],t=t0;
+  // EL TEXTO SE REPARTE SOBRE EL TIEMPO HABLADO, no sobre el tiempo total.
+  //
+  // En un reel de 40 s daba igual. En uno de tres minutos, no: los silencios
+  // entre parrafos se llevaban su parte del texto, y el desfase se acumulaba
+  // hasta que los subtitulos iban por un lado y la voz por otro. Ahora el reparto
+  // se hace por segundos de voz y luego se traduce al reloj del audio, con lo que
+  // las pausas salen gratis y el error no pasa de una frase.
+  var hablado=total;
+  if(tramos&&tramos.length){
+    hablado=0;
+    for(var q=0;q<tramos.length;q++)hablado+=tramos[q].fin-tramos[q].ini;
+    if(hablado<0.5){tramos=null;hablado=total;}
+  }
+
+  var segs=[],tv=0;
   for(var k=0;k<grupos.length;k++){
-    var d=total*(pesos[k]/suma);
-    segs.push({text:grupos[k],start:t,end:t+d});
-    t+=d;
+    var d=hablado*(pesos[k]/suma);
+    segs.push({
+      text:grupos[k],
+      start:tiempoRealDeVoz(tramos,t0,t0+total,tv),
+      end:tiempoRealDeVoz(tramos,t0,t0+total,tv+d),
+    });
+    tv+=d;
   }
   return segs.map(function(s,i){return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
 }
@@ -4749,12 +4981,10 @@ async function exportAll(){
       }
     }
     var content=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
-    var url=URL.createObjectURL(content);
-    var a=document.createElement('a');
-    a.href=url;a.download=slug+'-legado.zip';
-    document.body.appendChild(a);a.click();
-    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},5000);
-    btn.innerHTML='✓ ZIP Descargado';
+    // Y no se da por descargado hasta que de verdad se guarda: antes ponia
+    // "ZIP Descargado" pasara lo que pasara, y en el iPhone no pasaba nada.
+    var res=await descargarArchivo(content,slug+'-legado.zip','application/zip');
+    btn.innerHTML=res==='cancelado'?'⬇ Descargar ZIP':'✓ ZIP guardado';
     setTimeout(function(){btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imágenes + Videos)';btn.disabled=false;},3000);
   }catch(e){
     btn.innerHTML='📦 Exportar todo (Guiones + Audio + Imágenes + Videos)';btn.disabled=false;
@@ -4816,10 +5046,8 @@ var POST_ESTILOS_IMG=[
 function downloadPost(){
   var canvas=document.getElementById('postCanvas');
   if(!canvas)return;
-  var a=document.createElement('a');
-  a.download='legado-post-'+postFmt+'.png';
-  a.href=canvas.toDataURL('image/png',1.0);
-  a.click();
+  descargarArchivo(canvas.toDataURL('image/png',1.0),'legado-post-'+postFmt+'.png','image/png')
+    .catch(function(e){alert('No se pudo guardar: '+(e.message||'error'));});
 }
 
 // ==== POSTS VIRALES — 4 plantillas basadas en los formatos que funcionan en Facebook ====

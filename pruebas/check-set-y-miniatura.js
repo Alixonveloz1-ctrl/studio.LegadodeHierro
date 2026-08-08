@@ -83,8 +83,12 @@ const { chromium } = require('playwright-core');
     tomas.every(x => x.refs >= 2), tomas.map(x => x.refs).join(','));
   t('los 3 ejemplos NO llevan el set: ocurren fuera',
     ejemplos.every(x => !/THE PLACE IS ALREADY DECIDED/.test(x.prompt)), ejemplos.length + ' ejemplos');
-  t('pero sí llevan el vestuario: es el mismo hombre y la misma ropa',
-    ejemplos.every(x => /THE WARDROBE IS ALREADY DECIDED/.test(x.prompt)));
+  // Y TAMPOCO el vestuario ni la cara: en un ejemplo sale OTRA persona. Si el
+  // profesor aparece en la escena del error, deja de ser el profesor.
+  t('ni el vestuario: los ejemplos son de otra gente',
+    ejemplos.every(x => !/THE WARDROBE IS ALREADY DECIDED/.test(x.prompt)));
+  t('y se les dice que no dibujen al protagonista',
+    ejemplos.every(x => /the recurring signature character does NOT appear/.test(x.prompt)));
 
   // ---- LO MISMO EN MODO HISTORIA: los lugares que se REPITEN ----
   // Aqui no hay un set unico: la historia se mueve. Pero los sitios que salen mas

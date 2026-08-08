@@ -60,11 +60,14 @@ const { chromium } = require('playwright-core');
     await page.evaluate(() => FINALES.es !== FINALES.en));
 
   // Hay un boton de descarga por idioma
+  // Los botones ya no son <a download>: en el iPhone eso no descarga nada. Ahora
+  // son botones que abren la hoja de compartir, asi que se miran por su texto.
   const botones = await page.evaluate(() =>
-    [...document.querySelectorAll('#unifyRes a')].map(a => ({ txt: a.textContent.trim(), dl: a.getAttribute('download') })));
-  t('hay un botón de descarga por cada idioma', botones.length === 2, botones.map(x => x.dl).join(', '));
-  t('los nombres llevan el idioma',
-    botones.some(x => /-final-es\.mp4$/.test(x.dl)) && botones.some(x => /-final-en\.mp4$/.test(x.dl)));
+    [...document.querySelectorAll('#unifyRes button')].map(x => x.textContent.trim()));
+  t('hay un botón de descarga por cada idioma',
+    botones.filter(x => /⬇/.test(x)).length === 2, botones.join(' | '));
+  t('cada uno dice de qué idioma es',
+    botones.some(x => /Español/i.test(x)) && botones.some(x => /English/i.test(x)), botones.join(' | '));
   t('avisa de que el ZIP se lleva los dos',
     await page.evaluate(() => document.getElementById('unifyRes').textContent.indexOf('los dos vídeos finales') > -1));
 

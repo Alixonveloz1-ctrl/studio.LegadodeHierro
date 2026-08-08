@@ -222,7 +222,11 @@ const server = http.createServer((req, res) => {
   // Version del montaje en Cloud Run. La prueba decide que contestar poniendo
   // CR_ESTADO al arrancar el servidor: al-dia (por defecto) o desactualizado.
   if (req.method === 'GET' && req.url === '/api/unify') {
-    const esperada = '2026-08-07.1';
+    // La version se LEE del codigo, no se copia aqui: escrita a mano quedaba
+    // vieja en cuanto se tocaba el servicio, y la prueba fallaba sin motivo.
+    const esperada = (require('fs').readFileSync(
+      require('path').join(__dirname, '..', 'api', 'unify.js'), 'utf8')
+      .match(/const VERSION_ESPERADA = '([^']+)'/) || [])[1] || '0';
     const est = process.env.CR_ESTADO || 'al-dia';
     return json(res, 200, est === 'al-dia'
       ? { estado: 'al-dia', actual: esperada, esperada }

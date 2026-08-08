@@ -38,7 +38,7 @@ const { Storage } = require('@google-cloud/storage');
 // herramienta la compara con la que espera para decir sola si el Cloud Run que
 // hay corriendo esta al dia o le falta la ultima actualizacion. Antes no habia
 // forma de saberlo desde fuera y habia que preguntarlo, que es absurdo.
-const VERSION = '2026-08-07.1';
+const VERSION = '2026-08-08.1';
 
 const PORT = process.env.PORT || 8080;
 // Sin nombres de respaldo: el bucket SIEMPRE viene de la variable BUCKET del despliegue.
@@ -419,7 +419,23 @@ async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg, im
       // recorte por picos SIN el escalon del hard-clip => sin distorsion ni clicks.
       const fc =
         '[1:a]aformat=sample_fmts=fltp:channel_layouts=stereo,volume=1.0[nar];' +
-        '[2:a]aformat=sample_fmts=fltp:channel_layouts=stereo,volume=' + vol.toFixed(3) + '[mus];' +
+        // LA MUSICA, APLANADA ANTES DE MEZCLARLA.
+        //
+        // Una pieza generada tiene su dinamica: pasajes suaves y subidas. Como
+        // musica de fondo eso es un problema — en las subidas tapa la voz, y si
+        // se baja el volumen para que no la tape, en los pasajes suaves no se
+        // oye. No hay volumen manual que valga para las dos cosas.
+        //
+        // dynaudnorm empareja el nivel a lo largo de toda la pieza (ventana de
+        // ~3 s, sin bombear), acompressor recorta lo que aun sobresalga y
+        // loudnorm la deja en un nivel conocido antes de aplicar el volumen
+        // elegido. Resultado: la musica suena igual de presente todo el rato y
+        // el volumen que se elige significa lo mismo de principio a fin.
+        '[2:a]aformat=sample_fmts=fltp:channel_layouts=stereo,' +
+        'dynaudnorm=f=250:g=15:p=0.9:m=8:r=0.9:s=12,' +
+        'acompressor=threshold=0.1:ratio=4:attack=20:release=250:makeup=1,' +
+        'loudnorm=I=-24:TP=-6:LRA=3,' +
+        'volume=' + vol.toFixed(3) + '[mus];' +
         '[nar][mus]amix=inputs=2:duration=first:normalize=0:dropout_transition=0[premix];' +
         '[premix]alimiter=level=0:limit=0.891:attack=5:release=50:asc=1,' + LOUDNORM + '[a]';
       await run('ffmpeg', ['-y', '-i', joined, '-i', audioFull, '-i', musicBed,

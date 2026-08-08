@@ -80,3 +80,7 @@ index.js embebido en los instaladores de Cloud Run siga al dia.
   set ANTES de las tomas y que las dos anclas viajen en cada toma (los ejemplos
   no, ocurren fuera), y que la miniatura sea una portada de verdad y no el
   personaje centrado sobre un fondo negro.
+- **check-413-descargas-y-musica.js** — que las referencias quepan en la peticion
+  (el 413), que una imagen que falla se reintente en vez de saltarse, que las
+  descargas funcionen desde el iPhone, que los subtitulos no se metan en los
+  silencios de un audio largo, y que la musica se aplane antes de mezclarla.
