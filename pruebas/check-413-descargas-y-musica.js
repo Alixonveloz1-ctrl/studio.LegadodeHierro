@@ -163,6 +163,27 @@ const RAIZ = '/home/user/studio.LegadodeHierro';
     subs.malFormados === 0, subs.malFormados + ' timestamps rotos');
 
   // ---- 6. LA MÚSICA, SIN PICOS ----
+  // Son TRES sitios distintos, y hasta ahora solo estaba arreglado el tercero:
+  //   1. Al GENERARLA: no pedirle picos a Lyria.
+  //   2. Al ESCUCHARLA: que la vista previa suene como sonará el vídeo.
+  //   3. Al MONTARLA: aplanarla en ffmpeg, que es lo unico que lo garantiza.
+  // Sin los comentarios: ahi se cita el texto viejo a proposito, para explicar
+  // que se quito, y si no se filtran la comprobacion se enganaria sola.
+  const MG = fs.readFileSync(RAIZ + '/api/music-gen.js', 'utf8')
+    .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+  t('1. ya NO se le pide a Lyria que la pieza crezca',
+    !/grows fuller and more intense/.test(MG) && !/Peak of the piece/.test(MG));
+  t('   se le pide plana de principio a fin',
+    /FLAT AND EVEN from the first second/.test(MG) && /NO crescendo, NO climax/.test(MG));
+  t('   sin entrar ni salir con fundido', /NO fade-in and NO fade-out/.test(MG));
+  t('   y con la comparación que lo deja claro: un bucle',
+    /a loop that could start at any second and sound/.test(MG));
+  t('   se le repite en español, que es lo último que lee',
+    /DINAMICA PLANA \(lo mas importante de todo\)/.test(MG));
+  t('   la línea de tiempo sigue existiendo (es como se pide la duración)',
+    /The piece lasts the full/.test(MG));
+  t('2. la escucha previa lleva el mismo compresor que el montaje',
+    /createDynamicsCompressor/.test(A) && /comp\.connect\(g\)/.test(A));
   const CR = fs.readFileSync(RAIZ + '/cloudrun/unify/index.js', 'utf8');
   t('la música se aplana antes de mezclarla', /dynaudnorm=f=250/.test(CR));
   t('y lo que sobresalga se recorta', /acompressor=threshold=0\.1/.test(CR));

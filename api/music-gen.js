@@ -89,13 +89,31 @@ function mmss(seg) {
   const m = Math.floor(seg / 60), s = Math.round(seg % 60);
   return '[' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + ']';
 }
+// LA LINEA DE TIEMPO PIDE UNA PIEZA PLANA, NO UNA QUE CREZCA.
+//
+// Antes esta misma funcion pedia lo contrario: "the arrangement fills out",
+// "grows fuller and more intense with each bar", "PEAK of the piece". Es decir,
+// se le estaban PIDIENDO los picos. Y una pieza con picos no sirve de fondo: en
+// las subidas tapa la voz, y si se baja el volumen para que no la tape, en los
+// pasajes suaves no se oye. No hay volumen manual que arregle las dos cosas.
+//
+// La linea de tiempo se mantiene porque es la unica forma de pedir la duracion
+// (Lyria no tiene parametro para eso), pero ahora cada marca dice lo mismo:
+// sigue igual. Sin crescendo, sin clímax y sin bajones.
 function lineaDeTiempo(total, oscuro) {
-  return mmss(0) + ' Begin restrained, establishing the mood described above from the very first bar.\n'
-    + mmss(total * 0.25) + ' The arrangement fills out, the main theme settles in and a steady pulse carries it forward.\n'
-    + mmss(total * 0.55) + ' The piece grows fuller and more intense with each bar, still leaving room for a narrator to speak over it.\n'
-    + mmss(total * 0.80) + ' Peak of the piece: ' + (oscuro ? 'at its most powerful and imposing' : 'warm, triumphant and inspiring')
-    + ', without ever becoming harsh or drowning out a voice.\n'
-    + mmss(total) + ' Settle into a resolved final chord. The piece lasts the full ' + Math.round(total) + ' seconds.';
+  const igual = ' Same intensity, same instruments, same volume as the bar before. No build-up, no drop.';
+  return 'This is BACKGROUND music under a narrator. It must be FLAT AND EVEN from the first second to the '
+    + 'last: one single sustained intensity, held all the way through. NO crescendo, NO climax, NO quiet '
+    + 'passages, NO sudden swells, NO dramatic hits, NO fade-in and NO fade-out. If a listener could point '
+    + 'at a "loudest moment", the piece is wrong. Think of a loop that could start at any second and sound '
+    + 'the same.\n'
+    + mmss(0) + ' Start already at the full, final texture and intensity of the piece — do not ease in.'
+    + (oscuro ? ' Dark, firm, steady.' : ' Warm, firm, steady.') + '\n'
+    + mmss(total * 0.25) + igual + '\n'
+    + mmss(total * 0.50) + igual + '\n'
+    + mmss(total * 0.75) + igual + '\n'
+    + mmss(total) + ' End on the same level, without a final swell and without fading out. '
+    + 'The piece lasts the full ' + Math.round(total) + ' seconds.';
 }
 
 // Envuelve la descripcion de estilo con la salvaguarda, la linea de tiempo (que es
@@ -123,7 +141,10 @@ function armarPrompt(estilo, oscuro) {
     + 'ESTRICTAMENTE INSTRUMENTAL: ni voces, ni coro, ni letra, ni palabras cantadas o habladas. '
     + 'El texto de arriba es una descripcion del ESTILO, nunca una letra para cantar. '
     + 'Encima de esta musica va la voz de un narrador, asi que deja sitio: registro medio y grave, '
-    + 'sin agudos punzantes, dinamica contenida y sin silencios bruscos. '
+    + 'sin agudos punzantes y sin silencios bruscos. '
+    + 'DINAMICA PLANA (lo mas importante de todo): el volumen no sube ni baja en toda la pieza. '
+    + 'Nada de crescendos, ni climax, ni golpes, ni pasajes suaves. Es un fondo, no es la protagonista: '
+    + 'si en algun momento se hace notar por encima de la voz, esta mal. '
     + 'Produccion limpia, estereo amplio, sin distorsion. '
     + 'Nada de sonido de videojuego retro (8-bit, chiptune, arcade) ni MIDI barato.\n\n'
     + GUARDA;

@@ -4524,8 +4524,20 @@ async function toggleMixPreview(objectOverride){
     var vol=mv?parseInt(mv.value,10)/100:0.18;
     if(!isFinite(vol)||vol<0)vol=0.18;
     MIX.gen=(MIX.gen||0)+1;var myGen=MIX.gen; // invalida temporizadores de reproducciones anteriores
+    // LA ESCUCHA TIENE QUE SONAR COMO VA A SONAR EL VIDEO.
+    //
+    // El montaje aplana la musica antes de mezclarla; si aqui se oyera el archivo
+    // crudo, la vista previa mentiria: elegirias el volumen contra unos picos que
+    // en el video final ya no existen. Se le pone la misma idea — un compresor —
+    // para que lo que oyes sea lo que se va a montar.
     var g=MIX.ctx.createGain();g.gain.value=vol;g.connect(MIX.ctx.destination);
-    var ms=MIX.ctx.createBufferSource();ms.buffer=mb;ms.loop=true;ms.connect(g);
+    var comp=MIX.ctx.createDynamicsCompressor();
+    try{
+      comp.threshold.value=-30;comp.knee.value=12;comp.ratio.value=6;
+      comp.attack.value=0.02;comp.release.value=0.25;
+    }catch(e){}
+    comp.connect(g);
+    var ms=MIX.ctx.createBufferSource();ms.buffer=mb;ms.loop=true;ms.connect(comp);
     MIX.gain=g;
     ms.start();MIX.srcs.push(ms);
     if(vb){
