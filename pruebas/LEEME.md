@@ -65,3 +65,7 @@ index.js embebido en los instaladores de Cloud Run siga al dia.
   reels (60 s de margen en el servidor, 10 s de pausa), que una vista que falla
   se reintente esperando en vez de saltarse, y que la tanda pare en vez de
   repartir huecos por toda la biblia.
+- **check-guion-largo.js** — que el guion de los modos largos quepa (tope de
+  salida), que una respuesta 200 pero inservible se reintente en vez de darse
+  por buena, que haya reloj para no pasarse de los 60 s de Vercel, y que el
+  aviso de error diga POR QUE fallo.

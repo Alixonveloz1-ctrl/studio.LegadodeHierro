@@ -1681,7 +1681,18 @@ async function fetchEpisode(msg){
   if(!r.ok){throw new Error(d&&d.error?d.error:'Error '+r.status);}
   if(!d.text)throw new Error('Sin respuesta de texto.');
   var p=parseBlocks(d.text);
-  if(!p.a||p.a.length<20)throw new Error('No se pudo leer el guion ES. Intenta de nuevo.');
+  if(!p.a||p.a.length<20){
+    // "Intenta de nuevo" no decia nada y no dejaba arreglar nada. Ahora el aviso
+    // trae el motivo real que manda el servidor: si el modelo se quedo sin tope de
+    // longitud, si devolvio otra cosa, y con que empezaba lo que si llego.
+    var pista=d.finishReason==='MAX_TOKENS'
+      ? 'el guion se cortó por longitud. Prueba una duración menor o vuelve a darle.'
+      : 'la respuesta no traía el BLOQUE A.';
+    var muestra=String(d.text||'').replace(/\s+/g,' ').slice(0,90);
+    throw new Error('No se pudo leer el guion ES: '+pista
+      +' ('+(d.chars||0)+' caracteres'+(d.finishReason?', '+d.finishReason:'')+')'
+      +(muestra?'\nEmpezaba por: "'+muestra+'..."':''));
+  }
   return Object.assign({},p,{raw:d.text});
 }
 
