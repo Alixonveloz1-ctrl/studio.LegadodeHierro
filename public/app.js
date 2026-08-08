@@ -1665,41 +1665,73 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
 // Y no es una traduccion. Un calco del espanol suena a doblaje: hay frases que en
 // espanol pegan y en ingles no significan nada. Lo que se pide es el MISMO reel
 // dicho por alguien de Estados Unidos, con sus giros y su forma de rematar.
-function buildInglesMsg(guionES,mode,dO){
+function contarPalabras(t){
+  return String(t||'').trim().split(/\s+/).filter(function(x){return x.length>0;}).length;
+}
+
+function buildInglesMsg(guionES,mode,dO,queja){
+  // El objetivo de longitud sale del guion espanol REAL, no de la formula de la
+  // duracion: si el espanol salio de 480 palabras, el ingles tiene que tener 480,
+  // no las 450 que decia la tabla.
+  var n=contarPalabras(guionES);
+  var min=Math.round(n*0.92),max=Math.round(n*1.12);
   var segs=dO&&dO.secs?dO.secs:60;
-  var palabras=esModoLargo(mode)?Math.round(segs*2.5):Math.round(segs*2.6);
   return 'You are the English-language voice of IRON LEGACY, a channel about financial freedom, '
     +'discipline, mindset and building your own thing. Blunt, direct, no empty motivation, no coach cliches.\n\n'
-    +'Below is the Spanish script of one episode. Write the ENGLISH version of it.\n\n'
-    +'THIS IS NOT A TRANSLATION. Do not translate sentence by sentence. Read the Spanish, understand what it '
-    +'DOES to the listener — the hook, the turn, the punch — and write it again from scratch the way a NATIVE '
-    +'US speaker would say it out loud. Same idea, same order, same emotional beats; different words wherever '
-    +'English needs different words.\n\n'
-    +'RULES:\n'
-    +'- It has to sound spoken, not written. Contractions (you\'re, that\'s, won\'t). Short sentences.\n'
-    +'- Use US references and US money habits when the Spanish one would not land (401k, rent, credit card '
-    +'minimums, paycheck to paycheck). Never leave a Spanish idiom translated word for word.\n'
-    +'- Keep the numbers and the concrete facts identical. Only the wording changes.\n'
-    +'- No Spanish words left in. No "Legado de Hierro" — the English brand is IRON LEGACY.\n'
-    +'- Same length: between '+palabras+' and '+(palabras+15)+' words. It has to fit the same '+segs+' seconds of voice.\n'
-    +'- Plain text. No markdown, no **, no headings, no stage directions, no labels.\n\n'
+    +'Translate the Spanish script below into English.\n\n'
+    +'THIS IS A COMPLETE TRANSLATION. Every idea, every sentence, every number, every example and every '
+    +'step in the Spanish script must appear in the English one, in the SAME ORDER and with the same paragraph '
+    +'breaks. Do NOT summarise. Do NOT condense. Do NOT merge two sentences into one. Do NOT drop a part '
+    +'because it feels repetitive — the repetition is deliberate, it is a spoken script. '
+    +'If the Spanish says it, the English says it.\n\n'
+    +'BUT NOT WORD FOR WORD. Translate meaning to meaning. Say each sentence the way a native US speaker '
+    +'would say that same thing out loud:\n'
+    +'- Contractions (you\'re, that\'s, won\'t). Spoken rhythm, not written prose.\n'
+    +'- Where a Spanish expression has no English equivalent, use the US expression that does the same job. '
+    +'Never leave a Spanish idiom translated literally.\n'
+    +'- Use US money references when the Spanish one would not land (401k, credit card minimum, rent, '
+    +'paycheck to paycheck). Keep every figure and every number exactly as it is.\n'
+    +'- No Spanish words left in. The brand signature is IRON LEGACY, not a translation of the Spanish one.\n\n'
+    +'LENGTH — HARD REQUIREMENT. The Spanish script has '+n+' words. Your English version must have between '
+    +min+' and '+max+' words, because it has to fill the same '+segs+' seconds of voice-over. '
+    +'If your draft is shorter than '+min+' words it means you left something out: go back over the Spanish, '
+    +'find what you skipped, and translate it too. COUNT YOUR WORDS BEFORE YOU ANSWER.\n\n'
+    +(queja?'YOUR PREVIOUS ATTEMPT WAS REJECTED: '+queja+' You skipped content. This time translate the '
+      +'WHOLE script, from the first sentence to the last, without leaving anything out.\n\n':'')
     +'Finish with exactly: Iron Legacy.\n\n'
-    +'Answer with the English script and NOTHING else — no preamble, no title, no explanation.\n\n'
-    +'--- SPANISH SCRIPT ---\n'+guionES;
+    +'Answer with the English script and NOTHING else — no preamble, no title, no word count, no explanation.\n\n'
+    +'--- SPANISH SCRIPT ('+n+' words) ---\n'+guionES;
 }
 
 // Pide SOLO la version en ingles. Devuelve el texto o lanza el error.
+//
+// Y LA MIDE. Es el MISMO video: si el ingles sale mas corto que el espanol es que
+// se dejo cosas fuera, y entonces ya no es el mismo video — es un resumen. Se le
+// devuelve con la cuenta hecha y se le pide que traduzca lo que se salto.
 async function fetchIngles(guionES,mode,dO){
-  var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:buildInglesMsg(guionES,mode,dO),sinBloques:true})});
-  if(r.status===504)throw new Error('el servidor tardó más de 60 s');
-  var d=await r.json().catch(function(){return {};});
-  if(!r.ok)throw new Error(d.error||'Error '+r.status);
-  if(!d.text||!d.text.trim())throw new Error('sin respuesta');
-  // Por si cuela una etiqueta o un preambulo, se limpia lo evidente.
-  var t=d.text.replace(/^\s*(BLOQUE\s*F|ENGLISH( SCRIPT)?|EN)\s*:?\s*\n/i,'').trim();
-  if(t.length<20)throw new Error('la respuesta vino vacía');
-  return t;
+  var esperadas=contarPalabras(guionES);
+  var minimo=Math.round(esperadas*0.85);
+  var queja='',ultimo='';
+  for(var intento=0;intento<2;intento++){
+    var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:buildInglesMsg(guionES,mode,dO,queja),sinBloques:true})});
+    if(r.status===504)throw new Error('el servidor tardó más de 60 s');
+    var d=await r.json().catch(function(){return {};});
+    if(!r.ok)throw new Error(d.error||'Error '+r.status);
+    if(!d.text||!d.text.trim())throw new Error('sin respuesta');
+    // Por si cuela una etiqueta o un preambulo, se limpia lo evidente.
+    var t=d.text.replace(/^\s*(BLOQUE\s*F|ENGLISH( SCRIPT)?|EN)\s*:?\s*\n/i,'').trim();
+    if(t.length<20)throw new Error('la respuesta vino vacía');
+    var tiene=contarPalabras(t);
+    if(tiene>=minimo)return t;
+    ultimo=t;
+    queja='your version had only '+tiene+' words for a '+esperadas+'-word Spanish script.';
+    console.warn('El ingles vino corto ('+tiene+' de '+esperadas+' palabras). Se pide completo.');
+  }
+  // Si a la segunda sigue corto, se devuelve igual — mejor un ingles corto que
+  // ninguno — pero se avisa arriba para que se vea en pantalla.
+  throw new Error('salió incompleto ('+contarPalabras(ultimo)+' palabras frente a '
+    +esperadas+' del español). Vuelve a pedirlo.');
 }
 
 // Llama a /api/generate y devuelve el episodio ya parseado (a, f, c, cRaw, raw).

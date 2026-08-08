@@ -137,18 +137,34 @@ async function generar(prompt) {
   t('esa llamada avisa al servidor de que no lleva bloques', /sinBloques:true/.test(A));
   t('y el servidor lo respeta', /const sinBloques = !!\(req\.body && req\.body\.sinBloques\)/.test(R));
 
-  // ---- 7. el inglés es una ADAPTACION, no una traduccion ----
-  t('se le prohíbe traducir frase por frase',
-    /THIS IS NOT A TRANSLATION/.test(A) && /Do not translate sentence by sentence/.test(A));
-  t('tiene que sonar a estadounidense nativo hablando',
-    /the way a NATIVE/.test(A) && /US speaker would say it out loud/.test(A));
-  t('con referencias de allí cuando la española no encaje',
-    /401k/.test(A) && /Never leave a Spanish idiom translated word for word/.test(A));
+  // ---- 7. ES EL MISMO VIDEO, uno en español y otro en inglés ----
+  // Aqui se colo un error mio: le pedi que lo "reescribiera desde cero como lo
+  // diria un estadounidense", y con esa orden el modelo RESUME. Un guion espanol
+  // de 2600 caracteres salia en ingles con 900. No es el mismo video, es otro.
+  t('se le pide una traducción COMPLETA', /THIS IS A COMPLETE TRANSLATION/.test(A));
+  t('con las mismas frases, en el mismo orden',
+    /in the SAME ORDER and with the same paragraph/.test(A));
+  t('y se le prohíbe resumir, condensar o saltarse partes',
+    /Do NOT summarise/.test(A) && /Do NOT condense/.test(A) && /Do NOT merge two sentences/.test(A));
+  t('ya no se le dice que lo reescriba desde cero',
+    !/write it again from scratch/.test(A) && !/THIS IS NOT A TRANSLATION/.test(A));
+  t('pero tampoco palabra por palabra', /BUT NOT WORD FOR WORD/.test(A));
+  t('con giros y referencias de Estados Unidos',
+    /401k/.test(A) && /Never leave a Spanish idiom translated literally/.test(A));
   t('sin dejar palabras en español ni la firma española',
-    /No Spanish words left in/.test(A) && /the English brand is IRON LEGACY/.test(A));
-  t('y con la misma duración que el español', /It has to fit the same/.test(A));
+    /No Spanish words left in/.test(A) && /The brand signature is IRON LEGACY/.test(A));
+  t('el objetivo de longitud sale del guion español REAL, no de una tabla',
+    /var n=contarPalabras\(guionES\)/.test(A) && /The Spanish script has '\+n\+' words/.test(A));
   t('el caption en inglés ya iba así de antes',
     /NOT a translation: rewrite it the way it would be said in English/.test(A));
+
+  // ---- 7b. y NO se fia de la instruccion: lo MIDE ----
+  t('cuenta las palabras del inglés y las compara con las del español',
+    /var tiene=contarPalabras\(t\)/.test(A) && /if\(tiene>=minimo\)return t/.test(A));
+  t('si viene corto, se lo devuelve con la cuenta hecha',
+    /your version had only '\+tiene\+' words/.test(A));
+  t('y si sigue corto, lo dice en vez de colarlo como bueno',
+    /salió incompleto \('\+contarPalabras\(ultimo\)/.test(A));
 
   // ---- 8. si el ingles falla, el español NO se pierde ----
   t('un fallo del inglés no tira el reel entero', /El guion en ingles no salio/.test(A));

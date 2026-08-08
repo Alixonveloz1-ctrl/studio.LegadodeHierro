@@ -69,3 +69,6 @@ index.js embebido en los instaladores de Cloud Run siga al dia.
   salida), que una respuesta 200 pero inservible se reintente en vez de darse
   por buena, que haya reloj para no pasarse de los 60 s de Vercel, y que el
   aviso de error diga POR QUE fallo.
+- **check-ingles-completo.js** — que el ingles sea EL MISMO video que el espanol:
+  traduccion completa, mismas frases y mismo orden, con palabras de Estados
+  Unidos pero sin resumir. Y que si viene corto se reclame en vez de colarlo.

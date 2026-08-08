@@ -18,6 +18,7 @@ let lastAudioBody = null;
 let lastUnifyBody = null;
 let MOCK_VISTAS = {};
 let MOCK_ANCLA = {};
+let FORZAR_INGLES_CORTO = false;
 let GEN_LOG = [];
 let musicTracks = [{ object: 'musica/epica-1.mp3', name: 'epica-1.mp3', size: 2000000 }];
 
@@ -61,6 +62,10 @@ function json(res, code, obj) {
 const server = http.createServer((req, res) => {
   if (req.url === '/__genlog') return json(res, 200, { maxConcurrent });
   if (req.url === '/__biblialog') return json(res, 200, { gen: GEN_LOG });
+  if (req.url.indexOf('/__inglescorto') === 0) {
+    FORZAR_INGLES_CORTO = req.url.indexOf('=1') > -1;
+    return json(res, 200, { corto: FORZAR_INGLES_CORTO });
+  }
   if (req.url === '/__bibliareset') { GEN_LOG = []; MOCK_VISTAS = {}; MOCK_ANCLA = {}; return json(res, 200, { ok: true }); }
   if (req.url === '/__audiolog') return json(res, 200, lastAudioBody || {});
   if (req.url === '/__authlog') return json(res, 200, { lastKey: lastAppKey });
@@ -111,9 +116,18 @@ const server = http.createServer((req, res) => {
       // El guion en ingles es una SEGUNDA llamada, sin bloques: solo texto corrido.
       if (sinBloques) {
         genCount++;
+        // El prompt dice cuantas palabras tiene el espanol. Un modelo que cumple
+        // devuelve una traduccion de ese tamano, asi que el mock hace lo mismo:
+        // si devolviera dos frases, estaria simulando un modelo que resume.
+        const pedidas = Number((prompt.match(/SPANISH SCRIPT \((\d+) words\)/) || [])[1]) || 20;
+        // ...salvo que la prueba pida expresamente uno corto, para comprobar el freno.
+        const corto = /__CORTO__/.test(prompt) || FORZAR_INGLES_CORTO;
+        const n = corto ? Math.max(3, Math.round(pedidas * 0.4)) : pedidas;
+        const cuerpo = [];
+        for (let w = 0; w < n - 2; w++) cuerpo.push('word' + w);
         return setTimeout(() => json(res, 200, {
           success: true, finishReason: 'STOP',
-          text: 'You are working forty hours a week and you still cannot breathe.\nIron Legacy.',
+          text: cuerpo.join(' ') + '\nIron Legacy.',
         }), 30);
       }
       inFlight++; maxConcurrent = Math.max(maxConcurrent, inFlight);
