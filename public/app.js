@@ -361,10 +361,7 @@ BLOQUE M
 0s: TOMA 1
 12s: EJEMPLO 1
 20s: TOMA 3
-[...sigue hasta cubrir el guion entero]
-
-BLOQUE F
-[El mismo guion en inglés natural, sin calcos. Termina con: Iron Legacy.]`;
+[...sigue hasta cubrir el guion entero]`;
 
   // ---------------- MODO RELATO (video largo) ----------------
   if(mode==='relato')return cabeceraLarga()+`ESTE ES EL MODO RELATO: una historia larga, contada con calma.
@@ -392,10 +389,7 @@ BLOQUE C
 [Las escenas de la historia, EN ORDEN CRONOLÓGICO. Cada una es un momento del relato, no una ilustración suelta. La historia tiene que poder seguirse mirando solo las imágenes.]
 PROMPT 1: [la escena del gancho]
 PROMPT 2: [de dónde viene]
-[...una por cada momento importante, hasta el final]
-
-BLOQUE F
-[El mismo guion en inglés natural, sin calcos. Termina con: Iron Legacy.]`;
+[...una por cada momento importante, hasta el final]`;
 
   if(mode==='impacto')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
@@ -462,10 +456,7 @@ BLOQUE C
 [3 prompts. Cada uno: UNA acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje — solo qué hace y dónde. Entorno diferente en cada prompt.]
 PROMPT 1: [acción + entorno + ángulo + luz]
 PROMPT 2: [acción + entorno diferente + ángulo + luz]
-PROMPT 3: [acción + entorno diferente + ángulo + luz]
-
-BLOQUE F
-[Traducción natural al inglés. Sin calcos. Termina con: Iron Legacy.]`;
+PROMPT 3: [acción + entorno diferente + ángulo + luz]`;
 
   if(mode==='historia')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
@@ -538,10 +529,7 @@ PROMPT 4: [acción + entorno diferente + ángulo + luz]
 PROMPT 5: [acción + entorno diferente + ángulo + luz]
 PROMPT 6: [acción + entorno diferente + ángulo + luz]
 PROMPT 7: [acción + entorno diferente + ángulo + luz]
-PROMPT 8: [acción + entorno diferente + ángulo + luz]
-
-BLOQUE F
-[Traducción natural al inglés. Sin calcos. Termina con: Iron Legacy.]`;
+PROMPT 8: [acción + entorno diferente + ángulo + luz]`;
 
   return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
 
@@ -611,10 +599,7 @@ PROMPT 4: [acción + entorno diferente + ángulo + luz]
 PROMPT 5: [acción + entorno diferente + ángulo + luz]
 PROMPT 6: [acción + entorno diferente + ángulo + luz]
 PROMPT 7: [acción + entorno diferente + ángulo + luz]
-PROMPT 8: [acción + entorno diferente + ángulo + luz]
-
-BLOQUE F
-[Traducción natural al inglés. Sin calcos. Termina con: Iron Legacy.]`;
+PROMPT 8: [acción + entorno diferente + ángulo + luz]`;
 }
 var SP=buildSP();
 
@@ -1647,21 +1632,21 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   var formato;
   if(mode==='profesor'){
     formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\n'
-      +'Genera los CUATRO bloques en este orden: BLOQUE A (guion hablado), BLOQUE C (SET + 5 TOMAS + 3 EJEMPLOS), BLOQUE M (el montaje) y BLOQUE F (el guion en ingles).\n'
+      +'Genera los TRES bloques en este orden: BLOQUE A (guion hablado), BLOQUE C (SET + 5 TOMAS + 3 EJEMPLOS) y BLOQUE M (el montaje). El ingles NO va aqui: se pide aparte.\n'
       +'En el BLOQUE C tiene que haber EXACTAMENTE una linea SET:, cinco lineas TOMA 1: a TOMA 5: y tres lineas EJEMPLO 1: a EJEMPLO 3:. Ni una mas ni una menos.\n'
       +'El BLOQUE M tiene que cubrir los '+segs+' segundos completos del guion, con una linea por corte en formato "<segundo>s: TOMA <n>" o "<segundo>s: EJEMPLO <n>". '
       +'Repite las tomas cuantas veces haga falta — para eso estan — pero nunca dos iguales seguidas. Un corte cada 8 a 15 segundos.\n'
       +'Si falta cualquiera de los cuatro bloques, la respuesta es incompleta y falla el sistema.\n\n';
   }else if(mode==='relato'){
     formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\n'
-      +'Genera los 3 bloques en este orden: BLOQUE A (guion hablado en espanol), BLOQUE C (exactamente '+numPrompts+' prompts numerados PROMPT 1 a PROMPT '+numPrompts+', en orden cronologico de la historia) y BLOQUE F (el guion en ingles).\n'
+      +'Genera los DOS bloques en este orden: BLOQUE A (guion hablado en espanol) y BLOQUE C (exactamente '+numPrompts+' prompts numerados PROMPT 1 a PROMPT '+numPrompts+', en orden cronologico de la historia). El ingles NO va aqui: se pide aparte.\n'
       +'Si no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema.\n\n';
   }else{
-    formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 3 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\n3. BLOQUE F — texto hablado en inglés\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n';
+    formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 2 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\nEl guion en inglés NO va en esta respuesta: se pide en una llamada aparte. No lo incluyas.\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n';
   }
   var recuerda=(mode==='profesor')
-    ? 'Recuerda: BLOQUE A es solo el texto hablado. BLOQUE C es el SET, las 5 TOMAS y los 3 EJEMPLOS. BLOQUE M es el montaje. BLOQUE F es el guion en ingles.'
-    : 'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. BLOQUE F es el guion en ingles sin prompts.';
+    ? 'Recuerda: BLOQUE A es solo el texto hablado. BLOQUE C es el SET, las 5 TOMAS y los 3 EJEMPLOS. BLOQUE M es el montaje. NO escribas nada en ingles.'
+    : 'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. NO escribas nada en ingles.';
 
   var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\n'+formato+syncRule+seedRule+bloqueReparto()+bloqueYaDicho(25)+recuerda;
   // Las semillas creativas viajan de vuelta para guardarlas en el historial. Sin
@@ -1670,14 +1655,62 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   return {msg:msg,tO:tO,dO:dO,hO:hO,sem:{enf:semEnf,ang:semAng,regs:regs,personajes:[]}};
 }
 
+// EL INGLES VA EN SU PROPIA LLAMADA.
+//
+// Antes se pedia todo de una: guion espanol + prompts + montaje + guion ingles.
+// En un video largo eso son casi 1000 palabras entre los dos idiomas y la
+// respuesta llegaba cortada. Y el limite de 60 s de Vercel es POR LLAMADA, asi
+// que partirlo en dos no solo reparte los tokens: da el doble de tiempo.
+//
+// Y no es una traduccion. Un calco del espanol suena a doblaje: hay frases que en
+// espanol pegan y en ingles no significan nada. Lo que se pide es el MISMO reel
+// dicho por alguien de Estados Unidos, con sus giros y su forma de rematar.
+function buildInglesMsg(guionES,mode,dO){
+  var segs=dO&&dO.secs?dO.secs:60;
+  var palabras=esModoLargo(mode)?Math.round(segs*2.5):Math.round(segs*2.6);
+  return 'You are the English-language voice of IRON LEGACY, a channel about financial freedom, '
+    +'discipline, mindset and building your own thing. Blunt, direct, no empty motivation, no coach cliches.\n\n'
+    +'Below is the Spanish script of one episode. Write the ENGLISH version of it.\n\n'
+    +'THIS IS NOT A TRANSLATION. Do not translate sentence by sentence. Read the Spanish, understand what it '
+    +'DOES to the listener — the hook, the turn, the punch — and write it again from scratch the way a NATIVE '
+    +'US speaker would say it out loud. Same idea, same order, same emotional beats; different words wherever '
+    +'English needs different words.\n\n'
+    +'RULES:\n'
+    +'- It has to sound spoken, not written. Contractions (you\'re, that\'s, won\'t). Short sentences.\n'
+    +'- Use US references and US money habits when the Spanish one would not land (401k, rent, credit card '
+    +'minimums, paycheck to paycheck). Never leave a Spanish idiom translated word for word.\n'
+    +'- Keep the numbers and the concrete facts identical. Only the wording changes.\n'
+    +'- No Spanish words left in. No "Legado de Hierro" — the English brand is IRON LEGACY.\n'
+    +'- Same length: between '+palabras+' and '+(palabras+15)+' words. It has to fit the same '+segs+' seconds of voice.\n'
+    +'- Plain text. No markdown, no **, no headings, no stage directions, no labels.\n\n'
+    +'Finish with exactly: Iron Legacy.\n\n'
+    +'Answer with the English script and NOTHING else — no preamble, no title, no explanation.\n\n'
+    +'--- SPANISH SCRIPT ---\n'+guionES;
+}
+
+// Pide SOLO la version en ingles. Devuelve el texto o lanza el error.
+async function fetchIngles(guionES,mode,dO){
+  var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:buildInglesMsg(guionES,mode,dO),sinBloques:true})});
+  if(r.status===504)throw new Error('el servidor tardó más de 60 s');
+  var d=await r.json().catch(function(){return {};});
+  if(!r.ok)throw new Error(d.error||'Error '+r.status);
+  if(!d.text||!d.text.trim())throw new Error('sin respuesta');
+  // Por si cuela una etiqueta o un preambulo, se limpia lo evidente.
+  var t=d.text.replace(/^\s*(BLOQUE\s*F|ENGLISH( SCRIPT)?|EN)\s*:?\s*\n/i,'').trim();
+  if(t.length<20)throw new Error('la respuesta vino vacía');
+  return t;
+}
+
 // Llama a /api/generate y devuelve el episodio ya parseado (a, f, c, cRaw, raw).
-async function fetchEpisode(msg){
+async function fetchEpisode(msg,mode,dO){
   var r=await fetch('/api/generate',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({prompt:msg}),
   });
-  var d=await r.json();
+  if(r.status===504)throw new Error('El servidor tardó más de 60 s escribiendo el guion. Vuelve a darle.');
+  var d=await r.json().catch(function(){return {};});
   if(!r.ok){throw new Error(d&&d.error?d.error:'Error '+r.status);}
   if(!d.text)throw new Error('Sin respuesta de texto.');
   var p=parseBlocks(d.text);
@@ -1693,6 +1726,17 @@ async function fetchEpisode(msg){
       +' ('+(d.chars||0)+' caracteres'+(d.finishReason?', '+d.finishReason:'')+')'
       +(muestra?'\nEmpezaba por: "'+muestra+'..."':''));
   }
+  // SEGUNDA LLAMADA: el ingles. Va aparte para que ninguna de las dos se quede
+  // sin espacio ni sin tiempo, y para que sea una adaptacion de verdad y no un
+  // calco. Si falla, NO se pierde el guion espanol: queda el reel con su parte
+  // en espanol y el boton de la pestana EN para pedirlo otra vez.
+  p.f=''; p.errorEN='';
+  try{
+    p.f=await fetchIngles(p.a,mode||sMode,dO);
+  }catch(e){
+    p.errorEN=e.message||'error';
+    console.warn('El guion en ingles no salio: '+p.errorEN);
+  }
   return Object.assign({},p,{raw:d.text});
 }
 
@@ -1706,7 +1750,7 @@ async function generate(){
   document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Generando narrativa Trabajador→Alpha...':sMode==='profesor'?'Escribiendo la clase, el set y el montaje... (puede tardar)':sMode==='relato'?'Escribiendo el relato largo y sus escenas en orden... (puede tardar)':'Generando guiones ES + EN y prompts...';
   try{
     var built=buildEpisodeMsg(topic,sT,sH,sMode,sD);
-    var p=await fetchEpisode(built.msg);
+    var p=await fetchEpisode(built.msg,sMode,built.dO);
     lastRes=Object.assign({},p,{topic:topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:sMode,uid:nextUid()});
     genCount++;cost+=0.015;updCost();
     resetReelAssets();
@@ -1844,7 +1888,7 @@ async function generateBatch(customJobs){
     batchResults[i].status='loading';renderBatch();
     try{
       var built=buildEpisodeMsg(jobs[i].topic,jobs[i].t,jobs[i].h,jobs[i].mode,jobs[i].d);
-      var p=await fetchEpisode(built.msg);
+      var p=await fetchEpisode(built.msg,jobs[i].mode,built.dO);
       var res=Object.assign({},p,{topic:jobs[i].topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:jobs[i].mode,uid:nextUid()});
       batchResults[i]={status:'done',job:jobs[i],res:res};
       genCount++;cost+=0.015;updCost();
@@ -1867,7 +1911,7 @@ async function retryBatchItem(i){
   br.status='loading';renderBatch();
   try{
     var built=buildEpisodeMsg(br.job.topic,br.job.t,br.job.h,br.job.mode,br.job.d);
-    var p=await fetchEpisode(built.msg);
+    var p=await fetchEpisode(built.msg,br.job.mode,built.dO);
     var res=Object.assign({},p,{topic:br.job.topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:br.job.mode,uid:nextUid()});
     batchResults[i]={status:'done',job:br.job,res:res};
     genCount++;cost+=0.015;updCost();
@@ -2278,9 +2322,14 @@ function renderOut(r){
   document.getElementById('oconcept').textContent='"'+(r.topic.length>70?r.topic.slice(0,70)+'...':r.topic)+'"';
   var tr=document.getElementById('tabrow');tr.innerHTML='';activeTab='a';
   TABS.forEach(function(tab){
-    var has={a:r.a,f:r.f}[tab.id];if(!has)return;
+    // La pestana EN se ve SIEMPRE, aunque el ingles no haya salido: si no, no
+    // habia forma de volver a pedirlo y se perdia el reel entero por eso.
+    var has={a:r.a,f:r.f}[tab.id];
+    if(!has&&tab.id!=='f')return;
+    if(!has&&!r.a)return;
     var btn=document.createElement('button');btn.className='tabbtn'+(tab.id==='a'?' on':'');
-    btn.textContent=tab.label;
+    btn.dataset.tab=tab.id;   // se busca por id, no por el texto: el texto cambia
+    btn.textContent=tab.label+(!has&&tab.id==='f'?' ⚠':'');
     if(tab.id==='a'){btn.style.borderColor=tab.c;btn.style.color=tab.c;btn.style.background=tab.p;}
     btn.addEventListener('click',function(){activeTab=tab.id;rfTabs(r);});
     tr.appendChild(btn);
@@ -2343,14 +2392,46 @@ function renderOut(r){
 
 function rfTabs(r){
   document.querySelectorAll('.tabbtn').forEach(function(btn){
-    var tab=TABS.find(function(t){return t.label===btn.textContent;});if(!tab)return;
+    var tab=TABS.find(function(t){return t.id===btn.dataset.tab;});if(!tab)return;
     var s=tab.id===activeTab;btn.classList.toggle('on',s);
     btn.style.borderColor=s?tab.c:'';btn.style.color=s?tab.c:'';btn.style.background=s?tab.p:'';
   });
   var ct=document.getElementById('tabcontent');ct.innerHTML='';
   var tm=TABS.find(function(t){return t.id===activeTab;});
   var text={a:r.a,f:r.f}[activeTab]||'';
-  if(!text)return;
+  if(!text){
+    if(activeTab!=='f')return;
+    // EL ESPANOL NO SE PIERDE PORQUE FALLE EL INGLES. El ingles va en su propia
+    // llamada; si esa se cae, el reel sigue entero y desde aqui se vuelve a pedir.
+    var av=document.createElement('div');
+    av.style.cssText='background:#fdf6ee;border:1px solid #e0c89a;border-radius:10px;padding:12px';
+    av.innerHTML='<div style="font-size:11.5px;color:#8a6a2a;line-height:1.5;font-weight:600">'
+      +'El guion en inglés no salió'+(r.errorEN?': '+escHtml(r.errorEN):'')+'.</div>'
+      +'<div style="font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:5px">'
+      +'El de español está entero — esto solo afecta al vídeo en inglés.</div>';
+    var bt=document.createElement('button');
+    bt.type='button';
+    bt.style.cssText='width:100%;margin-top:9px;border:1.5px solid var(--gold);background:#fff;color:var(--gold);'
+      +'border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
+    bt.textContent='🇺🇸 Escribir el guion en inglés';
+    bt.addEventListener('click',async function(){
+      bt.disabled=true;bt.textContent='Escribiéndolo...';
+      try{
+        r.f=await fetchIngles(r.a,r.modo,r.dO);
+        r.errorEN='';
+        if(lastRes&&lastRes.uid===r.uid){lastRes.f=r.f;lastRes.errorEN='';}
+        guardarEnReel({f:r.f});
+        cost+=0.01;updCost();
+        renderOut(r);activeTab='f';rfTabs(r);
+      }catch(e){
+        bt.disabled=false;bt.textContent='🇺🇸 Escribir el guion en inglés';
+        alert('Tampoco salió: '+(e.message||'error'));
+      }
+    });
+    av.appendChild(bt);
+    ct.appendChild(av);
+    return;
+  }
   var lbls={a:'⚔ Guion en Español',f:'🇺🇸 Script in English'};
   var blk=document.createElement('div');blk.className='blk';blk.style.borderColor=(tm?tm.c+'44':'');
   var hdr=document.createElement('div');hdr.className='bhdr';hdr.style.background=tm?tm.p:'';
@@ -5044,7 +5125,7 @@ async function genTrendOne(i){
     applySelection(mode,it.t,d,it.h);
     document.getElementById('conc').value=it.concept;updCC();updGBtn();
     var built=buildEpisodeMsg(it.concept,it.t,it.h,mode,d);
-    var p=await fetchEpisode(built.msg);
+    var p=await fetchEpisode(built.msg,mode,built.dO);
     lastRes=Object.assign({},p,{topic:it.concept,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:mode,uid:nextUid()});
     genCount++;cost+=0.015;updCost();
     resetReelAssets();

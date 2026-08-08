@@ -61,6 +61,9 @@ module.exports = async (req, res) => {
   }
 
   const prompt = req.body && req.body.prompt ? req.body.prompt : null;
+  // La llamada del guion en ingles no pide bloques, solo texto corrido: alli no
+  // se puede exigir un BLOQUE A que nadie ha pedido.
+  const sinBloques = !!(req.body && req.body.sinBloques);
   if (!prompt) return res.status(400).json({ error: 'Prompt requerido' });
 
   if (!process.env.GCP_SERVICE_ACCOUNT) {
@@ -139,7 +142,9 @@ module.exports = async (req, res) => {
           // "no se pudo leer el guion". Se comprueba aqui y se reintenta.
           const t0 = textoDe(d);
           const fr0 = finishDe(d);
-          if (t0 && /^[\s*#]*BLOQUE\s+A/mi.test(t0)) break;
+          // `sinBloques`: la llamada del guion en ingles no pide bloques, solo
+          // texto corrido. Ahi la unica condicion es que venga algo y entero.
+          if (t0 && (sinBloques ? fr0 !== 'MAX_TOKENS' : /^[\s*#]*BLOQUE\s+A/mi.test(t0))) break;
           lastErr = !t0
             ? ('el modelo no devolvio texto' + (fr0 ? ' (' + fr0 + ')' : ''))
             : (fr0 === 'MAX_TOKENS'

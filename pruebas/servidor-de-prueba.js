@@ -105,9 +105,17 @@ const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => {
-      let prompt = '';
-      try { prompt = JSON.parse(body).prompt || ''; } catch (e) {}
+      let prompt = '', sinBloques = false;
+      try { const b = JSON.parse(body); prompt = b.prompt || ''; sinBloques = !!b.sinBloques; } catch (e) {}
       if (prompt.indexOf('CAPTION:') > -1) return json(res, 200, { success: true, text: CAPTION_TEXT });
+      // El guion en ingles es una SEGUNDA llamada, sin bloques: solo texto corrido.
+      if (sinBloques) {
+        genCount++;
+        return setTimeout(() => json(res, 200, {
+          success: true, finishReason: 'STOP',
+          text: 'You are working forty hours a week and you still cannot breathe.\nIron Legacy.',
+        }), 30);
+      }
       inFlight++; maxConcurrent = Math.max(maxConcurrent, inFlight);
       genCount++;
       const n = genCount;

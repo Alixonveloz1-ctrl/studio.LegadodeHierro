@@ -125,6 +125,37 @@ async function generar(prompt) {
   t('cuántos caracteres llegaron y con qué empezaban',
     /caracteres/.test(A) && /Empezaba por/.test(A));
 
+  // ---- 6. DOS LLAMADAS: el espanol por un lado y el ingles por otro ----
+  // Pedirlo todo de una vez eran casi 1000 palabras entre los dos idiomas en la
+  // misma respuesta. Y el limite de 60 s de Vercel es POR LLAMADA, asi que
+  // partirlo no solo reparte los tokens: da el doble de tiempo.
+  t('las plantillas ya NO piden el guion en inglés',
+    !/BLOQUE F\n\[El mismo guion en inglés/.test(A) && !/BLOQUE F\n\[Traducción natural/.test(A));
+  t('y se le dice al modelo que el inglés no va en esa respuesta',
+    /El ingles NO va aqui: se pide aparte/.test(A));
+  t('hay una llamada dedicada al inglés', /function buildInglesMsg\(/.test(A) && /async function fetchIngles\(/.test(A));
+  t('esa llamada avisa al servidor de que no lleva bloques', /sinBloques:true/.test(A));
+  t('y el servidor lo respeta', /const sinBloques = !!\(req\.body && req\.body\.sinBloques\)/.test(R));
+
+  // ---- 7. el inglés es una ADAPTACION, no una traduccion ----
+  t('se le prohíbe traducir frase por frase',
+    /THIS IS NOT A TRANSLATION/.test(A) && /Do not translate sentence by sentence/.test(A));
+  t('tiene que sonar a estadounidense nativo hablando',
+    /the way a NATIVE/.test(A) && /US speaker would say it out loud/.test(A));
+  t('con referencias de allí cuando la española no encaje',
+    /401k/.test(A) && /Never leave a Spanish idiom translated word for word/.test(A));
+  t('sin dejar palabras en español ni la firma española',
+    /No Spanish words left in/.test(A) && /the English brand is IRON LEGACY/.test(A));
+  t('y con la misma duración que el español', /It has to fit the same/.test(A));
+  t('el caption en inglés ya iba así de antes',
+    /NOT a translation: rewrite it the way it would be said in English/.test(A));
+
+  // ---- 8. si el ingles falla, el español NO se pierde ----
+  t('un fallo del inglés no tira el reel entero', /El guion en ingles no salio/.test(A));
+  t('la pestaña EN sigue estando, con su aviso', /if\(!has&&tab\.id!=='f'\)return;/.test(A));
+  t('y ofrece escribirlo sin volver a generar el español',
+    /Escribir el guion en inglés/.test(A) && /El de español está entero/.test(A));
+
   console.log('\n' + ok + ' OK, ' + ko + ' fallos');
   process.exit(ko ? 1 : 0);
 })().catch((e) => { console.error('EXCEPCION: ' + e.stack); process.exit(1); });
