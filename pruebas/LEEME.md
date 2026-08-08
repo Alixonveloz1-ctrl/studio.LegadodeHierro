@@ -84,3 +84,6 @@ index.js embebido en los instaladores de Cloud Run siga al dia.
   (el 413), que una imagen que falla se reintente en vez de saltarse, que las
   descargas funcionen desde el iPhone, que los subtitulos no se metan en los
   silencios de un audio largo, y que la musica se aplane antes de mezclarla.
+- **check-banco-y-montaje.js** — que al reutilizar clips del banco en un reel de
+  modo profesor mande el MONTAJE guardado y no el orden en que se tocaron, y que
+  el panel diga que hueco ocupa cada clip y pare si el numero no cuadra.

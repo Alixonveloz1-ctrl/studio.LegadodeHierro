@@ -2911,6 +2911,21 @@ var BANCO_IO=null;     // observador de visibilidad
 // Cambia SOLO los numeros y los bordes de la seleccion. Es importante que no
 // rehaga el HTML: al rehacerlo se destruian y recreaban todos los <video>, y por
 // eso todo lo que ya se habia visto volvia a negro y el panel se colgaba.
+// QUE HUECOS ESPERA ESTE REEL.
+//
+// En modo profesor el director no entrega una lista de clips: entrega 5 tomas del
+// set y 3 ejemplos, mas un MONTAJE que dice en que orden se ven y cuales se
+// repiten. Al traer clips del banco, el orden en que se tocan es el orden en que
+// se colocan — y si no coincide con el original, el montaje apunta a los clips
+// equivocados. Asi que aqui se dice EXACTAMENTE que hueco toca en cada momento.
+function huecosDelReel(){
+  if(!lastRes||lastRes.modo!=='profesor'||!Array.isArray(lastRes.montaje)||!lastRes.montaje.length)return null;
+  var nT=lastRes.nTomas||5,nE=lastRes.nEjemplos||3,h=[];
+  for(var i=0;i<nT;i++)h.push('TOMA '+(i+1));
+  for(var j=0;j<nE;j++)h.push('EJEMPLO '+(j+1));
+  return h;
+}
+
 function actualizarBadges(){
   var p=document.getElementById('bancoPanel');if(!p)return;
   Array.prototype.forEach.call(p.querySelectorAll('.bancoIt'),function(el){
@@ -2919,13 +2934,38 @@ function actualizarBadges(){
     var pos=BANCO_SEL.indexOf(c.object),sel=pos>-1;
     el.style.borderColor=sel?'#9ab47a':'var(--border)';
     var n=el.querySelector('.bancoNum');
-    if(n){n.textContent=sel?(pos+1):'+';n.style.background=sel?'#9ab47a':'rgba(0,0,0,.55)';}
+    // Con montaje, el numero no basta: hay que ver que hueco esta ocupando cada
+    // clip ("TOMA 3"), porque el montaje se apoya en eso.
+    var hs=huecosDelReel();
+    if(n){
+      n.textContent=sel?((hs&&hs[pos])?hs[pos]:(pos+1)):'+';
+      n.style.background=sel?'#9ab47a':'rgba(0,0,0,.55)';
+      n.style.fontSize=(sel&&hs)?'8.5px':'';
+      n.style.padding=(sel&&hs)?'2px 5px':'';
+    }
   });
   var us=p.querySelector('#bBancoUsar');
   if(us){
-    us.textContent=BANCO_SEL.length?('✓ Usar estos '+BANCO_SEL.length+' clips en este orden'):'Toca los clips que quieras usar';
-    us.style.background=BANCO_SEL.length?'#9ab47a':'#fff';
-    us.style.color=BANCO_SEL.length?'#fff':'#6a8a4a';
+    var hs2=huecosDelReel();
+    var falta=hs2?(hs2.length-BANCO_SEL.length):0;
+    us.textContent=!BANCO_SEL.length?'Toca los clips que quieras usar'
+      :(hs2&&falta>0?('Faltan '+falta+': el siguiente es '+hs2[BANCO_SEL.length])
+      :(hs2&&falta<0?('Sobran '+(-falta)+' clips')
+      :'✓ Usar estos '+BANCO_SEL.length+' clips en este orden'));
+    var listo=BANCO_SEL.length&&(!hs2||falta===0);
+    us.style.background=listo?'#9ab47a':'#fff';
+    us.style.color=listo?'#fff':'#6a8a4a';
+  }
+  var av=p.querySelector('#bancoAviso');
+  if(av){
+    var hs3=huecosDelReel();
+    av.style.display=hs3?'block':'none';
+    if(hs3){
+      av.innerHTML='<b>Este reel es modo Profesor.</b> Su montaje ya está guardado, así que los clips hay que '
+        +'tocarlos EN ESTE ORDEN:<br>'+hs3.join(' → ')
+        +'<br>Luego el montaje los reordena y repite las tomas hasta los '
+        +(Array.isArray(lastRes.montaje)?lastRes.montaje.length:0)+' planos del vídeo.';
+    }
   }
 }
 
@@ -3020,6 +3060,9 @@ function pintarBanco(){
     +', del mas reciente al mas antiguo. '
     +'Toca ▶ para <strong>ver</strong> cualquiera, y el recuadro para <strong>elegirlo</strong>. '
     +'El numero es su posicion en el reel: se unen en el orden en que los tocas.</div>'
+    // Aviso del montaje: solo aparece cuando el reel restaurado lo tiene.
+    +'<div id="bancoAviso" style="display:none;font-size:11px;line-height:1.55;color:#8a6a2a;'
+    +'background:#fdf6ee;border:1px solid #e0c89a;border-radius:9px;padding:9px 10px;margin-bottom:10px"></div>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
     +'<button type="button" class="voxP" id="bBancoTop5">Elegir los 5 mas recientes</button>'
     +'<button type="button" class="voxP" id="bBancoTop3">Elegir los 3 mas recientes</button>'
@@ -3115,6 +3158,16 @@ function pintarBanco(){
 
 async function usarBanco(){
   if(!BANCO_SEL.length){alert('Toca primero los clips que quieres usar.');return;}
+  // Si el reel trae montaje, el numero de clips TIENE que cuadrar: el montaje
+  // apunta a "TOMA 3" o "EJEMPLO 1" por posicion, y con otra cantidad apuntaria
+  // a cualquier cosa. Mejor pararlo aqui que unificar un video descolocado.
+  var huecos=huecosDelReel();
+  if(huecos&&BANCO_SEL.length!==huecos.length){
+    alert('Este reel es modo Profesor y su montaje espera EXACTAMENTE '+huecos.length+' clips, '
+      +'en este orden:\n\n'+huecos.join(' → ')
+      +'\n\nTienes '+BANCO_SEL.length+' marcados. Ajusta la selección antes de usarlos.');
+    return;
+  }
   var us=document.getElementById('bBancoUsar');
   var orig=us?us.textContent:'';
   if(us){us.disabled=true;us.textContent='Preparando los clips...';}
@@ -4561,9 +4614,12 @@ function updUnifyCard(){
     if(!total)faltas.push('imágenes');
     else if(listos<total)faltas.push('videos ('+listos+'/'+total+')');
     if(!(audES&&audES.partsB64&&audES.partsB64.length))faltas.push('audio ES');
+    var planos=(lastRes&&lastRes.modo==='profesor'&&Array.isArray(lastRes.montaje))?lastRes.montaje.length:0;
     sub.textContent=faltas.length?('Faltan: '+faltas.join(' · '))
+      :(planos?('Listo: el montaje del director convierte estos '+listos+' clips en '+planos
+                +' planos (las tomas se repiten) + la narración')
       :(listos===1?'Listo: 1 clip + la narración, en un solo video'
-      :'Listo: se unirán los '+listos+' clips EN ORDEN + la narración, en un solo video');
+      :'Listo: se unirán los '+listos+' clips EN ORDEN + la narración, en un solo video'));
   }
 }
 
