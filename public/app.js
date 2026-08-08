@@ -4775,7 +4775,7 @@ async function unifyVideo(){
     // acababan en un .srt suelto dentro del ZIP y el reel tenia que pasar por
     // CapCut. Si el audio se subio a mano no hay alignment: se estima por texto.
     var texto=idioma==='en'?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
-    var srt=aud.alignment?makeSRTFromAlignment(aud.alignment):makeSRT(texto||'',aud);
+    var srt=aud.alignment?makeSRTFromAlignment(aud.alignment):makeSRT(texto||'',aud,idioma);
     var objetivo=Number((lastRes&&lastRes.dO&&lastRes.dO.id)||0);
     var r=await fetch('/api/unify',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -4904,77 +4904,316 @@ function makeSRTFromAlignment(alignment){
   return segs.map(function(s,i){return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
 }
 
-// Subtitulos SIN los tiempos de ElevenLabs (cuando el audio se sube a mano,
-// porque el plan gratis no da acceso a su API).
+// SUBTITULOS SIN LOS TIEMPOS DE ELEVENLABS.
 //
-// Antes esto repartia el tiempo a 130 palabras por minuto FIJAS, sin mirar el
-// audio. Si la voz real iba a otro ritmo — y siempre va a otro ritmo — el
-// desfase se acumulaba palabra a palabra y al final del reel los subtitulos
-// estaban muy por detras de la voz.
+// El plan gratuito de ElevenLabs no da la API con tiempos por caracter, asi que el
+// audio se sube a mano y aqui hay que ADIVINAR cuando se dice cada cosa. Lo unico
+// que se sabe es el texto y — midiendo el audio — donde suena voz y donde hay
+// silencio.
 //
-// Ahora, cuando se conoce el audio (`aud`), se reparte DENTRO del tramo real de
-// voz: empieza donde empieza la voz y acaba donde acaba. Asi el error deja de
-// acumularse; como mucho queda un pequeno baile dentro de cada frase.
-// Y el peso de cada bloque se calcula por CARACTERES, no por numero de palabras
-// ("de" y "responsabilidad" no tardan lo mismo), con un extra de tiempo en la
-// puntuacion, que es donde la voz respira.
-function makeSRT(text,aud){
-  var words=String(text||'').replace(/\n+/g,' ').replace(/\s+/g,' ').trim().split(' ').filter(function(w){return w.length>0;});
-  if(!words.length)return '';
-  var grupos=[],i=0;
-  while(i<words.length){
-    var group=[];
-    while(i<words.length&&group.length<4){
-      group.push(words[i]);i++;
-      if(/[.!?,;:]$/.test(group[group.length-1]))break;
-    }
-    if(!group.length)break;
-    grupos.push(group.join(' '));
-  }
-  // Peso de cada bloque: sus caracteres + una pausa segun el signo con que cierra.
-  var PAUSA={'.':9,'!':9,'?':9,';':6,':':6,',':4};
-  var pesos=grupos.map(function(g){
-    var fin=g.slice(-1),extra=PAUSA[fin]||0;
-    return Math.max(4,g.replace(/\s/g,'').length)+extra;
-  });
-  var suma=pesos.reduce(function(a,b){return a+b;},0);
+// Esto se ha arreglado tres veces mal antes de arreglarse bien, asi que conviene
+// dejar escrito lo que se probo y lo que se midio. La medida se hizo sobre el
+// video real de 147 s del canal: 48 tramos de voz, 47 pausas de 0,36 a 0,99 s,
+// 117,7 s hablados. Sobre ESA estructura, error medio en el arranque de cada
+// trozo de texto:
+//
+//   repartir por peso sobre todo el audio (lo que habia) ...... 1,02 s   80% mal
+//   estimar y pegarse al tramo mas cercano ..................... 0,45 s   14% mal
+//   cortar los tramos con programacion dinamica ................ 0,16 s    6% mal
+//   ... y pesando el texto por SILABAS en vez de por letras .... 0,11 s    4% mal
+//
+// ("mal" = el subtitulo arranca a mas de 0,4 s de donde empieza la voz.)
+//
+// Las tres ideas que lo arreglan:
+//
+// 1. LA UNIDAD ES EL TROZO ENTRE COMAS, NO LA FRASE. La voz para donde hay
+//    puntuacion. En el video real hay 47 pausas para unas 290 palabras: una cada
+//    seis. Eso no son puntos, son comas. Alineando por frases sobran pausas y el
+//    reparto se desmadra.
+//
+// 2. EL PESO SE MIDE EN SILABAS. Lo que tarda una palabra en espanol son sus
+//    silabas, no sus letras: "de" y "veo" tienen las mismas letras y no tardan lo
+//    mismo.
+//
+// 3. EL CORTE SE DECIDE ENTERO DE UNA VEZ. Lo anterior estimaba cada trozo y lo
+//    pegaba al silencio mas cercano; en cuanto uno se pegaba al equivocado,
+//    arrastraba a todos los siguientes (se midieron errores de 3,2 s). Ahora se
+//    busca el corte global que menos error deja en total.
+function silabasDe(palabra,ingles){
+  var w=String(palabra).toLowerCase();
+  w=ingles?w.replace(/[^a-z]/g,''):w.replace(/[^a-záéíóúüñ]/g,'');
+  if(!w)return 0;
+  var g=w.match(ingles?/[aeiouy]+/g:/[aeiouáéíóúü]+/g);
+  var n=g?g.length:1;
+  // En ingles la -e final casi nunca suena ("more", "time"), salvo en "-le".
+  if(ingles&&n>1&&/e$/.test(w)&&!/[^aeiou]le$/.test(w))n--;
+  return Math.max(1,n);
+}
 
-  // Ventana en la que hay que encajar el texto.
+// Lo que se espera que tarde un trozo de texto, en silabas. El extra de la
+// puntuacion no es la pausa (esa se mide aparte en el audio): es que la ultima
+// silaba antes de un punto se alarga.
+var EXTRA_PUNTUACION={'.':2.2,'!':2.2,'?':2.2,';':1.4,':':1.4,',':1.0};
+function pesoDeTexto(t,ingles){
+  var ws=String(t).split(/\s+/),s=0;
+  for(var i=0;i<ws.length;i++)s+=silabasDe(ws[i],ingles);
+  return Math.max(1,s)+(EXTRA_PUNTUACION[String(t).slice(-1)]||0);
+}
+
+// Corta la lista de TRAMOS en tantos grupos consecutivos como UNIDADES de texto,
+// de forma que la duracion de cada grupo se parezca lo mas posible a lo que se
+// espera que dure su unidad.
+//
+// Es una programacion dinamica: coste[i][j] = las i primeras unidades ocupan los
+// j primeros tramos. La banda evita que una frontera se vaya lejisimos de donde
+// el texto dice que va, y de paso recorta muchisimo el bucle.
+//
+// El coste tiene dos partes:
+//   · que cada grupo dure lo que se espera de su unidad — lo que importa;
+//   · un castigo pequeno por ir acumulando desfase. Sin esto aparecian
+//     RESBALONES: quince unidades seguidas corridas un tramo entero (3 s) y luego
+//     vuelta a su sitio. Al coste local resbalar le costaba casi lo mismo, asi
+//     que habia empate y lo deshacia mal. Con el castigo, sobre la estructura
+//     real del video: media 0,11 s -> 0,07 s y el peor 1,6 s -> 1,2 s.
+//
+// Devuelve K+1 cortes: la unidad i son los tramos [corte[i], corte[i+1]).
+var BANDA_ALINEADO=5;      // segundos de margen respecto a lo que dice el texto
+var CASTIGO_DESFASE=0.1;   // cuanto pesa no irse acumulando (medido: 0,05-0,15)
+var MAX_ALINEADO=800;      // por encima de esto no se alinea, para no colgar el movil
+function alinearUnidades(pesos,suma,tramos,hablado){
+  var K=pesos.length,N=tramos.length,i,j,p;
+  if(!K||!N||K>MAX_ALINEADO||N>MAX_ALINEADO)return null;
+  var obj=[],objAcu=[0];
+  for(i=0;i<K;i++){obj.push(hablado*(pesos[i]/suma));objAcu.push(objAcu[i]+obj[i]);}
+  var acu=[0];
+  for(i=0;i<N;i++)acu.push(acu[i]+(tramos[i].fin-tramos[i].ini));
+
+  var INF=Infinity,coste=[],prev=[];
+  for(i=0;i<=K;i++){
+    var fila=[],pf=[];
+    for(j=0;j<=N;j++){fila.push(INF);pf.push(-1);}
+    coste.push(fila);prev.push(pf);
+  }
+  coste[0][0]=0;
+  for(i=1;i<=K;i++){
+    for(j=0;j<=N;j++){
+      var desfase=acu[j]-objAcu[i];
+      if(Math.abs(desfase)>BANDA_ALINEADO&&!(i===K&&j===N))continue;
+      var castigo=CASTIGO_DESFASE*desfase*desfase;
+      var mejor=INF,de=-1;
+      for(p=0;p<=j;p++){
+        var c=coste[i-1][p];
+        if(c===INF)continue;
+        var d=(acu[j]-acu[p])-obj[i-1];
+        c+=d*d+castigo;
+        if(c<mejor){mejor=c;de=p;}
+      }
+      if(de>-1){coste[i][j]=mejor;prev[i][j]=de;}
+    }
+  }
+  if(coste[K][N]===INF)return null;
+  var cortes=[N];
+  for(i=K,j=N;i>0;i--){j=prev[i][j];cortes.unshift(j);}
+  return cortes;
+}
+
+// Los trozos de voz que caen dentro de una ventana de tiempo, recortados a ella.
+function tramosEntre(tramos,desde,hasta){
+  var out=[];
+  for(var i=0;i<tramos.length;i++){
+    var a=Math.max(tramos[i].ini,desde),b=Math.min(tramos[i].fin,hasta);
+    if(b>a)out.push({ini:a,fin:b});
+  }
+  return out;
+}
+
+// Reparte unos pesos dentro de una ventana, pero contando solo el tiempo en el
+// que se HABLA. Sin esto, un trozo de texto puede caer entero dentro de un
+// silencio: el subtitulo aparece cuando no hay nadie hablando.
+function repartirHablando(tramos,desde,hasta,pesos,ini,fin,primera){
+  var sub=tramosEntre(tramos,desde,hasta),hab=0,k;
+  for(k=0;k<sub.length;k++)hab+=sub[k].fin-sub[k].ini;
+  var suma=0;
+  for(k=0;k<pesos.length;k++)suma+=pesos[k];
+  suma=suma||1;
+  var tv=0;
+  for(k=0;k<pesos.length;k++){
+    var a=hab>0?posEnTramos(sub,tv):desde+(hasta-desde)*(tv/suma);
+    tv+=(hab>0?hab:suma)*(pesos[k]/suma);
+    var b=hab>0?posEnTramos(sub,tv):desde+(hasta-desde)*(tv/suma);
+    ini[primera+k]=a;fin[primera+k]=Math.max(a,b);
+  }
+}
+
+// Pasa un tiempo HABLADO a reloj dentro de una lista concreta de tramos.
+function posEnTramos(tramos,tVoz){
+  var acum=0;
+  for(var i=0;i<tramos.length;i++){
+    var d=tramos[i].fin-tramos[i].ini;
+    if(tVoz<=acum+d)return tramos[i].ini+(tVoz-acum);
+    acum+=d;
+  }
+  return tramos[tramos.length-1].fin;
+}
+
+// Si hay mas unidades de texto que silencios, alguna se queda sin tramo propio:
+// la voz no paro en esa coma. Esas se colocan por peso en el hueco que les queda.
+//
+// Lo delicado es cuando NO queda hueco — tipicamente la primera unidad, que no
+// tiene nada por delante. Metiendolas ahi a la fuerza salian subtitulos con
+// tiempos hacia atras.
+//
+// Cuando no hay sitio entre medias, la unidad sin tramo comparte el tramo de una
+// vecina. Se le quita sitio a la de DELANTE, no a la de detras: las dos empiezan
+// en un silencio real y ese arranque es lo que hay que conservar; a la de delante
+// se le acorta el final, que es lo unico que se puede ceder sin mover un arranque
+// bueno de sitio.
+// Un hueco entre dos unidades ancladas es normalmente una respiracion — medio
+// segundo — y ahi si se puede meter el texto que sobra: como mucho se adelanta lo
+// que dura la respiracion. Pero si el hueco es un SILENCIO LARGO (un parrafo que
+// se corto, una pausa dramatica de quince segundos) meter texto ahi saca
+// subtitulos sin que hable nadie. En ese caso la ventana se abre a las unidades
+// de al lado hasta que tenga voz de verdad: primero hacia atras, que solo mueve
+// un final, y solo despues hacia delante.
+var HUECO_MINIMO=0.25;         // segundos de VOZ por unidad
+var PAUSA_NORMAL=1.5;          // por debajo de esto el hueco es una respiracion
+function vozEntre(tramos,desde,hasta){
+  var s=0,sub=tramosEntre(tramos,desde,hasta);
+  for(var i=0;i<sub.length;i++)s+=sub[i].fin-sub[i].ini;
+  return s;
+}
+function rellenarHuecos(ini,fin,pesos,tramos){
+  var n=ini.length;
+  for(var i=0;i<n;i++){
+    if(ini[i]!==null)continue;
+    var a=i-1;while(a>=0&&ini[a]===null)a--;
+    var b=i;while(b<n&&ini[b]===null)b++;
+    var primera=i,ultima=b-1;
+    var desde=(a>=0)?fin[a]:tramos[0].ini;
+    var hasta=(b<n)?ini[b]:tramos[tramos.length-1].fin;
+    // Tambien se abre si no queda ventana ninguna (hueco al principio del audio,
+    // donde no hay nada por delante que ceder): sin esto salian tiempos hacia
+    // atras, con la unidad siguiente arrancando antes que la que la precede.
+    while(!(hasta>desde)
+      ||(hasta-desde>PAUSA_NORMAL
+        &&vozEntre(tramos,desde,hasta)<HUECO_MINIMO*(ultima-primera+1))){
+      if(a>=0&&primera>a){primera=a;desde=ini[a];continue;}
+      if(b<n&&ultima<b){ultima=b;hasta=fin[b];continue;}
+      break;
+    }
+    if(!(hasta>desde))hasta=desde+0.4*(ultima-primera+1);
+    repartirHablando(tramos,desde,hasta,pesos.slice(primera,ultima+1),ini,fin,primera);
+    if(primera>a&&a>=0)fin[a]=ini[primera];   // la anterior se estira hasta esta
+    i=b-1;
+  }
+}
+
+function makeSRT(text,aud,idioma){
+  var limpio=String(text||'').replace(/\s+/g,' ').trim();
+  if(!limpio)return '';
+  var ingles=(idioma==='en');
+
+  // 1. EL TEXTO SE PARTE EN TROZOS DE PUNTUACION. Es la unidad que se puede
+  //    anclar, porque es donde la voz para de verdad.
+  var uds=limpio.match(/[^.!?,;:]+[.!?,;:]*/g)||[limpio];
+  uds=uds.map(function(u){return u.trim();}).filter(function(u){return u.length;});
+  if(!uds.length)uds=[limpio];
+
+  // 2. Cada trozo se corta en bloques de subtitulo (4 palabras como mucho).
+  var porUd=uds.map(function(u){
+    var w=u.split(' ').filter(function(x){return x.length;}),g=[],i=0;
+    while(i<w.length){
+      var b=[];
+      while(i<w.length&&b.length<4)b.push(w[i++]);
+      if(b.length)g.push(b.join(' '));
+    }
+    return g.length?g:[u];
+  });
+
+  var peso=function(t){return pesoDeTexto(t,ingles);};
+  var pesoUd=porUd.map(function(g){
+    return g.reduce(function(a,x){return a+peso(x);},0);
+  });
+  var sumaTotal=pesoUd.reduce(function(a,b){return a+b;},0)||1;
+
+  // 3. La ventana de audio y los tramos de voz medidos.
   var t0=0,total,tramos=null;
   if(aud&&isFinite(aud.vozFin)&&aud.vozFin>aud.vozIni+0.5){
-    t0=aud.vozIni;total=aud.vozFin-aud.vozIni;      // el tramo de voz medido
-    tramos=aud.vozTramos||null;
+    t0=aud.vozIni;total=aud.vozFin-aud.vozIni;
+    tramos=(aud.vozTramos&&aud.vozTramos.length)?aud.vozTramos:null;
   }else if(aud&&isFinite(aud.dur)&&aud.dur>0.5){
-    total=aud.dur;                                   // al menos la duracion real
+    total=aud.dur;
   }else{
-    total=suma*(60/130)/5.5;                         // sin audio: la estimacion de siempre
+    total=sumaTotal/5.6;                  // sin audio: 5,6 silabas por segundo
   }
-
-  // EL TEXTO SE REPARTE SOBRE EL TIEMPO HABLADO, no sobre el tiempo total.
-  //
-  // En un reel de 40 s daba igual. En uno de tres minutos, no: los silencios
-  // entre parrafos se llevaban su parte del texto, y el desfase se acumulaba
-  // hasta que los subtitulos iban por un lado y la voz por otro. Ahora el reparto
-  // se hace por segundos de voz y luego se traduce al reloj del audio, con lo que
-  // las pausas salen gratis y el error no pasa de una frase.
   var hablado=total;
-  if(tramos&&tramos.length){
+  if(tramos){
     hablado=0;
     for(var q=0;q<tramos.length;q++)hablado+=tramos[q].fin-tramos[q].ini;
     if(hablado<0.5){tramos=null;hablado=total;}
   }
 
-  var segs=[],tv=0;
-  for(var k=0;k<grupos.length;k++){
-    var d=hablado*(pesos[k]/suma);
-    segs.push({
-      text:grupos[k],
-      start:tiempoRealDeVoz(tramos,t0,t0+total,tv),
-      end:tiempoRealDeVoz(tramos,t0,t0+total,tv+d),
-    });
-    tv+=d;
+  // 4. El corte de los tramos, decidido entero de una vez.
+  //
+  //    Solo tiene sentido si hay silencios suficientes para repartir. Si el texto
+  //    tiene muchisimas mas comas que pausas se ha medido en el audio — una voz
+  //    que casi no para — no hay nada que anclar, y forzarlo dejaba subtitulos
+  //    dentro del silencio. En ese caso se reparte por el tiempo hablado y ya,
+  //    que era lo correcto para ese caso desde el principio.
+  var grupos=(tramos&&uds.length<=2*tramos.length)
+    ?alinearUnidades(pesoUd,sumaTotal,tramos,hablado):null;
+  var inicioUd=[],finUd=[],i;
+  if(grupos){
+    for(i=0;i<uds.length;i++){
+      var ga=grupos[i],gb=grupos[i+1];
+      if(gb>ga){inicioUd.push(tramos[ga].ini);finUd.push(tramos[gb-1].fin);}
+      else{inicioUd.push(null);finUd.push(null);}
+    }
+    rellenarHuecos(inicioUd,finUd,pesoUd,tramos);
+  }else if(tramos){
+    repartirHablando(tramos,tramos[0].ini,tramos[tramos.length-1].fin,
+      pesoUd,inicioUd,finUd,0);
+  }else{
+    var tv=0;
+    for(i=0;i<uds.length;i++){
+      var d0=total*(pesoUd[i]/sumaTotal);
+      inicioUd.push(t0+tv);finUd.push(t0+tv+d0);tv+=d0;
+    }
   }
-  return segs.map(function(s,i){return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';}).join('\n');
+
+  // 5. Dentro de cada trozo, sus bloques se reparten por el tiempo HABLADO de su
+  //    grupo, saltandose los silencios de dentro igual que hace la voz. El ultimo
+  //    bloque se estira hasta el trozo siguiente para no dejar el video sin
+  //    subtitulo durante la respiracion.
+  var segs=[];
+  for(var f=0;f<uds.length;f++){
+    var desde=inicioUd[f],hasta=finUd[f];
+    if(!(hasta>desde))hasta=desde+0.4;
+    // Si `rellenarHuecos` le movio los bordes a esta unidad (porque comparte
+    // tramo con una vecina que se quedo sin el), se cogen los trozos de voz que
+    // haya en la ventana que le ha quedado. Repartir lineal aqui metia
+    // subtitulos dentro de los silencios.
+    var sub=(grupos&&grupos[f+1]>grupos[f])?tramos.slice(grupos[f],grupos[f+1]):null;
+    if(!sub||Math.abs(sub[0].ini-desde)>1e-6||Math.abs(sub[sub.length-1].fin-hasta)>1e-6){
+      sub=tramos?tramosEntre(tramos,desde,hasta):null;
+      if(sub&&!sub.length)sub=null;
+    }
+    var habG=0,s2;
+    if(sub)for(s2=0;s2<sub.length;s2++)habG+=sub[s2].fin-sub[s2].ini;
+    if(!(habG>0)){sub=null;habG=hasta-desde;}
+    var gs=porUd[f],sp=gs.reduce(function(a,x){return a+peso(x);},0)||1,tvG=0;
+    var sigue=(f+1<uds.length)?inicioUd[f+1]:hasta;
+    for(var g=0;g<gs.length;g++){
+      var ini2=sub?posEnTramos(sub,tvG):desde+(hasta-desde)*(tvG/habG);
+      tvG+=habG*(peso(gs[g])/sp);
+      var fin2=sub?posEnTramos(sub,tvG):desde+(hasta-desde)*(tvG/habG);
+      if(g===gs.length-1&&sigue>fin2)fin2=sigue;
+      segs.push({text:gs[g],start:ini2,end:Math.max(ini2+0.2,fin2)});
+    }
+  }
+  return segs.map(function(s,i){
+    return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';
+  }).join('\n');
 }
 
 async function exportAll(){
@@ -5009,8 +5248,8 @@ async function exportAll(){
       capEN+='===== YOUTUBE ('+lastYouTubeEN.length+'/100 caracteres) =====\n\n'+lastYouTubeEN+'\n';
     }
     if(capEN) zip.file(slug+'-caption-en.txt',capEN.trim()+'\n');
-    var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'',audES);
-    var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'',audEN);
+    var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'',audES,'es');
+    var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'',audEN,'en');
     if(srtES) zip.file(slug+'-subtitulos-es.srt',srtES);
     if(srtEN) zip.file(slug+'-subtitulos-en.srt',srtEN);
     if(audES&&audES.blob){
