@@ -5,7 +5,7 @@ function studioMessage(message,error){var el=studioEl('studioStatus');if(el){el.
 async function studioAPI(action,data,endpoint){
   var r=await fetch(endpoint||'/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(57000),body:JSON.stringify(Object.assign({action:action},data||{}))});
   var d=await r.json().catch(function(){return {};});
-  if(!r.ok){var e=new Error(d.error||'No se pudo completar esta etapa (HTTP '+r.status+'). Lo guardado se conserva.');e.status=r.status;throw e;}
+  if(!r.ok){var e=new Error(d.error||'No se pudo completar esta etapa (HTTP '+r.status+'). Lo guardado se conserva.');e.status=r.status;e.storageRateLimited=d.storageRateLimited===true;e.retryAfterMs=Number(d.retryAfterMs)||0;throw e;}
   return d;
 }
 function studioOptions(mode,seconds,topic,theme){
@@ -551,12 +551,26 @@ async function studioLibraryPaint(job){
   if(changed&&STUDIO_LIBRARY.view==='saved')await studioPaintLibrary().catch(function(e){studioLibraryMessage('El archivo está guardado. No se pudo cargar su vista previa: '+e.message,true);});
 }
 async function studioLibraryStatus(){var d=await studioAPI('library-status');await studioLibraryPaint(d.job||null);}
+async function studioLibraryWait(ms){
+  var end=Date.now()+ms;
+  while(!STUDIO_LIBRARY.pause&&Date.now()<end)await new Promise(function(resolve){setTimeout(resolve,Math.min(250,end-Date.now()));});
+}
 async function studioLibraryRun(job){
   if(STUDIO_LIBRARY.running)return;STUDIO_LIBRARY.running=true;STUDIO_LIBRARY.pause=false;STUDIO_LIBRARY.draft=false;studioLibraryMessage('');
   if(job.type==='generate')studioLibraryView('create');
+  var storageRetries=0;
   try{
     while(job.status!=='done'&&!STUDIO_LIBRARY.pause){
-      await studioLibraryPaint(job);var d=await studioAPI('library-advance',{id:job.id});job=d.job;
+      await studioLibraryPaint(job);
+      try{
+        var d=await studioAPI('library-advance',{id:job.id});job=d.job;
+        if(storageRetries)studioLibraryMessage('');storageRetries=0;
+      }catch(e){
+        if(e.status!==429||!e.storageRateLimited||storageRetries>=3||e.retryAfterMs>60000)throw e;
+        var seconds=Math.max(5*Math.pow(2,storageRetries++),Math.ceil((e.retryAfterMs||0)/1000));
+        studioLibraryMessage('Google Cloud pide una pausa. Reintentando en '+seconds+' segundos; el avance guardado se conserva.');
+        await studioLibraryWait(seconds*1000);continue;
+      }
       if(job.busy)await new Promise(function(r){setTimeout(r,2000);});
     }
     await studioLibraryPaint(job);

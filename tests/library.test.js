@@ -105,3 +105,30 @@ test('Storage copies are server-to-server, generation-pinned, resumable and reta
     const call=calls.find(c=>c.url.includes('rewriteTo')),url=new URL(call.url);assert.equal(call.o.method,'POST');assert.match(url.pathname,/source-bucket\/o\/carpeta%2Fa%20b.mp4\/rewriteTo\/b\/current-bucket/);assert.equal(url.searchParams.get('ifGenerationMatch'),'0');assert.equal(url.searchParams.get('ifSourceGenerationMatch'),'17');assert.equal(url.searchParams.get('rewriteToken'),'checkpoint-token');assert.equal(call.o.body,undefined,'omitting replacement metadata retains the source metadata');assert.ok(!calls.some(c=>c.o.method==='DELETE'));
   }finally{global.fetch=original;}
 });
+
+test('Storage waits after a rejected write and retries only that same conditional request',async()=>{
+  const {privateKey}=require('crypto').generateKeyPairSync('rsa',{modulusLength:2048});
+  process.env.GCP_SERVICE_ACCOUNT=JSON.stringify({client_email:'rate-test@example.test',private_key:privateKey.export({format:'pem',type:'pkcs8'})});process.env.GCS_OUTPUT_BUCKET='current-bucket';
+  const original=global.fetch,calls=[];let mode='retry';
+  global.fetch=async(url,o)=>{
+    if(url.includes('oauth2'))return new Response(JSON.stringify({access_token:'fixture-only'}));
+    calls.push({url,body:o.body,at:Date.now()});
+    return new Response(JSON.stringify({generation:'2'}),{status:mode==='conflict'?412:calls.length===1?429:200});
+  };
+  try{
+    const s=base.makeStore();await s.put('legado-studio/library/active.json',{completed:25},'1');
+    assert.equal(calls.length,2);assert.equal(calls[0].url,calls[1].url);assert.equal(calls[0].body,calls[1].body);assert.ok(calls[1].at-calls[0].at>=1100);
+    assert.match(calls[1].url,/ifGenerationMatch=1/);
+    mode='conflict';await assert.rejects(s.put('other.json',{},'old'),e=>e.status===412);assert.equal(calls.length,3,'a stale conditional write is never retried');
+  }finally{global.fetch=original;}
+});
+
+test('Storage paces a new function instance using the last modification of the progress object',async()=>{
+  const original=global.fetch,start=Date.now();let wroteAt;
+  global.fetch=async(url)=>{
+    if(url.includes('oauth2'))return new Response(JSON.stringify({access_token:'fixture-only'}));
+    if(url.includes('/upload/')){wroteAt=Date.now();return new Response(JSON.stringify({generation:'2'}));}
+    return new Response(JSON.stringify(url.includes('alt=media')?{completed:25}:{generation:'1',updated:new Date(start).toISOString()}));
+  };
+  try{const s=base.makeStore();await s.read('progress.json');await s.put('progress.json',{completed:26},'1');assert.ok(wroteAt-start>=1100);}finally{global.fetch=original;}
+});

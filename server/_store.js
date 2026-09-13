@@ -1,5 +1,6 @@
 // Durable personal storage; conditional writes protect retries and concurrent tabs.
 const {createSign, createHash, randomUUID} = require('crypto');
+const {setTimeout:delay}=require('node:timers/promises');
 let cachedToken = null;
 function failure(message, status) { const e = new Error(message); e.status = status || 500; return e; }
 function config() {
@@ -30,9 +31,22 @@ function signedUrl(object, method, mime) {
 }
 function makeStore(signal) {
   const {bucket} = config(); signal = signal || AbortSignal.timeout(50000);
+  const writes=new Map();
   async function call(path, options) {
     const t = await token(signal);
-    const r = await fetch('https://storage.googleapis.com'+path,{...options,signal,headers:{Authorization:'Bearer '+t,...(options && options.headers)}});
+    let r;
+    for(let attempt=0;;attempt++){
+      r=await fetch('https://storage.googleapis.com'+path,{...options,signal,headers:{Authorization:'Bearer '+t,...(options && options.headers)}});
+      if(r.status!==429)break;
+      const header=r.headers.get('retry-after'),seconds=Number(header);
+      const requested=header?(Number.isFinite(seconds)?seconds*1000:Date.parse(header)-Date.now()):0;
+      if(attempt>=3||requested>10000){
+        await r.body?.cancel();
+        const e=failure('Google Cloud está limitando temporalmente el almacenamiento. El avance guardado se conserva.',429);e.storageRateLimited=true;e.retryAfterMs=Math.max(5000,requested||0);throw e;
+      }
+      await r.body?.cancel();
+      await delay(Math.max(1200*Math.pow(2,attempt)+Math.floor(Math.random()*250),requested||0),undefined,{signal});
+    }
     if (!r.ok && r.status !== 404) throw failure(r.status === 412 ? 'El trabajo está siendo actualizado. Vuelve a consultar.' : 'Almacenamiento: HTTP '+r.status,r.status);
     return r;
   }
@@ -42,11 +56,16 @@ function makeStore(signal) {
     async read(object) {
       const meta = await call(route(object)); if (meta.status === 404) return null;
       const m = await meta.json();
+      const modified=Date.parse(m.updated);if(Number.isFinite(modified))writes.set(object,Math.max(writes.get(object)||0,modified));
       const r = await call(route(object)+'?alt=media&generation='+m.generation);
       if (r.status === 404) throw failure('El archivo cambió durante la lectura. Reintenta.',409);
       return {data:await r.json(),generation:m.generation};
     },
     async put(object,data,generation,catalog) {
+      // Cloud Storage limits replacement of an individual object to ~1/second.
+      // Metadata read above also paces writes across separate function instances.
+      const wait=Math.min(1200,1200-(Date.now()-(writes.get(object)||0)));
+      if(wait>0)await delay(wait,undefined,{signal});
       const boundary = 'lh-'+randomUUID(), metadata = {name:object,contentType:'application/json',cacheControl:'no-store'};
       if (catalog) {
         const record=JSON.stringify(data);if(Buffer.byteLength(record,'utf8')>7500)throw failure('La ficha contiene demasiado texto. Acorta la descripción o las etiquetas.',400);
@@ -55,7 +74,8 @@ function makeStore(signal) {
       const body = '--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(metadata)
         +'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+JSON.stringify(data)+'\r\n--'+boundary+'--';
       const r = await call('/upload/storage/v1/b/'+bucket+'/o?uploadType=multipart'+(generation !== undefined ? '&ifGenerationMatch='+generation : ''),
-        {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body}); return r.json();
+        {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});
+      writes.set(object,Date.now());return r.json();
     },
     async bytes(object,bytes,mime) {
       const r = await call('/upload/storage/v1/b/'+bucket+'/o?uploadType=media&name='+encodeURIComponent(object)+'&ifGenerationMatch=0',
@@ -114,7 +134,7 @@ function jsonHandler(handler) {
       return await handler(req.body || {},res);
     } catch(e) {
       return res.status(e.status === 412 ? 409 : (e.status && e.status < 600 ? e.status : 500)).json({error:/Timeout|Abort/.test(e.name) ? 'Esta etapa tardó demasiado. Lo ya guardado se conserva; puedes reanudar.' : e.message,
-        retryable:[409,412,429,502,503,504].includes(e.status) || /Timeout|Abort/.test(e.name)});
+        retryable:[409,412,429,502,503,504].includes(e.status) || /Timeout|Abort/.test(e.name),storageRateLimited:e.storageRateLimited===true,retryAfterMs:e.retryAfterMs});
     }
   };
 }

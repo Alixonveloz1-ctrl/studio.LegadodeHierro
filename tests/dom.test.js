@@ -262,3 +262,19 @@ test('active cataloging leaves model settings and both import panels usable, and
     assert.equal(w.STUDIO_LIBRARY.preparing,false);assert.equal(w.document.querySelector('#recipeGenerate').disabled,false);assert.equal(w.document.querySelector('#librarySettings').disabled,false);
   }finally{a.close();}
 });
+
+test('a storage throttle resumes the same job automatically and waiting can be paused',async()=>{
+  const a=await app();try{
+    const {w}=a,api=w.studioAPI;let attempts=0,starts=0;const waits=[];
+    const job={id:'storage-retry',type:'catalog',status:'ready',completed:25,total:100,stage:'25 de 100'};
+    w.studioAPI=async(action,data,endpoint)=>{
+      if(action==='library-start')starts++;
+      if(action==='library-advance'){assert.equal(data.id,job.id);if(++attempts===1){const e=new Error('rate limit');e.status=429;e.storageRateLimited=true;throw e;}return {job:{...job,status:'done',completed:100}};}
+      return api(action,data,endpoint);
+    };
+    w.studioLibraryWait=async ms=>{waits.push(ms);};
+    await w.studioLibraryRun(job);assert.equal(attempts,2);assert.equal(starts,0);assert.deepEqual(waits,[5000]);
+    attempts=0;w.studioLibraryWait=async()=>{w.document.querySelector('#libraryPause').click();};
+    await w.studioLibraryRun(job);assert.equal(attempts,1);assert.equal(w.document.querySelector('#libraryResume').hidden,false);assert.equal(w.STUDIO_LIBRARY.running,false);
+  }finally{a.close();}
+});
