@@ -16,7 +16,7 @@ const { checkAuth } = require('./_auth');
 // La version de cloudrun/unify/index.js que espera ESTA copia del repositorio.
 // Si el Cloud Run desplegado devuelve otra, es que le falta la actualizacion.
 // comprobar.sh vigila que las dos vayan siempre a la par.
-const VERSION_ESPERADA = '2026-08-08.1';
+const VERSION_ESPERADA = '2026-09-13.1';
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
       // que esta desactualizado, no que no se pueda saber.
       const actual = d.version || null;
       return res.json({
-        estado: actual === VERSION_ESPERADA ? 'al-dia' : 'desactualizado',
+        estado: actual === VERSION_ESPERADA && d.durable ? 'al-dia' : 'desactualizado',
         actual: actual, esperada: VERSION_ESPERADA,
       });
     } catch (e) {
@@ -48,96 +48,39 @@ module.exports = async (req, res) => {
     }
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  if (typeof req.body === 'string') {
-    try { req.body = JSON.parse(req.body); } catch (e) {}
-  }
-  if (!req.body) {
-    try {
-      const chunks = [];
-      for await (const chunk of req) chunks.push(chunk);
-      req.body = JSON.parse(Buffer.concat(chunks).toString());
-    } catch (e) { req.body = {}; }
-  }
-
-  const videos = Array.isArray(req.body.videos) ? req.body.videos : [];
-  const audioParts = Array.isArray(req.body.audioParts) ? req.body.audioParts : [];
-  // Musica de fondo opcional: pista de la biblioteca (musica/...) + volumen (0-1).
-  let music = null;
-  if (req.body.music && typeof req.body.music.object === 'string') {
-    const obj = req.body.music.object;
-    if (obj.indexOf('musica/') === 0 && obj.indexOf('..') === -1 && obj.length < 200) {
-      let vol = Number(req.body.music.volume);
-      if (!isFinite(vol) || vol < 0 || vol > 1) vol = 0.18;
-      music = { object: obj, volume: vol };
-    }
-  }
-
-  // SUBTITULOS ya cronometrados (SRT). Se queman en el video en Cloud Run: en
-  // Facebook la mayoria mira sin sonido, asi que sin texto en pantalla el reel se
-  // pierde en los primeros segundos. Opcional: si no llega, el video sale igual.
-  let srt = null;
-  if (typeof req.body.srt === 'string' && req.body.srt.trim() && req.body.srt.length < 200000) {
-    srt = req.body.srt;
-  }
-  // Duracion que se pretendia (30 o 60 s), para que el control de calidad avise
-  // si el resultado se desvia.
-  const targetSeconds = Number(req.body.targetSeconds) || 0;
-  // RESPALDO SIN CREDITOS: si no hay clips de Veo pero si imagenes, el reel se
-  // arma con ellas dandoles movimiento. Sale por centimos en vez de dolares.
-  const imagenes = Array.isArray(req.body.imagenes)
-    ? req.body.imagenes.filter(x => typeof x === 'string' && x.length > 100).slice(0, 12) : [];
-
-  if (!videos.length && !imagenes.length) {
-    return res.status(400).json({ error: 'Faltan las URLs de los videos (videos[]) o las imagenes' });
-  }
-  // El tope sube de 10 a 60 por los modos largos: en modo profesor las mismas 5
-  // tomas se repiten decenas de veces a lo largo de un video de minutos, asi que
-  // la lista de planos es larga aunque las imagenes generadas sean solo 8.
-  if (videos.length > 60) return res.status(400).json({ error: 'Maximo 60 planos' });
-  if (!audioParts.length) return res.status(400).json({ error: 'Falta el audio de la narracion (audioParts[])' });
-  for (let i = 0; i < videos.length; i++) {
-    if (typeof videos[i] !== 'string' || videos[i].indexOf('https://storage.googleapis.com/') !== 0) {
-      return res.status(400).json({ error: 'URL de video invalida en la posicion ' + (i + 1) });
-    }
-  }
-
-  const SERVICE_URL = process.env.CLOUD_RUN_UNIFY_URL;
-  const UNIFY_KEY = process.env.UNIFY_KEY;
-  if (!SERVICE_URL) {
-    console.error('[unify] CLOUD_RUN_UNIFY_URL no configurado en Vercel');
-    return res.status(500).json({ error: 'El servicio de unificacion aun no esta configurado (falta CLOUD_RUN_UNIFY_URL en Vercel).' });
-  }
-  if (!UNIFY_KEY) {
-    console.error('[unify] UNIFY_KEY no configurado en Vercel');
-    return res.status(500).json({ error: 'El servicio de unificacion aun no esta configurado (falta UNIFY_KEY en Vercel).' });
-  }
-
+  if(req.method!=='POST')return res.status(405).json({error:'Usa POST.'});
   try {
-    const r = await fetch(SERVICE_URL.replace(/\/+$/, '') + '/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Unify-Key': UNIFY_KEY,
-      },
-      body: JSON.stringify({
-        videos: videos, audioParts: audioParts, music: music,
-        srt: srt, targetSeconds: targetSeconds, imagenes: imagenes,
-      }),
-    });
-    const text = await r.text();
-    let d = {};
-    try { d = JSON.parse(text); } catch (e) {}
-    if (!r.ok || !d.jobId) {
-      const msg = d.error || ('El servicio respondio ' + r.status + ': ' + text.slice(0, 300));
-      console.error('[unify] fallo al iniciar: ' + msg);
-      return res.status(502).json({ error: msg });
+    const {makeStore,failure}=require('./_store');
+    const {validateShots}=require('../cloudrun/unify/timeline');
+    const {idFor,PREFIX}=require('./_assets');
+    const body=typeof req.body==='string'?JSON.parse(req.body):req.body || {};
+    validateShots(body.shots);
+    if(!Array.isArray(body.audioObjects)||!body.audioObjects.length||body.audioObjects.length>200||!body.audioObjects.every(o=>typeof o==='string'&&/^legado-studio\/media\//.test(o)&&!o.includes('..')&&/\.(wav|mp3|m4a|ogg)$/.test(o)))throw failure('Faltan referencias válidas de la narración. Recarga la aplicación para usar el montaje nuevo.',400);
+    if(!['9:16','16:9','1:1','4:5'].includes(body.aspect))throw failure('Formato de salida inválido.',400);
+    if(body.srt&&(typeof body.srt!=='string'||body.srt.length>200000))throw failure('Subtítulos inválidos.',400);
+    let music=null;
+    if(body.music){
+      const m=body.music;
+      if(typeof m.object!=='string'||!/^musica\//.test(m.object)||m.object.includes('..')||!Number.isFinite(Number(m.volume))||m.volume<0||m.volume>1)throw failure('Música inválida.',400);
+      music={object:m.object,volume:Number(m.volume)};
     }
-    console.log('[unify] trabajo iniciado: ' + d.jobId + ' (' + (videos.length ? videos.length + ' clips' : imagenes.length + ' imagenes con movimiento') + ', ' + audioParts.length + ' partes de audio' + (music ? ', musica: ' + music.object + ' al ' + Math.round(music.volume * 100) + '%' : ', sin musica') + (srt ? ', con subtitulos' : ', sin subtitulos') + ')');
-    return res.json({ success: true, jobId: d.jobId });
-  } catch (e) {
-    console.error('[unify] excepcion: ' + e.message);
-    return res.status(500).json({ error: 'No se pudo contactar el servicio de unificacion: ' + e.message });
-  }
+    // An object must have a catalog entry. A crafted browser request cannot ask
+    // the render worker to download credentials or unrelated bucket objects.
+    const store=makeStore(AbortSignal.timeout(25000));
+    const unique=[...new Set(body.shots.map(s=>s.object))];
+    for(let offset=0;offset<unique.length;offset+=8){
+      await Promise.all(unique.slice(offset,offset+8).map(async object=>{
+      const entry=await store.read(PREFIX+idFor(object)+'.json');
+      if(!entry||entry.data.object!==object||!['image','video'].includes(entry.data.kind))throw failure('Hay un material sin catalogar. Guárdalo en la biblioteca primero.',400);
+      if(body.shots.some(s=>s.object===object&&s.kind!==entry.data.kind))throw failure('El tipo de una toma no coincide con el archivo.',400);
+      }));
+    }
+    const url=process.env.CLOUD_RUN_UNIFY_URL,key=process.env.UNIFY_KEY;
+    if(!url||!key)throw failure('Falta configurar el servicio de montaje.');
+    const r=await fetch(url.replace(/\/+$/,'')+'/start',{method:'POST',signal:AbortSignal.timeout(22000),headers:{'Content-Type':'application/json','X-Unify-Key':key},
+      body:JSON.stringify({shots:body.shots,audioObjects:body.audioObjects,music:music,srt:body.srt||'',targetSeconds:Number(body.targetSeconds)||0,aspect:body.aspect})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.jobId)throw failure(d.error||'No se pudo iniciar el montaje.',502);
+    return res.json({success:true,jobId:d.jobId});
+  }catch(e){return res.status(e.status&&e.status<600?e.status:500).json({error:e.message});}
 };

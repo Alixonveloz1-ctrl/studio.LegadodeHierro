@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 fallos=0
 
 echo "== sintaxis =="
-for f in api/*.js cloudrun/unify/index.js public/app.js; do
+for f in api/*.js cloudrun/unify/*.js public/*.js tests/*.js; do
   if node --check "$f" >/dev/null 2>&1; then
     printf '  ok    %s\n' "$f"
   else
@@ -33,7 +33,7 @@ done
 echo "== referencias del frontend =="
 node - <<'JS' || fallos=$((fallos+1))
 const fs = require('fs');
-const js = fs.readFileSync('public/app.js', 'utf8');
+const js = ['public/app.js','public/studio.js','public/studio-core.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n');
 const html = fs.readFileSync('public/index.html', 'utf8');
 let malo = 0;
 
@@ -56,11 +56,11 @@ const NATIVAS = new Set(('alert confirm prompt setTimeout setInterval clearTimeo
   'Image Audio Video Event CustomEvent MutationObserver IntersectionObserver ResizeObserver ' +
   'AudioContext webkitAudioContext Notification Worker XMLHttpRequest TextEncoder TextDecoder ' +
   'Uint8Array Int16Array Float32Array ArrayBuffer DataView Intl Proxy Reflect ' +
-  'if for while switch catch typeof return function this new delete void in of do else try ' +
+  'if for while switch catch typeof return function this new delete void in of do else try await async ' +
   'console document window navigator localStorage sessionStorage location history screen ' +
   // Librerias externas que index.html carga por <script>: existen en tiempo de
   // ejecucion aunque no esten definidas en app.js.
-  'JSZip'
+  'JSZip Option AbortSignal OfflineAudioContext webkitOfflineAudioContext'
 ).split(/\s+/));
 
 // Hay que mirar SOLO codigo: los comentarios y los textos de los prompts estan

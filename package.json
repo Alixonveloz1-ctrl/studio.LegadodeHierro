@@ -1,11 +1,20 @@
 {
   "name": "legado-de-hierro",
-  "version": "1.1.0",
-  "description": "Sistema de Produccion Facebook Reels",
+  "version": "2.0.0",
+  "description": "Estudio personal de guiones, narración y montaje reutilizable para Legado de Hierro",
   "engines": {
     "node": "24.x"
   },
   "dependencies": {
     "google-auth-library": "^9.0.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  },
+  "scripts": {
+    "test": "node --test tests/studio.test.js tests/editorial.test.js tests/dom.test.js tests/api.test.js tests/worker.test.js",
+    "test:render": "node --test tests/render.test.js",
+    "check": "bash comprobar.sh",
+    "build:installers": "python3 scripts/build-installers.py"
   }
 }

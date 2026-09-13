@@ -41,14 +41,14 @@ function asegurarWav(buf, rate) {
 }
 
 // Genera la narracion. Lanza Error con .status si Google falla.
-async function generarChirp(text, vIn, lang, token) {
+async function generarChirp(text, vIn, lang, token, signal) {
   const v = vIn || {};
   const voz = VOICE_SET[String(v.voz || '').toLowerCase()] || DEFAULT_VOICE;
   const locale = lang === 'en' ? 'en-US' : 'es-US';
   const rate = clamp(v.velocidad, 0.7, 1.3, 0.95);
 
   const r = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize', {
-    method: 'POST',
+    method: 'POST', signal: signal || AbortSignal.timeout(40000),
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       input: { text: String(text) },

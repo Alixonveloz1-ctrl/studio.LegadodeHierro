@@ -56,15 +56,18 @@ var THEMES=[
 // (El modo Impacto siempre es de 30 segundos.)
 var DURS=[
   {id:'30',label:'30 segundos',sub:'Reel express — máximo impacto'},
-  {id:'60',label:'60 segundos',sub:'Reel estándar — óptimo algoritmo'},
+  {id:'45',label:'45 segundos',sub:'Identidad y conflicto'},
+  {id:'60',label:'60 segundos',sub:'Una idea demostrada'},
+  {id:'90',label:'90 segundos',sub:'Método con ejemplo'},
+  {id:'120',label:'2 minutos',sub:'Explicación práctica'},
 ];
 // Duraciones de los modos LARGOS (Profesor y Relato). No se mezclan con las de
 // arriba: un reel de 5 minutos no existe, y un video de YouTube de 30 segundos
 // tampoco. Cada familia de modos ve solo las suyas.
 var DURS_LARGAS=[
   {id:'180',label:'3 minutos',sub:'Clase corta — un método concreto'},
-  {id:'300',label:'5 minutos',sub:'Estándar de YouTube — el punto dulce'},
-  {id:'480',label:'8 minutos',sub:'Profundo — permite anuncios a mitad'},
+  {id:'300',label:'5 minutos',sub:'Desarrollar una historia o método'},
+  {id:'480',label:'8 minutos',sub:'Profundidad cuando el tema lo justifica'},
 ];
 function esModoLargo(m){ m=m||sMode; return m==='profesor'||m==='relato'; }
 function dursDe(m){ return esModoLargo(m)?DURS_LARGAS:DURS; }
@@ -345,23 +348,9 @@ Y UNA HISTORIA NO TIENE QUE IR EN PASADO POR SER UNA HISTORIA: se puede contar e
 // financiera; el tramite es un requisito del camino que se nombra y se manda a un
 // tutorial. Lo que no puede pasar es anunciarlo como enseñanza y no darla.
 function reglaPromesa(largo){
-  var t=`LO QUE ANUNCIAS, LO ENSEÑAS (regla firme): si el guion dice que va a enseñar algo, eso tiene que quedar enseñado DENTRO del propio guion. Prometer una cosa y entregar otra es la forma más rápida de perder al que te está escuchando. Antes de dar el guion por bueno, busca cada frase en la que prometes — "te voy a enseñar", "te voy a dar el método", "vas a aprender a", "hoy vas a saber" — y comprueba que eso está de verdad más abajo. Si no está: o lo enseñas, o cambias la promesa por lo que sí vas a dar. La promesa de la entrada tiene que ser exactamente la suma de lo que viene después, ni más ni menos.
-
-`;
-  if(!largo)return t;
-  return t+`ESTE CANAL NO ENSEÑA PAPELEO, y de ahí salió el fallo que hay que evitar. En un video real el guion prometió "te voy a dar el método para registrar una LLC", y luego el paso uno dijo "el primer paso es abrir una LLC, es tu escudo y tu motor", nombró Wyoming y el número fiscal, y saltó al paso siguiente. No enseñó a registrar nada.
-
-QUÉ ENSEÑA ESTE CANAL: modelos de negocio, cómo conseguir a quien pague, cómo poner precio, cómo hacer capital, cómo montar algo que funcione sin ti, cómo llegar a la libertad financiera. Eso es la clase, y ahí es donde tiene que estar todo el detalle.
-QUÉ NO ENSEÑA: el trámite. Registrar una empresa, darse de alta, abrir una cuenta, un impuesto, un formulario. Es burocracia: hace falta, pero es aburrida, cambia según el país y no es a lo que viene la gente a este canal.
-
-CÓMO SE COLOCA UN TRÁMITE: se nombra en una frase, se dice PARA QUÉ sirve, y se manda fuera del video.
-BIEN: "Vas a necesitar una empresa registrada, porque es lo que separa tu dinero del dinero del negocio y lo que te abre la cuenta. Ese papeleo, paso a paso, lo buscas en un tutorial que te lleve de la mano; no vamos a gastar el video en eso. Lo que sí vamos a ver es lo difícil: qué vendes y quién te lo paga."
-MAL: "Te voy a dar el método para registrar una LLC. El primer paso es abrir una LLC."
-En el primero el trámite queda en su sitio y el video sigue hacia lo que importa. En el segundo se anuncia una clase que no llega.
-
-Y UN TRÁMITE NO ES EL PASO NÚMERO UNO: numerar la burocracia como primer paso gasta el minuto más valioso del video en lo menos útil, y encima contradice lo que este canal predica — primero se consigue a quien paga, después se monta la estructura. Si hace falta, entra como requisito previo, nunca como paso del método.
-
-`;
+  return 'PROMESA Y ENTREGA: toda afirmación de que el video enseñará algo debe cumplirse dentro de su narración. Si anuncia pasos, entrega exactamente esos pasos y explica cómo realizarlos. Si plantea una pregunta, responde con un hecho, ejemplo o decisión; no con otra promesa. '
+    +(largo?'En un video largo, define qué cambia en cada parte antes de escribir. Una historia avanza por consecuencias; una clase demuestra un método; una práctica guía acciones. El tema elegido manda: no convertir disciplina, familia o confianza en una clase de negocios. ':'')
+    +'No presentar consejos generales como procedimientos legales, fiscales o financieros verificados. No prometer tutoriales, asesorías ni recursos externos que el autor no haya aportado.\n';
 }
 
 // LA EMOCIÓN, QUE ES LO QUE HACE QUE SE QUEDE.
@@ -400,285 +389,20 @@ SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al 
 ` + reglaPromesa(true) + reglaTiempo();
 }
 
-function buildSP(mode){
+function buildSP(mode,editorialOptions){
   mode=mode||sMode;
-
-  // ---------------- MODO PROFESOR (video largo) ----------------
-  // La idea: ENSEÑAR un método concreto para ganar, cuidar o hacer crecer el
-  // dinero. Si el espectador no puede aplicar algo el lunes por la mañana, el
-  // video no sirve.
-  //
-  // Aqui ponia "no es motivacion: es una clase", y eso salio caro: los guiones
-  // salian correctos y frios, y a un video de seis minutos que no toca nada se le
-  // va la gente en el minuto dos. Ensenar y mover no se pelean. Lo que sigue
-  // prohibido es la arenga hueca, no la emocion.
-  if(mode==='profesor')return cabeceraLarga()+`ESTE ES EL MODO PROFESOR: una CLASE, pero dada por alguien a quien le importa lo que le pase al que escucha. Enseña de verdad — y al mismo tiempo le toca donde le duele, porque si no siente nada no llega al final por muy bueno que sea el método. Lo prohibido es la arenga hueca: el discurso motivacional que no enseña nada. La emoción no solo está permitida, hace falta.
-
-QUÉ SE ENSEÑA (obligatorio): UN método concreto y aplicable sobre dinero — cómo ahorrar de verdad, cómo ordenar las cuentas, cómo poner precio, cómo empezar a invertir con poco, cómo montar un servicio que ya funciona, cómo salir de una deuda, cómo cobrar por valor y no por horas, cómo elegir en qué negocio meterse. UN solo método por video, desarrollado hasta el final.
-
-REGLA DE UTILIDAD: al terminar, el espectador tiene que poder HACER algo concreto. Nada de "sé disciplinado" o "cambia tu mentalidad": eso es de los reels. Aquí se dan pasos, números, ejemplos y errores a evitar. Si lo que dices se puede resumir en una frase de cartel, no es una clase.
-
-HONESTIDAD: no prometas cifras concretas de ganancia ni plazos ("gana 1000 al mes en 30 días"). Habla de lo que el método hace y de lo que exige. Di también cuándo NO funciona y a quién no le sirve. Eso es lo que separa a un profesor de un vendedor de humo.
-
-ESTRUCTURA DEL GUION:
-1. GANCHO (0-15s): el problema concreto que este método resuelve, en la piel del espectador.
-2. PROMESA: qué va a saber hacer al terminar. Clara, sin exagerar, y EXACTAMENTE lo que el video entrega después. Aquí no se promete ningún trámite ni ningún papeleo: se promete lo que de verdad vas a enseñar.
-3. EL MÉTODO: los pasos, en orden, numerados al hablar ("el primero", "el segundo"). Cada paso con QUÉ es, POR QUÉ importa y CÓMO se hace.
-   EL CÓMO ES EL QUE NO PUEDE FALTAR: un paso con qué y con porqué pero sin cómo es un titular, no una clase — y es justo donde el espectador nota que le han vendido humo. Si a un paso no le puedes dar un cómo que quepa en este video, entonces no es un paso: es un requisito previo, y va nombrado en una frase antes de empezar el método, no numerado dentro de él.
-4. EJEMPLO REAL: el método aplicado a un caso concreto y creíble, con números redondos.
-5. LOS ERRORES: dos o tres fallos típicos al aplicarlo.
-6. CIERRE: el primer paso que puede dar hoy mismo, y la invitación a seguir el canal.
-
-BLOQUE A
-[El guion hablado en español, completo, de la duración pedida. Numera los pasos al hablar. Termina con: Legado de Hierro.]
-
-BLOQUE C
-[Aquí NO se piden escenas sueltas. Se pide un SET y unas TOMAS, como en una clase filmada de verdad.]
-SET: [UN solo lugar donde el protagonista da la clase — su oficina, un estudio sobrio, una sala con pizarra. Descríbelo una vez, con detalle: muebles, luz, qué hay al fondo. TODAS las tomas ocurren aquí y tienen que verse como el mismo sitio.]
-TOMA 1: [el protagonista hablando a cámara, plano medio, de frente]
-TOMA 2: [el mismo momento desde otro ángulo — de perfil, escorzo o más abierto]
-TOMA 3: [plano cerrado del rostro o de las manos explicando]
-TOMA 4: [plano del protagonista junto a la pizarra o señalando algo del set]
-TOMA 5: [plano general del set, el protagonista pequeño en el espacio]
-LOS EJEMPLOS SON DE OTRA GENTE, NO DEL PROFESOR (regla firme): el que da la clase NO aparece en los ejemplos. En un ejemplo se ve a OTRA persona haciéndolo bien o metiendo la pata — alguien del reparto, o una persona cualquiera sin nombre. Si el profesor sale en la escena del error, deja de ser el profesor y pasa a ser uno más que también está perdido; y el espectador tiene que verse a SÍ MISMO en esa escena, no al que le está enseñando. Escribe cada EJEMPLO indicando quién sale y que NO es el protagonista.
-EJEMPLO 1: [una escena FUERA del set, con OTRA persona, que ilustre el primer paso hecho bien]
-EJEMPLO 2: [otra escena, con otra persona distinta, que ilustre otro paso]
-EJEMPLO 3: [otra escena, con otra persona, que ilustre el error típico o el resultado]
-
-BLOQUE M
-[EL MONTAJE: en qué orden se ven las tomas y los ejemplos a lo largo del video. Las TOMAS SE REPITEN — así es como se filma una clase: se vuelve a la cara del que habla entre ejemplo y ejemplo. Escribe una línea por corte, en orden, con el número de segundo en que entra. Alterna: nunca dos veces seguidas la misma toma. Cubre TODA la duración del guion.]
-0s: TOMA 1
-12s: EJEMPLO 1
-20s: TOMA 3
-[...sigue hasta cubrir el guion entero]`;
-
-  // ---------------- MODO RELATO (video largo) ----------------
-  if(mode==='relato')return cabeceraLarga()+`ESTE ES EL MODO RELATO: una historia larga, contada con calma.
-
-QUÉ ES: el recorrido completo de alguien que cambió algo de su vida — no un consejo, una HISTORIA con principio, nudo y final. El espectador se queda porque quiere saber cómo termina.
-
-DE QUÉ TRATA: lo dicta el PILAR y el CONCEPTO. Puede ser levantar algo propio, salir de una deuda, ganarse una disciplina, sostener una decisión difícil, o aprender algo por las malas. No lo conviertas en una historia de negocios si el pilar no va de eso.
-
-CÓMO SE CUENTA: elige una de estas tres formas, la que mejor le venga a ESTE relato. No siempre la misma.
-- DE OTRO, en tercera persona: "un hombre de 40 años", "el que llevaba veinte años en el mismo turno". Sin nombre propio. En pasado, o en presente como si estuviera ocurriendo ahora.
-- EN PRIMERA PERSONA: el que habla cuenta algo suyo, con lo que le costó.
-- HACIA DELANTE, hablándole a él en futuro: el camino que va a recorrer si se decide. "Vas a...", "cuando llegues a...", "el día que...".
-LO QUE NO PUEDE SER: contárselo a él en pasado, como si ya lo hubiera vivido. Eso está prohibido en todo el canal.
-Sea cual sea la forma, el CIERRE vuelve a él y le dice qué hacer.
-SÍ pueden aparecer otras personas de su vida — el reparto del canal está más abajo — y de hecho una historia larga sin nadie más se hace plana.
-
-ESTRUCTURA (los pasos son estos; el tiempo verbal de cada uno depende de la forma que elegiste arriba):
-1. GANCHO (0-15s): AL ESPECTADOR, en presente. Lo que le está pasando a él hoy, en una frase que no pueda ignorar.
-2. EL PUNTO DE PARTIDA: la situación concreta de la que se sale, con detalles de una vida real.
-3. LO QUE SE ROMPE: el momento en que ya no se puede seguir igual.
-4. LA DECISIÓN Y EL PRECIO: qué hay que hacer y qué cuesta. Aquí va la carne: lo que se pierde, quién duda, las veces que se está por dejarlo. Si le hablas a él, esto va en futuro y anticipación — "vas a", "cuando estés", "te va a pedir" — nunca en pasado.
-5. EN QUÉ SE CONVIERTE: qué es distinto después. Sin fanfarria: mostrado en detalles pequeños.
-6. Y AHORA TÚ: se vuelve al espectador, en presente y en imperativo. Qué tiene que hacer ÉL, empezando por el primer paso concreto. Esta parte NO es un resumen de la historia: es la orden de marcha.
-
-RITMO: es largo, así que respira. Alterna frases cortas con otras más largas. Deja silencios donde la imagen habla sola.
-
-BLOQUE A
-[El guion hablado en español, completo, de la duración pedida. Termina con: Legado de Hierro.]
-
-BLOQUE C
-[Las escenas de la historia, EN ORDEN CRONOLÓGICO. Cada una es un momento del relato, no una ilustración suelta. La historia tiene que poder seguirse mirando solo las imágenes.]
-LUGARES QUE SE REPITEN (obligatorio): si una escena ocurre en un sitio que YA sale en otra escena de este mismo guion — su cocina, su despacho, el portal, el taller — empieza ese prompt con [LUGAR: id-corto] usando SIEMPRE el mismo id para el mismo sitio (ej. [LUGAR: cocina]). El primer prompt que use un id describe ese sitio COMPLETO: paredes, muebles, objetos, luz. Los siguientes ya no lo describen entero, solo dicen qué pasa y desde dónde se ve. Los sitios que salen una sola vez NO llevan marca. Así el mismo sitio se ve igual en todas sus escenas en vez de cambiar de una a otra.
-PROMPT 1: [la escena del gancho]
-PROMPT 2: [de dónde viene]
-[...una por cada momento importante, hasta el final]`;
-
-  if(mode==='impacto')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
-
-VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
-
-A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que depende de él. NO des por hecho su situación: puede estar empleado, puede tener ya algo propio, puede estar arrancando. No lo trates como una víctima ni le supongas un jefe al que culpar. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es sostenerlo.
-
-SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario, al que gana más o al que llegó primero como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro", "construyes el sueño de otro", "pagas con tus años la tranquilidad de otro" y cualquier variante. Al que ya lo logró se le respeta: hizo lo que había que hacer, y el objetivo es LLEGAR AHÍ, no despreciarlo. El único adversario del espectador es él mismo: su postergación, su miedo, su comodidad. Se habla de lo que él puede construir, jamás de lo que otro hace mal.
-
-NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
-
-NO REPITAS SIEMPRE EL MISMO SERMÓN (crítico): el encuadre de "el sueldo es una trampa, renuncia y monta tu negocio para ser tu propio jefe" ya se usó demasiadas veces en este canal y está gastado. Puede aparecer, pero NO puede ser el marco por defecto de todos los guiones. La mayoría de las veces entra por otro lado: por el dinero que ya tiene en la mano, por el tiempo que no vuelve, por una decisión concreta que lleva meses aplazando, por un hábito, por el miedo real, por lo que le está enseñando a su hijo sin darse cuenta, por la diferencia entre estar ocupado y estar avanzando. Antes de dar el guion por bueno, léelo: si se resume en "deja de trabajar para otro y sé tu propio jefe", REESCRÍBELO entrando por otro ángulo.
-
-RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
-- EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
-- UNA SOLA IDEA: el guion desarrolla UNA idea, no tres. El espectador tiene que poder contarle el video a otro en una frase. Si no puede, no lo comparte — y compartir es lo que lo hace estallar.
-- LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
-- EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
-
-` + fuerzaEmocional(false) + `
-
-PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
-
-Y OJO, ESTO NO SIGNIFICA QUE TODO GUION VAYA DE EMPRENDER: solo se habla de montar algo propio cuando el PILAR o el CONCEPTO lo piden. Si el pilar va de carácter, de hábitos o de manejar el dinero, NO metas la idea de crear un negocio ni el final de "empieza lo tuyo": ahí no pinta nada y desvía el guion.
-
-EL PILAR Y EL CONCEPTO MANDAN, POR ENCIMA DE TODO LO DEMÁS: el PILAR define EL TERRENO del guion y el CONCEPTO define exactamente de qué va. Respeta los dos al pie de la letra. NO arrastres el tema de un pilar a otro: si el pilar es MENTALIDAD, el guion NO es de libertad financiera —quien lo pidió habría elegido ese pilar si lo quisiera—. Y si el concepto que te dan es de ánimo y superación personal, el guion va de eso, no de dinero. Antes de darlo por bueno, léelo: si podría haber salido con cualquier otro pilar, está mal.
-- LIBERTAD FINANCIERA: el tiempo contra el dinero, lo que cuesta seguir esperando, la independencia real y lo que exige construirla.
-- MENTALIDAD Y DISCIPLINA: la cabeza y el carácter del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va, creer en uno mismo y sostenerlo. AQUÍ NO SE HABLA de sueldos, jefes, empleos ni negocios: se habla de carácter. Es el pilar donde cabe el ánimo y el empuje — que termine creyendo que sí puede y con ganas de exigirse más.
-- SISTEMAS Y AUTOMATIZACIÓN: que lo tuyo funcione sin ti. Dejar de ser la pieza que sostiene todo, delegar, salir de la operación.
-- HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO que viene en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
-- MARCA PERSONAL: tu nombre, tu presencia, tu autoridad. Que te conozcan es dinero.
-- INVERSIÓN Y CAPITAL: que tu dinero trabaje por ti. Activos, reinversión, lo que cuesta tenerlo parado.
-- NEGOCIO Y VENTAS: arrancar lo tuyo, vender sin miedo, la estructura que lo sostiene.
-- NEGOCIOS MILLONARIOS: pensar en grande. Escalar con gente y sistemas, construir algo que valga y que te sobreviva. Una sola unidad no te hace millonario; multiplicarla sí. Visión de largo plazo, sin prometer millones.
-
-EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cambies por otro. Máximo 12 palabras en la primera frase.
-- Dato Crudo: entra con una cifra o un hecho concreto que destruya una creencia. Los datos que más retienen son los que muestran lo que él está PERDIENDO, no lo que podría ganar.
-- Pregunta Disruptiva: entra con una pregunta que no pueda ignorar ni responder cómodamente. Que lo obligue a revisarse a sí mismo.
-- Afirmación Polémica: entra con una verdad incómoda que divida opiniones y contradiga de frente lo que él cree. Es la fórmula más viral que existe.
-- Historia Personal: entra en primera persona con una confesión concreta. Nadie se salta un secreto que alguien está a punto de contar.
-- Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
-
-MODO IMPACTO — 30 segundos, máximo 75 palabras:
-Una sola verdad que golpea, sin desarrollo ni rodeos. Este formato es el que mejor rinde en el algoritmo: úsalo como una bofetada.
-
-NIVEL DE CRUDEZA: frases cortas, de golpe seco, que le dicen a la cara algo que él sospecha y no se ha atrevido a decir en voz alta. Sin adornos, sin consuelo, sin metáforas bonitas. Dos frases máximo, sujeto y verbo, y que duela. Escríbelas tú: no repitas frases hechas.
-
-VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra entrada, otras imágenes, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se ha visto mil veces, cámbialo.
-
-PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
-CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-` + reglaPromesa(false) + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
-
-BLOQUE A
-[Guion hablado en español. Máximo 75 palabras. Termina con: Legado de Hierro.]
-
-BLOQUE C
-[3 prompts. Cada uno: UNA acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje — solo qué hace y dónde. Entorno diferente en cada prompt.]
-PROMPT 1: [acción + entorno + ángulo + luz]
-PROMPT 2: [acción + entorno diferente + ángulo + luz]
-PROMPT 3: [acción + entorno diferente + ángulo + luz]`;
-
-  if(mode==='historia')return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
-
-VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
-
-A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que depende de él. NO des por hecho su situación: puede estar empleado, puede tener ya algo propio, puede estar arrancando. No lo trates como una víctima ni le supongas un jefe al que culpar. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es sostenerlo.
-
-SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario, al que gana más o al que llegó primero como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro", "construyes el sueño de otro", "pagas con tus años la tranquilidad de otro" y cualquier variante. Al que ya lo logró se le respeta: hizo lo que había que hacer, y el objetivo es LLEGAR AHÍ, no despreciarlo. El único adversario del espectador es él mismo: su postergación, su miedo, su comodidad. Se habla de lo que él puede construir, jamás de lo que otro hace mal.
-
-NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
-
-NO REPITAS SIEMPRE EL MISMO SERMÓN (crítico): el encuadre de "el sueldo es una trampa, renuncia y monta tu negocio para ser tu propio jefe" ya se usó demasiadas veces en este canal y está gastado. Puede aparecer, pero NO puede ser el marco por defecto de todos los guiones. La mayoría de las veces entra por otro lado: por el dinero que ya tiene en la mano, por el tiempo que no vuelve, por una decisión concreta que lleva meses aplazando, por un hábito, por el miedo real, por lo que le está enseñando a su hijo sin darse cuenta, por la diferencia entre estar ocupado y estar avanzando. Antes de dar el guion por bueno, léelo: si se resume en "deja de trabajar para otro y sé tu propio jefe", REESCRÍBELO entrando por otro ángulo.
-
-RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
-- EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
-- UNA SOLA IDEA: el guion desarrolla UNA idea, no tres. El espectador tiene que poder contarle el video a otro en una frase. Si no puede, no lo comparte — y compartir es lo que lo hace estallar.
-- LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
-- EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
-
-` + fuerzaEmocional(false) + `
-
-PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
-
-Y OJO, ESTO NO SIGNIFICA QUE TODO GUION VAYA DE EMPRENDER: solo se habla de montar algo propio cuando el PILAR o el CONCEPTO lo piden. Si el pilar va de carácter, de hábitos o de manejar el dinero, NO metas la idea de crear un negocio ni el final de "empieza lo tuyo": ahí no pinta nada y desvía el guion.
-
-EL PILAR Y EL CONCEPTO MANDAN, POR ENCIMA DE TODO LO DEMÁS: el PILAR define EL TERRENO del guion y el CONCEPTO define exactamente de qué va. Respeta los dos al pie de la letra. NO arrastres el tema de un pilar a otro: si el pilar es MENTALIDAD, el guion NO es de libertad financiera —quien lo pidió habría elegido ese pilar si lo quisiera—. Y si el concepto que te dan es de ánimo y superación personal, el guion va de eso, no de dinero. Antes de darlo por bueno, léelo: si podría haber salido con cualquier otro pilar, está mal.
-- LIBERTAD FINANCIERA: el tiempo contra el dinero, lo que cuesta seguir esperando, la independencia real y lo que exige construirla.
-- MENTALIDAD Y DISCIPLINA: la cabeza y el carácter del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va, creer en uno mismo y sostenerlo. AQUÍ NO SE HABLA de sueldos, jefes, empleos ni negocios: se habla de carácter. Es el pilar donde cabe el ánimo y el empuje — que termine creyendo que sí puede y con ganas de exigirse más.
-- SISTEMAS Y AUTOMATIZACIÓN: que lo tuyo funcione sin ti. Dejar de ser la pieza que sostiene todo, delegar, salir de la operación.
-- HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO que viene en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
-- MARCA PERSONAL: tu nombre, tu presencia, tu autoridad. Que te conozcan es dinero.
-- INVERSIÓN Y CAPITAL: que tu dinero trabaje por ti. Activos, reinversión, lo que cuesta tenerlo parado.
-- NEGOCIO Y VENTAS: arrancar lo tuyo, vender sin miedo, la estructura que lo sostiene.
-- NEGOCIOS MILLONARIOS: pensar en grande. Escalar con gente y sistemas, construir algo que valga y que te sobreviva. Una sola unidad no te hace millonario; multiplicarla sí. Visión de largo plazo, sin prometer millones.
-
-EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cambies por otro. Máximo 12 palabras en la primera frase.
-- Dato Crudo: entra con una cifra o un hecho concreto que destruya una creencia. Los datos que más retienen son los que muestran lo que él está PERDIENDO, no lo que podría ganar.
-- Pregunta Disruptiva: entra con una pregunta que no pueda ignorar ni responder cómodamente. Que lo obligue a revisarse a sí mismo.
-- Afirmación Polémica: entra con una verdad incómoda que divida opiniones y contradiga de frente lo que él cree. Es la fórmula más viral que existe.
-- Historia Personal: entra en primera persona con una confesión concreta. Nadie se salta un secreto que alguien está a punto de contar.
-- Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
-
-MODO HISTORIA — el arco del que cambia:
-Un recorrido con principio y final: el punto en que se hartó, la decisión, lo que costó sostenerla, y en qué se convirtió. QUÉ cambia lo dicta el PILAR y el CONCEPTO — puede ser levantar algo propio, pero también puede ser ganarse una disciplina, romper un hábito, dejar de postergar o aprender a confiar en sí mismo. No lo conviertas en una historia de negocios si el pilar no va de eso. Cuéntalo como mejor le venga a ESTE guion: de otro en tercera persona y sin nombre propio ("un hombre de 40 años"), en primera persona, o hacia delante hablándole a él en futuro ("vas a llegar a un punto en que..."). Lo único prohibido es contárselo a él en pasado, como si ya lo hubiera vivido. El cierre siempre vuelve a él diciéndole qué hacer. Sí pueden aparecer OTRAS personas de su vida (quien lo espera en casa, quien le dio el primer sí, quien no cambió) — el reparto del canal está más abajo.
-Esto es el esqueleto, NO una plantilla: entra por donde quieras, dale la vuelta al orden, sorprende.
-
-NUNCA UN PERSONAJE INVENTADO: nada de "Marcos", "Carlos", "Pedro" ni la fórmula "[Nombre] vivía en un barrio... un día entendió...". Nada de biografías ficticias.
-
-VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra entrada, otras imágenes, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se ha visto mil veces, cámbialo.
-
-PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
-CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-` + reglaPromesa(false) + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
-
-BLOQUE A
-[Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
-
-BLOQUE C
-[Prompts que ILUSTRAN en orden las partes del guion. Cada prompt: acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje. Entorno diferente en cada prompt.]
-LUGARES QUE SE REPITEN (obligatorio): si una escena ocurre en un sitio que YA sale en otra escena de este mismo guion — su cocina, su despacho, el portal, el taller — empieza ese prompt con [LUGAR: id-corto] usando SIEMPRE el mismo id para el mismo sitio (ej. [LUGAR: cocina]). El primer prompt que use un id describe ese sitio COMPLETO: paredes, muebles, objetos, luz. Los siguientes ya no lo describen entero, solo dicen qué pasa y desde dónde se ve. Los sitios que salen una sola vez NO llevan marca. Así el mismo sitio se ve igual en todas sus escenas en vez de cambiar de una a otra.
-PROMPT 1: [acción + entorno + ángulo + luz]
-PROMPT 2: [acción + entorno diferente + ángulo + luz]
-PROMPT 3: [acción + entorno diferente + ángulo + luz]
-PROMPT 4: [acción + entorno diferente + ángulo + luz]
-PROMPT 5: [acción + entorno diferente + ángulo + luz]
-PROMPT 6: [acción + entorno diferente + ángulo + luz]
-PROMPT 7: [acción + entorno diferente + ángulo + luz]
-PROMPT 8: [acción + entorno diferente + ángulo + luz]`;
-
-  return `CANAL: LEGADO DE HIERRO — Facebook Reels. Forja personas libres a través de la autosuficiencia y la riqueza real.
-
-VOZ: cruda, directa, segunda persona, con carga emocional real. Sin motivación de cartel ni frases de coach — pero nunca fría ni tiesa: tiene que golpear donde duele. Sin porcentajes genéricos ("el 90% de la gente"). Sin calcos del inglés. Español natural e impecable: cuida la concordancia de número y género, que un plural donde va singular arruina el audio.
-
-A QUIÉN LE HABLAS: a un hombre que quiere más de lo que tiene hoy y sabe que depende de él. NO des por hecho su situación: puede estar empleado, puede tener ya algo propio, puede estar arrancando. No lo trates como una víctima ni le supongas un jefe al que culpar. No es tonto ni le falta información: sabe lo que tiene que hacer. Lo que le falta es sostenerlo.
-
-SIN RESENTIMIENTO (regla firme): este canal NO ataca a nadie. Nada de pintar al jefe, al empresario, al que gana más o al que llegó primero como el villano. PROHIBIDO el encuadre de "trabajas para hacer rico a otro", "construyes el sueño de otro", "pagas con tus años la tranquilidad de otro" y cualquier variante. Al que ya lo logró se le respeta: hizo lo que había que hacer, y el objetivo es LLEGAR AHÍ, no despreciarlo. El único adversario del espectador es él mismo: su postergación, su miedo, su comodidad. Se habla de lo que él puede construir, jamás de lo que otro hace mal.
-
-NORTE: el canal forja gente que toma el control de su dinero, su tiempo y su vida, y que construye algo propio. Ese norte es AMPLIO, no una sola consigna: cabe la disciplina y los hábitos, el dinero que ya gana y a dónde se le va, las deudas, el ahorro y la inversión, el valor del tiempo, la paciencia y el largo plazo, el miedo y el riesgo, las decisiones que se posponen, el entorno y la gente alrededor, las habilidades, la reputación, los sistemas, y lo que les deja a los que vienen detrás. Tu trabajo es encender la decisión, no dar recetas.
-
-NO REPITAS SIEMPRE EL MISMO SERMÓN (crítico): el encuadre de "el sueldo es una trampa, renuncia y monta tu negocio para ser tu propio jefe" ya se usó demasiadas veces en este canal y está gastado. Puede aparecer, pero NO puede ser el marco por defecto de todos los guiones. La mayoría de las veces entra por otro lado: por el dinero que ya tiene en la mano, por el tiempo que no vuelve, por una decisión concreta que lleva meses aplazando, por un hábito, por el miedo real, por lo que le está enseñando a su hijo sin darse cuenta, por la diferencia entre estar ocupado y estar avanzando. Antes de dar el guion por bueno, léelo: si se resume en "deja de trabajar para otro y sé tu propio jefe", REESCRÍBELO entrando por otro ángulo.
-
-RETENCIÓN — LO QUE DECIDE TODO: en Reels, lo que el espectador aguanta en los primeros 3 segundos decide si el video se reparte a miles o se muere en doscientas vistas. Un video que retiene al 80% en el segundo 3 le gana a uno que retiene al 60% en el segundo 30. Todo lo demás va después de esto.
-- EL GANCHO ES UNA BALA: primera frase, máximo 12 palabras. Sin calentamiento, sin contexto, sin presentación, sin "hoy te voy a hablar de". Empiezas en el punto más alto.
-- UNA SOLA IDEA: el guion desarrolla UNA idea, no tres. El espectador tiene que poder contarle el video a otro en una frase. Si no puede, no lo comparte — y compartir es lo que lo hace estallar.
-- LA PÉRDIDA PESA MÁS QUE LA GANANCIA: el ser humano evita perder mucho más de lo que persigue ganar. Decirle que está cometiendo un error lo congela en seco; prometerle un beneficio lo deja indiferente. Habla de lo que está perdiendo ahora mismo.
-- EL CIERRE ENGANCHA CON EL INICIO: la última frase tiene que conectar con la primera y cerrar el círculo. Un video que se siente redondo se vuelve a ver, y la repetición es lo que lo dispara.
-
-` + fuerzaEmocional(false) + `
-
-PROHIBIDO — NEGOCIOS ESPECÍFICOS: jamás menciones un tipo de negocio concreto ni propongas un modelo. Nada de "monta una agencia de esto", "el negocio de aquello", "vende tal cosa", ni explicar cómo montar algo paso a paso. Un negocio nombrado le habla a diez personas y el resto pasa el video; el mensaje general le habla a todos.
-
-Y OJO, ESTO NO SIGNIFICA QUE TODO GUION VAYA DE EMPRENDER: solo se habla de montar algo propio cuando el PILAR o el CONCEPTO lo piden. Si el pilar va de carácter, de hábitos o de manejar el dinero, NO metas la idea de crear un negocio ni el final de "empieza lo tuyo": ahí no pinta nada y desvía el guion.
-
-EL PILAR Y EL CONCEPTO MANDAN, POR ENCIMA DE TODO LO DEMÁS: el PILAR define EL TERRENO del guion y el CONCEPTO define exactamente de qué va. Respeta los dos al pie de la letra. NO arrastres el tema de un pilar a otro: si el pilar es MENTALIDAD, el guion NO es de libertad financiera —quien lo pidió habría elegido ese pilar si lo quisiera—. Y si el concepto que te dan es de ánimo y superación personal, el guion va de eso, no de dinero. Antes de darlo por bueno, léelo: si podría haber salido con cualquier otro pilar, está mal.
-- LIBERTAD FINANCIERA: el tiempo contra el dinero, lo que cuesta seguir esperando, la independencia real y lo que exige construirla.
-- MENTALIDAD Y DISCIPLINA: la cabeza y el carácter del que construye. Decisiones duras, hábitos, ejecución cuando nadie mira, la disciplina que queda cuando la motivación se va, creer en uno mismo y sostenerlo. AQUÍ NO SE HABLA de sueldos, jefes, empleos ni negocios: se habla de carácter. Es el pilar donde cabe el ánimo y el empuje — que termine creyendo que sí puede y con ganas de exigirse más.
-- SISTEMAS Y AUTOMATIZACIÓN: que lo tuyo funcione sin ti. Dejar de ser la pieza que sostiene todo, delegar, salir de la operación.
-- HERRAMIENTAS DEL CAMINO: primera persona. Enseña de verdad el ÁNGULO ASIGNADO que viene en el mensaje. Solo el cierre dirige al enlace del video, con palabras distintas cada vez. Prohibida la fórmula "ya construí todo, revisa el enlace" como único contenido. Sin precios ni nombre de producto.
-- MARCA PERSONAL: tu nombre, tu presencia, tu autoridad. Que te conozcan es dinero.
-- INVERSIÓN Y CAPITAL: que tu dinero trabaje por ti. Activos, reinversión, lo que cuesta tenerlo parado.
-- NEGOCIO Y VENTAS: arrancar lo tuyo, vender sin miedo, la estructura que lo sostiene.
-- NEGOCIOS MILLONARIOS: pensar en grande. Escalar con gente y sistemas, construir algo que valga y que te sobreviva. Una sola unidad no te hace millonario; multiplicarla sí. Visión de largo plazo, sin prometer millones.
-
-EL GANCHO MANDA: el GANCHO que te dan define CÓMO entras. Respétalo, no lo cambies por otro. Máximo 12 palabras en la primera frase.
-- Dato Crudo: entra con una cifra o un hecho concreto que destruya una creencia. Los datos que más retienen son los que muestran lo que él está PERDIENDO, no lo que podría ganar.
-- Pregunta Disruptiva: entra con una pregunta que no pueda ignorar ni responder cómodamente. Que lo obligue a revisarse a sí mismo.
-- Afirmación Polémica: entra con una verdad incómoda que divida opiniones y contradiga de frente lo que él cree. Es la fórmula más viral que existe.
-- Historia Personal: entra en primera persona con una confesión concreta. Nadie se salta un secreto que alguien está a punto de contar.
-- Lista de Pasos: promete el número exacto y cúmplelo. Adelanta el paso más fuerte en el gancho para que se quede a verlos todos.
-
-MODO REEL — consejo directo:
-UNA idea, desarrollada de verdad y llevada hasta el final. Sin rodeos, sin relleno, sin repetir la misma idea con otras palabras. Que el espectador termine con algo que se le queda clavado: una verdad, un empujón, una decisión.
-
-VARIEDAD (obligatoria): cada guion debe sentirse distinto al anterior — otra entrada, otras imágenes, otra forma de armar las frases. Tienes libertad total dentro de estas reglas: úsala. Si lo que escribes suena a algo que ya se ha visto mil veces, cámbialo.
-
-PROHIBIDO: "el secreto mejor guardado" en cualquier variante. Porcentajes genéricos. Calcos del inglés. Repetir la misma frase de cierre de otro guion.
-CIERRE: duro y con fuego, cerrando el círculo con la primera frase. Sin promesas falsas ni consuelo barato, pero la última línea debe ENCENDER, no enfriar. Termina con: Legado de Hierro.
-` + reglaPromesa(false) + reglaTiempo() + `FORMATO: texto plano, sin **, sin ##, sin corchetes en el BLOQUE A.
-
-BLOQUE A
-[Guion hablado en español. Párrafos separados por línea en blanco. Termina con: Legado de Hierro.]
-
-BLOQUE C
-[Prompts que ILUSTRAN en orden las partes del guion. Cada prompt: acción concreta + entorno específico + ángulo de cámara + luz. Sin describir al personaje. Entorno diferente en cada prompt.]
-PROMPT 1: [acción + entorno + ángulo + luz]
-PROMPT 2: [acción + entorno diferente + ángulo + luz]
-PROMPT 3: [acción + entorno diferente + ángulo + luz]
-PROMPT 4: [acción + entorno diferente + ángulo + luz]
-PROMPT 5: [acción + entorno diferente + ángulo + luz]
-PROMPT 6: [acción + entorno diferente + ángulo + luz]
-PROMPT 7: [acción + entorno diferente + ángulo + luz]
-PROMPT 8: [acción + entorno diferente + ángulo + luz]`;
+  var options=editorialOptions||(typeof studioOptions==='function'?studioOptions(mode):{family:LH.familyFor(mode)});
+  var story=mode==='historia'||mode==='relato';
+  return LH.editorial(options)+'\n\n'+reglaPromesa(esModoLargo(mode))
+    +'\nVOZ: firme, próxima y concreta; español natural, sin calcos del inglés. '
+    +'El protagonista visual del canal es una ilustración, no una afirmación de que el autor vivió las historias. '
+    +(story?'HISTORIA: un conflicto, una decisión y consecuencias observables. Situación ilustrativa salvo hechos aportados por el autor. Mantén continuidad espacial y de vestuario. '
+      :mode==='profesor'?'CLASE: problema, demostración, pasos con cómo hacerlos, ejemplo hipotético, errores y una acción final. '
+      :'UNA IDEA: un conflicto reconocible, un ejemplo concreto y una decisión útil. ')
+    +'Habla al espectador en presente, futuro o imperativo; no inventes su pasado. '
+    +'La primera frase entra en el tema sin saludos. Cierra cumpliendo la promesa y con Legado de Hierro. '
+    +'Sin porcentajes, testimonios, cifras de ingresos ni beneficios financieros inventados. '
+    +'El pilar y el concepto mandan. Si no van de dinero, no los conviertas en un sermón de negocios.';
 }
 var SP=buildSP();
 
@@ -744,6 +468,7 @@ function showApp(){
   sessionStorage.setItem('lh_sess',localStorage.getItem('lh_sess')||'');
   showPills();
   avisoCandado();
+  if(typeof studioLoadAll==='function')studioLoadAll('metrics').then(function(rows){STUDIO.metrics=rows;studioPaintMetrics();}).catch(function(e){studioMessage('No se cargaron los resultados guardados: '+e.message,true);});
 }
 
 // Barra roja permanente cuando la API esta abierta al mundo. No se puede cerrar:
@@ -876,7 +601,7 @@ function parseSuggestions(txt){
 // 16:9 para los modos largos (YouTube), 9:16 para los reels. Se puede cambiar a
 // mano despues: esto solo pone el valor sensato al cambiar de modo.
 function aplicarFormatoDelModo(){
-  var quiere=esModoLargo()?'16:9':'9:16';
+  var quiere=typeof studioOptions==='function'&&studioOptions().platform==='youtube'&&esModoLargo()?'16:9':'9:16';
   [['selImgFmt',function(v){imgFmt=v;},'imgFmt'],['selVidFmt',function(v){vidFmt=v;},'vidFmt']].forEach(function(c){
     var sel=document.getElementById(c[0]);
     if(!sel)return;
@@ -914,8 +639,8 @@ function buildAll(){
     [{id:'reel',label:'🎬 Modo Reel',sub:'Consejo directo'},
      {id:'historia',label:'📖 Modo Historia',sub:'Narrativa con continuidad'},
      {id:'impacto',label:'⚡ Modo Impacto',sub:'Golpe de 30 segundos'},
-     {id:'profesor',label:'🎓 Modo Profesor',sub:'YouTube — enseña un método'},
-     {id:'relato',label:'🎞 Modo Relato',sub:'YouTube — historia larga'}].forEach(function(m){
+     {id:'profesor',label:'🎓 Modo Profesor',sub:'Enseña un método'},
+     {id:'relato',label:'🎞 Modo Relato',sub:'Historia larga'}].forEach(function(m){
       var b=document.createElement('button');b.className='oc'+(sMode===m.id?' sel':'');b.dataset.id=m.id;
       b.innerHTML='<span class="om">'+m.label+'</span><span class="os">'+m.sub+'</span>';
       b.style.borderColor=sMode===m.id?'#b8975a':'';
@@ -982,9 +707,9 @@ function updCC(){document.getElementById('cc').textContent=document.getElementBy
 function imagenesDe(mode,dId){
   mode=mode||sMode; dId=dId||sD;
   if(mode==='profesor')return 8;   // 5 tomas del set + 3 ejemplos
-  if(mode==='relato')return 10;    // la historia, en orden
+  if(mode==='relato'||Number(dId)>=180)return 10; // escenas reutilizables del largo
   if(mode==='impacto'||dId==='30')return 3;
-  return 5;
+  return Math.max(5,Math.ceil(Number(dId)/12));
 }
 
 function updImgLabel(){
@@ -1017,7 +742,7 @@ function updGBtn(){
   var b5=document.getElementById('gbtn5');
   if(b5){b5.disabled=loading;b5.style.opacity=loading?'.55':'1';b5.style.cursor=loading?'not-allowed':'pointer';}
 }
-function updCost(){document.getElementById('gcost').textContent='$'+cost.toFixed(3)+' estimado · '+genCount+' generaciones';}
+function updCost(){document.getElementById('gcost').textContent=genCount+' guiones · coste real según consumo en los proveedores';}
 
 // GENERATE
 // Construye el mensaje completo de un episodio para /api/generate.
@@ -1608,11 +1333,11 @@ function bloqueYaDicho(mirar){
     var t=(it.topic||'').trim(); if(t&&conceptos.indexOf(t)<0)conceptos.push(t);
   });
   var s='LO QUE ESTE CANAL YA DIJO (memoria real de los ultimos '+h.length+' guiones — OBLIGATORIO leerlo antes de escribir):\n';
-  if(ganchos.length) s+='\nYA ABRI CON ESTAS FRASES. Tu primera frase no puede parecerse a ninguna, ni en idea ni en estructura:\n- '+ganchos.slice(0,25).join('\n- ')+'\n';
-  if(cierres.length) s+='\nYA CERRE CON ESTAS. Tu cierre tiene que ser otro:\n- '+cierres.slice(0,20).join('\n- ')+'\n';
+  if(ganchos.length) s+='\nYA ABRI CON ESTAS FRASES. No copies estas primeras frases. Puedes conservar una función narrativa que sirva al nuevo tema, con situación, ejemplo y palabras originales:\n- '+ganchos.slice(0,25).join('\n- ')+'\n';
+  if(cierres.length) s+='\nYA CERRE CON ESTAS. Resuelve el conflicto de este nuevo video; conserva la firma del canal, pero no repitas el mismo remate:\n- '+cierres.slice(0,20).join('\n- ')+'\n';
   if(conceptos.length)s+='\nYA HABLE DE ESTO. Si tu concepto se parece, atacalo por un lado que no se haya tocado:\n- '+conceptos.slice(0,25).join('\n- ')+'\n';
   s+='\nREGLA: si al terminar tu guion pudiera confundirse con cualquiera de los de arriba, esta MAL y hay que reescribirlo. '
-    +'Esto no es un adorno: es la memoria del canal, y repetirse es exactamente lo que hunde el alcance.\n\n';
+    +'Esta memoria sirve para variar las ideas y las palabras. No demuestra por qué cambia el alcance y no prohíbe reutilizar imágenes ni música propias.\n\n';
   return s;
 }
 
@@ -1621,118 +1346,23 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   var tO=THEMES.find(function(t){return t.id===tId;});
   var hO=HOOKS.find(function(h){return h.id===hId;});
   var dO=DURS.concat(DURS_LARGAS).find(function(d){return d.id===dId;});
-  var hi={dato:'Empieza con dato/cifra impactante.',pregunta:'Empieza con pregunta disruptiva.',afirmacion:'Empieza con verdad incomoda directa.',historia:'Empieza en primera persona con experiencia cruda.',pasos:'Desarrolla con Primero, Segundo, Tercero.'};
-  var identidadBase='PERSONAJE FIJO — NO todas las imagenes tienen que mostrarlo (hay planos de detalle, de entorno o de otras personas), pero SIEMPRE que aparezca el protagonista es el MISMO hombre, rostro identico a las imagenes de referencia: hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria. Su ROSTRO, cabello y barba son identicos en cada imagen; es el personaje principal de la marca y no puede cambiar. El vestuario y el entorno SI cambian segun la escena (traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes). ESTILO OBLIGATORIO: ilustracion estilo comic americano 2D cinematografico, lineas de tinta limpias y marcadas, cel-shading dramatico, iluminacion cinematografica con profundidad, estetica de novela grafica, sin texto en la imagen. NUNCA fotorrealista, NUNCA una foto, NUNCA render 3D ni CGI. PROHIBIDO EN TODA IMAGEN: lluvia, cualquier clima (nieve, tormenta, gotas de agua), cielos lluviosos, superficies mojadas, charcos -- NUNCA, ni dentro ni fuera del edificio; el clima es fuente de errores graves al animar. Tampoco robots, futurismo, sci-fi, cadenas rotas, magia ni fantasia. Solo el mundo real de negocios y finanzas; para dramatismo usa luces de ciudad, contraste y sombras, jamas clima. ESCENAS LIMPIAS: incluye solo los objetos que la accion necesita; evita objetos sueltos irrelevantes (tazas de cafe, vasos, adornos) que no formen parte de la accion, porque al animar se deforman o se transforman en otra cosa. MIRADA (obligatorio): el personaje mira lo que exige la accion (lo que hace con las manos, la persona con quien trata, el lugar que supervisa, el horizonte de la ciudad), NO a la camara y sin pose de modelo, salvo que el prompt diga explicitamente que habla directo a camara. ';
-  // DIRECCION VISUAL: se le da al modelo el papel de DIRECTOR, no una lista de
-  // escenas. Antes aqui habia arcos y menus de acciones fijos ("cargando cajas",
-  // "dirigiendo al equipo"...) y el modelo simplemente los obedecia: por eso salian
-  // siempre las mismas imagenes. Ahora decide el como a partir de ESTE guion.
-  var sceneDir='DIRECCION VISUAL — ERES EL DIRECTOR: actua como director de cine y fotografia especialista en contenido de libertad financiera, no como un generador de escenas sueltas. ANTES de escribir nada, LEE el guion completo que acabas de escribir y planifica la secuencia entera como una pieza: decide que momento merece cada imagen, que se muestra y que se sugiere, y como avanza visualmente de la primera a la ultima. Cada prompt es UNA sola imagen, un unico plano que llena el cuadro — NUNCA vinetas, cuadros ni collage. ';
-  if(mode==='historia'){
-    // MODO HISTORIA = CONTINUIDAD. Antes este modo recibia practicamente la misma
-    // orden que los otros dos ("cada imagen un fotograma distinto"), y por eso
-    // salia una sucesion de escenas sueltas sin relacion: exactamente lo contrario
-    // de contar una historia. Aqui se le exige que las imagenes sean la MISMA
-    // escena avanzando, no cinco escenas diferentes.
-    sceneDir+='ESTE MODO ES UNA HISTORIA CONTINUA, y esa es la diferencia con los otros modos. '
-      +'NO son imagenes sueltas: son fotogramas SEGUIDOS de una misma escena que avanza, como si filmaras a la misma persona '
-      +'durante un rato sin cortar a otro sitio. Piensa en una secuencia de pelicula, no en cinco portadas.\n'
-      +'REGLAS DE CONTINUIDAD (obligatorias en este modo):\n'
-      +'1. UN SOLO HILO: decide UN momento concreto de la vida del protagonista (una noche, una manana, una jornada, una conversacion) y quedate ahi. '
-      +'Todas las imagenes ocurren dentro de ese mismo momento y en orden cronologico.\n'
-      +'2. ESPACIO CONTINUO: como maximo DOS localizaciones, y si hay dos, la segunda tiene que ser un sitio al que se llega desde la primera (sale de casa y llega al taller; sale de la oficina y baja a la calle). Nada de saltar a un lugar sin relacion.\n'
-      +'3. EL MISMO DIA: la misma ropa, la misma hora aproximada, la misma luz. Si el guion pide un salto de tiempo grande (anos despues), se permite UN solo salto y se hace evidente en la imagen; el resto sigue siendo continuo.\n'
-      +'4. CADA IMAGEN CONTINUA LA ANTERIOR: la imagen k+1 tiene que poder explicarse mirando la k. Cambia el encuadre, la distancia o el angulo, y avanza la accion — pero no cambies de escena. Si el espectador no puede decir "esto pasa justo despues de lo otro", esta MAL.\n'
-      +'5. VARIA LA CAMARA, NO EL MUNDO: la variedad de este modo viene de los PLANOS (general, medio, detalle de las manos, escorzo, desde atras), no de saltar de escenario. Esa es la diferencia entre una historia y un muestrario.\n'
-      +'6. QUE PASE ALGO: entre la primera y la ultima imagen tiene que haber cambiado ALGO visible — lo que hace, su postura, quien esta con el, lo que hay sobre la mesa. Que el final no pueda confundirse con el principio.\n'
-      +'ESCRIBE CADA PROMPT COMO PARTE DE LA SECUENCIA: menciona en el el lugar exacto y la hora, iguales en todos, para que el generador no invente otro sitio. ';
-  }else if(mode==='impacto'){
-    sceneDir+='ESTE MODO son 3 golpes visuales para detener el scroll: composicion audaz, alto contraste, mucha fuerza emocional, cada imagen un impacto distinto ligado a un momento del mensaje. Puedes usar contraste simbolico, un detalle brutal o una escena potente — lo que MEJOR sirva a lo que dice este guion. ';
-  }else{
-    sceneDir+='ESTE MODO acompana un consejo directo: cada imagen ILUSTRA lo que la narracion dice en ese momento, siguiendo su ritmo de principio a fin, con estetica de cine y poder tranquilo. ';
-  }
-  // El CODIGO (no el modelo) asigna los registros visuales. Ya no al azar ciego:
-  // se prefieren los que NO se han usado en los ultimos guiones. Con 12 registros
-  // y 3 por guion, el azar puro repetia mundo visual demasiado seguido.
-  // En HISTORIA se pide UN mundo (la escena es continua); en los otros modos, tres.
-  var esHistoria=(mode==='historia');
-  var regs=elegirVariosConMemoria(VIS_REGISTROS,'regs',esHistoria?1:3,10);
-  sceneDir+='LIBERTAD Y CRITERIO (lo mas importante): tienes libertad TOTAL para elegir escenas, encuadres y entornos. NO existe ninguna lista de escenas que debas seguir. Deriva cada imagen del CONTENIDO CONCRETO de su parte de ESTE guion: si el guion habla de tiempo, de una decision, de una perdida, de una relacion o de una rutina, la imagen debe ser de ESO, no una escena generica de trabajo. '
-    +(esHistoria
-      ? 'MUNDO DE ESTA HISTORIA (aqui transcurre TODA la secuencia, no saltes a otro): '+regs.join(' / ')+'. '
-      : 'MUNDOS VISUALES DE ESTE GUION (usalos como territorio de partida, mezclalos y sal de ellos si el guion pide otra cosa): '+regs.join(' / ')+'. ')
-    +(esHistoria
-      // En una secuencia continua la variedad viene de la CAMARA. La regla de
-      // "ningun entorno repetido" del resto de modos aqui destruiria la historia.
-      ? 'VARIEDAD DE PLANOS (obligatorio, y aqui es lo UNICO que varia): la escena es la misma, asi que cambia la CAMARA en cada imagen — plano general del lugar, plano medio, primer plano del rostro, detalle cerrado de las manos o de un objeto, plano desde atras, escorzo. Al menos una imagen NO debe mostrar su rostro. Repetir el mismo encuadre dos veces seguidas esta PROHIBIDO; repetir el mismo LUGAR es obligatorio. '
-      : 'VARIEDAD DE PLANOS (obligatorio): NO todas las imagenes son un plano entero del protagonista trabajando. Alterna la escala — un primer plano de manos u objetos, un detalle cerrado sin rostro, un plano general amplio donde la persona es pequena en el espacio, un plano medio, un punto de vista subjetivo. NO todas las imagenes tienen que mostrar al protagonista: algunas pueden ser un entorno vacio, un objeto que cuenta la historia, otra persona, o un detalle. Al menos una imagen del conjunto NO debe mostrar su rostro. ')
-    +'IMAGENES QUEMADAS — PROHIBIDAS salvo que el guion lo pida literalmente: el protagonista cargando cajas o bultos, apilando o moviendo mercancia, en una bodega o almacen con cajas de carton, cargando materiales en una obra en construccion, senalando o dirigiendo obreros con casco y chaleco en una fabrica o planta industrial, revisando o firmando papeles en un escritorio. Esas escenas ya se usaron demasiadas veces en este canal y estan gastadas; si tu primera idea es una de esas, DESCARTALA y busca otra. '
-    +(esHistoria
-      ? 'ANTIRREPETICION EN ESTE MODO: lo que no se puede repetir es el ENCUADRE y la ACCION, no el lugar. Dos imagenes seguidas con la misma camara y al personaje haciendo lo mismo estan MAL; dos imagenes en el mismo sitio, vistas distinto y con la accion avanzando, estan BIEN — es justo lo que se pide. '
-      : 'ANTIRREPETICION: PROHIBIDO que dos imagenes de este conjunto compartan la misma accion, el mismo tipo de entorno o el mismo encuadre. Si dos prompts se parecen, reescribe uno. Piensa cada imagen como un fotograma distinto de una pelicula, no como un retrato del personaje posando. ')
-    +bloqueEscenasUsadas(8);
-  // Regla clave: el guion habla en METAFORAS. Sin esto, el modelo dibuja las
-  // palabras al pie de la letra (fuego real por "apagar incendios", engranajes de
-  // reloj por "engranajes") en vez del significado. No es una lista negra: es una
-  // instruccion de RAZONAMIENTO que se aplica a cualquier figura del guion.
-  sceneDir+='INTERPRETACION DEL SENTIDO, NUNCA LITERAL (obligatorio, hazlo ANTES de escribir cada prompt): el guion esta lleno de lenguaje FIGURADO, metaforas y frases hechas. Tu trabajo NO es dibujar las palabras, es dibujar lo que esas palabras SIGNIFICAN en el mundo real de los negocios. Ante cualquier expresion figurada, primero razona "que quiere decir esto de verdad para un empresario" y describe UNA escena concreta y creible de ese significado; jamas el objeto literal de la metafora. Ejemplos del TIPO de razonamiento que debes aplicar (NO es una lista cerrada, es la logica para TODA metafora que aparezca): "apagar incendios" NO es fuego ni bomberos, es resolver crisis y urgencias del negocio con calma -> el empresario resolviendo un problema con su equipo o gestionando una urgencia. "engranajes", "maquinaria", "que la maquina funcione sola" NO son piezas mecanicas ni relojeria, son los SISTEMAS, procesos y automatizacion que hacen que el negocio opere sin depender de el -> una operacion organizada fluyendo, el equipo trabajando coordinado, el empresario supervisando el flujo sin tener que hacerlo todo. "sembrar y cosechar" -> invertir esfuerzo o dinero hoy y recoger resultados despues, con acciones reales de negocio. "el timon", "el motor", "construir puentes", "escalar la montana", "la batalla", "romper cadenas", "no morir en la orilla" -> traduce SIEMPRE el significado a una escena real de empresa, trabajo o finanzas, nunca el objeto de la metafora. REGLA FIRME: si un elemento de la escena solo tendria sentido como la metafora tomada literal (fuego, engranajes de reloj, cadenas, semillas en la tierra, un barco, una montana, espadas o armas, una guerra), esta MAL: reemplazalo por la accion de negocios que representa. Cada imagen debe poder entenderse como un momento real y cotidiano del mundo empresarial, no como el dibujo de un refran. ';
-  var identidad=identidadBase+sceneDir;
-  // CUANTAS IMAGENES Y CUANTAS PALABRAS.
-  // En los modos LARGOS no se genera una imagen por cada momento: seria carisimo
-  // y ademas innecesario. Profesor usa 5 tomas del mismo set (que se REPITEN a lo
-  // largo del video, como en una clase filmada) mas 3 ejemplos = 8 imagenes para
-  // 3, 5 u 8 minutos. Relato usa 10, encadenadas cronologicamente.
-  // Las palabras salen de ~2,5 por segundo, que es el ritmo real de la narracion.
-  var segs=parseInt(dId,10)||60;
-  var numPrompts=imagenesDe(mode,dId);
-  var maxPalabras=esModoLargo(mode)?Math.round(segs*2.5)
-    :((mode==='impacto'||dId==='30')?75:150);
-  // Sincronizacion guion-imagen: en historia y reel, cada imagen ilustra su parte del guion.
-  // En impacto no aplica (son 3 golpes visuales independientes).
-  var syncRule=(mode!=='impacto'&&mode!=='profesor')
-    ? 'SINCRONIZACION GUION-IMAGEN (obligatorio en este modo): divide el BLOQUE A en EXACTAMENTE '+numPrompts+' partes consecutivas de peso similar, en el mismo orden en que se narra. El PROMPT k del BLOQUE C debe ILUSTRAR lo que se dice en la parte k del guion: el PROMPT 1 corresponde al inicio del guion, el PROMPT '+numPrompts+' al cierre, y los del medio en orden. Las imagenes van al ritmo de la narracion, como los fotogramas de lo que se esta diciendo; ninguna imagen puede ser una escena suelta ajena a su parte del guion.\n\n'
-    : '';
-  // Variedad mecánica: el código asigna el tipo de modelo al azar (el modelo de IA no elige).
-  // Se omite en impacto (muy corto), herramientas (el modelo es la guía del enlace) e inversión (el pilar ya define: activos).
-  var seedRule='',semEnf=null,semAng=null;
-  if(mode!=='impacto'&&tId==='herramientas'){
-    // Ya no al azar: se prefiere el angulo que lleve mas guiones sin salir.
-    semAng=elegirConMemoria(HERRAM_ANGLES,'ang',HERRAM_ANGLES.length);
-    seedRule='ÁNGULO ASIGNADO PARA ESTE GUION (variedad obligatoria): '+semAng+' Desarrolla ESE contenido con sustancia real; SOLO el cierre dirige al enlace del video, con una invitación distinta cada vez. PROHIBIDO repetir la fórmula de siempre.\n\n';
-  }else{
-    // El codigo asigna la PUERTA DE ENTRADA (el modelo no la elige): es lo que
-    // evita que todos los guiones entren por "el sueldo es una trampa". Con
-    // memoria: no se repite una puerta hasta agotar las 18.
-    semEnf=elegirConMemoria(ENFOQUES,'enf',ENFOQUES.length);
-    seedRule='PUERTA DE ENTRADA ASIGNADA PARA ESTE GUION (variedad obligatoria, no la anuncies ni la nombres): entra al tema por '+semEnf+' Sigue tratando el PILAR y el CONCEPTO que te dieron, pero ábrelos por ESA puerta en vez de por el encuadre de siempre. Si esa puerta NO encaja con el pilar o con el concepto, MANDA EL PILAR: descártala y entra por donde el tema lo pida. Si al terminar el guion podría haber entrado por cualquier otra puerta sin cambiar nada, no lo hiciste bien.\n\n';
-  }
-  // El formato exigido cambia con el modo: profesor entrega SET+TOMAS+EJEMPLOS y
-  // un MONTAJE, no una lista de PROMPT 1..N.
-  var formato;
-  if(mode==='profesor'){
-    formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\n'
-      +'Genera los TRES bloques en este orden: BLOQUE A (guion hablado), BLOQUE C (SET + 5 TOMAS + 3 EJEMPLOS) y BLOQUE M (el montaje). El ingles NO va aqui: se pide aparte.\n'
-      +'En el BLOQUE C tiene que haber EXACTAMENTE una linea SET:, cinco lineas TOMA 1: a TOMA 5: y tres lineas EJEMPLO 1: a EJEMPLO 3:. Ni una mas ni una menos.\n'
-      +'En las TOMAS sale el protagonista dando la clase. En los EJEMPLOS sale OTRA persona: el profesor no aparece en ellos.\n'
-      +'El BLOQUE M tiene que cubrir los '+segs+' segundos completos del guion, con una linea por corte en formato "<segundo>s: TOMA <n>" o "<segundo>s: EJEMPLO <n>". '
-      +'Repite las tomas cuantas veces haga falta — para eso estan — pero nunca dos iguales seguidas. Un corte cada 8 a 15 segundos.\n'
-      +'Si falta cualquiera de los cuatro bloques, la respuesta es incompleta y falla el sistema.\n\n';
-  }else if(mode==='relato'){
-    formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\n'
-      +'Genera los DOS bloques en este orden: BLOQUE A (guion hablado en espanol) y BLOQUE C (exactamente '+numPrompts+' prompts numerados PROMPT 1 a PROMPT '+numPrompts+', en orden cronologico de la historia). El ingles NO va aqui: se pide aparte.\n'
-      +'Si no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema.\n\n';
-  }else{
-    formato='INSTRUCCION CRITICA DE FORMATO — OBLIGATORIO:\nDebes generar los 2 bloques completos en este orden exacto:\n1. BLOQUE A — texto hablado en español ('+maxPalabras+' a '+(maxPalabras+10)+' palabras)\n2. BLOQUE C — exactamente '+numPrompts+' prompts de imagen, numerados PROMPT 1 hasta PROMPT '+numPrompts+'\nEl guion en inglés NO va en esta respuesta: se pide en una llamada aparte. No lo incluyas.\nSi no generas el BLOQUE C con los '+numPrompts+' prompts, la respuesta es incompleta y falla el sistema. NO omitas el BLOQUE C bajo ninguna circunstancia.\n\n';
-  }
-  var recuerda=(mode==='profesor')
-    ? 'Recuerda: BLOQUE A es solo el texto hablado. BLOQUE C es el SET, las 5 TOMAS y los 3 EJEMPLOS. BLOQUE M es el montaje. NO escribas nada en ingles.'
-    : 'Recuerda: BLOQUE A es solo texto hablado sin prompts. BLOQUE C son exactamente los '+numPrompts+' prompts de imagen. NO escribas nada en ingles.';
-
-  var msg=buildSP(mode)+'\n\n---\n\nGenera un episodio COMPLETO:\nPILAR: '+(tO?tO.label+' - '+tO.desc:'Independencia Financiera')+'\nDURACION: '+(dO?dO.label:'60 segundos')+'\nGANCHO: '+(hO?hO.label:'Dato Crudo')+' - '+(hi[hId]||hi.dato)+'\nCONCEPTO: '+topic+'\n\n'+identidad+'\n\nREGLA DE LONGITUD OBLIGATORIA: el BLOQUE A debe tener EXACTAMENTE entre '+maxPalabras+' y '+(maxPalabras+10)+' palabras. Ni una más, ni una menos. Cuenta las palabras antes de terminar.\n\n'+formato+syncRule+seedRule+bloqueReparto()+bloqueYaDicho(25)+recuerda;
-  // Las semillas creativas viajan de vuelta para guardarlas en el historial. Sin
-  // esto no hay forma de rotar sin repetir: el siguiente guion no sabria por que
-  // puerta entro el anterior ni en que mundo visual estuvo.
-  return {msg:msg,tO:tO,dO:dO,hO:hO,sem:{enf:semEnf,ang:semAng,regs:regs,personajes:[]}};
+  var seconds=Number(dId)||60, n=imagenesDe(mode,dId), count=Math.round(seconds*2.35);
+  var editorialOptions=typeof studioOptions==='function'?studioOptions(mode,seconds):{family:LH.familyFor(mode),seconds:seconds};
+  var hook={dato:'Usa un hecho verificable aportado o una cuenta hipotética transparente; nunca inventes una estadística.',pregunta:'Pregunta sobre una decisión concreta.',afirmacion:'Contradicción específica y defendible, sin insultos ni generalizaciones.',historia:'Situación ilustrativa o vivencia aportada; no inventar una confesión autobiográfica.',pasos:'Promete y entrega el número exacto de pasos aplicables.'}[hId]||'';
+  var visual='DIRECCIÓN VISUAL: ilustración de novela gráfica 2D, tinta limpia y cel-shading cinematográfico. Sin texto, logotipos, lluvia, fantasía, 3D ni fotorrealismo. '
+    +'Cuando aparezca el protagonista conserva el rostro de las referencias del canal (cabello negro, barba corta, 35 años); su vestuario responde a la escena. '
+    +'Cada prompt describe UNA acción visible, lugar, encuadre, luz y quién aparece. Incluye detalles de manos, objetos y espacios. '
+    +'Las escenas ilustran el SIGNIFICADO del tramo, nunca metáforas literales. Conserva el mismo lugar y vestuario entre momentos que lo exijan. '
+    +'Puedes volver a una toma propia anterior: reutilizar no obliga a cambiar de entorno ni de personaje. No inventes material que no aparece en el guion. '
+    +'Si un lugar se repite, marca [LUGAR: id] y conserva su descripción. ';
+  var format=mode==='profesor'
+    ? 'BLOQUE A: narración completa. BLOQUE C: SET: descripción de un único set; TOMA 1: a TOMA 5: del protagonista en ese set; EJEMPLO 1: a EJEMPLO 3: de OTRAS personas fuera del set. BLOQUE M: cortes con formato 0s: TOMA 1, 10s: EJEMPLO 1, etc., hasta cubrir toda la duración, alternando tomas.'
+    : 'BLOQUE A: narración completa, repartida en '+n+' párrafos consecutivos. BLOQUE C: exactamente '+n+' líneas PROMPT 1: a PROMPT '+n+':. El prompt k ilustra el párrafo k. '+(mode==='historia'?'Las escenas avanzan en uno o dos lugares conectados, con continuidad de ropa y tiempo. ':'');
+  var msg=buildSP(mode,editorialOptions)+'\nPILAR: '+(tO?tO.label:'Disciplina')+'\nCONCEPTO: '+topic+'\nGANCHO: '+hook
+    +'\nDURACIÓN orientativa: '+seconds+' segundos. Entre '+Math.round(count*0.9)+' y '+Math.round(count*1.1)+' palabras; el audio se medirá y el montaje se ajustará a su duración real. No rellenar con frases vacías. '
+    +'\n'+visual+'\nFORMATO: texto plano. Cada etiqueta BLOQUE en su propia línea, seguida de su contenido. '+format
+    +'\nNO incluir inglés en esta respuesta.\n'+bloqueReparto()+bloqueYaDicho(12);
+  return {msg:msg,topic:topic,tO:tO,dO:dO,hO:hO,sem:{enf:hook,regs:[],personajes:[]},editorial:editorialOptions};
 }
 
 // EL INGLES VA EN SU PROPIA LLAMADA.
@@ -1789,81 +1419,27 @@ function buildInglesMsg(guionES,mode,dO,queja){
 // se dejo cosas fuera, y entonces ya no es el mismo video — es un resumen. Se le
 // devuelve con la cuenta hecha y se le pide que traduzca lo que se salto.
 async function fetchIngles(guionES,mode,dO){
-  var esperadas=contarPalabras(guionES);
-  var minimo=Math.round(esperadas*0.85);
-  var queja='',ultimo='';
-  for(var intento=0;intento<2;intento++){
-    var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:buildInglesMsg(guionES,mode,dO,queja),sinBloques:true})});
-    if(r.status===504)throw new Error('el servidor tardó más de 60 s');
-    var d=await r.json().catch(function(){return {};});
-    if(!r.ok)throw new Error(d.error||'Error '+r.status);
-    if(!d.text||!d.text.trim())throw new Error('sin respuesta');
-    // Por si cuela una etiqueta o un preambulo, se limpia lo evidente.
-    var t=d.text.replace(/^\s*(BLOQUE\s*F|ENGLISH( SCRIPT)?|EN)\s*:?\s*\n/i,'').trim();
-    if(t.length<20)throw new Error('la respuesta vino vacía');
-    var tiene=contarPalabras(t);
-    if(tiene>=minimo)return t;
-    ultimo=t;
-    queja='your version had only '+tiene+' words for a '+esperadas+'-word Spanish script.';
-    console.warn('El ingles vino corto ('+tiene+' de '+esperadas+' palabras). Se pide completo.');
-  }
-  // Si a la segunda sigue corto, se devuelve igual — mejor un ingles corto que
-  // ninguno — pero se avisa arriba para que se vea en pantalla.
-  throw new Error('salió incompleto ('+contarPalabras(ultimo)+' palabras frente a '
-    +esperadas+' del español). Vuelve a pedirlo.');
+  return studioEnglish(guionES);
 }
 
 // Llama a /api/generate y devuelve el episodio ya parseado (a, f, c, cRaw, raw).
-async function fetchEpisode(msg,mode,dO){
-  var r=await fetch('/api/generate',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:msg}),
-  });
-  if(r.status===504)throw new Error('El servidor tardó más de 60 s escribiendo el guion. Vuelve a darle.');
-  var d=await r.json().catch(function(){return {};});
-  if(!r.ok){throw new Error(d&&d.error?d.error:'Error '+r.status);}
-  if(!d.text)throw new Error('Sin respuesta de texto.');
-  var p=parseBlocks(d.text);
-  if(!p.a||p.a.length<20){
-    // "Intenta de nuevo" no decia nada y no dejaba arreglar nada. Ahora el aviso
-    // trae el motivo real que manda el servidor: si el modelo se quedo sin tope de
-    // longitud, si devolvio otra cosa, y con que empezaba lo que si llego.
-    var pista=d.finishReason==='MAX_TOKENS'
-      ? 'el guion se cortó por longitud. Prueba una duración menor o vuelve a darle.'
-      : 'la respuesta no traía el BLOQUE A.';
-    var muestra=String(d.text||'').replace(/\s+/g,' ').slice(0,90);
-    throw new Error('No se pudo leer el guion ES: '+pista
-      +' ('+(d.chars||0)+' caracteres'+(d.finishReason?', '+d.finishReason:'')+')'
-      +(muestra?'\nEmpezaba por: "'+muestra+'..."':''));
-  }
-  // SEGUNDA LLAMADA: el ingles. Va aparte para que ninguna de las dos se quede
-  // sin espacio ni sin tiempo, y para que sea una adaptacion de verdad y no un
-  // calco. Si falla, NO se pierde el guion espanol: queda el reel con su parte
-  // en espanol y el boton de la pestana EN para pedirlo otra vez.
-  p.f=''; p.errorEN='';
-  try{
-    p.f=await fetchIngles(p.a,mode||sMode,dO);
-  }catch(e){
-    p.errorEN=e.message||'error';
-    console.warn('El guion en ingles no salio: '+p.errorEN);
-  }
-  return Object.assign({},p,{raw:d.text});
+async function fetchEpisode(msg,mode,dO,context){
+  var seconds=Number(dO&&dO.id)||60;
+  return studioEpisode(msg,mode,seconds,context);
 }
 
 async function generate(){
   var topic=document.getElementById('conc').value.trim();
-  if(!topic||loading)return;
+  if(!topic||loading||(typeof STUDIO!=='undefined'&&STUDIO.busy))return;
   loading=true;updGBtn();hideErr();
   document.getElementById('ow').style.display='none';
   document.getElementById('gbtn').innerHTML='<span class="spin"></span> Forjando...';
   document.getElementById('gnote').style.display='inline';
-  document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Generando narrativa Trabajador→Alpha...':sMode==='profesor'?'Escribiendo la clase, el set y el montaje... (puede tardar)':sMode==='relato'?'Escribiendo el relato largo y sus escenas en orden... (puede tardar)':'Generando guiones ES + EN y prompts...';
+  document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Escribiendo una historia con continuidad...':sMode==='profesor'?'Escribiendo la clase, el set y el montaje... (puede tardar)':sMode==='relato'?'Escribiendo el relato largo y sus escenas en orden... (puede tardar)':'Escribiendo guion y escenas...';
   try{
-    var built=buildEpisodeMsg(topic,sT,sH,sMode,sD);
-    var p=await fetchEpisode(built.msg,sMode,built.dO);
-    lastRes=Object.assign({},p,{topic:topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:sMode,uid:nextUid()});
+    var mode=sMode,built=buildEpisodeMsg(topic,sT,sH,mode,sD);
+    var p=await fetchEpisode(built.msg,mode,built.dO,built);
+    lastRes=Object.assign({},p,{topic:topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,editorial:built.editorial,modo:mode,uid:nextUid()});
     genCount++;cost+=0.015;updCost();
     resetReelAssets();
     saveHistory(lastRes);
@@ -1879,7 +1455,7 @@ async function generate(){
 }
 
 // HELPERS de texto compartidos por lote e historial
-function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function firstLine(txt){
   var ls=(txt||'').split('\n');
   for(var i=0;i<ls.length;i++){if(ls[i].trim())return ls[i].trim();}
@@ -1892,13 +1468,15 @@ function shuffleArr(a){
 }
 // Identificador unico por reel en esta sesion (para asignar su propia miniatura).
 var uidSeq=0;
-function nextUid(){return ++uidSeq;}
+function nextUid(){return 'p-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);}
 // Limpia todos los materiales del reel en pantalla (audio, imagenes, videos,
 // miniatura y video final) al pasar a otro guion.
 function resetReelAssets(){
   lastCaption='';lastTags='';lastTikTok='';lastYouTube='';
   lastCaptionEN='';lastTagsEN='';lastTikTokEN='';lastYouTubeEN='';
   audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];
+  if(typeof STUDIO!=='undefined'){STUDIO.plan=[];STUDIO.audioJobs={};STUDIO.uploadedAudio={};STUDIO.videoOps={};}
+  if(typeof studioHydrateCaptions==='function'&&lastRes)studioHydrateCaptions(lastRes);
   thumbImg=(lastRes&&THUMBS[lastRes.uid])?THUMBS[lastRes.uid]:null;
   finalVid=null;FINALES={es:null,en:null};
   if(typeof stopMix==='function')stopMix(); // que no siga sonando la mezcla del reel anterior
@@ -1980,7 +1558,7 @@ function batchJobs(){
 }
 
 async function generateBatch(customJobs){
-  if(loading||batchLoading)return;
+  if(loading||batchLoading||STUDIO.busy)return;
   // El lote de 5 es una herramienta de REELS. En los modos largos el boton esta
   // oculto (verBotonLote), asi que aqui no se llega; el guarda es por si acaso.
   if(!customJobs&&esModoLargo())return;
@@ -2000,8 +1578,8 @@ async function generateBatch(customJobs){
     batchResults[i].status='loading';renderBatch();
     try{
       var built=buildEpisodeMsg(jobs[i].topic,jobs[i].t,jobs[i].h,jobs[i].mode,jobs[i].d);
-      var p=await fetchEpisode(built.msg,jobs[i].mode,built.dO);
-      var res=Object.assign({},p,{topic:jobs[i].topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:jobs[i].mode,uid:nextUid()});
+      var p=await fetchEpisode(built.msg,jobs[i].mode,built.dO,built);
+      var res=Object.assign({},p,{topic:jobs[i].topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,editorial:built.editorial,modo:jobs[i].mode,uid:nextUid()});
       batchResults[i]={status:'done',job:jobs[i],res:res};
       genCount++;cost+=0.015;updCost();
       saveHistory(res);
@@ -2017,14 +1595,14 @@ async function generateBatch(customJobs){
 }
 
 async function retryBatchItem(i){
-  if(loading||batchLoading)return;
+  if(loading||batchLoading||STUDIO.busy)return;
   var br=batchResults[i];if(!br)return;
   batchLoading=true;loading=true;updGBtn();
   br.status='loading';renderBatch();
   try{
     var built=buildEpisodeMsg(br.job.topic,br.job.t,br.job.h,br.job.mode,br.job.d);
-    var p=await fetchEpisode(built.msg,br.job.mode,built.dO);
-    var res=Object.assign({},p,{topic:br.job.topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:br.job.mode,uid:nextUid()});
+    var p=await fetchEpisode(built.msg,br.job.mode,built.dO,built);
+    var res=Object.assign({},p,{topic:br.job.topic,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,editorial:built.editorial,modo:br.job.mode,uid:nextUid()});
     batchResults[i]={status:'done',job:br.job,res:res};
     genCount++;cost+=0.015;updCost();
     saveHistory(res);
@@ -2092,13 +1670,14 @@ function applySelection(mode,t,d,h){
 // (imagenes, audio, ZIP) desde ahi, uno por uno. Cada reel conserva su
 // propia miniatura (THUMBS por uid).
 function openBatchResult(i){
+  if(loading||STUDIO.busy)return;
   var br=batchResults[i];
   if(!br||br.status!=='done')return;
   applySelection(br.job.mode,br.job.t,br.job.d,br.job.h);
   document.getElementById('conc').value=br.res.topic;updCC();updGBtn();
   lastRes=br.res;
   resetReelAssets();
-  renderOut(lastRes);
+  renderOut(lastRes);studioRestoreAssets();
 }
 
 // HISTORIAL — ultimos 10 reels generados, guardados en el navegador para no
@@ -2112,15 +1691,16 @@ var HIST_MAX=300;
 var MODE_LABELS={reel:'🎬 Reel',historia:'📖 Historia',impacto:'⚡ Impacto',profesor:'🎓 Profesor',relato:'🎞 Relato'};
 
 function getHistory(){
-  try{var h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');return Array.isArray(h)?h:[];}
+  try{var h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');if(!Array.isArray(h))return [];var changed=false;h.forEach(function(r){if(!r.id||/^r[0-9]+$/.test(r.id)){r.id='r'+nextUid();changed=true;}});if(changed)localStorage.setItem(HIST_KEY,JSON.stringify(h));return h;}
   catch(e){return [];}
 }
 
 function saveHistory(res){
   if(!res||!res.a)return;
   try{
-    var h=getHistory();
-    h.unshift({
+    var h=getHistory(),id=res.uid?('r'+res.uid):('r'+nextUid()),previous=h.find(function(x){return x.id===id;})||{};
+    h=h.filter(function(x){return x.id!==id;});
+    h.unshift(Object.assign({},previous,{
       a:res.a,f:res.f||'',c:res.c||[],cRaw:res.cRaw||'',topic:res.topic||'',
       // Modo profesor: el montaje y cuantas tomas hay. Sin esto, al restaurar el
       // reel se perderia el orden de los planos y el video saldria lineal.
@@ -2130,18 +1710,20 @@ function saveHistory(res){
       // ID estable: sin el no hay forma de colgar de un reel ni sus materiales ni
       // sus metricas. Antes solo se podia referenciar por POSICION en el array, y
       // la posicion cambia cada vez que se genera otro guion (unshift).
-      id:res.uid?('r'+res.uid):('r'+Date.now().toString(36)),
+      id:id,editorial:res.editorial||previous.editorial||{},studioRequestId:res.studioRequestId||'',
+      editorialPlan:res.editorialPlan||null,quality:res.quality||null,draftA:res.draftA||'',
       // Semillas creativas: por que puerta entro, que angulo uso y en que mundos
       // visuales estuvo. Es lo que permite NO repetirlas en el siguiente.
       sem:res.sem||null,
       // Estado editorial: sin esto la anti-repeticion penaliza guiones que nunca
       // publicaste, y las metricas no tienen donde engancharse.
-      estado:'borrador',publicado:''
-    });
+      estado:previous.estado||'borrador',publicado:previous.publicado||''
+    }));
     if(h.length>HIST_MAX)h=h.slice(0,HIST_MAX);
     guardarHist(h);
   }catch(e){/* almacenamiento lleno o bloqueado: el historial nunca rompe la generacion */}
   buildHistory();
+  if(typeof studioSaveProject==='function')studioSaveProject(res);
 }
 
 // Actualiza campos del reel que esta en pantalla dentro del historial, buscandolo
@@ -2157,8 +1739,9 @@ function guardarEnReel(campos){
       for(var k in campos) if(Object.prototype.hasOwnProperty.call(campos,k)) h[i][k]=campos[k];
       tocado=true;break;
     }
-    if(!tocado)return false;
-    guardarHist(h);
+    if(tocado)guardarHist(h);
+    Object.assign(lastRes,campos);
+    if(typeof studioSaveProject==='function')studioSaveProject(lastRes,campos);
     return true;
   }catch(e){ return false; }
 }
@@ -2246,6 +1829,7 @@ function buildHistory(){
 // del historial abierto, pulsar una tarjeta restauraba OTRO reel. El indice queda
 // solo como respaldo para las entradas viejas que aun no tienen id.
 function restoreHistory(id,i){
+  if(loading||STUDIO.busy){studioMessage('Espera a que termine la etapa actual.');return;}
   var h=getHistory();
   var item=null;
   if(id){ for(var k=0;k<h.length;k++){ if(h[k].id===id){item=h[k];break;} } }
@@ -2255,8 +1839,8 @@ function restoreHistory(id,i){
   var tO=THEMES.find(function(t){return t.id===item.t;});
   var dO=DURS.concat(DURS_LARGAS).find(function(d){return d.id===item.d;});
   var hO=HOOKS.find(function(x){return x.id===item.h;});
-  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,sem:item.sem||null,modo:item.modo||'reel',uid:nextUid(),
-    montaje:item.montaje||null,nTomas:item.nTomas||0,nEjemplos:item.nEjemplos||0,set:item.set||''};
+  lastRes={a:item.a,f:item.f,c:item.c||[],cRaw:item.cRaw||'',raw:'',topic:item.topic||'',tO:tO,dO:dO,hO:hO,sem:item.sem||null,modo:item.modo||'reel',uid:item.id?item.id.replace(/^r/,''):nextUid(),
+    montaje:item.montaje||null,nTomas:item.nTomas||0,nEjemplos:item.nEjemplos||0,set:item.set||'',editorial:item.editorial||{},editorialPlan:item.editorialPlan||null,quality:item.quality||null,draftA:item.draftA||''};
   resetReelAssets();
   // El caption vuelve del historial en vez de volver a pedirselo (y pagarselo) a
   // Gemini. Se reescribe el id de la entrada al nuevo uid para que lo que se
@@ -2265,12 +1849,6 @@ function restoreHistory(id,i){
   lastTikTok=item.tiktok||'';lastYouTube=item.youtube||'';
   lastCaptionEN=item.captionEN||'';lastTagsEN=item.tagsEN||'';
   lastTikTokEN=item.tiktokEN||'';lastYouTubeEN=item.youtubeEN||'';
-  try{
-    var hh=getHistory();
-    for(var q=0;q<hh.length;q++){ if(hh[q].id===item.id){ hh[q].id='r'+lastRes.uid; break; } }
-    guardarHist(hh);
-    buildHistory(); // repinta las tarjetas con el id nuevo
-  }catch(e){}
   document.getElementById('conc').value=item.topic||'';updCC();updGBtn();
   // Si ese reel ya tenia caption guardado, se muestra tal cual.
   if(lastCaption||lastTags){
@@ -2285,6 +1863,7 @@ function restoreHistory(id,i){
   var ha=document.getElementById('ha');
   if(ha)ha.textContent='▼';
   renderOut(lastRes);
+  studioRestoreAssets(item);
 }
 
 // PARSE
@@ -2447,6 +2026,7 @@ function renderOut(r){
     tr.appendChild(btn);
   });
   rfTabs(r);
+  if(typeof studioRenderEpisode==='function')studioRenderEpisode(r);
   document.getElementById('capCard').style.display='block';
   document.getElementById('audioCard').style.display='block';
   document.getElementById('imgCard').style.display='block';
@@ -2462,7 +2042,8 @@ function renderOut(r){
   }
   wireGenSettings();
   wireVox();
-  genCaption();
+  if(!lastCaption&&!lastTags)genCaption();
+  else{document.getElementById('capText').textContent=lastCaption;document.getElementById('capTags').textContent=lastTags;document.getElementById('capBox').style.display='block';pintarCaptionEN();}
   // Botón generar todos los videos
   var ballvids=document.getElementById('ballvids');
   if(!ballvids){
@@ -2518,7 +2099,7 @@ function rfTabs(r){
     var av=document.createElement('div');
     av.style.cssText='background:#fdf6ee;border:1px solid #e0c89a;border-radius:10px;padding:12px';
     av.innerHTML='<div style="font-size:11.5px;color:#8a6a2a;line-height:1.5;font-weight:600">'
-      +'El guion en inglés no salió'+(r.errorEN?': '+escHtml(r.errorEN):'')+'.</div>'
+      +'Todavía no has preparado la versión en inglés'+(r.errorEN?': '+escHtml(r.errorEN):'')+'.</div>'
       +'<div style="font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:5px">'
       +'El de español está entero — esto solo afecta al vídeo en inglés.</div>';
     var bt=document.createElement('button');
@@ -2527,18 +2108,20 @@ function rfTabs(r){
       +'border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
     bt.textContent='🇺🇸 Escribir el guion en inglés';
     bt.addEventListener('click',async function(){
-      bt.disabled=true;bt.textContent='Escribiéndolo...';
+      if(STUDIO.busy||loading)return;
+      STUDIO.busy=true;bt.disabled=true;bt.textContent='Escribiéndolo...';
       try{
         r.f=await fetchIngles(r.a,r.modo,r.dO);
         r.errorEN='';
-        if(lastRes&&lastRes.uid===r.uid){lastRes.f=r.f;lastRes.errorEN='';}
+        await studioSaveProject(r,{f:r.f});
+        if(lastRes!==r)return;
         guardarEnReel({f:r.f});
         cost+=0.01;updCost();
-        renderOut(r);activeTab='f';rfTabs(r);
+        activeTab='f';rfTabs(r);
       }catch(e){
         bt.disabled=false;bt.textContent='🇺🇸 Escribir el guion en inglés';
-        alert('Tampoco salió: '+(e.message||'error'));
-      }
+        studioMessage('No se pudo completar la versión en inglés: '+(e.message||'error'),true);
+      }finally{STUDIO.busy=false;}
     });
     av.appendChild(bt);
     ct.appendChild(av);
@@ -2566,6 +2149,7 @@ var lastCaption='',lastTags='';
 
 async function genCaption(){
   if(!lastRes||!lastRes.a){return;}
+  var owner=lastRes;
   var st=document.getElementById('capSt');
   var er=document.getElementById('capErr');
   var box=document.getElementById('capBox');
@@ -2584,29 +2168,22 @@ async function genCaption(){
   if(rb){rb.disabled=true;rb.style.opacity='.6';}
   var tema=lastRes.topic||(lastRes.tO?lastRes.tO.label:'');
   var pilar=lastRes.tO?lastRes.tO.label:'';
-  var prompt='Eres el community manager de LEGADO DE HIERRO, un canal en espanol para hombres hispanos sobre libertad financiera, disciplina, mentalidad y emprendimiento. Voz cruda, directa, sin motivacion vacia, sin frases de coach, sin calcos del ingles.\n\n'
-    +'A partir de este reel, escribe el texto para publicarlo en TRES plataformas distintas. Mismo mensaje, distinto formato segun los limites de cada una.\n\n'
-    +'PILAR: '+pilar+'\nTEMA: '+tema+'\nGUION:\n'+lastRes.a+'\n\n'
-    +'Devuelve EXACTAMENTE este formato en texto plano, sin markdown, sin ** ni ##:\n\n'
-    +'CAPTION:\n[Para Facebook. 1 a 3 frases cortas y potentes que enganchen, en la voz de la marca, en espanol neutro. Puedes cerrar invitando a seguir el canal o a comentar. NO pongas hashtags aqui. Maximo 1 emoji, o ninguno.]\n\n'
-    +'HASHTAGS:\n[Para Facebook. Entre 14 y 20 hashtags en UNA sola linea separados por espacios. El PRIMERO debe ser SIEMPRE #LegadoDeHierro. Los demas relevantes al tema del reel y al nicho (finanzas, disciplina, mentalidad, dinero, libertad financiera, emprendimiento, exito, negocios, inversion). Mezcla espanol y algunos universales. Sin repetir, sin numerar. Solo los hashtags, nada mas.]\n\n'
-    +'TIKTOK:\n[Para TikTok. EXACTAMENTE 5 hashtags en una sola linea, ni uno mas, empezando SIEMPRE por #LegadoDeHierro. Elige los 5 mas relevantes de los que ya usaste arriba. Solo los hashtags, nada mas: NO repitas el caption aqui.]\n\n'
-    +'YOUTUBE:\n[Para YouTube Shorts. NO es una descripcion: es un TITULO corto y potente mas los hashtags que quepan, todo en UNA sola linea de MAXIMO 100 caracteres contando titulo, espacios y hashtags. Empieza por #LegadoDeHierro si cabe. Cuenta los caracteres antes de responder: si pasa de 100, acortalo. Sin comillas.]\n\n'
-    // La version en INGLES va en la MISMA llamada: no cuesta ni un centimo extra
-    // y evita tener que traducir a mano fuera de la herramienta.
-    // Los hashtags NO se traducen: los que funcionan en EE.UU. son otros
-    // (#hustle, #sidehustle, #financialfreedom), no la traduccion literal.
-    +'CAPTION_EN:\n[The same reel, written for a US English-speaking audience. NOT a translation: rewrite it the way it would be said in English. 1 to 3 short punchy sentences, brand voice, no coach cliches. No hashtags here. At most 1 emoji, or none.]\n\n'
-    +'HASHTAGS_EN:\n[For Facebook in English. Between 14 and 20 hashtags on ONE line separated by spaces. The FIRST must always be #IronLegacy. The rest must be hashtags that people actually use in the US in this niche (money, discipline, mindset, financial freedom, entrepreneurship, side hustle, investing) — do NOT translate the Spanish ones literally. No repeats, no numbering.]\n\n'
-    +'TIKTOK_EN:\n[For TikTok in English. EXACTLY 5 hashtags on one line, starting with #IronLegacy. Only the hashtags.]\n\n'
-    +'YOUTUBE_EN:\n[For YouTube Shorts in English. A short punchy TITLE plus whatever hashtags fit, all on ONE line of AT MOST 100 characters. Count the characters before answering.]';
+  var longVideo=Number(lastRes.dO&&lastRes.dO.id)>180;
+  var prompt=LH.editorial(studioOptions(lastRes.modo))+'\nPILAR: '+pilar+'\nTEMA: '+tema+'\nGUION:\n'+lastRes.a
+    +'\nEscribe los textos de publicación en este formato exacto, sin markdown. No pedir una palabra en comentarios ni prometer premios, enlaces o asesorías. '
+    +'Hashtags: entre cero y tres etiquetas estrictamente relacionadas, sin cuota obligatoria ni etiquetas genéricas para aparentar viralidad. '
+    +'YouTube: título claro con la promesa que el video cumple, menos de 90 caracteres; nunca anteponer hashtags. '
+    +(longVideo?'Es un video largo: no añadir #Shorts. ':'No añadir #Shorts por defecto: la clasificación depende también del formato. ')
+    +'\nCAPTION:\nUna o dos frases breves para Facebook.\nHASHTAGS:\nEtiquetas relevantes opcionales.\nTIKTOK:\nHasta tres etiquetas relevantes.\nYOUTUBE:\nTítulo.'
+    +'\nCAPTION_EN:\nSame meaning in natural US English, no invented facts.\nHASHTAGS_EN:\nUp to three relevant tags.\nTIKTOK_EN:\nUp to three relevant tags.\nYOUTUBE_EN:\nClear title under 90 characters, no hashtags.';
   try{
     var r=await fetch('/api/generate',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt}),
+      body:JSON.stringify({prompt:prompt,sinBloques:true}),
     });
     var d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||'No se pudo generar');
+    if(owner!==lastRes)return;
     var parsed=parseCaption(d.text);
     lastCaption=parsed.caption;lastTags=parsed.tags;
     // Se pega al reel en el historial: antes eran variables en memoria y al
@@ -2854,89 +2431,11 @@ function wireVox(){
 }
 
 async function genAudio(lang){
-  var isEN=lang==='en';
-  var text=isEN?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
-  if(!text||text.length<10){
-    alert(isEN?'Guion EN no disponible. Genera el episodio primero.':'Genera un episodio primero.');
-    return;
-  }
-  var btn=document.getElementById(isEN?'baen':'baes');
-  var st=document.getElementById('ast');
-  var er=document.getElementById('ae');
-  var orig=btn.textContent;
-  btn.textContent='...';btn.style.opacity='.6';btn.disabled=true;
-  st.style.display='block';st.textContent=isEN?'Generando audio en ingles...':'Generando audio en espanol...';
-  er.style.display='none';
-  try{
-    var r=await fetch('/api/audio',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      // Se manda SOLO el bloque de ajustes del motor elegido.
-      body:JSON.stringify({text:text,engine:VOX.engine,voice:VOX[VOX.engine],lang:isEN?'en':'es'}),
-    });
-    if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error(e.error||'Error '+r.status);}
-    var data=await r.json();
-    var partsB64=data.parts||[];
-    var alignments=data.alignments||[];
-    if(!partsB64.length)throw new Error('Sin audio recibido.');
-    // Decodifica cada parte b64 a bytes
-    function b64ToBytes(b64){
-      var chars=atob(b64);var bytes=new Uint8Array(chars.length);
-      for(var i=0;i<chars.length;i++)bytes[i]=chars.charCodeAt(i);
-      return bytes;
-    }
-    var blob,url,combinedAlignment;
-    if(partsB64.length===1){
-      // Una sola parte: se usa tal cual (Gemini-TTS entrega WAV ya con cabecera).
-      var bytes=b64ToBytes(partsB64[0]);
-      blob=new Blob([bytes],{type:(data.format==='wav'?'audio/wav':'audio/mpeg')});
-      url=URL.createObjectURL(blob);
-      combinedAlignment=alignments[0]||null;
-    }else{
-      // Dos partes: decodificar como audio real y unir en un WAV valido
-      var AC=window.AudioContext||window.webkitAudioContext;
-      var ctx=new AC();
-      var bufs=[];
-      for(var pi=0;pi<partsB64.length;pi++){
-        var ab=b64ToBytes(partsB64[pi]).buffer;
-        var decoded=await ctx.decodeAudioData(ab);
-        bufs.push(decoded);
-      }
-      // Concatena los AudioBuffers
-      var totalLen=0,nCh=bufs[0].numberOfChannels,sr=bufs[0].sampleRate;
-      for(var bi=0;bi<bufs.length;bi++)totalLen+=bufs[bi].length;
-      var out=ctx.createBuffer(nCh,totalLen,sr);
-      for(var c=0;c<nCh;c++){
-        var od=out.getChannelData(c);var off=0;
-        for(var bi=0;bi<bufs.length;bi++){
-          od.set(bufs[bi].getChannelData(c%bufs[bi].numberOfChannels),off);
-          off+=bufs[bi].length;
-        }
-      }
-      blob=audioBufferToWav(out);
-      url=URL.createObjectURL(blob);
-      // Combina alignments: cada parte suma el offset acumulado de las duraciones reales anteriores
-      var durations=bufs.map(function(b){return b.duration;});
-      combinedAlignment=combineAlignments(alignments,durations);
-    }
-    // partsB64: los MP3 originales de ElevenLabs, tal como llegaron. El servicio de
-    // unificacion (Cloud Run) los une el mismo; asi no se manda el WAV gigante.
-    if(isEN){audEN={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};}
-    else{audES={blob:blob,url:url,alignment:combinedAlignment,partsB64:partsB64};}
-    // Se suelta el cache de la escucha con CUALQUIERA de los dos idiomas: ahora
-    // la vista previa tambien suena en ingles, asi que regenerar el audio EN
-    // tambien tiene que invalidarla.
-    if(typeof invalidateVoiceMix==='function')invalidateVoiceMix();
-    document.getElementById(isEN?'pEN':'pES').src=url;
-    document.getElementById(isEN?'dEN':'dES').href=url;
-    document.getElementById(isEN?'rEN':'rES').style.display='block';
-    st.textContent=isEN?'Audio EN listo.':'Audio ES listo.';
-    cost+=0.05;updCost();chkExport();updUnifyCard();
-  }catch(e){
-    er.textContent='Error: '+e.message;er.style.display='block';st.style.display='none';
-  }finally{
-    btn.textContent=orig;btn.style.opacity='1';btn.disabled=false;
-  }
+  if(STUDIO.busy)return;
+  var btn=document.getElementById(lang==='en'?'baen':'baes'),orig=btn.textContent;
+  btn.disabled=true;btn.textContent='Preparando narración...';STUDIO.busy=true;
+  try{await studioAudio(lang);}catch(e){studioMessage(e.message,true);}
+  finally{btn.disabled=false;btn.textContent=orig;STUDIO.busy=false;}
 }
 
 // ============================================================================
@@ -3258,14 +2757,16 @@ async function subirAudio(file,isEN){
     st.textContent=msg;
   }
   if(!file)return;
+  if(STUDIO.busy||loading){di('Espera a que termine la etapa actual.',true);return;}
+  if(!lastRes){di('Genera o restaura un guion primero.',true);return;}
+  var owner=lastRes;
   var mb=file.size/1048576;
   if(mb>MAX_AUD_MB){di('Ese archivo pesa '+mb.toFixed(1)+' MB y el maximo es '+MAX_AUD_MB+' MB. Exportalo en MP3 y vuelve a intentarlo.',true);return;}
-  di('Cargando "'+file.name+'"...');
+  di('Cargando "'+file.name+'"...');STUDIO.busy=true;
   try{
     var ab=await file.arrayBuffer();
     var bytes=new Uint8Array(ab);
     if(bytes.length<1000)throw new Error('El archivo llego vacio o corrupto.');
-    var b64=bytesToB64(bytes);
     var tipo=file.type||(/\.wav$/i.test(file.name)?'audio/wav':/\.m4a$/i.test(file.name)?'audio/mp4':/\.ogg$/i.test(file.name)?'audio/ogg':'audio/mpeg');
     var blob=new Blob([bytes],{type:tipo});
     var url=URL.createObjectURL(blob);
@@ -3289,9 +2790,11 @@ async function subirAudio(file,isEN){
 
     // Sin alignment de ElevenLabs (el plan gratis no da API), pero SI con la
     // medida real del audio: los subtitulos se ajustan a ella.
-    var reg={blob:blob,url:url,alignment:null,partsB64:[b64],
+    var reg={blob:blob,url:url,alignment:null,partsB64:[],
              dur:dur,vozIni:vozIni,vozFin:vozFin,vozTramos:vozTramos,subido:true};
+    if(owner!==lastRes)return;
     if(isEN){audEN=reg;}else{audES=reg;}
+    await studioSaveUploadedAudio(reg,isEN?'en':'es',file.name);
     if(typeof invalidateVoiceMix==='function')invalidateVoiceMix();
     var ext=/wav/.test(tipo)?'wav':/mp4|m4a/.test(tipo)?'m4a':/ogg/.test(tipo)?'ogg':'mp3';
     var pl=document.getElementById(isEN?'pEN':'pES');if(pl)pl.src=url;
@@ -3302,8 +2805,8 @@ async function subirAudio(file,isEN){
        '. Ya puedes unificar; no se gasto ningun credito.');
     chkExport();updUnifyCard();
   }catch(e){
-    di('No se pudo cargar el audio: '+(e.message||'archivo no valido'),true);
-  }
+    di('No se pudo guardar el audio: '+(e.message||'archivo no valido'),true);
+  }finally{STUDIO.busy=false;}
 }
 
 // Busca en que segundo EMPIEZA y en cual TERMINA la voz dentro del audio.
@@ -3706,7 +3209,7 @@ async function genOneImage(prompt,refs){
   try{
     ir=await fetch('/api/image',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt,refImages:refsLigeras,model:imgModel,aspectRatio:imgFmt}),
+      body:JSON.stringify({prompt:prompt,refImages:refsLigeras,model:imgModel,aspectRatio:imgFmt,catalog:{title:lastRes?lastRes.topic:'Imagen del canal',description:prompt.slice(-1600),sourceProject:lastRes?String(lastRes.uid):''}}),
     });
   }catch(e){
     throw new Error('Error de conexion. Usa Regenerar.');
@@ -3724,6 +3227,13 @@ async function genOneImage(prompt,refs){
     throw new Error('Error '+ir.status+'. Usa Regenerar en unos segundos.');
   }
   if(!ir.ok)throw new Error(id.error||'Error '+ir.status);
+  if(id.imageUrl){
+    var savedImage=await fetch(id.imageUrl);if(!savedImage.ok)throw new Error('La imagen se guardó, pero no se pudo descargar. Está en la biblioteca.');
+    var imageBlob=await savedImage.blob();
+    var source=await new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(reader.result);};reader.onerror=reject;reader.readAsDataURL(imageBlob);});
+    if(id.asset){STUDIO.imageRefs[source]=id.asset;STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==id.asset.id;}).concat(id.asset);}
+    return source;
+  }
   if(!id.image)throw new Error('Sin imagen generada');
   return 'data:image/png;base64,'+id.image;
 }
@@ -3748,6 +3258,7 @@ function invalidarClip(idx){
 }
 
 function setSlotOk(slot,src,idx){
+  if(typeof studioSaveImage==='function'&&/^data:image\//.test(src))studioSaveImage(src,lastRes&&lastRes.c&&lastRes.c[idx]||'Imagen del canal',idx).catch(function(e){studioMessage('La imagen está lista, pero falta guardarla en la biblioteca: '+e.message,true);});
   slot.style.cssText='position:relative;border-radius:10px;overflow:visible;box-shadow:0 3px 12px rgba(74,74,90,0.15)';
   slot.innerHTML='';
   var imWrap=document.createElement('div');imWrap.style.cssText='position:relative;border-radius:10px;overflow:hidden';
@@ -3760,18 +3271,7 @@ function setSlotOk(slot,src,idx){
   var rb=document.createElement('button');rb.textContent='↺';rb.title='Regenerar';
   rb.style.cssText='background:rgba(255,255,255,.85);border:none;border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer;line-height:1';
   var iidx=idx;
-  rb.addEventListener('click',function(){
-    setSlotLoading(slot,iidx);
-    var p=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    prepararImagen(p,imgRefs).then(function(e){
-      return genOneImage(imgPromptPrefix(imgFmt)+e.prompt,e.refs);
-    }).then(function(s){
-      imgs[iidx]={src:s,idx:iidx+1};
-      var habia=invalidarClip(iidx); // el clip de la imagen vieja ya no vale
-      setSlotOk(slot,s,iidx);cost+=imgCost();updCost();chkExport();
-      if(habia)avisoClipInvalidado(iidx);
-    }).catch(function(e){setSlotError(slot,iidx,e.message);});
-  });
+  rb.addEventListener('click',function(){regenerateSlot(slot,iidx);});
   rd.appendChild(rb);imWrap.appendChild(rd);
   slot.appendChild(imWrap);
   var videoBox=document.createElement('div');videoBox.className='vbox';videoBox.style.cssText='margin-top:6px';
@@ -3807,23 +3307,26 @@ function setSlotError(slot,idx,msg){
   rbtn.textContent='↺ Regenerar imagen '+(idx+1);
   rbtn.style.cssText='width:100%;background:#fff;border:1.5px solid #b8975a;border-top:none;border-radius:0 0 8px 8px;padding:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;color:#b8975a';
   var iidx=idx;
-  rbtn.addEventListener('click',function(){
-    setSlotLoading(slot,iidx);
-    var prompt=lastRes&&lastRes.c&&lastRes.c[iidx]?lastRes.c[iidx]:'';
-    prepararImagen(prompt,imgRefs).then(function(e){
-      return genOneImage(imgPromptPrefix(imgFmt)+e.prompt,e.refs);
-    }).then(function(src){
-      imgs[iidx]={src:src,idx:iidx+1};
-      var habia=invalidarClip(iidx); // el clip de la imagen vieja ya no vale
-      setSlotOk(slot,src,iidx);
-      cost+=imgCost();updCost();chkExport();
-      if(habia)avisoClipInvalidado(iidx);
-    }).catch(function(e){
-      setSlotError(slot,iidx,e.message);
-    });
-  });
+  rbtn.addEventListener('click',function(){regenerateSlot(slot,iidx);});
   slot.appendChild(ecard);
   slot.appendChild(rbtn);
+}
+
+function regenerateSlot(slot,idx){
+  if(loading)return;
+  return studioGuard(async function(){
+    setSlotLoading(slot,idx);
+    try{
+      if(!imgRefs||imgRefs.length<MIN_REFS)imgRefs=await loadRefs();
+      if(!imgRefs||imgRefs.length<MIN_REFS)throw new Error('Faltan referencias del protagonista.');
+      var p=lastRes.c[idx],prepared=await prepararImagen(p,imgRefs),src=await genOneImage(imgPromptPrefix(imgFmt)+prepared.prompt,prepared.refs);
+      var old=imgs[idx]&&imgs[idx].assetId;imgs[idx]={src:src,idx:idx+1};
+      var hadClip=invalidarClip(idx);delete STUDIO.videoOps[idx];
+      var asset=await studioSaveImage(src,p,idx);
+      STUDIO.plan.forEach(function(s){if(s.scene===idx&&s.assetId===old){s.assetId=asset.id;s.reason='Imagen regenerada';}});
+      await studioPersistAssets();setSlotOk(slot,src,idx);studioPaintPlan();cost+=imgCost();updCost();chkExport();if(hadClip)avisoClipInvalidado(idx);
+    }catch(e){setSlotError(slot,idx,e.message);}
+  });
 }
 
 // Extrae el base64 puro (sin el prefijo data:image/...;base64,) de un data URL
@@ -3976,8 +3479,16 @@ function conAnclasDeEpisodio(promptCrudo,promptLimpio,refs,ancla,esToma,modo){
 }
 
 async function genImages(){
+  if(STUDIO.busy||loading)return;
+  STUDIO.busy=true;
+  try{await generateImagesForCurrent();}catch(e){studioMessage(e.message,true);}
+  finally{STUDIO.busy=false;var b=document.getElementById('bimg');b.disabled=false;b.style.opacity='1';b.textContent='🖼 Generar pendientes';}
+}
+async function generateImagesForCurrent(){
   if(!lastRes||!lastRes.c||!lastRes.c.length){alert('No hay prompts. Regenera el episodio.');return;}
-  // Determinar cuántas imágenes según modo y duración
+  var pendingImages=lastRes.c.filter(function(_,i){return !(imgs[i]&&imgs[i].src)&&!(vids[i]&&vids[i].remoteUrl);});
+  if(!pendingImages.length){studioMessage('Todas las escenas tienen material. Usa Regenerar en una toma concreta si quieres cambiarla.');return;}
+  // Generate only gaps: existing images and clips stay attached to the project.
   var totalImgsTarget=imagenesDe(lastRes.modo,lastRes.dO&&lastRes.dO.id);
   // Un video largo son 8-10 imagenes y, si luego se animan, otros tantos clips de
   // Veo. Eso son varios dolares, muy por encima de un reel: se avisa ANTES.
@@ -3985,8 +3496,8 @@ async function genImages(){
     // El modo profesor genera 2 imagenes mas: la del vestuario y la del set. No
     // salen en el video, pero fijan los dos y hay que contarlas en el coste.
     var extras=nAnclasEpisodio(lastRes);
-    var cImg=(totalImgsTarget+extras)*imgCost(), cVid=totalImgsTarget*vidCost();
-    if(!confirm('Vídeo largo ('+(MODE_LABELS[lastRes.modo]||lastRes.modo)+'): '+totalImgsTarget+' imágenes'
+    var cImg=(pendingImages.length+extras)*imgCost(), cVid=pendingImages.length*vidCost();
+    if(!confirm('Vídeo largo ('+(MODE_LABELS[lastRes.modo]||lastRes.modo)+'): '+pendingImages.length+' imágenes pendientes'
       +(extras?' + '+extras+' de referencia (el vestuario y '
         +(extras>2?'los escenarios que se repiten':'el escenario')+', para que no cambien entre escenas)':'')+'.\n\n'
       +'Imágenes: $'+cImg.toFixed(2)+'\n'
@@ -4004,7 +3515,6 @@ async function genImages(){
   var er=document.getElementById('ie');
   btn.textContent='...';btn.style.opacity='.6';btn.disabled=true;
   st.style.display='block';grid.innerHTML='';er.style.display='none';
-  vids=[];vidState=[];vidErrMsg=[];
   st.textContent='Cargando referencias del personaje...';
   imgRefs=await loadRefs();
   if(loadedRefsCount<MIN_REFS){
@@ -4019,12 +3529,11 @@ async function genImages(){
     st.textContent='Atención: solo '+loadedRefsCount+'/4 referencias del personaje cargaron. El rostro puede variar un poco en este lote.';
     await new Promise(function(r){setTimeout(r,1400);});
   }
-  imgs=[];
   var totalImgs=Math.min(lastRes.c.length,totalImgsTarget);
   var slots=[];
   for(var i=0;i<totalImgs;i++){
     var slot=document.createElement('div');
-    setSlotLoading(slot,i);
+    if(imgs[i]&&imgs[i].src)setSlotOk(slot,imgs[i].src,i);else setSlotLoading(slot,i);
     grid.appendChild(slot);
     slots.push(slot);
   }
@@ -4046,6 +3555,7 @@ async function genImages(){
 
   var gen=0;
   for(var i=0;i<totalImgs;i++){
+    if((imgs[i]&&imgs[i].src)||(vids[i]&&vids[i].remoteUrl))continue;
     // SE ESPERA Y SE REINTENTA, no se salta. Es lo mismo que ya se arreglo en la
     // biblia: la mayoria de los fallos son el limite por minuto de Google, y
     // pasar a la siguiente imagen solo garantiza que esa tambien lo encuentre.
@@ -4058,6 +3568,7 @@ async function genImages(){
         var conj=conAnclasDeEpisodio(lastRes.c[i],esc.prompt,esc.refs,anclaEp,i<nTomas,lastRes.modo);
         var src=await genOneImage(imgPromptPrefix(imgFmt)+conj.prompt,conj.refs);
         imgs[i]={src:src,idx:i+1};
+        await studioSaveImage(src,lastRes.c[i],i);
         setSlotOk(slots[i],src,i);
         gen++;cost+=imgCost();updCost();chkExport();
         ultimo='';
@@ -4129,6 +3640,10 @@ function buildThumbPrompt(){
 }
 
 async function genThumb(){
+  if(STUDIO.busy||loading)return;
+  return studioGuard(generateThumbCurrent);
+}
+async function generateThumbCurrent(){
   if(!lastRes||!lastRes.a){alert('Genera un guion primero.');return;}
   var btn=document.getElementById('bthumb');
   var st=document.getElementById('ist');
@@ -4240,20 +3755,34 @@ function renderVideoControls(box,idx){
   box.appendChild(gb);
 }
 
-async function genVideoForSlot(idx,box){
+async function genVideoForSlot(idx,box,withinBatch){
+  if((STUDIO.busy&&!withinBatch)||loading)return;
+  if(!withinBatch)STUDIO.busy=true;
+  try{return await generateVideoForCurrentSlot(idx,box);}finally{if(!withinBatch)STUDIO.busy=false;}
+}
+async function generateVideoForCurrentSlot(idx,box){
   if(!imgs[idx]||!imgs[idx].src){alert('Primero genera la imagen '+(idx+1)+'.');return;}
   vidState[idx]='loading';vidErrMsg[idx]='';
   renderVideoControls(box,idx);
   try{
     var movePrompt=buildVideoMotionPrompt(idx);
-    var imgInfo=dataUrlMimeAndB64(imgs[idx].src);
+    var imageSource=imgs[idx].src;
+    if(!/^data:/.test(imageSource)){var ib=await (await fetch(imageSource)).blob();imageSource=await new Promise(function(resolve,reject){var fr=new FileReader();fr.onload=function(){resolve(fr.result);};fr.onerror=reject;fr.readAsDataURL(ib);});}
+    var imgInfo=dataUrlMimeAndB64(imageSource);
+    if(!imgs[idx].assetId)await studioSaveImage(imgs[idx].src,lastRes.c[idx],idx);
+    var stored=STUDIO.videoOps[idx];
+    var startData=stored&&stored.imageId===imgs[idx].assetId&&stored.model===vidModel&&stored.aspect===vidFmt?stored:null;
+    if(!startData){
     var startRes=await fetch('/api/video-start',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({imageBase64:imgInfo.b64,prompt:movePrompt,model:vidModel,aspectRatio:vidFmt}),
     });
-    var startData=await startRes.json();
+    startData=await startRes.json();
     if(!startRes.ok)throw new Error(startData.error||'Error '+startRes.status);
     if(!startData.operationName)throw new Error('No se recibio operationName.');
+    startData={operationName:startData.operationName,model:vidModel,aspect:vidFmt,imageId:imgs[idx].assetId};
+    STUDIO.videoOps[idx]=startData;await studioPersistAssets();
+    }
 
     var videoUrl=null,attempts=0,maxAttempts=60; // ~10 minutos a 10s cada uno
     while(attempts<maxAttempts){
@@ -4261,17 +3790,17 @@ async function genVideoForSlot(idx,box){
       attempts++;
       var statusRes=await fetch('/api/video-status',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({operationName:startData.operationName,model:vidModel}),
+        body:JSON.stringify({operationName:startData.operationName,model:startData.model}),
       });
       var statusData=await statusRes.json();
       if(!statusRes.ok)throw new Error(statusData.error||'Error '+statusRes.status);
       if(statusData.done){
-        if(statusData.error)throw new Error(statusData.error);
+        if(statusData.error){delete STUDIO.videoOps[idx];await studioPersistAssets();throw new Error(statusData.error);}
         videoUrl=statusData.videoUrl;
         break;
       }
     }
-    if(!videoUrl)throw new Error('Tiempo de espera agotado generando el video. Intenta de nuevo.');
+    if(!videoUrl)throw new Error('La animación sigue guardada. Reintentar consultará la misma operación.');
 
     // Descargar el MP4 desde la URL firmada y convertirlo en blob local (para descarga directa y ZIP)
     var vidResp=await fetch(videoUrl);
@@ -4282,7 +3811,8 @@ async function genVideoForSlot(idx,box){
     // remoteUrl: URL firmada del clip en GCS; el servicio de unificacion descarga
     // los clips directo de ahi (no viajan por el navegador ni por Vercel).
     vids[idx]={url:localUrl,blob:vidBlob,remoteUrl:videoUrl};
-    vidState[idx]='done';
+    await studioRegisterVideo(vids[idx],lastRes.c[idx],idx);
+    vidState[idx]='done';delete STUDIO.videoOps[idx];await studioPersistAssets();
     updUnifyCard();
     cost+=vidCost();updCost();chkExport(); // costo estimado por clip de 8s segun modelo Veo
     renderVideoControls(box,idx);
@@ -4346,6 +3876,10 @@ function buildVideoMotionPrompt(idx){
 }
 
 async function genAllVideos(){
+  if(STUDIO.busy||loading)return;
+  STUDIO.busy=true;try{await generateAllVideosCurrent();}finally{STUDIO.busy=false;}
+}
+async function generateAllVideosCurrent(){
   if(!imgs||!imgs.length){alert('Genera las imágenes primero.');return;}
   var btn=document.getElementById('ballvids');
   btn.disabled=true;btn.textContent='Generando videos...';
@@ -4354,7 +3888,7 @@ async function genAllVideos(){
   for(var i=0;i<slots.length;i++){
     if(!imgs[i]||!imgs[i].src){continue;}
     if(vidState[i]==='done'){continue;} // ya tiene video, saltar
-    await genVideoForSlot(i,slots[i]);
+    await genVideoForSlot(i,slots[i],true);
   }
   btn.disabled=false;btn.textContent='🎬 Generar todos los videos';
 }
@@ -4385,7 +3919,8 @@ function loadMusicList(){
       sel.innerHTML='<option value="">Sin música</option>';
       d.tracks.forEach(function(t){
         var o=document.createElement('option');
-        o.value=t.object;o.textContent='🎵 '+t.name;
+        var asset=STUDIO.assets.find(function(a){return a.object===t.object;});
+        o.value=t.object;o.textContent=(asset&&asset.favorite?'★ ':'🎵 ')+(asset&&asset.title||t.name);
         if(t.object===saved)o.selected=true;
         sel.appendChild(o);
       });
@@ -4417,6 +3952,7 @@ async function uploadMusic(){
       body:JSON.stringify({action:'upload',name:f.name,b64:b64})});
     var d=await r.json();
     if(!r.ok||!d.object)throw new Error(d.error||'Error '+r.status);
+    await studioCatalogMusic(d,'Pista importada: '+f.name);
     if(st)st.textContent='"'+d.name+'" quedó guardada en tu biblioteca.';
     inp.value='';
     loadMusicList();
@@ -4457,6 +3993,7 @@ async function genMusic(preset){
       body:JSON.stringify(preset?{preset:preset}:{style:style})});
     var d=await r.json().catch(function(){return{};});
     if(!r.ok||!d.object)throw new Error(d.error||'Error '+r.status);
+    await studioCatalogMusic(d,style||PRESET_LABELS[preset]||'Música épica del canal');
     try{localStorage.setItem('lh_music_sel',d.object);}catch(e){}
     loadMusicList();
     // Se muestra el formato real que devolvio el modelo: si algo suena mal (ruido,
@@ -4658,24 +4195,12 @@ function totalClips(){
 }
 
 function updUnifyCard(){
-  var card=document.getElementById('unifyCard');if(!card)return;
   if(!musicLoaded)loadMusicList();
-  var sub=document.getElementById('unifySub');
-  var total=totalClips();
-  var listos=0;
-  for(var i=0;i<vids.length;i++)if(vids[i]&&vids[i].remoteUrl)listos++;
-  if(sub){
-    var faltas=[];
-    if(!total)faltas.push('imágenes');
-    else if(listos<total)faltas.push('videos ('+listos+'/'+total+')');
-    if(!(audES&&audES.partsB64&&audES.partsB64.length))faltas.push('audio ES');
-    var planos=(lastRes&&lastRes.modo==='profesor'&&Array.isArray(lastRes.montaje))?lastRes.montaje.length:0;
-    sub.textContent=faltas.length?('Faltan: '+faltas.join(' · '))
-      :(planos?('Listo: el montaje del director convierte estos '+listos+' clips en '+planos
-                +' planos (las tomas se repiten) + la narración')
-      :(listos===1?'Listo: 1 clip + la narración, en un solo video'
-      :'Listo: se unirán los '+listos+' clips EN ORDEN + la narración, en un solo video'));
-  }
+  var sub=document.getElementById('unifySub');if(!sub)return;
+  var audio=unifyLang()==='en'?audEN:audES;
+  var visual=STUDIO.plan.length?STUDIO.plan.every(function(p){return !!p.assetId;}):totalClips()>0;
+  sub.textContent=visual&&audio?'Listo para montar con imágenes, clips o una mezcla de ambos y la narración completa.'
+    :'Falta: '+(!visual?'seleccionar material visual ':'')+(!audio?' · narración '+unifyLang().toUpperCase():'');
 }
 
 // Idioma con el que se va a unificar. Se recuerda entre sesiones.
@@ -4751,121 +4276,10 @@ function wireUnifyLang(){
 }
 
 async function unifyVideo(){
-  if(!lastRes){alert('Genera un reel primero.');return;}
-  var total=totalClips();
-  // RESPALDO SIN CREDITOS: con imagenes pero sin clips, el reel se arma igual
-  // dandoles movimiento. Sale por centimos en vez de dolares.
-  var imgsListas=imgs.filter(function(x){return x&&x.src;});
-  var soloImagenes=(!total&&imgsListas.length>0);
-  if(!total&&!soloImagenes){
-    // Caso tipico: se tocaron clips en el banco pero no se pulso el boton de
-    // confirmar, asi que nunca llegaron a cargarse. Se dice tal cual.
-    if(BANCO_SEL.length){
-      alert('Tienes '+BANCO_SEL.length+' clips marcados en el banco, pero falta confirmarlos: pulsa el botón verde "✓ Usar estos '+BANCO_SEL.length+' clips en este orden" que está al final del panel.');
-      var pb=document.getElementById('bancoPanel');
-      if(pb&&pb.style.display==='block'){
-        var ub=document.getElementById('bBancoUsar');
-        if(ub&&ub.scrollIntoView)ub.scrollIntoView({block:'center',behavior:'smooth'});
-      }
-      return;
-    }
-    alert('Primero genera las imágenes y sus videos, o trae videos ya generados con "📼 Usar videos ya generados".');
-    return;
-  }
-  // EL MONTAJE DEL MODO PROFESOR. El director entrega 5 tomas del mismo set y 3
-  // ejemplos, y una lista de en que orden se ven. Las tomas SE REPITEN — asi se
-  // filma una clase de verdad: se vuelve a la cara del que habla entre ejemplo y
-  // ejemplo. Por eso un video de 5 minutos sale de 8 imagenes y no de 40.
-  var orden=ordenDelMontaje();
-
-  var urls=[];
-  if(!soloImagenes){
-    for(var oi=0;oi<orden.length;oi++){
-      var k=orden[oi];
-      if(!(vids[k]&&vids[k].remoteUrl)){alert('Falta el video del clip '+(k+1)+'. Genera todos los videos primero.');return;}
-      urls.push(vids[k].remoteUrl);
-    }
-  }else{
-    if(!confirm('No hay clips de video, pero sí '+imgsListas.length+' imágenes.\n\n'
-      +'Se puede armar el reel con las imágenes, dándoles un movimiento lento para que no se vean estáticas. '
-      +'Los clips de Veo son lo caro, así que esto no cuesta prácticamente nada.\n\n¿Lo armo así?'))return;
-  }
-  // IDIOMA DEL REEL. El mismo lote de clips (que ya esta pagado) sirve para el
-  // reel en espanol y para el de ingles: solo cambia la narracion y los
-  // subtitulos. Con el RPM de LATAM por los suelos, el reel en ingles es la via
-  // mas barata que hay para subirlo, porque el video no se vuelve a generar.
-  var idioma=unifyLang();
-  var aud=idioma==='en'?audEN:audES;
-  if(!(aud&&aud.partsB64&&aud.partsB64.length)){
-    alert(idioma==='en'
-      ? 'Genera (o sube) el Audio EN primero: es la narración en inglés que se pega a estos mismos clips.'
-      : 'Genera el Audio ES primero (la narración que se pega al video).');
-    return;
-  }
-  var btn=document.getElementById('bunify');
-  var st=document.getElementById('unifySt');
-  var er=document.getElementById('unifyErr');
-  var box=document.getElementById('unifyRes');
-  btn.disabled=true;btn.style.opacity='.6';
-  er.style.display='none';box.style.display='none';
-  st.style.display='block';st.textContent=soloImagenes
-    ? 'Armando el reel con '+imgsListas.length+' imágenes y movimiento...'
-    : 'Enviando trabajo al servicio de unificación...';
-  try{
-    var music=selectedMusic();
-    // SUBTITULOS: se calculan aqui, con los tiempos por caracter que devuelve
-    // ElevenLabs, y se mandan para QUEMARLOS en el video. Hasta ahora solo
-    // acababan en un .srt suelto dentro del ZIP y el reel tenia que pasar por
-    // CapCut. Si el audio se subio a mano no hay alignment: se estima por texto.
-    var texto=idioma==='en'?(lastRes&&lastRes.f):(lastRes&&lastRes.a);
-    var srt=aud.alignment?makeSRTFromAlignment(aud.alignment):makeSRT(texto||'',aud,idioma);
-    var objetivo=Number((lastRes&&lastRes.dO&&lastRes.dO.id)||0);
-    var r=await fetch('/api/unify',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({videos:urls,audioParts:aud.partsB64,music:music,
-        srt:srt,targetSeconds:objetivo,
-        imagenes:soloImagenes?orden.map(function(k){return dataUrlToB64(imgs[k].src);}):[]}),
-    });
-    var d=await r.json().catch(function(){return{};});
-    if(!r.ok||!d.jobId)throw new Error(d.error||'Error '+r.status);
-    st.textContent='Uniendo clips y ajustando velocidad... (1 a 3 minutos)';
-    // Polling del estado, igual que con los videos de Veo.
-    var videoUrl=null,attempts=0,maxAttempts=60; // ~7 min a 7s
-    while(attempts<maxAttempts){
-      await new Promise(function(res2){setTimeout(res2,7000);});
-      attempts++;
-      var sres=await fetch('/api/unify-status',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({jobId:d.jobId}),
-      });
-      var sd=await sres.json().catch(function(){return{};});
-      if(!sres.ok)throw new Error(sd.error||'Error '+sres.status);
-      if(sd.done){
-        if(sd.error)throw new Error(sd.error);
-        videoUrl=sd.videoUrl;
-        break;
-      }
-      if(sd.stage)st.textContent=sd.stage;
-    }
-    if(!videoUrl)throw new Error('El servicio tardó demasiado. Revisa en unos minutos o vuelve a intentar.');
-    st.textContent='Descargando el video final...';
-    var vr=await fetch(videoUrl);
-    if(!vr.ok)throw new Error('No se pudo descargar el video final.');
-    var vb=await vr.blob();
-    // Se guarda POR IDIOMA. Antes era una sola variable y el reel en ingles
-    // pisaba al de espanol: en el ZIP solo llegaba el ultimo que hubieras hecho.
-    // Ahora puedes unificar los dos y el ZIP se los lleva los dos.
-    finalVid={url:URL.createObjectURL(vb),blob:vb,lang:idioma};
-    FINALES[idioma]=finalVid;
-    renderFinalVid();
-    st.textContent=music?'Video final listo, con narración y música mezcladas. Listo para publicar.':'Video final listo (sin música de fondo).';
-    chkExport();
-  }catch(e){
-    st.style.display='none';
-    er.textContent='Error: '+(e.message||'Error de conexión');er.style.display='block';
-  }finally{
-    btn.disabled=false;btn.style.opacity='1';
-  }
+  if(STUDIO.busy)return;
+  var btn=document.getElementById('bunify');btn.disabled=true;STUDIO.busy=true;
+  try{await studioRenderVideo();}catch(e){studioMessage(e.message,true);document.getElementById('unifyErr').textContent=e.message;document.getElementById('unifyErr').style.display='block';}
+  finally{btn.disabled=false;STUDIO.busy=false;}
 }
 
 function renderFinalVid(){
@@ -5291,22 +4705,22 @@ async function exportAll(){
       capEN+='===== YOUTUBE ('+lastYouTubeEN.length+'/100 caracteres) =====\n\n'+lastYouTubeEN+'\n';
     }
     if(capEN) zip.file(slug+'-caption-en.txt',capEN.trim()+'\n');
-    var srtES=audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'',audES,'es');
-    var srtEN=audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'',audEN,'en');
+    var srtES=audES&&audES.srt?audES.srt:audES&&audES.alignment?makeSRTFromAlignment(audES.alignment):makeSRT(lastRes&&lastRes.a?lastRes.a:'',audES,'es');
+    var srtEN=audEN&&audEN.srt?audEN.srt:audEN&&audEN.alignment?makeSRTFromAlignment(audEN.alignment):makeSRT(lastRes&&lastRes.f?lastRes.f:'',audEN,'en');
     if(srtES) zip.file(slug+'-subtitulos-es.srt',srtES);
     if(srtEN) zip.file(slug+'-subtitulos-en.srt',srtEN);
     if(audES&&audES.blob){
       var ab1=await audES.blob.arrayBuffer();
-      zip.file(slug+'-audio-es.wav',ab1);
+      zip.file(slug+'-audio-es.'+(/mpeg/.test(audES.blob.type)?'mp3':/mp4/.test(audES.blob.type)?'m4a':/ogg/.test(audES.blob.type)?'ogg':'wav'),ab1);
     }
     if(audEN&&audEN.blob){
       var ab2=await audEN.blob.arrayBuffer();
-      zip.file(slug+'-audio-en.wav',ab2);
+      zip.file(slug+'-audio-en.'+(/mpeg/.test(audEN.blob.type)?'mp3':/mp4/.test(audEN.blob.type)?'m4a':/ogg/.test(audEN.blob.type)?'ogg':'wav'),ab2);
     }
     for(var i=0;i<imgs.length;i++){
       if(imgs[i]&&imgs[i].src){
-        var b64=imgs[i].src.split(',')[1];
-        if(b64) zip.file('imagenes/'+slug+'-imagen-'+(i+1)+'.png',b64,{base64:true});
+        var ir=await fetch(imgs[i].src);if(!ir.ok)throw new Error('No se pudo recuperar una imagen. Abre de nuevo el proyecto para renovar su enlace.');
+        zip.file('imagenes/'+slug+'-imagen-'+(i+1)+'.png',await ir.arrayBuffer());
       }
     }
     if(thumbImg){
@@ -5315,7 +4729,8 @@ async function exportAll(){
       if(tb64) zip.file(slug+'-miniatura.png',tb64,{base64:true});
     }
     for(var vi=0;vi<vids.length;vi++){
-      if(vids[vi]&&vids[vi].blob){
+      if(vids[vi]&&(vids[vi].blob||vids[vi].remoteUrl)){
+        if(!vids[vi].blob){var vres=await fetch(vids[vi].remoteUrl);if(!vres.ok)throw new Error('No se pudo recuperar un clip. Recarga la biblioteca.');vids[vi].blob=await vres.blob();}
         var vb=await vids[vi].blob.arrayBuffer();
         zip.file('videos/'+slug+'-video-'+(vi+1)+'.mp4',vb);
       }
@@ -5325,7 +4740,8 @@ async function exportAll(){
     var idiomas=['es','en'];
     for(var li=0;li<idiomas.length;li++){
       var fin=FINALES[idiomas[li]];
-      if(fin&&fin.blob){
+      if(fin&&(fin.blob||fin.remoteUrl)){
+        if(!fin.blob){var fres=await fetch(fin.remoteUrl);if(!fres.ok)throw new Error('No se pudo recuperar el video final. Consulta el montaje para renovar su enlace.');fin.blob=await fres.blob();}
         var fb=await fin.blob.arrayBuffer();
         zip.file(slug+'-final-'+idiomas[li]+'.mp4',fb);
       }
@@ -5356,7 +4772,10 @@ function mkCp(t){
 function showErr(m){document.getElementById('etitle').textContent='Error: '+m;document.getElementById('ebox').style.display='block';}
 function hideErr(){document.getElementById('ebox').style.display='none';}
 function reset(){
+  if(loading||STUDIO.busy){studioMessage('Espera a que termine la etapa actual.');return;}
   document.getElementById('ow').style.display='none';
+  document.getElementById('episodeTools').hidden=true;
+  STUDIO.plan=[];STUDIO.audioJobs={};STUDIO.uploadedAudio={};STUDIO.videoOps={};
   document.getElementById('conc').value='';updCC();updGBtn();lastRes=null;
   audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;finalVid=null;FINALES={es:null,en:null};sT='';rfAll();
   window.scrollTo({top:0,behavior:'smooth'});
@@ -5439,7 +4858,7 @@ function selPostTpl(t){
 async function postTexto(prompt,fallback){
   try{
     var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt})});
+      body:JSON.stringify({prompt:LH.editorial(studioOptions())+'\n'+prompt,sinBloques:true})});
     var d=await r.json();
     var o=JSON.parse(d.text.replace(/```json|```/g,'').trim());
     if(o)return o;
@@ -5450,10 +4869,11 @@ async function postTexto(prompt,fallback){
 async function postImagen(escena,aspect,refs,st,msg){
   if(st)st.textContent=msg||'Generando escena...';
   var r=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:POST_CHAR+escena+' Single full scene filling the whole frame.',refImages:refs||[],model:postImgModel,aspectRatio:aspect})});
+    body:JSON.stringify({prompt:POST_CHAR+escena+' Single full scene filling the whole frame.',refImages:refs||[],model:postImgModel,aspectRatio:aspect,catalog:{description:escena,title:'Fondo para publicación',collection:'Publicaciones del canal'}})});
   var d=await r.json();
-  if(!r.ok||!d.image)throw new Error(d.error||'Error generando la escena');
-  return d.image;
+  if(!r.ok)throw new Error(d.error||'Error generando la escena');
+  if(d.imageUrl){var img=await fetch(d.imageUrl);if(!img.ok)throw new Error('La imagen se guardó, pero no se pudo descargar.');var bytes=new Uint8Array(await img.arrayBuffer());return bytesToB64(bytes);}
+  if(!d.image)throw new Error('Sin imagen');return d.image;
 }
 
 var POST_VOZ='Eres el estratega de contenido de LEGADO DE HIERRO, canal en español para hombres que trabajan para otro y quieren construir lo suyo. Voz cruda, directa, CONCRETA — nada vago, nada de frases de coach vistas mil veces. Español impecable con tildes. ';
@@ -5473,7 +4893,7 @@ async function genPostCaption(){
   stc.style.display='block';stc.textContent='Generando caption y hashtags...';
   try{
     var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:'Eres el community manager de LEGADO DE HIERRO, canal en español sobre libertad financiera, disciplina, mentalidad y construir lo propio. Voz cruda y directa, sin motivación vacía ni frases de coach.\n\nEste POST (imagen estática) se va a publicar en Facebook. Su contenido es:\n'+lastPostResumen+'\n\nEscribe el texto de la publicación. Devuelve EXACTAMENTE este formato en texto plano, sin markdown, sin ** ni ##:\n\nCAPTION:\n[2 a 4 frases cortas y potentes que amplíen la idea del post SIN repetirlo palabra por palabra, y cierren invitando a comentar, guardar o seguir el canal. Máximo 1 emoji o ninguno. Sin hashtags aquí.]\n\nHASHTAGS:\n[Entre 12 y 18 hashtags en UNA sola línea separados por espacios. El PRIMERO debe ser SIEMPRE #LegadoDeHierro. Los demás relevantes al tema del post y al nicho (finanzas, disciplina, mentalidad, dinero, libertad financiera, emprendimiento, éxito, negocios). Mezcla español y algunos universales. Sin numerar, solo los hashtags.]'})});
+      body:JSON.stringify({sinBloques:true,prompt:LH.editorial(studioOptions())+'\nEres el community manager de LEGADO DE HIERRO, canal en español sobre libertad financiera, disciplina, mentalidad y construir lo propio. Voz cruda y directa, sin motivación vacía ni frases de coach.\n\nEste POST (imagen estática) se va a publicar en Facebook. Su contenido es:\n'+lastPostResumen+'\n\nEscribe el texto de la publicación. Devuelve EXACTAMENTE este formato en texto plano, sin markdown, sin ** ni ##:\n\nCAPTION:\n[2 a 4 frases cortas y potentes que amplíen la idea del post SIN repetirlo palabra por palabra, y cierren invitando a comentar, guardar o seguir el canal. Máximo 1 emoji o ninguno. Sin hashtags aquí.]\n\nHASHTAGS:\n[De cero a tres hashtags relevantes en UNA sola línea separados por espacios. El PRIMERO debe ser SIEMPRE #LegadoDeHierro. Los demás relevantes al tema del post y al nicho (finanzas, disciplina, mentalidad, dinero, libertad financiera, emprendimiento, éxito, negocios). Mezcla español y algunos universales. Sin numerar, solo los hashtags.]'})});
     var d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||'Error '+r.status);
     var t=(d.text||'').replace(/\r/g,'').replace(/\*/g,'');
@@ -5924,7 +5344,7 @@ function pintarTrends(){
 // Generar UN SOLO reel de un concepto de la investigacion (boton chiquito de su
 // tarjeta), respetando el modo y la duracion elegidos para ESE concepto.
 async function genTrendOne(i){
-  if(loading||batchLoading)return;
+  if(loading||batchLoading||STUDIO.busy)return;
   var it=TREND_IDEAS[i];if(!it)return;
   var ms=document.getElementById('trendMode-'+i);
   var ds=document.getElementById('trendDur-'+i);
@@ -5938,8 +5358,8 @@ async function genTrendOne(i){
     applySelection(mode,it.t,d,it.h);
     document.getElementById('conc').value=it.concept;updCC();updGBtn();
     var built=buildEpisodeMsg(it.concept,it.t,it.h,mode,d);
-    var p=await fetchEpisode(built.msg,mode,built.dO);
-    lastRes=Object.assign({},p,{topic:it.concept,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,modo:mode,uid:nextUid()});
+    var p=await fetchEpisode(built.msg,mode,built.dO,built);
+    lastRes=Object.assign({},p,{topic:it.concept,tO:built.tO,dO:built.dO,hO:built.hO,sem:built.sem,editorial:built.editorial,modo:mode,uid:nextUid()});
     genCount++;cost+=0.015;updCost();
     resetReelAssets();
     saveHistory(lastRes);

@@ -1,0 +1,137 @@
+// Offline DOM integration: actual HTML and all three application scripts.
+// No browser process, external network, cloud writes or paid generations.
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const {JSDOM,VirtualConsole}=require('jsdom');
+const root=path.join(__dirname,'..');
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+async function ready(check){for(let i=0;i<30;i++){await tick();if(check())return;}throw new Error('UI operation did not settle');}
+async function app(){
+  const errors=[],calls=[],projects=new Map(),assets=[];
+  const vc=new VirtualConsole();vc.on('jsdomError',e=>{if(!/Not implemented.*(?:HTMLMediaElement|navigation)/i.test(e.message))errors.push(e.message);});
+  const dom=new JSDOM(fs.readFileSync(path.join(root,'public/index.html'),'utf8'),{url:'https://studio.example.test',runScripts:'outside-only',virtualConsole:vc});
+  const w=dom.window;
+  w.Headers=Headers;w.AbortSignal=AbortSignal;w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;
+  w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};w.HTMLMediaElement.prototype.pause=()=>{};
+  w.confirm=()=>true;w.alert=m=>errors.push(m);w.URL.createObjectURL=()=> 'blob:fixture';w.URL.revokeObjectURL=()=>{};
+  w.fetch=async(input,init={})=>{
+    const b=JSON.parse(init.body||'{}');calls.push({input,b});
+    let d={};
+    if(input==='/api/studio'){
+      if(b.action==='project-save'){const prior=projects.get(b.id)||{};assert.ok(!b.version||b.version===prior.version);d={version:(prior.version||0)+1};projects.set(b.id,{...prior,...b.project,version:d.version});}
+      else if(b.action==='project-get')d={project:projects.get(b.id)};
+      else if(b.action==='projects')d={items:[...projects].map(([id,p])=>({id,topic:p.topic,updatedAt:'2026-09-13'}))};
+      else if(b.action==='assets')d={items:assets};
+      else if(b.action==='links')d={items:b.ids.map(id=>({...assets.find(a=>a.id===id),url:'https://media.example.test/'+id}))};
+      else if(b.action==='asset-save'){const prior=assets.find(a=>a.object===b.object)||{};const asset={...prior,...b.asset,id:prior.id||String(assets.length+1).padStart(32,'0'),object:b.object,version:(prior.version||0)+1};if(prior.id)assets.splice(assets.indexOf(prior),1);assets.push(asset);d={asset};}
+      else if(b.action==='discover')d={items:Array.from({length:20},(_,i)=>({object:'legado-videos/old'+i+'.mp4',kind:'video',title:'Clip '+i,url:'https://media.example.test/old'+i}))};
+      else d={items:[]};
+    }else if(input==='/api/music')d={tracks:[]};
+    else if(input==='/api/generate')d={text:'CAPTION:\nUn paso concreto.\nHASHTAGS:\n#Disciplina\nYOUTUBE:\nUn paso concreto'};
+    else if(input==='/api/unify-status')d={done:true,videoUrl:'https://media.example.test/final.mp4',duracion:480,avisos:[]};
+    else d={refs:[],personajes:[]};
+    return new Response(JSON.stringify(d),{status:200,headers:{'Content-Type':'application/json'}});
+  };
+  for(const name of ['studio-core.js','app.js','studio.js'])w.eval(fs.readFileSync(path.join(root,'public',name),'utf8'));
+  await tick();
+  return {w,errors,calls,projects,assets,close:()=>dom.window.close()};
+}
+function episode(w,id='project-001'){
+  return {uid:id,topic:'Empezar con una prueba',a:'Imagina que hoy decides ofrecer un servicio pequeño. Habla con una persona y escucha qué problema necesita resolver antes de gastar.',f:'',c:Array(10).fill('Calcular presupuesto en oficina con calculadora'),modo:'relato',tO:w.THEMES[0],dO:w.DURS_LARGAS[1],hO:w.HOOKS[0],editorial:{family:'metodo',platform:'facebook',audience:'constructor'},caption:'Texto guardado',tags:'#Disciplina'};
+}
+
+test('cloud project opens with captions, stable ID, saved scene plan and recoverable final render',async()=>{
+  const a=await app();try{
+    const {w,projects,calls,errors}=a,p=episode(w);p.renders={es:{jobId:'job-111111111111111111111111'}};projects.set(p.uid,p);
+    await w.studioOpenProjects();w.document.querySelector('#projectList button').click();await ready(()=>!w.STUDIO.busy);
+    assert.equal(w.lastRes.uid,p.uid);assert.equal(w.lastCaption,'Texto guardado');assert.equal(w.document.querySelector('#scriptEdit').value,p.a);
+    assert.equal(calls.filter(c=>c.input==='/api/generate').length,0,'restoring captions must not regenerate paid text');
+    w.document.querySelector('#resumeRender').click();await ready(()=>!w.STUDIO.busy);
+    assert.equal(w.FINALES.es.jobId,p.renders.es.jobId);assert.equal(w.document.querySelector('#unifyRes video').src,'https://media.example.test/final.mp4');
+    w.saveHistory(w.lastRes);w.saveHistory(w.lastRes);await w.STUDIO.saveQueue;
+    assert.equal(w.getHistory().length,1,'stable project IDs upsert history');assert.equal(w.getHistory()[0].editorial.family,'metodo');assert.deepEqual(errors,[]);
+  }finally{a.close();}
+});
+
+test('library creates a complete mixed-source plan and never requests paid media; discovery is paged for mobile',async()=>{
+  const a=await app();try{
+    const {w,assets,calls,errors}=a;w.lastRes=episode(w);assets.push(...['image','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/'+i,aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
+    await w.studioLoadLibrary();w.document.querySelector('#buildScenePlan').click();await ready(()=>!w.STUDIO.busy);
+    assert.equal(w.STUDIO.plan.length,30);assert.ok(w.STUDIO.plan.every(p=>p.assetId));assert.notEqual(w.STUDIO.plan[0].assetId,w.STUDIO.plan[1].assetId);
+    assert.equal(w.document.querySelectorAll('#scenePlan .studio-shot').length,30);assert.equal(calls.filter(c=>c.input==='/api/image'||c.input==='/api/video-start').length,0);
+    await w.studioDiscover(false);assert.equal(w.document.querySelectorAll('#discoveryGrid .studio-asset').length,8);assert.equal(w.document.querySelector('#discoveryMore').hidden,false);
+    await w.studioDiscover(true);assert.equal(w.document.querySelectorAll('#discoveryGrid .studio-asset').length,8);
+    assert.deepEqual(errors,[]);
+  }finally{a.close();}
+});
+
+test('editing a script invalidates old narration, captions, plan and final output while preserving source assets',async()=>{
+  const a=await app();try{
+    const {w,projects}=a;w.lastRes=episode(w);w.lastRes.renders={es:{jobId:'old'}};w.imgs=[{src:'https://media.example.test/a',object:'legado-studio/media/a',assetId:'1'.repeat(32)}];w.audES={url:'blob:old'};w.FINALES.es={url:'blob:old'};w.finalVid=w.FINALES.es;w.STUDIO.plan=[{assetId:'old'}];
+    w.document.querySelector('#scriptEdit').value='Otra decisión concreta cambia la historia y sus consecuencias. Este es el guion revisado con una promesa diferente.';
+    await w.studioEditScript();await w.STUDIO.saveQueue;
+    assert.equal(w.audES,null);assert.equal(w.finalVid,null);assert.equal(w.FINALES.es,null);assert.equal(w.lastCaption,'');assert.equal(w.STUDIO.plan.length,0);assert.equal(w.imgs.length,1);
+    assert.deepEqual(JSON.parse(JSON.stringify(projects.get('project-001').renders)),{});assert.equal(w.document.querySelector('#unifyRes').style.display,'none');
+  }finally{a.close();}
+});
+
+test('English generation preserves the current images and respects a project change during the response',async()=>{
+  const a=await app();try{
+    const {w}=a,p=episode(w);w.lastRes=p;w.activeTab='f';w.imgs=[{src:'https://media.example.test/kept'}];w.rfTabs(p);
+    w.studioEnglish=async()=> 'One useful step to test your idea.';
+    w.document.querySelector('#tabcontent button').click();await ready(()=>!w.STUDIO.busy);
+    assert.equal(w.imgs.length,1);assert.match(w.document.querySelector('#tabcontent').textContent,/One useful step/);
+    p.f='';w.rfTabs(p);let release;w.studioEnglish=()=>new Promise(r=>{release=r;});w.document.querySelector('#tabcontent button').click();await tick();
+    const other=episode(w,'project-002');w.lastRes=other;release('English text for the first project only.');await ready(()=>!w.STUDIO.busy);
+    assert.equal(w.lastRes.uid,'project-002');assert.equal(w.lastRes.f,'');
+  }finally{a.close();}
+});
+
+test('new voice settings create a new configuration; recover explicitly reuses the saved one',async()=>{
+  const a=await app();try{
+    const {w}=a;w.lastRes=episode(w);const configs=[];w.VOX.engine='gemini';w.VOX.gemini={voz:'Charon',speed:1};
+    w.STUDIO.audioJobs.es={type:'audio',text:w.lastRes.a,engine:'gemini',voice:{voz:'Puck',speed:1},lang:'es'};
+    w.studioRunJob=async config=>{configs.push(JSON.parse(JSON.stringify(config)));return {parts:[]};};
+    w.studioReadAudio=async()=>({dur:30,url:'blob:audio',audioObjects:['legado-studio/media/a.wav'],blob:new w.Blob(['test'])});
+    await w.studioAudio('es');assert.equal(configs[0].voice.voz,'Charon');w.VOX.gemini.voz='Fenrir';
+    await w.studioRecoverAudio('es');assert.equal(configs[1].voice.voz,'Charon');
+  }finally{a.close();}
+});
+
+test('a batch episode uses its own duration and topic in the resumable editorial job, including short reels',async()=>{
+  const a=await app();try{
+    const {w}=a;w.document.querySelector('#conc').value='Tema distinto que quedó en el formulario';
+    w.document.querySelector('#editorialFamily').value='relato';
+    w.document.querySelector('#editorialSituation').value='Solo dispone de veinte minutos después del trabajo';
+    assert.equal(w.document.querySelectorAll('#editorialReference option').length,6);
+    const configs=[];w.studioRunJob=async c=>{configs.push(c);return {a:'Narración original completa de la prueba.',c:Array(c.sceneCount).fill('Escena en el taller'),quality:{status:'reviewed'}};};
+    for(const seconds of [30,480]){
+      const built=w.buildEpisodeMsg('Tema del elemento del lote',w.THEMES[0].id,w.HOOKS[0].id,'historia',String(seconds));
+      await w.fetchEpisode(built.msg,'historia',built.dO,built);
+      const cfg=configs.at(-1),pending=w.studioPending();
+      assert.equal(cfg.editorialVersion,2);assert.equal(cfg.sceneCount,seconds===30?3:10);
+      assert.equal(pending.meta.topic,'Tema del elemento del lote');assert.equal(pending.meta.seconds,seconds);
+      assert.match(cfg.prompt,new RegExp(seconds===30?'FORMATO CORTO':'FORMATO LARGO'));
+    }
+  }finally{a.close();}
+});
+
+test('editorial evidence survives save/restore and a manual edit clears the stale review before rechecking',async()=>{
+  const a=await app();try{
+    const {w,projects}=a,p=episode(w);w.lastRes=p;
+    p.quality={scriptFingerprint:w.LH.fingerprint(p.a),status:'needs_revision',summary:'Hace falta mostrar el ejemplo.',checks:[{criterion:'promise',status:'revise',evidence:p.a.slice(0,40),reason:'Se ofreció un ejemplo que no se desarrolló.',fix:'Mostrar la pregunta al cliente.'}]};
+    p.editorialPlan={audienceMoment:'Una persona al salir del trabajo.',promise:'Una prueba concreta.',payoff:'Una decisión al final.',hooks:[],sections:[]};
+    p.draftA='Borrador previo a la mejora.';
+    w.studioRenderEpisode(p);assert.match(w.document.querySelector('#qualityReview').textContent,/Quedan ajustes/);
+    await w.studioSaveProject(p);assert.equal(projects.get(p.uid).quality.status,'needs_revision');
+    w.saveHistory(p);assert.equal(w.getHistory()[0].quality.status,'needs_revision');await w.STUDIO.saveQueue;
+    w.document.querySelector('#scriptEdit').value='Imagina que preguntas a un vecino qué arreglo necesita y cuánto puede esperar. Apunta la respuesta antes de comprar herramientas.';
+    await w.studioEditScript();assert.equal(w.lastRes.quality,null);assert.equal(projects.get(p.uid).quality,null);
+    assert.match(w.document.querySelector('#qualityReview').textContent,/aún no tiene revisión/);
+    let reviewConfig;w.studioRunJob=async c=>{reviewConfig=c;return {quality:{scriptFingerprint:w.LH.fingerprint(c.text),status:'reviewed',summary:'Ahora el ejemplo se entrega.',checks:[]}};};
+    await w.studioReviewScript();assert.equal(reviewConfig.type,'review');assert.equal(reviewConfig.text,p.a);
+    assert.equal(projects.get(p.uid).quality.scriptFingerprint,w.LH.fingerprint(p.a));
+    assert.match(w.document.querySelector('#qualityReview').textContent,/Revisión completada/);
+  }finally{a.close();}
+});

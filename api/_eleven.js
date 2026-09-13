@@ -55,7 +55,8 @@ function splitByDuration(t) {
 }
 
 // Genera la narracion completa. Lanza Error con .status si ElevenLabs falla.
-async function generarEleven(text, vIn) {
+async function generarEleven(text, vIn, options) {
+  options = options || {};
   const EL_KEY = process.env.ELEVENLABS_API_KEY;
   const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'IRHApOXLvnW57QJPQH2P';
   if (!EL_KEY) {
@@ -83,7 +84,7 @@ async function generarEleven(text, vIn) {
     if (nextText) body.next_text = nextText;
 
     const r = await fetch(url, {
-      method: 'POST',
+      method: 'POST', signal: options.signal || AbortSignal.timeout(40000),
       headers: {
         'xi-api-key': EL_KEY,
         'Content-Type': 'application/json',
@@ -111,8 +112,8 @@ async function generarEleven(text, vIn) {
   const audioParts = [];
   const alignParts = [];
   for (let i = 0; i < parts.length; i++) {
-    const prevText = i > 0 ? parts[i - 1] : '';
-    const nextText = i < parts.length - 1 ? parts[i + 1] : '';
+    const prevText = i > 0 ? parts[i - 1] : (options.previousText || '');
+    const nextText = i < parts.length - 1 ? parts[i + 1] : (options.nextText || '');
     const data = await generatePart(parts[i], prevText, nextText);
     audioParts.push(data.audio_base64);
     alignParts.push(data.alignment || null);

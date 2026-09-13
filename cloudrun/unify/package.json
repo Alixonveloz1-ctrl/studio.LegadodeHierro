@@ -1,15 +1,16 @@
 {
   "name": "legado-unify",
-  "version": "1.0.0",
-  "description": "Une los clips de Veo, ajusta la velocidad al audio de ElevenLabs y entrega un solo video final",
+  "version": "3.0.0",
+  "description": "Montaje personal de imágenes, clips, narración y música con Cloud Run Jobs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "dependencies": {
-    "@google-cloud/storage": "^7.0.0"
+    "@google-cloud/storage": "^7.0.0",
+    "google-auth-library": "^9.0.0"
   }
 }

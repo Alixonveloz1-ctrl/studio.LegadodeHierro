@@ -1,30 +1,8 @@
-// Servicio de unificacion de video + audio — LEGADO DE HIERRO (punto 4 del plan).
-// Corre en Cloud Run, en el mismo proyecto de Google Cloud que todo lo demas.
-//
-// QUE HACE (el mismo proceso que se hacia a mano en CapCut):
-//   1. Descarga los clips de Veo (URLs firmadas del bucket) y las partes MP3 de
-//      la narracion de ElevenLabs (vienen en el cuerpo de la peticion).
-//   2. Mide la duracion real de cada clip y del audio (ffprobe).
-//   3. Calcula UNA sola proporcion de velocidad que, aplicada a todos los clips
-//      por igual, hace que la suma total encaje con el audio.
-//   4. El ULTIMO clip recibe un ajuste fino adicional para cerrar la fraccion
-//      de segundo que sobre o falte.
-//   5. Une los clips ya ajustados en orden y les pega la narracion encima.
-//   6. Sube el MP4 final al bucket y escribe unify/<jobId>.json con el estado.
-//
-// CALIDAD DE AUDIO: la narracion se mantiene en WAV sin perdida durante todo el
-// proceso y solo se codifica a AAC UNA vez al final (256k). La voz al 100% y la
-// musica al volumen elegido se suman con amix normalize=0 (sin bajar la voz a la
-// mitad) y un alimiter evita saturacion. Las costuras entre partes MP3 y el loop
-// de la musica van sin "clicks".
-//
-// DISEÑO ANTI-PUNTO-CIEGO: este servicio NUNCA "se cae en silencio". Cualquier
-// error se captura y se escribe como mensaje claro en unify/<jobId>.json, que
-// Vercel lee y registra en SUS logs — los errores siempre se pueden leer desde
-// Vercel, sin necesidad de entrar a los registros de Cloud Run.
-//
-// La peticion /start responde el jobId DE INMEDIATO y el trabajo sigue en
-// segundo plano; por eso el servicio debe desplegarse con --no-cpu-throttling.
+// Montaje personal persistente de Legado de Hierro.
+// HTTP only records the request and starts a Cloud Run Job. The job measures
+// narration, reuses cached scene segments and renders mixed images/videos at
+// their natural speed, with looped music and subtitles. No media in HTTP bodies.
+// A failed task persists its error and retries once; the phone can reconnect.
 
 const http = require('http');
 const fs = require('fs');
@@ -33,12 +11,14 @@ const os = require('os');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 const { Storage } = require('@google-cloud/storage');
+const {GoogleAuth} = require('google-auth-library');
+const {fitTimeline,validateShots} = require('./timeline');
 
 // VERSION DEL SERVICIO. Cambia cada vez que se toca este archivo, y la
 // herramienta la compara con la que espera para decir sola si el Cloud Run que
 // hay corriendo esta al dia o le falta la ultima actualizacion. Antes no habia
 // forma de saberlo desde fuera y habia que preguntarlo, que es absurdo.
-const VERSION = '2026-08-08.1';
+const VERSION = '2026-09-13.1';
 
 const PORT = process.env.PORT || 8080;
 // Sin nombres de respaldo: el bucket SIEMPRE viene de la variable BUCKET del despliegue.
@@ -184,138 +164,48 @@ async function imagenAClip(imgFile, salida, segundos, ancho, alto, indice) {
   ], 300000);
 }
 
-async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg, imagenes) {
+async function processJob(jobId, payload) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'unify-'));
+  const {shots,audioObjects,music,srt,targetSeconds:objetivoSeg,aspect} = payload;
+  const progress = async stage=>writeStatus(jobId,{status:'running',stage,updatedAt:new Date().toISOString()});
   try {
-    // 1. Descargar clips y escribir las partes de audio.
-    //    Si no hay clips de video pero SI imagenes, se hace el reel con ellas:
-    //    es el respaldo para cuando no hay creditos de Veo. Cada imagen se
-    //    convierte en un plano con movimiento lento, asi no parece una
-    //    presentacion de diapositivas.
-    const clipFiles = [];
-    const soloImagenes = (!videos || !videos.length) && imagenes && imagenes.length;
-    if (soloImagenes) {
-      // El tamano lo marca la primera imagen; las demas se encajan luego.
-      const primera = path.join(dir, 'src0.png');
-      fs.writeFileSync(primera, Buffer.from(imagenes[0], 'base64'));
-      const t0 = await probeSize(primera);
-      console.log('[' + jobId + '] sin clips de video: se arma con ' + imagenes.length +
-        ' imagen(es) a ' + t0.w + 'x' + t0.h);
-      // Se reparte la narracion entre las imagenes por igual; el ajuste fino de
-      // duracion lo hace despues el mismo paso de siempre.
-      for (let i = 0; i < imagenes.length; i++) {
-        const src = i === 0 ? primera : path.join(dir, 'src' + i + '.png');
-        if (i > 0) fs.writeFileSync(src, Buffer.from(imagenes[i], 'base64'));
-        const f = path.join(dir, 'clip' + i + '.mp4');
-        await imagenAClip(src, f, 4, t0.w, t0.h, i);
-        clipFiles.push(f);
+    await progress('Preparando la narración guardada');
+    const partFiles=[];
+    for(let i=0;i<audioObjects.length;i++){
+      const source=path.join(dir,'source-audio-'+i);
+      await storage.bucket(BUCKET).file(audioObjects[i]).download({destination:source});
+      const normalized=path.join(dir,'audio-'+i+'.wav');
+      await run('ffmpeg',['-y','-i',source,'-ar','48000','-ac','2','-c:a','pcm_s16le',normalized]);
+      partFiles.push(normalized);fs.rmSync(source,{force:true});
+    }
+    // Concat preserves every sample. Crossfading narration shortened each boundary
+    // and accumulated a subtitle offset in long episodes.
+    const audioList=path.join(dir,'audio-list.txt');
+    fs.writeFileSync(audioList,partFiles.map(f=>"file '"+f+"'").join('\n'));
+    const audioFull=path.join(dir,'narracion.wav');
+    await run('ffmpeg',['-y','-f','concat','-safe','0','-i',audioList,'-c:a','pcm_s16le',audioFull]);
+    for(const f of partFiles)fs.rmSync(f,{force:true});
+    const audioDur=await probeDuration(audioFull),timeline=fitTimeline(shots,audioDur);
+    const destino=aspect==='16:9'?{w:1280,h:720}:aspect==='1:1'?{w:1080,h:1080}:aspect==='4:5'?{w:864,h:1080}:{w:720,h:1280};
+    const factor=1,totalVideo=audioDur,scaled=[],sources=new Map();
+    const encaje='scale='+destino.w+':'+destino.h+':force_original_aspect_ratio=increase,crop='+destino.w+':'+destino.h+',setsar=1';
+    for(let i=0;i<timeline.length;i++){
+      const shot=timeline[i];await progress('Montando toma '+(i+1)+' de '+timeline.length);
+      const out=path.join(dir,'scaled'+i+'.mp4');
+      const cacheKey=crypto.createHash('sha256').update(JSON.stringify({v:VERSION,...shot,aspect})).digest('hex');
+      const cached=storage.bucket(BUCKET).file('unify/parts/'+jobId+'/'+cacheKey+'.mp4');
+      if((await cached.exists())[0]){await cached.download({destination:out});scaled.push(out);continue;}
+      let source=sources.get(shot.object);
+      if(!source){source=path.join(dir,'source-'+i+(shot.kind==='image'?'.png':'.mp4'));await storage.bucket(BUCKET).file(shot.object).download({destination:source});sources.set(shot.object,source);}
+      if(shot.kind==='image')await imagenAClip(source,out,shot.duration,destino.w,destino.h,i);
+      else{
+        // Keep the natural motion. Trim a long clip, loop a short one; never
+        // slow an 8-second gesture down to fill an entire minute.
+        await run('ffmpeg',['-y','-stream_loop','-1','-i',source,'-t',shot.duration.toFixed(6),'-vf',encaje,'-r','30','-frames:v',String(shot.frames),'-an','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p',out]);
       }
-    } else {
-      // La MISMA toma puede aparecer muchas veces en el montaje (modo profesor),
-      // asi que se descarga UNA vez por URL y se reutiliza el fichero. Sin esto,
-      // un video de 5 minutos bajaria el mismo clip veinte veces.
-      const yaBajado = {};
-      for (let i = 0; i < videos.length; i++) {
-        const url = videos[i];
-        if (yaBajado[url]) { clipFiles.push(yaBajado[url]); continue; }
-        const f = path.join(dir, 'clip' + i + '.mp4');
-        await download(url, f);
-        yaBajado[url] = f;
-        clipFiles.push(f);
-      }
-      const distintos = Object.keys(yaBajado).length;
-      if (distintos < videos.length) {
-        console.log('[' + jobId + '] ' + videos.length + ' planos a partir de ' + distintos + ' clips distintos (montaje con repeticion)');
-      }
+      await cached.save(fs.readFileSync(out),{contentType:'video/mp4'});scaled.push(out);
     }
-    const partFiles = [];
-    for (let i = 0; i < audioParts.length; i++) {
-      const f = path.join(dir, 'audio' + i + '.mp3');
-      fs.writeFileSync(f, Buffer.from(audioParts[i], 'base64'));
-      partFiles.push(f);
-    }
-
-    // 2. Construir la narracion como WAV SIN PERDIDA (nunca AAC intermedio).
-    //    La voz de ElevenLabs solo se codifica una vez (el AAC final del paso 7);
-    //    asi no se apila la degradacion de re-codificar en cada paso.
-    //    Todo a 48000 Hz estereo. Con varias partes, las costuras se unen con un
-    //    crossfade corto que elimina el "click" (priming del MP3) entre partes.
-    const audioFull = path.join(dir, 'narracion.wav');
-    if (partFiles.length === 1) {
-      await run('ffmpeg', ['-y', '-i', partFiles[0],
-        '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', audioFull]);
-    } else {
-      const inputs = [];
-      partFiles.forEach(f => inputs.push('-i', f));
-      let fc = '';
-      partFiles.forEach((_, i) => {
-        // cada parte a 48k estereo antes de empalmar (evita colapso a mono)
-        fc += '[' + i + ':a]aresample=48000,aformat=channel_layouts=stereo[a' + i + '];';
-      });
-      let prev = '[a0]';
-      for (let i = 1; i < partFiles.length; i++) {
-        const out = (i === partFiles.length - 1) ? '[mix]' : '[x' + i + ']';
-        fc += prev + '[a' + i + ']acrossfade=d=0.05:c1=tri:c2=tri' + out + ';';
-        prev = out;
-      }
-      fc = fc.replace(/;$/, '');
-      await run('ffmpeg', ['-y'].concat(inputs, [
-        '-filter_complex', fc,
-        '-map', '[mix]', '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', audioFull,
-      ]));
-    }
-
-    // 3. Medir duraciones
-    const audioDur = await probeDuration(audioFull);
-    const clipDurs = [];
-    for (const f of clipFiles) clipDurs.push(await probeDuration(f));
-    const totalVideo = clipDurs.reduce((a, b) => a + b, 0);
-
-    // 4. UNA sola proporcion para todos (el calculo manual de siempre):
-    //    factor > 1 acelera, factor < 1 alenta.
-    const factor = totalVideo / audioDur;
-    if (factor < 0.4 || factor > 3.5) {
-      throw new Error('La diferencia entre video (' + totalVideo.toFixed(1) + 's) y audio (' + audioDur.toFixed(1) + 's) es demasiado grande para un ajuste de velocidad razonable (factor ' + factor.toFixed(2) + '). Genera mas o menos clips.');
-    }
-
-    // Duracion objetivo de cada clip con el factor comun; el ultimo cierra el resto.
-    const targets = clipDurs.map(d => d / factor);
-    const sumFirst = targets.slice(0, -1).reduce((a, b) => a + b, 0);
-    let lastTarget = audioDur - sumFirst; // ajuste fino del ultimo clip
-    const lastIdx = clipFiles.length - 1;
-    if (lastTarget < 0.5) lastTarget = targets[lastIdx]; // caso raro: no forzar un ultimo clip absurdo
-
-    // 4b. TAMANO COMUN. El paso 6 concatena con "-c copy", que exige que todos los
-    //     clips midan exactamente igual. Trayendo clips del banco es facil mezclar
-    //     aspectos distintos, y antes eso producia un MP4 destrozado que se
-    //     marcaba como terminado igual. Se toma el tamano del primero como
-    //     objetivo y se encajan los demas con scale+pad (sin deformar).
-    const tam = [];
-    for (const f of clipFiles) tam.push(await probeSize(f));
-    const destino = tam[0];
-    const mezclados = tam.some(t => t.w !== destino.w || t.h !== destino.h);
-    if (mezclados) {
-      console.log('[' + jobId + '] clips de distinto tamano (' +
-        tam.map(t => t.w + 'x' + t.h).join(', ') + ') -> se normalizan a ' + destino.w + 'x' + destino.h);
-    }
-    const encaje = 'scale=' + destino.w + ':' + destino.h + ':force_original_aspect_ratio=decrease,'
-      + 'pad=' + destino.w + ':' + destino.h + ':(ow-iw)/2:(oh-ih)/2:color=black,setsar=1';
-
-    // 5. Reescalar cada clip (video sin audio propio: los generadores no producen audio)
-    const scaled = [];
-    for (let i = 0; i < clipFiles.length; i++) {
-      const target = i === lastIdx ? lastTarget : targets[i];
-      const f = clipDurs[i] / target; // setpts=PTS/f
-      const out = path.join(dir, 'scaled' + i + '.mp4');
-      const vf = 'setpts=PTS/' + f.toFixed(6) + (mezclados ? ',' + encaje : '');
-      await run('ffmpeg', ['-y', '-i', clipFiles[i],
-        '-vf', vf,
-        '-r', '30', '-an',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
-        '-pix_fmt', 'yuv420p', out,
-      ]);
-      scaled.push(out);
-    }
+    await progress('Uniendo las tomas y preparando los subtítulos');
 
     // 6. Concatenar en orden
     const listFile = path.join(dir, 'list.txt');
@@ -391,27 +281,18 @@ async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg, im
       const fadeOut = 'afade=t=out:st=' + fadeStart.toFixed(2) + ':d=' + fadeOutD.toFixed(2);
 
       if (musDur >= need) {
-        // La pista ya cubre todo el video: no hace falta repetir (cero costuras).
-        await run('ffmpeg', ['-y', '-i', musicWav, '-af', fadeOut,
-          '-c:a', 'pcm_s16le', musicBed]);
+        await run('ffmpeg',['-y','-i',musicWav,'-t',narDur.toFixed(3),'-af',fadeOut,'-c:a','pcm_s16le',musicBed]);
       } else {
-        // Repetir con crossfade en cada union. Cada copia extra aporta (musDur - X).
-        const per = musDur - X;
-        let copies = Math.ceil((need - musDur) / per) + 1;
-        if (copies < 2) copies = 2;
-        if (copies > 12) copies = 12; // tope de seguridad
-        const inputs = [];
-        for (let i = 0; i < copies; i++) inputs.push('-i', musicWav);
-        let fc = '';
-        let prev = '[0:a]';
-        for (let i = 1; i < copies; i++) {
-          const out = (i === copies - 1) ? '[xf]' : ('[m' + i + ']');
-          fc += prev + '[' + i + ':a]acrossfade=d=' + X.toFixed(2) + ':c1=tri:c2=tri' + out + ';';
-          prev = out;
-        }
-        fc += prev + fadeOut + '[bed]';
-        await run('ffmpeg', ['-y'].concat(inputs, [
-          '-filter_complex', fc, '-map', '[bed]', '-c:a', 'pcm_s16le', musicBed]));
+        // Build one seamless loop, then stream it for the measured duration.
+        // Unlike a capped list of 12 copies, this covers 8 minutes or an hour.
+        const loop=path.join(dir,'music-loop.wav');
+        const cross=Math.min(2,musDur/4);
+        await run('ffmpeg',['-y','-i',musicWav,'-i',musicWav,'-filter_complex',
+          '[0:a][1:a]acrossfade=d='+cross.toFixed(4)+':c1=tri:c2=tri,atrim=start='+cross.toFixed(4)+':end='+musDur.toFixed(4)+',asetpts=PTS-STARTPTS[loop]',
+          '-map','[loop]','-c:a','pcm_s16le',loop]);
+        // Crossfade the tail of a copy with the next head, then take exactly
+        // one cyclic period beginning after that head; the join is continuous.
+        await run('ffmpeg',['-y','-stream_loop','-1','-i',loop,'-t',narDur.toFixed(3),'-af',fadeOut,'-c:a','pcm_s16le',musicBed]);
       }
 
       // Mezcla: voz al 100% + musica a VOL. amix normalize=0 evita que la voz se
@@ -461,7 +342,7 @@ async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg, im
     const avisos = [];
     const finalSize = await probeSize(finalFile);
     const finalDur = await probeDuration(finalFile);
-    if (finalSize.w > finalSize.h) {
+    if (aspect==='9:16' && finalSize.w > finalSize.h) {
       avisos.push('El video salio horizontal (' + finalSize.w + 'x' + finalSize.h + '). Para Reels tiene que ser vertical.');
     }
     // La imagen y el sonido tienen que durar lo mismo: si no, hay un trozo mudo
@@ -501,79 +382,67 @@ async function processJob(jobId, videos, audioParts, music, srt, objetivoSeg, im
   } catch (e) {
     // El error NUNCA se pierde: queda en el bucket y Vercel lo registra al leerlo.
     console.error('[' + jobId + '] error: ' + e.message);
-    try { await writeStatus(jobId, { status: 'error', message: e.message }); } catch (e2) {
+    try { await writeStatus(jobId, { status: 'error', message: e.message,updatedAt:new Date().toISOString() }); } catch (e2) {
       console.error('[' + jobId + '] no se pudo escribir el estado de error: ' + e2.message);
     }
+    throw e;
   } finally {
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
   }
 }
 
-const server = http.createServer((req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  if (req.method === 'GET' && req.url === '/') {
-    return res.end(JSON.stringify({ ok: true, service: 'legado-unify', version: VERSION }));
-  }
-  if (req.method !== 'POST' || req.url !== '/start') {
-    res.statusCode = 404;
-    return res.end(JSON.stringify({ error: 'Not found' }));
-  }
-  if (!UNIFY_KEY || req.headers['x-unify-key'] !== UNIFY_KEY) {
-    res.statusCode = 401;
-    return res.end(JSON.stringify({ error: 'Clave invalida' }));
-  }
-  if (!BUCKET) {
-    res.statusCode = 500;
-    return res.end(JSON.stringify({ error: 'BUCKET no configurado en el servicio' }));
-  }
-  let body = '';
-  let size = 0;
-  req.on('data', (c) => {
-    size += c.length;
-    if (size > 40 * 1024 * 1024) { req.destroy(); return; }
-    body += c;
-  });
-  req.on('end', () => {
-    let data = {};
-    try { data = JSON.parse(body); } catch (e) {
-      res.statusCode = 400;
-      return res.end(JSON.stringify({ error: 'JSON invalido' }));
-    }
-    const videos = Array.isArray(data.videos) ? data.videos : [];
-    const audioParts = Array.isArray(data.audioParts) ? data.audioParts : [];
-    const imgs0 = Array.isArray(data.imagenes) ? data.imagenes.length : 0;
-    if ((!videos.length && !imgs0) || videos.length > 60) {
-      res.statusCode = 400;
-      return res.end(JSON.stringify({ error: 'Se necesitan entre 1 y 60 planos, o imagenes con las que armarlo' }));
-    }
-    if (!audioParts.length) {
-      res.statusCode = 400;
-      return res.end(JSON.stringify({ error: 'Falta el audio de la narracion' }));
-    }
-    // Musica opcional: {object: 'musica/xxx.mp3', volume: 0-1}. Solo se aceptan
-    // pistas de la carpeta musica/ del bucket (nunca rutas arbitrarias).
-    let music = null;
-    if (data.music && typeof data.music.object === 'string') {
-      const obj = data.music.object;
-      if (obj.indexOf('musica/') === 0 && obj.indexOf('..') === -1 && obj.length < 200) {
-        music = { object: obj, volume: data.music.volume };
-      }
-    }
-    // Subtitulos ya cronometrados que manda el navegador (formato SRT). Se acota
-    // el tamano: un guion de 60 s son unos 2 KB, asi que 200 KB es de sobra y
-    // evita que un cuerpo enorme tumbe el servicio.
-    let srt = null;
-    if (typeof data.srt === 'string' && data.srt.trim() && data.srt.length < 200000) srt = data.srt;
-    const objetivoSeg = Number(data.targetSeconds) || 0;
-    // Imagenes en base64 para el modo de respaldo sin clips de video.
-    const imagenes = Array.isArray(data.imagenes)
-      ? data.imagenes.filter(x => typeof x === 'string' && x.length > 100).slice(0, 12) : [];
-
-    const jobId = 'job-' + crypto.randomBytes(10).toString('hex');
-    // Responder YA y trabajar en segundo plano (requiere --no-cpu-throttling).
-    res.end(JSON.stringify({ jobId: jobId }));
-    processJob(jobId, videos, audioParts, music, srt, objetivoSeg, imagenes);
-  });
+// A Cloud Run Job executes to completion independently of HTTP and the phone.
+// Both the request and every finished visual segment are persisted in GCS.
+const auth = new GoogleAuth({scopes:['https://www.googleapis.com/auth/cloud-platform']});
+async function runWorker(jobId){
+  if(!/^job-[a-f0-9]{24}$/.test(jobId))throw new Error('jobId inválido');
+  const bucket=storage.bucket(BUCKET),state=bucket.file('unify/'+jobId+'.json');
+  try{const [raw]=await state.download();if(JSON.parse(raw).status==='done')return;}catch(e){if(e.code!==404)throw e;}
+  const lock=bucket.file('unify/locks/'+jobId+'.json');
+  let generation=0;
+  try{
+    const [meta]=await lock.getMetadata();generation=meta.generation;
+    const [raw]=await lock.download();const lease=JSON.parse(raw);
+    if(lease.until>Date.now() && lease.execution!==(process.env.CLOUD_RUN_EXECUTION || 'local'))return;
+  }catch(e){if(e.code!==404)throw e;}
+  try{await lock.save(JSON.stringify({execution:process.env.CLOUD_RUN_EXECUTION || 'local',until:Date.now()+3700000}),{contentType:'application/json',preconditionOpts:{ifGenerationMatch:generation}});}catch(e){if(e.code===412)return;throw e;}
+  try{
+    const [raw]=await bucket.file('unify/requests/'+jobId+'.json').download();
+    await processJob(jobId,JSON.parse(raw));
+  }finally{await lock.delete().catch(()=>{});}
+}
+async function startJob(data){
+  validateShots(data.shots);
+  if(!Array.isArray(data.audioObjects)||!data.audioObjects.length||data.audioObjects.length>200||!data.audioObjects.every(o=>typeof o==='string'&&/^legado-studio\/media\//.test(o)&&!o.includes('..')))throw new Error('Referencias de audio inválidas');
+  if(!['9:16','16:9','1:1','4:5'].includes(data.aspect))throw new Error('Formato inválido');
+  if(data.music&&(!/^musica\//.test(data.music.object)||data.music.object.includes('..')))throw new Error('Música inválida');
+  const resource=process.env.RENDER_JOB_RESOURCE;
+  if(!/^projects\/[^/]+\/locations\/[^/]+\/jobs\/[^/]+$/.test(resource || ''))throw new Error('Falta instalar el ejecutor de montaje. Ejecuta el actualizador de Cloud Run de esta versión.');
+  const jobId='job-'+crypto.createHash('sha256').update(JSON.stringify({version:VERSION,...data})).digest('hex').slice(0,24);
+  const bucket=storage.bucket(BUCKET),state=bucket.file('unify/'+jobId+'.json');
+  try{const [raw]=await state.download(),d=JSON.parse(raw);if(d.status==='done'||(d.status==='running'&&Date.now()-Date.parse(d.updatedAt)<3700000)||(d.status==='queued'&&Date.now()-Date.parse(d.updatedAt)<90000))return jobId;}catch(e){if(e.code!==404)throw e;}
+  const request=bucket.file('unify/requests/'+jobId+'.json');
+  try{await request.save(JSON.stringify(data),{contentType:'application/json',preconditionOpts:{ifGenerationMatch:0}});}catch(e){if(e.code!==412)throw e;}
+  await writeStatus(jobId,{status:'queued',stage:'Montaje en cola',updatedAt:new Date().toISOString()});
+  try{
+    const client=await auth.getClient();
+    await client.request({url:'https://run.googleapis.com/v2/'+resource+':run',method:'POST',timeout:15000,data:{overrides:{containerOverrides:[{env:[{name:'LH_JOB_ID',value:jobId}]}]}}});
+  }catch(e){await writeStatus(jobId,{status:'error',message:'No se pudo arrancar el ejecutor de montaje. '+e.message,updatedAt:new Date().toISOString()});throw e;}
+  return jobId;
+}
+const server=http.createServer(async(req,res)=>{
+  res.setHeader('Content-Type','application/json');
+  if(req.method==='GET'&&req.url==='/')return res.end(JSON.stringify({ok:true,service:'legado-unify',version:VERSION,durable:!!process.env.RENDER_JOB_RESOURCE}));
+  if(req.method!=='POST'||req.url!=='/start'){res.statusCode=404;return res.end(JSON.stringify({error:'Ruta desconocida'}));}
+  const supplied=Buffer.from(String(req.headers['x-unify-key']||'')),expected=Buffer.from(UNIFY_KEY);
+  if(!UNIFY_KEY||supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected)){res.statusCode=401;return res.end(JSON.stringify({error:'Clave inválida'}));}
+  try{
+    let size=0,body=[];for await(const c of req){size+=c.length;if(size>2*1024*1024)throw new Error('El montaje debe enviar referencias, no archivos');body.push(c);}
+    const data=JSON.parse(Buffer.concat(body).toString());const jobId=await startJob(data);res.end(JSON.stringify({jobId}));
+  }catch(e){res.statusCode=400;res.end(JSON.stringify({error:e.message}));}
 });
-
-server.listen(PORT, () => console.log('legado-unify escuchando en ' + PORT + ' (bucket: ' + BUCKET + ')'));
+if(require.main===module){
+  if(process.env.LH_JOB_ID)runWorker(process.env.LH_JOB_ID).then(()=>process.exit(0)).catch(e=>{console.error(e.message);process.exit(1);});
+  else server.listen(PORT,()=>console.log('legado-unify '+VERSION+' escuchando en '+PORT));
+}
+module.exports={processJob,runWorker,startJob,server,fitTimeline,imagenAClip,prepararSubs,probeDuration,probeSize};

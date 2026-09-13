@@ -100,7 +100,8 @@ module.exports = async (req, res) => {
   try {
     const PROJECT_ID = process.env.GCP_PROJECT_ID;
     if (!PROJECT_ID) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
-    const token = await getGCPToken();
+    const imageDeadline = AbortSignal.timeout(46000);
+    const token = await require('./_store').token(imageDeadline);
     const url = endpointFor(model, PROJECT_ID);
 
     const parts = [{ text: userPrompt }];
@@ -145,7 +146,7 @@ module.exports = async (req, res) => {
             temperature: 1.0
           },
         }),
-        signal: controller.signal
+        signal: imageDeadline
       });
     } finally {
       clearTimeout(timeoutId);
@@ -178,7 +179,19 @@ module.exports = async (req, res) => {
       }
       return res.status(500).json({ error: 'Sin imagen generada' + reason });
     }
-    return res.json({ success: true, image: imageB64, model: model });
+    { // Persist every generated image, including post backgrounds and references.
+      const {makeStore,signedUrl} = require('./_store');
+      const store = makeStore(AbortSignal.timeout(10000));
+      const bytes = Buffer.from(imageB64,'base64');
+      const isJpeg = bytes[0] === 255 && bytes[1] === 216;
+      const mime = isJpeg ? 'image/jpeg' : 'image/png';
+      const hash = require('crypto').createHash('sha256').update(bytes).digest('hex');
+      const object = 'legado-studio/media/image-'+hash+(isJpeg?'.jpg':'.png');
+      try { await store.bytes(object,bytes,mime); } catch(e) { if(e.status !== 412) throw e; }
+      const input = typeof req.body.catalog === 'object' ? req.body.catalog : {};
+      const asset = await require('./_assets').register(store,{...input,kind:'image',aspect:aspectRatio,description:input.description || userPrompt.slice(-1600)},object);
+      return res.json({success:true,imageUrl:signedUrl(object),asset:asset,model:model,mime:mime});
+    }
   } catch (e) {
     const msg = e.name === 'AbortError' ? 'Generacion tardo demasiado. Usa Regenerar.' : e.message;
     return res.status(500).json({ error: msg });
