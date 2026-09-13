@@ -468,7 +468,7 @@ function showApp(){
   sessionStorage.setItem('lh_sess',localStorage.getItem('lh_sess')||'');
   showPills();
   avisoCandado();
-  if(typeof studioLoadAll==='function')studioLoadAll('metrics').then(function(rows){STUDIO.metrics=rows;studioPaintMetrics();}).catch(function(e){studioMessage('No se cargaron los resultados guardados: '+e.message,true);});
+  restoreTrendIdeas();
 }
 
 // Barra roja permanente cuando la API esta abierta al mundo. No se puede cerrar:
@@ -601,7 +601,8 @@ function parseSuggestions(txt){
 // 16:9 para los modos largos (YouTube), 9:16 para los reels. Se puede cambiar a
 // mano despues: esto solo pone el valor sensato al cambiar de modo.
 function aplicarFormatoDelModo(){
-  var quiere=typeof studioOptions==='function'&&studioOptions().platform==='youtube'&&esModoLargo()?'16:9':'9:16';
+  var quiere='9:16';
+  try{if(esModoLargo()&&localStorage.getItem('lh_gen_imgFmt')==='16:9')quiere='16:9';}catch(e){}
   [['selImgFmt',function(v){imgFmt=v;},'imgFmt'],['selVidFmt',function(v){vidFmt=v;},'vidFmt']].forEach(function(c){
     var sel=document.getElementById(c[0]);
     if(!sel)return;
@@ -1347,7 +1348,7 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   var hO=HOOKS.find(function(h){return h.id===hId;});
   var dO=DURS.concat(DURS_LARGAS).find(function(d){return d.id===dId;});
   var seconds=Number(dId)||60, n=imagenesDe(mode,dId), count=Math.round(seconds*2.35);
-  var editorialOptions=typeof studioOptions==='function'?studioOptions(mode,seconds):{family:LH.familyFor(mode),seconds:seconds};
+  var editorialOptions=typeof studioOptions==='function'?studioOptions(mode,seconds,topic,tId):{family:LH.familyFor(mode),seconds:seconds};
   var hook={dato:'Usa un hecho verificable aportado o una cuenta hipotética transparente; nunca inventes una estadística.',pregunta:'Pregunta sobre una decisión concreta.',afirmacion:'Contradicción específica y defendible, sin insultos ni generalizaciones.',historia:'Situación ilustrativa o vivencia aportada; no inventar una confesión autobiográfica.',pasos:'Promete y entrega el número exacto de pasos aplicables.'}[hId]||'';
   var visual='DIRECCIÓN VISUAL: ilustración de novela gráfica 2D, tinta limpia y cel-shading cinematográfico. Sin texto, logotipos, lluvia, fantasía, 3D ni fotorrealismo. '
     +'Cuando aparezca el protagonista conserva el rostro de las referencias del canal (cabello negro, barba corta, 35 años); su vestuario responde a la escena. '
@@ -1425,6 +1426,7 @@ async function fetchIngles(guionES,mode,dO){
 // Llama a /api/generate y devuelve el episodio ya parseado (a, f, c, cRaw, raw).
 async function fetchEpisode(msg,mode,dO,context){
   var seconds=Number(dO&&dO.id)||60;
+  if(context&&typeof studioPrepareReference==='function')msg+=await studioPrepareReference(context);
   return studioEpisode(msg,mode,seconds,context);
 }
 
@@ -5248,110 +5250,56 @@ function wrapText(ctx,text,maxW){
 // TENDENCIAS VIRALES (punto 5 del plan) — Gemini busca en Google, en vivo, que esta
 // funcionando AHORA en reels de finanzas y motivacion en español, y resume patrones
 // replicables. No usa lo que el modelo "recuerda": usa resultados actuales de internet.
-var TREND_IDEAS=[]; // los 5 conceptos que salieron de la ultima investigacion
-var TREND_TEXT='';  // el analisis en prosa de esa investigacion
-var TREND_SOURCES=[]; // las fuentes que consulto Gemini
-
-// Las tarjetas de la investigacion se repintan solas al cambiar de modo, porque
-// no proponen lo mismo un reel que un video de YouTube: en los modos cortos
-// puedes lanzar los 5 de golpe, y en los largos la investigacion es un MENU —
-// varios temas de los que eliges UNO y sobre ese se hace el video.
-function pintarTrends(){
-  var box=document.getElementById('trendBox');
-  if(!box||(!TREND_TEXT&&!TREND_IDEAS.length))return;
-  var largo=esModoLargo();
-  var html='<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--tx)">'+escHtml(TREND_TEXT)+'</div>';
-  if(TREND_IDEAS.length){
-    // Modos cortos: se sugiere un modo distinto por tarjeta para que el lote salga
-    // variado. Modos largos: cada tarjeta hereda TU modo y TU duracion actuales,
-    // porque solo vas a generar uno y ya elegiste arriba como lo quieres.
-    var defModes=largo?TREND_IDEAS.map(function(){return sMode;})
-      :shuffleArr(['reel','historia','impacto']).concat(shuffleArr(['reel','historia','impacto']).slice(0,2));
-    var defDurs=largo?TREND_IDEAS.map(function(){return sD;}):shuffleArr(['30','60','60','30','60']);
-    var opDur=dursDe(sMode);
-    html+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
-      +'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">'
-      +TREND_IDEAS.length+(largo?' temas posibles — elige UNO para el vídeo':' conceptos sacados de lo viral — elige modo y duración de cada uno')+'</div>';
-    TREND_IDEAS.forEach(function(it,i){
-      var th=THEMES.find(function(t){return t.id===it.t;});
-      var dm=defModes[i],isImp=dm==='impacto';
-      var dd=isImp?'30':defDurs[i];
-      html+='<div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;margin-bottom:6px">'
-        +'<span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:'+(th?th.c:'#b8975a')+';text-transform:uppercase">'+(i+1)+' · '+(th?th.icon+' '+th.label:'')+'</span>'
-        +'<div style="font-size:12px;font-weight:600;color:var(--tx);line-height:1.4;margin-top:3px">'+escHtml(it.concept)+'</div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
-        +'<label class="genLbl">Modo<select id="trendMode-'+i+'" class="genSel">'
-        +(largo
-          ?'<option value="profesor"'+(dm==='profesor'?' selected':'')+'>🎓 Profesor</option>'
-           +'<option value="relato"'+(dm==='relato'?' selected':'')+'>🎞 Relato</option>'
-          :'<option value="reel"'+(dm==='reel'?' selected':'')+'>🎬 Reel</option>'
-           +'<option value="historia"'+(dm==='historia'?' selected':'')+'>📖 Historia</option>'
-           +'<option value="impacto"'+(isImp?' selected':'')+'>⚡ Impacto (30s)</option>')
-        +'</select></label>'
-        +'<label class="genLbl">Duración<select id="trendDur-'+i+'" class="genSel"'+(isImp?' disabled':'')+'>'
-        +opDur.map(function(d){
-          return '<option value="'+d.id+'"'+(d.id===dd?' selected':'')+'>'+d.label+'</option>';
-        }).join('')
-        +'</select></label>'
-        +'</div>'
-        +'<button id="bTrendOne-'+i+'" style="width:100%;margin-top:8px;background:#fff;border:1.5px solid var(--gold);color:var(--gold);border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">⚔ '
-        +(largo?'Hacer el vídeo sobre este tema':'Generar solo este')+'</button>'
-        +'</div>';
-    });
-    // El lote de 5 SOLO en los modos cortos. Un video largo se sube uno o dos por
-    // semana: cinco de golpe no tiene sentido ni por tiempo ni por coste.
-    if(!largo){
-      html+='<button id="bTrendBatch" style="width:100%;margin-top:6px;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚔ Generar los 5 a la vez (lote)</button>'
-        +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">Cada tarjeta tiene su botón para generar solo ese reel; o usa el botón dorado para los 5 de una, uno tras otro (en orden).</div>';
-    }else{
-      html+='<div style="font-size:10px;color:var(--tx3);margin-top:6px">Estás en '+(MODE_LABELS[sMode]||sMode)+': la investigación te propone temas y tú eliges uno. Se genera un solo vídeo.</div>';
+var TREND_IDEAS=[];
+var TREND_RESEARCH=null;
+var TREND_BUSY=false;
+function saveTrendIdeas(){
+  if(!TREND_RESEARCH)return;
+  TREND_RESEARCH.ideas=TREND_IDEAS;
+  try{localStorage.setItem('lh_research_v2',JSON.stringify(TREND_RESEARCH));}catch(e){}
+}
+function restoreTrendIdeas(){
+  if(TREND_IDEAS.length||TREND_BUSY)return;
+  try{
+    var saved=JSON.parse(localStorage.getItem('lh_research_v2')||'null');
+    if(saved&&saved.version===2&&Array.isArray(saved.ideas)){
+      TREND_IDEAS=saved.ideas.filter(function(it){return it&&it.concept&&LH.researchBrief(it);}).slice(0,5);
+      TREND_RESEARCH=saved;pintarTrends();
     }
-    html+='</div>';
-  }else{
-    html+='<div style="margin-top:10px;font-size:11px;color:var(--tx3)">La investigación no trajo conceptos en formato usable esta vez. Vuelve a intentar con 🔎.</div>';
-  }
-  if(TREND_SOURCES.length){
-    html+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Fuentes consultadas</div>';
-    TREND_SOURCES.slice(0,8).forEach(function(s2){
-      html+='<a href="'+escHtml(s2.uri||'#')+'" target="_blank" rel="noopener" style="display:block;font-size:11px;color:#7a9ec4;text-decoration:none;margin-bottom:3px">• '+escHtml(s2.title||s2.uri||'fuente')+'</a>';
-    });
-    html+='</div>';
-  }
-  box.innerHTML=html;box.style.display='block';
-  // Impacto fuerza la duracion a 30s y bloquea el selector de duracion.
+  }catch(e){}
+}
+function trendJob(it){
+  var mode=esModoLargo()?sMode:(sMode==='impacto'?'impacto':it.family==='relato'?'historia':'reel');
+  return {topic:it.concept,t:it.t,h:it.h,mode:mode,d:mode==='impacto'?'30':sD};
+}
+function pintarTrends(){
+  var box=document.getElementById('trendBox');if(!box||!TREND_IDEAS.length)return;
+  var html='<p class="studio-help">Elige una idea. Usaremos la duración que tengas seleccionada.</p>';
   TREND_IDEAS.forEach(function(it,i){
-    var ms=document.getElementById('trendMode-'+i);
-    var ds=document.getElementById('trendDur-'+i);
-    if(ms&&ds)ms.addEventListener('change',function(){
-      if(ms.value==='impacto'){ds.value='30';ds.disabled=true;}
-      else{ds.disabled=false;}
-    });
-    var b1=document.getElementById('bTrendOne-'+i);
-    if(b1)b1.addEventListener('click',function(){genTrendOne(i);});
+    html+='<article class="studio-idea"><span class="studio-pill">'+escHtml(it.format)+'</span>'
+      +'<h3>'+escHtml(it.concept)+'</h3><p>'+escHtml(it.opening)+'</p>'
+      +'<details><summary>Cómo se contará</summary><ol>'+it.beats.map(function(b){return '<li>'+escHtml(b)+'</li>';}).join('')+'</ol><p>'+escHtml(it.payoff)+'</p></details>'
+      +'<button type="button" class="studio-button" id="bTrendOne-'+i+'">Generar este guion</button></article>';
   });
-  var bb=document.getElementById('bTrendBatch');
-  if(bb)bb.addEventListener('click',function(){
-    if(!TREND_IDEAS.length)return;
-    // El lote respeta el modo y la duracion elegidos para CADA concepto.
-    var jobs=TREND_IDEAS.map(function(it,i){
-      var ms=document.getElementById('trendMode-'+i);
-      var ds=document.getElementById('trendDur-'+i);
-      var mode=ms?ms.value:'reel';
-      return {topic:it.concept,t:it.t,h:it.h,mode:mode,d:mode==='impacto'?'30':(ds?ds.value:'60')};
-    });
-    generateBatch(jobs);
-  });
+  if(!esModoLargo())html+='<button type="button" class="studio-button" id="bTrendBatch">Generar los '+TREND_IDEAS.length+' guiones</button>';
+  box.innerHTML=html;box.style.display='block';
+  // Google supplies this search attribution. Isolate it from the app and its key.
+  if(TREND_RESEARCH&&TREND_RESEARCH.searchEntryPoint){
+    var frame=document.createElement('iframe');frame.title='Búsqueda de Google';
+    frame.setAttribute('sandbox','allow-popups allow-popups-to-escape-sandbox');frame.referrerPolicy='no-referrer';
+    frame.className='studio-search-credit';
+    frame.srcdoc='<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src https: data:"><base target="_blank">'+String(TREND_RESEARCH.searchEntryPoint).slice(0,60000);box.appendChild(frame);
+  }
+  TREND_IDEAS.forEach(function(it,i){document.getElementById('bTrendOne-'+i).onclick=function(){genTrendOne(i);};});
+  var batch=document.getElementById('bTrendBatch');if(batch)batch.onclick=function(){if(!TREND_BUSY)generateBatch(TREND_IDEAS.map(trendJob));};
 }
 
 // Generar UN SOLO reel de un concepto de la investigacion (boton chiquito de su
 // tarjeta), respetando el modo y la duracion elegidos para ESE concepto.
 async function genTrendOne(i){
-  if(loading||batchLoading||STUDIO.busy)return;
+  if(loading||batchLoading||STUDIO.busy||TREND_BUSY)return;
   var it=TREND_IDEAS[i];if(!it)return;
-  var ms=document.getElementById('trendMode-'+i);
-  var ds=document.getElementById('trendDur-'+i);
-  var mode=ms?ms.value:'reel';
-  var d=mode==='impacto'?'30':(ds?ds.value:'60');
+  var job=trendJob(it),mode=job.mode,d=job.d;
   var btn=document.getElementById('bTrendOne-'+i);
   var orig=btn?btn.innerHTML:'';
   loading=true;updGBtn();hideErr();
@@ -5375,39 +5323,20 @@ async function genTrendOne(i){
 }
 
 async function genTrends(){
-  var btn=document.getElementById('bTrends');
-  var st=document.getElementById('trendSt');
-  var er=document.getElementById('trendErr');
-  var orig=btn.textContent;
-  btn.textContent='Investigando...';btn.disabled=true;btn.style.opacity='.6';
-  st.style.display='block';st.textContent='Buscando en Google qué está funcionando ahora en el nicho... (30-60 segundos)';
-  er.style.display='none';
+  if(TREND_BUSY||loading||batchLoading||STUDIO.busy)return;
+  TREND_BUSY=true;
+  var btn=document.getElementById('bTrends'),st=document.getElementById('trendSt'),er=document.getElementById('trendErr'),orig=btn.textContent;
+  btn.textContent='Buscando ideas…';btn.disabled=true;
+  st.style.display='block';st.textContent='Buscando videos y preparando sus formatos para Legado de Hierro…';er.style.display='none';
   try{
-    // Se le mandan los conceptos recientes (historial + la busqueda anterior) para que
-    // NO repita: cada investigacion trae temas nuevos, no siempre los mismos cinco.
-    var avoid=[];
-    try{
-      getHistory().forEach(function(x){if(x&&x.topic)avoid.push(x.topic);});
-      TREND_IDEAS.forEach(function(x){if(x&&x.concept)avoid.push(x.concept);});
-    }catch(e){}
-    avoid=avoid.slice(0,20);
-    var r=await fetch('/api/trends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({avoid:avoid})});
-    var d=await r.json().catch(function(){return{};});
-    if(!r.ok||!d.text)throw new Error(d.error||'Error '+r.status);
-    // Los conceptos vienen al final en lineas pilar|gancho|concepto: se separan
-    // del analisis y se convierten en el lote de 5 con un solo boton.
-    TREND_IDEAS=parseSuggestions(d.text).slice(0,5);
-    TREND_TEXT=d.text.replace(/CONCEPTOS PARA GENERAR[\s\S]*$/i,'').trim();
-    TREND_SOURCES=(d.sources||[]).slice();
-    pintarTrends();
-    st.style.display='none';
+    var avoid=getHistory().map(function(x){return x.topic;}).concat(TREND_IDEAS.map(function(x){return x.concept;})).filter(Boolean).slice(0,20);
+    var data=await studioAPI('search',{avoid:avoid,mode:sMode,seconds:Number(sD)},'/api/trends');
+    if(!Array.isArray(data.ideas)||!data.ideas.length||!data.ideas.every(function(it){return it.concept&&LH.researchBrief(it);}))throw new Error('La búsqueda no devolvió ideas completas.');
+    TREND_RESEARCH=data;TREND_IDEAS=data.ideas;saveTrendIdeas();pintarTrends();
+    st.textContent='Ideas listas. El formato se aplicará al guion automáticamente.';
     cost+=0.02;updCost();
-  }catch(e){
-    st.style.display='none';
-    er.textContent='Error: '+(e.message||'Error de conexión');er.style.display='block';
-  }finally{
-    btn.textContent=orig;btn.disabled=false;btn.style.opacity='1';
-  }
+  }catch(e){st.style.display='none';er.textContent=e.message||'No se pudo completar la búsqueda. Las ideas anteriores se conservan.';er.style.display='block';}
+  finally{TREND_BUSY=false;btn.textContent=orig;btn.disabled=false;}
 }
 
 // INIT

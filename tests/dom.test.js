@@ -102,9 +102,10 @@ test('new voice settings create a new configuration; recover explicitly reuses t
 test('a batch episode uses its own duration and topic in the resumable editorial job, including short reels',async()=>{
   const a=await app();try{
     const {w}=a;w.document.querySelector('#conc').value='Tema distinto que quedó en el formulario';
-    w.document.querySelector('#editorialFamily').value='relato';
-    w.document.querySelector('#editorialSituation').value='Solo dispone de veinte minutos después del trabajo';
-    assert.equal(w.document.querySelectorAll('#editorialReference option').length,6);
+    assert.equal(w.document.querySelector('#editorialFamily'),null);
+    assert.equal(w.document.querySelector('#metricForm'),null);
+    assert.equal(w.document.querySelector('#cloudInfoPanel'),null);
+    w.localStorage.setItem('editorialFamily','metodo'); // Obsolete settings must not override the selected mode.
     const configs=[];w.studioRunJob=async c=>{configs.push(c);return {a:'Narración original completa de la prueba.',c:Array(c.sceneCount).fill('Escena en el taller'),quality:{status:'reviewed'}};};
     for(const seconds of [30,480]){
       const built=w.buildEpisodeMsg('Tema del elemento del lote',w.THEMES[0].id,w.HOOKS[0].id,'historia',String(seconds));
@@ -112,6 +113,7 @@ test('a batch episode uses its own duration and topic in the resumable editorial
       const cfg=configs.at(-1),pending=w.studioPending();
       assert.equal(cfg.editorialVersion,2);assert.equal(cfg.sceneCount,seconds===30?3:10);
       assert.equal(pending.meta.topic,'Tema del elemento del lote');assert.equal(pending.meta.seconds,seconds);
+      assert.equal(pending.meta.editorial.family,'relato');
       assert.match(cfg.prompt,new RegExp(seconds===30?'FORMATO CORTO':'FORMATO LARGO'));
     }
   }finally{a.close();}
@@ -133,5 +135,34 @@ test('editorial evidence survives save/restore and a manual edit clears the stal
     await w.studioReviewScript();assert.equal(reviewConfig.type,'review');assert.equal(reviewConfig.text,p.a);
     assert.equal(projects.get(p.uid).quality.scriptFingerprint,w.LH.fingerprint(p.a));
     assert.match(w.document.querySelector('#qualityReview').textContent,/Revisión completada/);
+  }finally{a.close();}
+});
+
+test('ideas need no URLs or setup forms and their structure reaches the saved script job',async()=>{
+  const a=await app();try{
+    const {w,calls,errors}=a;
+    const ideas=Array.from({length:5},(_,i)=>({concept:'Cómo conseguir el primer cliente '+i,t:'negocio',h:'historia',family:'relato',audience:'negocio',format:'Historia con giro',opening:'Empieza con una objeción concreta.',beats:['El cliente duda del plazo.','El artesano ofrece una prueba.','La prueba permite decidir.'],payoff:'El cliente decide después de ver el trabajo.',videoUrl:''}));
+    const api=w.studioAPI;w.studioAPI=async(action,data,endpoint)=>action==='search'?{version:2,ideas,checkedAt:'2026-09-13',sources:[{title:'Nombre de otro canal',uri:'https://example.test/source'}]}:api(action,data,endpoint);
+    await w.genTrends();
+    assert.equal(w.document.querySelectorAll('#trendBox .studio-idea').length,5);assert.equal(w.document.querySelectorAll('#trendBox select, #trendBox input, #metricForm, #editorialReference').length,0);
+    assert.doesNotMatch(w.document.querySelector('#trendBox').textContent,/Nombre de otro canal|https:/);
+    const configs=[];w.studioRunJob=async config=>{configs.push(config);return {a:'Un guion de prueba con una objeción concreta y su resolución.',c:['Una escena del taller']};};
+    w.applySelection('relato','negocio','480','historia');await w.genTrendOne(0);await w.STUDIO.saveQueue;
+    assert.equal(configs[0].seconds,480);assert.match(configs[0].prompt,/El artesano ofrece una prueba/);assert.equal(w.lastRes.editorial.research.format,'Historia con giro');
+    w.TREND_IDEAS=[];w.restoreTrendIdeas();assert.equal(w.TREND_IDEAS.length,5);
+    assert.equal(calls.some(c=>c.b.action==='metrics'||c.b.action==='metric-save'),false);assert.deepEqual(errors,[]);
+  }finally{a.close();}
+});
+
+test('choosing an idea analyzes its video automatically and reuses the result; failures preserve production',async()=>{
+  const a=await app();try{
+    const {w}=a,idea={concept:'Una oferta pequeña',t:'negocio',h:'historia',family:'relato',audience:'negocio',format:'Negociación con giro',opening:'Hay una oferta.',beats:['Una oferta inicial.','Otra posibilidad.','La respuesta final.'],payoff:'La respuesta resuelve la duda.',videoUrl:'https://www.youtube.com/watch?v=d1K48J72HMY'};
+    w.TREND_IDEAS=[idea];w.TREND_RESEARCH={version:2,ideas:[idea]};let analyzes=0;
+    w.studioAPI=async()=>{analyzes++;return {analysis:{...idea,visualRhythm:'Un detalle del objeto antes de la respuesta.',observations:[{second:0,detail:'Una oferta.'}],basis:'video'}};};
+    const context=w.buildEpisodeMsg(idea.concept,'negocio','historia','historia','60');
+    const text=await w.studioPrepareReference(context);assert.match(text,/Un detalle del objeto/);assert.equal(context.editorial.referenceAnalysis.basis,'video');
+    await w.studioPrepareReference(w.buildEpisodeMsg(idea.concept,'negocio','historia','historia','60'));assert.equal(analyzes,1);
+    delete idea.analysis;w.studioAPI=async()=>{throw new Error('Video unavailable');};
+    const next=w.buildEpisodeMsg(idea.concept,'negocio','historia','historia','60');assert.equal(await w.studioPrepareReference(next),'');assert.match(next.editorial.referenceNotice,/estructura propuesta/);
   }finally{a.close();}
 });

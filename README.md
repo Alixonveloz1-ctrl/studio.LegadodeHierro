@@ -4,25 +4,24 @@ Herramienta de un solo operador para preparar guiones, narraciones, imágenes, c
 
 ## Esta actualización
 
-- Dirección editorial por público y familia de contenido: identidad, método, relato ilustrativo o práctica. Cada guion debe cumplir una promesa concreta, aportar ejemplos y evitar biografías inventadas, incentivos falsos y relleno. La versión en inglés se prepara solo cuando se solicita.
+- Dirección del guion automática según el tema y el modo: identidad, método, relato ilustrativo o práctica. Cada guion debe cumplir una promesa concreta, aportar ejemplos y evitar biografías inventadas, incentivos falsos y relleno. La versión en inglés se prepara solo cuando se solicita.
 - Referencias propias y de canales afines con fuentes y límites de evidencia. Tres aperturas, plan narrativo, revisión de siete criterios, una ronda de corrección y escenas basadas en el texto final. [Análisis editorial](docs/GUIONES-2026-09.md) y [ejemplos originales](docs/EJEMPLOS-GUIONES.md).
 - Biblioteca persistente de imágenes, videos y música, con descripciones, acciones, lugares, encuadres, continuidad, etiquetas, colecciones y favoritos. Recupera clips antiguos y acepta importaciones desde el teléfono. Propone un montaje, alterna materiales compatibles y señala los huecos. Permite generar únicamente las escenas pendientes.
 - 96 encargos de tomas para ampliar la biblioteca de forma ordenada. Son propuestas; no se generan ni cobran automáticamente.
 - Guiones largos y narraciones por etapas guardadas. Al interrumpirse una petición se recupera el trabajo terminado. Con Google Cloud actualizado, el montaje se ejecuta como Cloud Run Job y continúa aunque se cierre el teléfono.
-- Resultados por publicación y ventanas de 24 horas, 7 y 28 días. Se comparan plataforma y duración similares, se separan ingresos y bonos y se conservan los valores desconocidos como tales.
+- Búsqueda de videos públicos que entrega ideas con apertura, progresión y cierre. La estructura elegida se incorpora al guion automáticamente. Las referencias de YouTube se analizan como video al producir la idea y su análisis queda guardado para reutilizarlo. No hay formulario de enlaces ni estadísticas.
 
-No hay una fórmula que garantice viralidad o ingresos. La aplicación permite producir con menos gasto repetido y comprobar qué historias, ganchos y métodos funcionan con el público real.
+No hay una fórmula que garantice viralidad o ingresos. La aplicación se centra en producir con menos gasto repetido; las estadísticas se consultan en Meta o YouTube.
 
 ## Uso
 
 Consulta [la guía de uso y actualización](docs/ACTUALIZACION-2026-09.md). La interfaz ofrece piezas de 30, 45, 60, 90 y 120 segundos y modos Profesor/Relato de 3, 5 y 8 minutos.
 
-1. Elige plataforma, público, familia editorial y hechos reales que quieras usar.
-2. Genera el guion y lee la revisión y su evidencia. Si lo editas, guarda la nueva versión y vuelve a revisarla antes de narrar.
+1. Elige modo, duración y tema, o pulsa **Buscar ideas** y después **Generar este guion** en una propuesta. El público y la estructura se preparan automáticamente.
+2. El guion se escribe, revisa y mejora por etapas. Puedes abrir **Ver la revisión del guion** o editarlo si lo necesitas.
 3. Genera o importa la narración. Su duración medida determina el montaje.
 4. Pulsa **Elegir tomas de la biblioteca**, revisa las coincidencias y completa los huecos. También puedes generar imágenes y animarlas como antes.
 5. Conserva o cambia la música, unifica y revisa el resultado antes de publicarlo.
-6. Guarda las mediciones de cada publicación a la misma edad. Las siguientes propuestas usan esas observaciones cuando existen suficientes piezas comparables.
 
 ## Arquitectura
 

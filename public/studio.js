@@ -1,20 +1,42 @@
-// Personal studio: persistent work, a reusable shot library and measured feedback.
-var STUDIO={assets:[],metrics:[],plan:[],imageRefs:{},imageSaves:{},audioJobs:{},uploadedAudio:{},videoOps:{},versions:{},saveQueue:Promise.resolve(),busy:false};
+// Personal production studio: saved work, automatic script direction and reusable shots.
+var STUDIO={assets:[],plan:[],imageRefs:{},imageSaves:{},audioJobs:{},uploadedAudio:{},videoOps:{},versions:{},saveQueue:Promise.resolve(),busy:false};
 function studioEl(id){return document.getElementById(id);}
-function studioMessage(message,error){var el=studioEl('studioStatus');if(el){el.textContent=message;el.className='studio-status'+(error?' studio-error':'');}}
+function studioMessage(message,error){var el=studioEl('studioStatus');if(el){el.hidden=!message;el.textContent=message;el.className='studio-status'+(error?' studio-error':'');}}
 async function studioAPI(action,data,endpoint){
   var r=await fetch(endpoint||'/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(57000),body:JSON.stringify(Object.assign({action:action},data||{}))});
   var d=await r.json().catch(function(){return {};});
   if(!r.ok){var e=new Error(d.error||'No se pudo completar esta etapa (HTTP '+r.status+'). Lo guardado se conserva.');e.status=r.status;throw e;}
   return d;
 }
-function studioOptions(mode,seconds){
-  var field=function(id,def){return studioEl(id)?studioEl(id).value:def;};
-  var family=field('editorialFamily','auto');
-  var platform=field('editorialPlatform','facebook');
-  return {audience:field('editorialAudience','constructor'),family:family==='auto'?LH.familyFor(mode||sMode):family,platform:platform,seconds:Number(seconds||sD),
-    referenceId:field('editorialReference','auto'),situation:field('editorialSituation','').slice(0,500),
-    facts:field('editorialFacts','').slice(0,3000),feedback:LH.feedback(STUDIO.metrics,{platform:platform,format:LH.formatFor(Number(sD)),window:'7d'})};
+function studioOptions(mode,seconds,topic,theme){
+  mode=mode||sMode;
+  topic=topic===undefined?(studioEl('conc').value||''):topic;
+  var idea=typeof TREND_IDEAS!=='undefined'?TREND_IDEAS.find(function(it){return LH.norm(it.concept)===LH.norm(topic);}):null;
+  var family=LH.familyFor(mode),research=idea?LH.researchBrief(idea):null;
+  if(research&&mode!=='profesor'&&mode!=='relato'&&mode!=='historia')family=research.family;
+  var audience=research?research.audience:LH.audienceFor(topic,theme||sT);
+  return {audience:audience,family:family,platform:'facebook',seconds:Number(seconds||sD),
+    referenceId:family==='identidad'&&/reto|ano|dias/.test(LH.norm(topic))?'lh-reto':'auto',research:research,referenceVideo:idea&&idea.videoUrl||'',referenceAnalysis:idea&&idea.analysis||null};
+}
+async function studioPrepareReference(context){
+  var options=context.editorial||{},url=options.referenceVideo;if(!url)return '';
+  var analysis=options.referenceAnalysis;
+  if(!analysis){
+    studioMessage('Analizando la apertura, el desarrollo y el cierre del video de referencia…');
+    try{
+      var data=await studioAPI('analyze',{videoUrl:url},'/api/trends');analysis=data.analysis;
+      if(!analysis||!LH.researchBrief(analysis))throw new Error('Análisis incompleto.');
+      options.referenceAnalysis=analysis;
+      TREND_IDEAS.forEach(function(it){if(it.videoUrl===url)it.analysis=analysis;});saveTrendIdeas();
+    }catch(e){
+      if(e.status===401)throw e;
+      options.referenceAnalysis=null;options.referenceNotice='No se pudo leer el video; se utilizó la estructura propuesta por la búsqueda.';
+      var notice=studioEl('trendErr');notice.textContent=options.referenceNotice;notice.style.display='block';
+      return '';
+    }
+  }
+  return '\nANÁLISIS AUDIOVISUAL DE REFERENCIA (hasta 180 segundos): '+JSON.stringify({structure:LH.researchBrief(analysis),visualRhythm:analysis.visualRhythm,observations:analysis.observations})
+    +'\nAdapta las funciones observadas al TEMA ORIGINAL de esta idea y a la duración solicitada. Mantén la voz, personajes y estética de Legado de Hierro. No copies diálogos ni acontecimientos literales. El ritmo visual orienta las escenas del texto final. No inventes el cierre si no se observó.';
 }
 function studioPending(){try{return JSON.parse(localStorage.getItem('lh_pending_job')||'null');}catch(e){return null;}}
 function studioRemember(pending){if(pending)localStorage.setItem('lh_pending_job',JSON.stringify(pending));else localStorage.removeItem('lh_pending_job');studioPaintPending();}
@@ -263,17 +285,6 @@ function studioRenderEpisode(res){
   studioEl('scriptReview').textContent=notes.join('\n');studioEl('scriptEdit').value=res.a;
   studioPaintQuality(res);
 }
-function studioPaintReferences(){
-  var select=studioEl('editorialReference'),box=studioEl('editorialReferences');
-  if(!select||!box)return;
-  LH.REFERENCES.forEach(function(r){
-    select.add(new Option(r.title,r.id));
-    var card=document.createElement('article');card.className='studio-asset';
-    var link=document.createElement('a');link.href=r.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=r.title;card.appendChild(link);
-    [r.platform.toUpperCase()+' · revisión '+r.checkedAt+(r.views?' · '+r.views.toLocaleString('es')+' vistas observadas':''),r.scope,'Aprendizaje: '+r.learn,'Evitar: '+r.avoid].forEach(function(t){var p=document.createElement('p');p.textContent=t;card.appendChild(p);});
-    box.appendChild(card);
-  });
-}
 function studioPaintQuality(res){
   var planBox=studioEl('editorialPlan'),reviewBox=studioEl('qualityReview'),plan=res.editorialPlan;
   planBox.replaceChildren();reviewBox.replaceChildren();
@@ -305,7 +316,7 @@ async function studioReviewScript(){
   if(!lastRes)throw new Error('Abre un proyecto primero.');
   var owner=lastRes,text=owner.a,seconds=Number(owner.dO&&owner.dO.id)||60;
   if(studioEl('scriptEdit').value.trim()!==text.trim())throw new Error('Guarda primero el texto que estás editando.');
-  var options=studioOptions(owner.modo,seconds);
+  var options=owner.editorial||studioOptions(owner.modo,seconds,owner.topic,owner.tO&&owner.tO.id);
   var config={type:'review',text:text,prompt:LH.editorial(options)+'\nTema: '+owner.topic+'\nDuración prevista: '+seconds+' segundos.',plan:owner.editorialPlan||{}};
   var out=await studioRunJob(config,String(owner.uid)+'-review',function(d){studioMessage('Revisando el guion guardado. Puedes repetir este botón para recuperar la misma revisión si se interrumpe.');});
   if(lastRes!==owner||owner.a!==text)return;
@@ -350,9 +361,11 @@ function studioHydrateCaptions(p){
   if(lastCaption||lastTags){studioEl('capBox').style.display='block';pintarCaptionEN();}
 }
 function studioRestoreEditorial(options){
-  if(!options)return;
-  [['editorialAudience','audience'],['editorialFamily','family'],['editorialPlatform','platform'],['editorialFacts','facts'],['editorialReference','referenceId'],['editorialSituation','situation']].forEach(function(p){studioEl(p[0]).value=options[p[1]]||({audience:'constructor',family:'auto',platform:'facebook',referenceId:'auto'}[p[1]]||'');});
-  aplicarFormatoDelModo();
+  // Old projects retain their editorial metadata without recreating setup fields.
+  if(options&&options.platform==='youtube'&&esModoLargo()){
+    imgFmt='16:9';vidFmt='16:9';
+    ['selImgFmt','selVidFmt'].forEach(function(id){var el=studioEl(id);if(el)el.value='16:9';});
+  }
 }
 async function studioSaveUploadedAudio(audio,lang,name){
   if(!audio.audioObjects||!audio.audioObjects.length){var saved=await studioUploadBlob(audio.blob,{},true);audio.audioObjects=[saved.object];}
@@ -490,37 +503,19 @@ async function studioGenerateMissing(){
   }
   studioPaintCurrentImages();studioMessage('Huecos completos. El resto del material se reutilizó.');
 }
-async function studioSaveMetrics(event){
-  event.preventDefault();var f=studioEl('metricForm'),row={};
-  Array.from(f.elements).forEach(function(el){if(el.name)row[el.name]=el.value;});
-  row.projectId=lastRes?String(lastRes.uid):'';row.family=row.family||studioOptions().family;row.hook=row.hook||(lastRes?firstLine(lastRes.a):'');
-  ['publishedAt','measuredAt'].forEach(function(k){if(row[k])row[k]=new Date(row[k]).toISOString();});
-  if(!row.topic&&lastRes)row.topic=lastRes.topic;
-  var d=await studioAPI('metric-save',{metric:row});
-  STUDIO.metrics=STUDIO.metrics.filter(function(r){return r.id!==d.metric.id;}).concat(d.metric);studioPaintMetrics();studioMessage('Medición guardada. Solo se compara con publicaciones de igual plataforma, duración aproximada y edad.');
-}
-function studioPaintMetrics(){
-  var box=studioEl('metricsTable');box.innerHTML='';
-  var table=document.createElement('table');table.innerHTML='<thead><tr><th>Publicación</th><th>Ventana</th><th>Vistas</th><th>Tiempo medio</th><th>No seguidores</th><th>Guardados</th><th>Ingresos</th><th>Bonos</th></tr></thead>';
-  var body=document.createElement('tbody');
-  STUDIO.metrics.slice().sort(function(a,b){return String(b.measuredAt).localeCompare(String(a.measuredAt));}).forEach(function(r){var tr=document.createElement('tr');
-    [r.topic,r.platform+' · '+r.window+' · '+r.format,r.views,r.avgWatch+' s',r.nonFollowers===null?'—':r.nonFollowers+'%',r.saves===null?'—':r.saves,r.revenue===null?'—':'$'+r.revenue,r.bonus===null?'—':'$'+r.bonus].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});body.appendChild(tr);
-  });table.appendChild(body);box.appendChild(table);
-}
 async function studioGuard(fn){
   if(STUDIO.busy)return;STUDIO.busy=true;
   try{await fn();}catch(e){studioMessage(e.message,true);}finally{STUDIO.busy=false;}
 }
 function studioInit(){
-  studioPaintPending();studioPaintRecipes();studioPaintReferences();
+  studioPaintPending();studioPaintRecipes();
+  studioEl('projectsPanel').addEventListener('toggle',function(){if(this.open)studioGuard(studioOpenProjects);});
   var bind=function(id,fn){var el=studioEl(id);if(el)el.onclick=function(){studioGuard(fn);};};
   bind('libraryLoad',studioLoadLibrary);bind('libraryUpload',studioUploadFiles);bind('libraryDiscover',function(){return studioDiscover(false);});bind('discoveryMore',function(){return studioDiscover(true);});
   bind('studioPending',studioResume);bind('projectsLoad',studioOpenProjects);bind('buildScenePlan',studioBuildPlan);bind('generateMissing',studioGenerateMissing);bind('recipeGenerate',studioGenerateRecipe);bind('scriptSave',studioEditScript);bind('resumeRender',studioResumeRender);bind('audioRestoreES',function(){return studioRecoverAudio('es');});bind('audioRestoreEN',function(){return studioRecoverAudio('en');});
   bind('scriptRecheck',studioReviewScript);
   studioEl('librarySearch').onchange=function(){STUDIO_PAGE=0;studioGuard(studioPaintLibrary);};studioEl('libraryKind').onchange=studioEl('librarySearch').onchange;
   bind('libraryNext',function(){STUDIO_PAGE++;return studioPaintLibrary();});bind('libraryPrev',function(){STUDIO_PAGE=Math.max(0,STUDIO_PAGE-1);return studioPaintLibrary();});
-  bind('metricsLoad',async function(){STUDIO.metrics=await studioLoadAll('metrics');studioPaintMetrics();studioMessage('Resultados cargados. Se usarán como contexto de los siguientes guiones.');});
-  studioEl('metricForm').onsubmit=function(e){e.preventDefault();studioGuard(function(){return studioSaveMetrics(e);});};
-  ['editorialAudience','editorialFamily','editorialPlatform','editorialReference','editorialSituation'].forEach(function(id){var el=studioEl(id);try{if(localStorage.getItem(id))el.value=localStorage.getItem(id);}catch(e){}el.onchange=function(){localStorage.setItem(id,el.value);aplicarFormatoDelModo();};});
+
 }
 document.addEventListener('DOMContentLoaded',studioInit);

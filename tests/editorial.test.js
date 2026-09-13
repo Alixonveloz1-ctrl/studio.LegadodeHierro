@@ -86,8 +86,8 @@ test('manual review is tied to exact text and repeated recovery reuses the persi
 
 test('references retain evidence limits and the intended duration changes the writing architecture',()=>{
   const short=core.editorial({family:'identidad',seconds:45}),long=core.editorial({family:'relato',seconds:480});
-  assert.match(short,/1368185258400051/);assert.match(short,/no transcripción completa/);assert.match(short,/FORMATO CORTO/);
-  assert.match(long,/4ahkhdd5U2g/);assert.match(long,/FORMATO LARGO/);assert.match(long,/No estires un reel/);
+  assert.match(short,/Mantener tu decisión/);assert.match(core.REFERENCES[0].scope,/no transcripción completa/);assert.match(short,/FORMATO CORTO/);
+  assert.match(long,/Historia con una decisión/);assert.match(long,/FORMATO LARGO/);assert.match(long,/No estires un reel/);
   const privateData=/content\/insights|professional_dashboard|revenue|nonFollowers/;
   assert.equal(privateData.test(JSON.stringify(core.REFERENCES)),false);
 });

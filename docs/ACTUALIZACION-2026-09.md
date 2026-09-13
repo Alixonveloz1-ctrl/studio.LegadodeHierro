@@ -6,7 +6,7 @@ Los cambios se concentran en contenido específico, continuidad de producción y
 
 Ahora el encargo identifica público, conflicto y utilidad. Los relatos inventados se presentan como situaciones ilustrativas, las cifras hipotéticas se identifican como ejemplos y los cierres resuelven el planteamiento. Se conserva la estética del canal y se puede mantener la música reconocible. Son hipótesis para probar con publicaciones, no afirmaciones sobre lo que Facebook o YouTube van a distribuir.
 
-El [análisis editorial](GUIONES-2026-09.md) contrasta referencias propias y recientes de canales afines. El generador prepara tres aperturas y un plan, escribe, revisa siete criterios con citas del texto, corrige una vez las partes señaladas y vuelve a revisar. Las escenas se preparan sobre la narración definitiva. Los reels y los largos guardan todas estas etapas. En pantalla se muestran la promesa, la resolución prevista, el diagnóstico y el borrador previo cuando hubo mejora.
+El [análisis editorial](GUIONES-2026-09.md) contrasta referencias propias y recientes de canales afines. El generador prepara tres aperturas y un plan, escribe, revisa siete criterios con citas del texto, corrige una vez las partes señaladas y vuelve a revisar. Las escenas se preparan sobre la narración definitiva. Los reels y los largos guardan todas estas etapas. La revisión detallada queda en un apartado opcional. El público y el formato se eligen automáticamente según el tema y el modo; no hay un formulario de dirección editorial.
 
 ## Construir la biblioteca sin generar todo otra vez
 
@@ -39,13 +39,14 @@ El inglés es opcional y se prepara aparte. Su montaje reutiliza las mismas imá
 - Video final: abre el proyecto y pulsa **Consultar mi montaje**. Cloud Run puede seguir trabajando aunque cierres el teléfono. Si la tarea falló, un nuevo montaje de los mismos materiales recupera los segmentos terminados.
 - Error de guardado: lee el aviso del estudio. Un archivo generado puede estar en la biblioteca aunque no haya terminado de asociarse al proyecto. No confundas «generado» con «guardado» cuando la conexión falla.
 
-## Medir la recuperación
+## Buscar una idea y producirla
 
-Registra cada publicación a las 24 horas, a los 7 días o a los 28 días. Anota duración, vistas, tiempo medio visto y, cuando existan, porcentaje de no seguidores, guardados, compartidos y nuevos seguidores. Separa los ingresos del contenido de las bonificaciones.
+Pulsa **Buscar ideas**. Cada tarjeta explica el tema y el formato, como «historia con giro» o «reto de transformación». Pulsa **Generar este guion**: su apertura, los avances de la historia y el cierre pasan al generador automáticamente. Se usa la duración que tengas seleccionada. Las ideas quedan guardadas en el teléfono.
 
-No compares una pieza de ayer con otra que acumuló vistas durante meses. Tampoco atribuyas una diferencia de ingresos a la música por sí sola. Usa grupos de plataforma, duración y edad similares; cambia una decisión editorial principal por grupo y conserva el resto tanto como sea práctico. Con al menos tres publicaciones comparables, las siguientes propuestas incorporan las necesidades y ganchos que dieron mejores señales relativas. Los campos incompletos se excluyen de la clasificación común.
+La búsqueda usa Google para consultar videos públicos de Facebook y YouTube. Si encuentra una referencia de YouTube, al producir la idea se envía el video a Gemini para analizar hasta sus primeros tres minutos: mecanismos narrativos, cambios visuales y momentos observados. El análisis se guarda en Google Cloud Storage y se recupera en usos posteriores. Si no se puede leer el video, se indica y el guion continúa con la estructura propuesta por la búsqueda.
 
-El registro es manual. Esta versión no descarga estadísticas privadas ni publica automáticamente en las cuentas de Facebook o YouTube.
+Esto distingue investigación pública de análisis audiovisual: una página o título no demuestra cómo retiene un video. No se accede automáticamente a estadísticas privadas de Facebook desde la aplicación, ni se conectan cuentas de terceros. Los nombres de los canales quedan fuera de las tarjetas y del selector, que se retiró. No se piden enlaces, porcentajes ni mediciones: esas consultas se hacen en Meta o YouTube.
+
 
 ## Instalar la actualización
 
@@ -73,7 +74,7 @@ El job dispone de una hora por intento, un reintento y 2 GiB de memoria. Su cuen
 
 ## Verificación realizada y pendiente
 
-Pasaron 42 pruebas automatizadas de guiones por partes, revisión y corrección editorial, recuperación de audio, escrituras concurrentes, API, catálogo, mediciones, controles DOM y arranque del ejecutor. Se comprobó que una revisión guardada se recupera sin otra llamada, que se rechazan citas inexistentes y que la corrección no entra en un ciclo infinito. FFmpeg produjo un MP4 vertical real de ocho minutos con narración sintética dividida, imágenes, video, música audible cerca del final y subtítulos. La diferencia entre duración del video y la narración quedó dentro de un fotograma en las comprobaciones del plan.
+Pasaron 48 pruebas automatizadas de guiones por partes, revisión y corrección editorial, recuperación de audio, escrituras concurrentes, API, catálogo, compatibilidad de datos anteriores, controles DOM, investigación pública, análisis audiovisual y arranque del ejecutor. Se comprobó que una revisión guardada se recupera sin otra llamada, que se rechazan citas inexistentes y que la corrección no entra en un ciclo infinito. FFmpeg produjo un MP4 vertical real de ocho minutos con narración sintética dividida, imágenes, video, música audible cerca del final y subtítulos. La diferencia entre duración del video y la narración quedó dentro de un fotograma en las comprobaciones del plan.
 
 Las pruebas de despliegue verifican las rutas agrupadas, su autenticación, el rechazo de rutas internas y la compatibilidad de ambos contratos de montaje. Cuatro pruebas adicionales ejecutan el instalador con Google Cloud simulado: instalación completa sin incluir claves en la compilación, fallo del job antes de cambiar tráfico, recuperación de la revisión anterior si falla la comprobación final y descarga incompleta sin operaciones en la nube.
 
@@ -86,3 +87,5 @@ La prueba de interfaz usa los archivos reales de HTML y JavaScript en un DOM loc
 - [Ejecución de Cloud Run Jobs](https://docs.cloud.google.com/run/docs/execute/jobs).
 - [Permisos de Cloud Run](https://docs.cloud.google.com/iam/docs/roles-permissions/run).
 - [Configuración CORS de Cloud Storage](https://docs.cloud.google.com/storage/docs/using-cors).
+
+La integración de análisis usa [videos públicos de YouTube como entrada de Gemini](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/capabilities/video-understanding) y [metadatos para limitar el fragmento](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/rest/v1/Content#VideoMetadata). Las pruebas locales simulan Google y verifican el flujo completo hasta el encargo del guion; no validan una llamada pagada con las credenciales de producción.
