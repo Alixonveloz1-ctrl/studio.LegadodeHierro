@@ -598,22 +598,9 @@ function parseSuggestions(txt){
 
 // Las duraciones que se ven dependen del modo: los cortos ven 30/60 y los largos
 // ven 3/5/8 minutos. Se repinta al cambiar de modo.
-// 16:9 para los modos largos (YouTube), 9:16 para los reels. Se puede cambiar a
-// mano despues: esto solo pone el valor sensato al cambiar de modo.
+// El modo cambia la narración; los formatos siguen siendo elección del usuario.
 function aplicarFormatoDelModo(){
-  var quiere='9:16';
-  try{if(esModoLargo()&&localStorage.getItem('lh_gen_imgFmt')==='16:9')quiere='16:9';}catch(e){}
-  [['selImgFmt',function(v){imgFmt=v;},'imgFmt'],['selVidFmt',function(v){vidFmt=v;},'vidFmt']].forEach(function(c){
-    var sel=document.getElementById(c[0]);
-    if(!sel)return;
-    for(var i=0;i<sel.options.length;i++){
-      if(sel.options[i].value===quiere){
-        sel.value=quiere;c[1](quiere);
-        if(typeof guardarAjuste==='function')guardarAjuste(c[2],quiere);
-        break;
-      }
-    }
-  });
+  wireGenSettings();
 }
 
 function pintarDuraciones(){
@@ -649,8 +636,7 @@ function buildAll(){
       b.querySelector('.om').style.color=sMode===m.id?'#b8975a':'';
       b.addEventListener('click',function(){
         sMode=m.id;SP=buildSP();pintarDuraciones();rfAll();
-        // YouTube es horizontal y los Reels verticales: al cambiar de familia de
-        // modos se ajusta el formato solo, que si no se olvida y sale al reves.
+        // Conservar los modelos y formatos elegidos al cambiar de modo.
         aplicarFormatoDelModo();
         updImgLabel();
         verBotonLote();

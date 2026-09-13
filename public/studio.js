@@ -101,7 +101,7 @@ async function studioLoadLibrary(){
   studioMessage('Leyendo la biblioteca...');
   STUDIO.assets=await studioLoadAll('assets');
   studioMessage('');
-  studioPaintRecipes();await studioPaintLibrary();loadMusicList();await studioLibraryStatus();
+  await studioLibraryStatus();await studioPaintLibrary();loadMusicList();
 }
 function studioMedia(asset,url){
   var el=document.createElement(asset.kind==='image'?'img':asset.kind==='music'?'audio':'video');
@@ -110,23 +110,63 @@ function studioMedia(asset,url){
   el.src=url;return el;
 }
 var STUDIO_PAGE=0;
+var STUDIO_LIBRARY_LINKS={},STUDIO_LIBRARY_PAINT=0;
+async function studioLibraryLinks(rows){
+  var missing=rows.filter(function(a){return !STUDIO_LIBRARY_LINKS[a.id]||STUDIO_LIBRARY_LINKS[a.id].expires<Date.now();});
+  for(var i=0;i<missing.length;i+=100){
+    var d=await studioAPI('links',{ids:missing.slice(i,i+100).map(function(a){return a.id;})});
+    (d.items||[]).forEach(function(a){STUDIO_LIBRARY_LINKS[a.id]={url:a.url,expires:Date.now()+300000};});
+  }
+  return STUDIO_LIBRARY_LINKS;
+}
 async function studioPaintLibrary(){
   var grid=studioEl('libraryGrid');if(!grid)return;
+  var paint=++STUDIO_LIBRARY_PAINT;
   var q=LH.norm(studioEl('librarySearch').value),kind=studioEl('libraryKind').value;
   var rows=STUDIO.assets.filter(function(a){return !a.archived&&(!kind||a.kind===kind)&&(!q||LH.norm([a.title,a.description,a.location,a.action,(a.tags||[]).join(' '),a.collection].join(' ')).includes(q));});
+  rows.sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')||a.id.localeCompare(b.id);});
   STUDIO_PAGE=Math.min(STUDIO_PAGE,Math.max(0,Math.ceil(rows.length/8)-1));
   var page=rows.slice(STUDIO_PAGE*8,STUDIO_PAGE*8+8);
-  grid.innerHTML='';studioEl('libraryCount').textContent=rows.length+' coincidencias · página '+(STUDIO_PAGE+1);
+  studioEl('libraryCount').textContent=rows.length+' materiales'+(rows.length?' · '+(STUDIO_PAGE*8+1)+'–'+(STUDIO_PAGE*8+page.length):'');
   studioEl('libraryPrev').disabled=STUDIO_PAGE===0;studioEl('libraryNext').disabled=(STUDIO_PAGE+1)*8>=rows.length;
-  if(!page.length){grid.textContent='Organiza tu material guardado o genera un lote de tomas para empezar.';return;}
-  var d=await studioAPI('links',{ids:page.map(function(a){return a.id;})});
-  d.items.forEach(function(a){grid.appendChild(studioAssetCard(a,a.url));});
+  studioEl('libraryPrev').parentElement.hidden=rows.length<=8;
+  if(!page.length){
+    grid.innerHTML='';var empty=document.createElement('div');empty.className='studio-library-empty';
+    var title=document.createElement('strong');title.textContent=q||kind?'No hay material en esta selección':'Tu biblioteca empieza aquí';empty.appendChild(title);
+    var help=document.createElement('p');help.textContent=q||kind?'Prueba otra búsqueda o tipo de archivo.':'Organiza lo que ya generaste o crea las escenas preparadas para el canal.';empty.appendChild(help);
+    if(!q&&!kind){var create=document.createElement('button');create.textContent='Ver escenas para crear';create.onclick=function(){studioLibraryView('create');};empty.appendChild(create);}
+    grid.appendChild(empty);return;
+  }
+  var links=await studioLibraryLinks(page);if(paint!==STUDIO_LIBRARY_PAINT)return;
+  grid.innerHTML='';page.forEach(function(a){grid.appendChild(studioAssetCard(a,links[a.id]&&links[a.id].url));});
 }
 function studioInput(label,value,type){
   var l=document.createElement('label');l.appendChild(document.createTextNode(label));var input=document.createElement(type==='textarea'?'textarea':'input');
   if(type!=='textarea')input.type=type||'text';input.value=value||'';l.appendChild(input);return {label:l,input:input};
 }
 function studioAssetCard(asset,url){
+  var card=document.createElement('article');card.className='studio-media-tile';card.dataset.assetId=asset.id;
+  var preview=document.createElement('button');preview.className='studio-tile-preview';preview.setAttribute('aria-label','Abrir '+(asset.title||'material'));
+  if(url&&asset.kind!=='music'){
+    var media=studioMedia(asset,asset.kind==='video'?url.split('#')[0]+'#t=0.1':url);media.removeAttribute('controls');
+    if(asset.kind==='video')media.preload='metadata';media.tabIndex=-1;preview.appendChild(media);
+  }else{var icon=document.createElement('span');icon.className='studio-tile-symbol';icon.textContent=asset.kind==='music'?'♫':'▧';icon.setAttribute('aria-hidden','true');preview.appendChild(icon);}
+  var kind=document.createElement('span');kind.className='studio-tile-kind';kind.textContent=asset.kind==='video'?'▶ Video':asset.kind==='music'?'Música':'Imagen';preview.appendChild(kind);
+  preview.onclick=function(){studioOpenAsset(asset);};card.appendChild(preview);
+  var title=document.createElement('strong');title.className='studio-tile-title';title.textContent=asset.title||'Material guardado';card.appendChild(title);
+  var meta=document.createElement('span');meta.className='studio-tile-meta';meta.textContent=[asset.aspect,asset.favorite?'★ Favorito':''].filter(Boolean).join(' · ');card.appendChild(meta);
+  return card;
+}
+async function studioOpenAsset(asset){
+  var dialog=studioEl('libraryViewer'),box=studioEl('libraryViewerContent');
+  studioEl('libraryViewerTitle').textContent=asset.title||'Vista previa';box.textContent='Cargando vista previa…';dialog.showModal();
+  try{
+    var links=await studioLibraryLinks([asset]);if(!dialog.open)return;
+    if(!links[asset.id])throw new Error('No se pudo abrir este archivo. Actualiza la biblioteca.');
+    box.innerHTML='';box.appendChild(studioAssetDetails(asset,links[asset.id].url));
+  }catch(e){box.textContent=e.message;}
+}
+function studioAssetDetails(asset,url){
   var card=document.createElement('div');card.className='studio-asset';card.appendChild(studioMedia(asset,url));
   var title=document.createElement('strong');title.textContent=asset.title||'Material pendiente de organizar';card.appendChild(title);
   var description=document.createElement('p');description.textContent=asset.description||'Gemini preparará su descripción al organizar la biblioteca.';card.appendChild(description);
@@ -135,11 +175,11 @@ function studioAssetCard(asset,url){
   var save=document.createElement('button');save.textContent='Guardar ajuste';save.onclick=async function(){save.disabled=true;try{
     var d=await studioAPI('asset-save',{object:asset.object,legacy:true,asset:Object.assign({},asset,{title:name.input.value,description:desc.input.value,catalogSource:'manual'})});
     asset=d.asset;title.textContent=asset.title;description.textContent=asset.description;details.open=false;
-    STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==asset.id;}).concat(asset);
+    STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==asset.id;}).concat(asset);studioEl('libraryViewerTitle').textContent=asset.title;await studioPaintLibrary();await studioPaintRecipes();
   }catch(e){studioLibraryMessage(e.message,true);}finally{save.disabled=false;}};details.appendChild(save);card.appendChild(details);
   var favorite=document.createElement('button');favorite.className='studio-favorite';favorite.textContent=asset.favorite?'★ Favorito':'☆ Marcar favorito';favorite.onclick=async function(){favorite.disabled=true;try{
     var d=await studioAPI('asset-save',{object:asset.object,legacy:true,asset:{favorite:!asset.favorite}});asset=d.asset;
-    STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==asset.id;}).concat(asset);favorite.textContent=asset.favorite?'★ Favorito':'☆ Marcar favorito';
+    STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==asset.id;}).concat(asset);favorite.textContent=asset.favorite?'★ Favorito':'☆ Marcar favorito';await studioPaintLibrary();
   }catch(e){studioLibraryMessage(e.message,true);}finally{favorite.disabled=false;}};card.appendChild(favorite);
   if(asset.kind==='music'){var use=document.createElement('button');use.textContent='Usar como música del canal';use.onclick=function(){localStorage.setItem('lh_music_sel',asset.object);musicLoaded=false;loadMusicList();};card.appendChild(use);}
   return card;
@@ -349,11 +389,8 @@ function studioHydrateCaptions(p){
   if(lastCaption||lastTags){studioEl('capBox').style.display='block';pintarCaptionEN();}
 }
 function studioRestoreEditorial(options){
-  // Old projects retain their editorial metadata without recreating setup fields.
-  if(options&&options.platform==='youtube'&&esModoLargo()){
-    imgFmt='16:9';vidFmt='16:9';
-    ['selImgFmt','selVidFmt'].forEach(function(id){var el=studioEl(id);if(el)el.value='16:9';});
-  }
+  // Restoring old editorial metadata must not change the user's media settings.
+  wireGenSettings();
 }
 async function studioSaveUploadedAudio(audio,lang,name){
   if(!audio.audioObjects||!audio.audioObjects.length){var saved=await studioUploadBlob(audio.blob,{},true);audio.audioObjects=[saved.object];}
@@ -461,48 +498,91 @@ async function studioResumeRender(){
   if(!r)throw new Error('Este proyecto todavía no tiene un montaje iniciado en este idioma.');
   return studioWatchRender(r.jobId,lastRes,lang);
 }
-var STUDIO_LIBRARY={running:false,pause:false,job:null};
+var STUDIO_LIBRARY={running:false,preparing:false,pause:false,job:null,draft:false,view:'saved'};
 function studioLibraryMessage(text,error){var el=studioEl('libraryNotice');el.hidden=!text;el.textContent=text;el.className='studio-status'+(error?' studio-error':'');}
-function studioLibraryPaint(job){
-  STUDIO_LIBRARY.job=job;studioEl('libraryWork').hidden=!job;if(!job)return;
-  studioEl('libraryWorkStatus').textContent=job.error||job.stage;
-  var done=(job.completed||0)+(job.skipped||0)+(job.failed||0),progress=studioEl('libraryProgress');progress.max=Math.max(1,job.total||1);progress.value=done;
-  studioEl('libraryResume').hidden=STUDIO_LIBRARY.running||job.status==='done';
-  studioEl('libraryPause').hidden=!STUDIO_LIBRARY.running;if(!STUDIO_LIBRARY.running)studioEl('libraryPause').textContent='Pausar después de esta toma';studioEl('libraryStop').hidden=STUDIO_LIBRARY.running||job.status==='done';
-  ['libraryCatalog','recipeGenerate','libraryImport','libraryUpload'].forEach(function(id){studioEl(id).disabled=STUDIO_LIBRARY.running;});
-  if(job.lastAsset){STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==job.lastAsset.id;}).concat(job.lastAsset);}
+function studioLibraryView(view){
+  STUDIO_LIBRARY.view=view;
+  ['saved','create'].forEach(function(name){
+    var selected=name===view,tab=studioEl(name==='saved'?'librarySavedTab':'libraryCreateTab');
+    tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;studioEl(name==='saved'?'librarySavedView':'libraryCreateView').hidden=!selected;
+  });
+  if(view==='create')studioPaintRecipes();else studioPaintLibrary().catch(function(e){studioLibraryMessage(e.message,true);});
 }
-async function studioLibraryStatus(){var d=await studioAPI('library-status');studioLibraryPaint(d.job||null);}
+function studioLibrarySettings(){
+  // Move the existing controls into this dialog; never create another set.
+  var panel=studioEl('genSettings'),dialog=studioEl('librarySettingsDialog');
+  STUDIO_LIBRARY.settingsHome={parent:panel.parentNode,next:panel.nextSibling};
+  studioEl('librarySettingsContent').appendChild(panel);dialog.showModal();
+}
+function studioLibraryControls(){
+  var locked=STUDIO_LIBRARY.running||STUDIO_LIBRARY.preparing;
+  ['libraryCatalog','libraryImport','libraryUpload','recipeCategory','recipeBatchSize'].forEach(function(id){studioEl(id).disabled=locked;});
+  ['selImgModel','selImgFmt','selVidModel','selVidFmt'].forEach(function(id){studioEl(id).disabled=locked;});
+  studioEl('librarySettings').disabled=locked;
+  studioEl('libraryPause').hidden=!STUDIO_LIBRARY.running;
+  if(!STUDIO_LIBRARY.running)studioEl('libraryPause').textContent='Pausar';
+}
+async function studioLibraryPaint(job){
+  var previous=STUDIO_LIBRARY.job,changed=job&&job.lastAsset&&(!previous||!previous.lastAsset||previous.lastAsset.id!==job.lastAsset.id||previous.lastAsset.version!==job.lastAsset.version);
+  STUDIO_LIBRARY.job=job;studioEl('libraryWork').hidden=!job;studioLibraryControls();
+  if(job){
+    if(job.lastAsset)STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==job.lastAsset.id;}).concat(job.lastAsset);
+    var done=(job.completed||0)+(job.skipped||0)+(job.failed||0),progress=studioEl('libraryProgress');progress.max=Math.max(1,job.total||1);progress.value=done;
+    var status=job.error||job.stage;
+    if(job.type==='generate'&&job.recipeIds&&job.recipeIds.length){
+      var saved=job.recipeIds.filter(function(id){return STUDIO.assets.some(function(a){return a.recipeId===id&&a.aspect===job.settings.aspect&&!a.archived;});}).length;
+      // Older jobs did not store the full selection; their counters still survive.
+      saved=Math.max(saved,(job.completed||0)+(job.skipped||0)+(job.lastAsset&&(job.pendingRecipeIds||[]).includes(job.lastAsset.recipeId)?1:0));
+      status=saved+' de '+job.total+' imágenes guardadas';
+      if(job.error)status+=' · '+job.error;
+      else if(job.stopped)status+=' · Creación detenida';
+      else if(job.status==='done')status+=' · '+(job.failed?'Hay '+job.failed+' sin completar':'Listas para reutilizar');
+      else if(!STUDIO_LIBRARY.running)status+=' · Toca Continuar para seguir';
+      else status+=' · '+(saved>done?'Preparando su descripción':'Creando la siguiente imagen');
+    }
+    studioEl('libraryWorkStatus').textContent=status;
+    studioEl('libraryResume').hidden=STUDIO_LIBRARY.running||job.status==='done';
+    studioEl('libraryStop').hidden=STUDIO_LIBRARY.running||job.status==='done';
+    studioEl('libraryShowProgress').hidden=job.type!=='generate';
+  }
+  await studioPaintRecipes();
+  if(changed&&STUDIO_LIBRARY.view==='saved')await studioPaintLibrary().catch(function(e){studioLibraryMessage('El archivo está guardado. No se pudo cargar su vista previa: '+e.message,true);});
+}
+async function studioLibraryStatus(){var d=await studioAPI('library-status');await studioLibraryPaint(d.job||null);}
 async function studioLibraryRun(job){
-  if(STUDIO_LIBRARY.running)return;STUDIO_LIBRARY.running=true;STUDIO_LIBRARY.pause=false;studioLibraryMessage('');
+  if(STUDIO_LIBRARY.running)return;STUDIO_LIBRARY.running=true;STUDIO_LIBRARY.pause=false;STUDIO_LIBRARY.draft=false;studioLibraryMessage('');
+  if(job.type==='generate')studioLibraryView('create');
   try{
     while(job.status!=='done'&&!STUDIO_LIBRARY.pause){
-      studioLibraryPaint(job);var d=await studioAPI('library-advance',{id:job.id});job=d.job;
+      await studioLibraryPaint(job);var d=await studioAPI('library-advance',{id:job.id});job=d.job;
       if(job.busy)await new Promise(function(r){setTimeout(r,2000);});
     }
-    studioLibraryPaint(job);studioLibraryMessage(job.status==='done'?job.stage:'Lote pausado. Puedes reanudar desde la última toma guardada.');
+    await studioLibraryPaint(job);
   }catch(e){studioLibraryMessage(e.message,true);try{await studioLibraryStatus();job=STUDIO_LIBRARY.job;}catch(ignored){}}
   finally{
-    STUDIO_LIBRARY.running=false;studioLibraryPaint(job);STUDIO.assets=await studioLoadAll('assets');studioPaintRecipes();await studioPaintLibrary();
+    STUDIO_LIBRARY.running=false;await studioLibraryPaint(job);
+    try{STUDIO.assets=await studioLoadAll('assets');await studioPaintRecipes();await studioPaintLibrary();}
+    catch(e){studioLibraryMessage('El avance sigue guardado. No se pudo actualizar la vista: '+e.message,true);}
   }
 }
 async function studioLibraryStart(config){
   var pending=null;try{pending=JSON.parse(localStorage.getItem('lh_library_start')||'null');}catch(e){}
   if(!pending||JSON.stringify(pending.config)!==JSON.stringify(config))pending={requestId:nextUid(),config:config};
   localStorage.setItem('lh_library_start',JSON.stringify(pending));
-  var d=await studioAPI('library-start',pending);localStorage.removeItem('lh_library_start');studioLibraryPaint(d.job);
-  if(d.job.existing){studioLibraryMessage('Hay un lote guardado. Reanúdalo o termina ese lote antes de comenzar otro.');return;}
+  var d=await studioAPI('library-start',pending);localStorage.removeItem('lh_library_start');STUDIO_LIBRARY.draft=false;await studioLibraryPaint(d.job);
+  if(d.job.existing){studioLibraryMessage('Hay un trabajo pendiente. Toca Continuar para terminarlo, o Detener para conservar lo guardado y empezar otro.');return;}
   return studioLibraryRun(d.job);
 }
 async function studioCatalogExisting(){return studioLibraryStart({type:'catalog'});}
 async function studioLibraryResume(){
   var pending=null;try{pending=JSON.parse(localStorage.getItem('lh_library_start')||'null');}catch(e){}
   if(pending)return studioLibraryStart(pending.config);
-  await studioLibraryStatus();if(STUDIO_LIBRARY.job&&STUDIO_LIBRARY.job.status!=='done')return studioLibraryRun(STUDIO_LIBRARY.job);
+  STUDIO.assets=await studioLoadAll('assets');await studioLibraryStatus();
+  if(STUDIO_LIBRARY.job&&STUDIO_LIBRARY.job.status!=='done')return studioLibraryRun(STUDIO_LIBRARY.job);
 }
 async function studioLibraryStop(){
   var job=STUDIO_LIBRARY.job;if(!job)return;
-  var d=await studioAPI('library-stop',{id:job.id});studioLibraryPaint(d.job);studioLibraryMessage(d.job.stage);
+  var d=await studioAPI('library-stop',{id:job.id});await studioLibraryPaint(d.job);studioLibraryMessage(d.job.stage);
 }
 async function studioImportLibrary(){
   var source=studioEl('librarySource').value.trim();if(!source)throw new Error('Indica el bucket de origen una sola vez.');
@@ -511,19 +591,66 @@ async function studioImportLibrary(){
 function studioRecipeBatch(){
   var category=studioEl('recipeCategory').value,limit=Number(studioEl('recipeBatchSize').value);
   return LH.recipes().filter(function(r){return (!category||r.category===category)&&!STUDIO.assets.some(function(a){return a.recipeId===r.id&&a.aspect===imgFmt&&!a.archived;});})
-    .sort(function(a,b){return [2,0,1,3].indexOf(Number(a.id.split('-')[2]))-[2,0,1,3].indexOf(Number(b.id.split('-')[2]));}).slice(0,limit);
+    .sort(function(a,b){return Number(a.id.split('-')[1])-Number(b.id.split('-')[1])||[2,0,1,3].indexOf(Number(a.id.split('-')[2]))-[2,0,1,3].indexOf(Number(b.id.split('-')[2]));}).slice(0,limit);
 }
-function studioPaintRecipes(){
-  var recipes=studioRecipeBatch(),count=recipes.length;
-  studioEl('recipeSummary').textContent=count?count+' tomas pendientes · formato '+imgFmt+' · imágenes: $'+(count*imgCost()).toFixed(2)+' aprox. La descripción con Gemini se cobra aparte según uso.':'Estas tomas ya están guardadas para el formato elegido.';
-  var list=studioEl('recipePreview');list.innerHTML='';recipes.forEach(function(r){var li=document.createElement('li');li.textContent=r.title;list.appendChild(li);});
+function studioRecipeJob(){
+  var job=STUDIO_LIBRARY.job;return job&&job.type==='generate'&&(!STUDIO_LIBRARY.draft||job.status!=='done')&&job.recipeIds&&job.recipeIds.length?job:null;
+}
+function studioModelLabel(model){
+  var option=Array.from(studioEl('selImgModel').options).find(function(o){return o.value===model;});return option?option.textContent.split(' · ')[0]:model;
+}
+function studioRecipeTile(recipe,index,aspect){
+  var card=document.createElement('article');card.className='studio-media-tile studio-recipe-tile';card.dataset.recipeId=recipe.id;
+  var preview=document.createElement('button');preview.className='studio-tile-preview';preview.disabled=true;card.appendChild(preview);
+  var pending=document.createElement('span');pending.className='studio-tile-placeholder';
+  var frame=document.createElement('span');frame.className='studio-tile-frame';frame.style.aspectRatio=aspect.replace(':',' / ');frame.textContent=String(index+1).padStart(2,'0');pending.appendChild(frame);
+  var hint=document.createElement('span');hint.textContent='Por crear';pending.appendChild(hint);preview.appendChild(pending);
+  var badge=document.createElement('span');badge.className='studio-tile-state';card.appendChild(badge);
+  var title=document.createElement('strong');title.className='studio-tile-title';title.textContent=recipe.title.split(' · ')[0];card.appendChild(title);
+  var shot=document.createElement('span');shot.className='studio-tile-meta';shot.textContent=recipe.shot+' · '+aspect;card.appendChild(shot);
+  return card;
+}
+async function studioPaintRecipes(){
+  var job=studioRecipeJob(),all=LH.recipes(),recipes=job?job.recipeIds.map(function(id){return all.find(function(r){return r.id===id;});}).filter(Boolean):studioRecipeBatch();
+  var count=recipes.length,settings=job?job.settings:{model:imgModel,aspect:imgFmt},locked=STUDIO_LIBRARY.running||STUDIO_LIBRARY.preparing;
+  studioEl('recipeControls').hidden=!!job;studioEl('librarySettings').hidden=!!job;
+  studioEl('recipeSettings').textContent=studioModelLabel(settings.model)+' · '+settings.aspect+(job?' · Ajustes de esta creación':' · Tus ajustes de imagen');
+  studioEl('recipeSummary').textContent=job?'Todo lo que ves guardado ya está disponible en Mi biblioteca.':count?count+' imágenes · $'+(count*(IMG_COST[settings.model]||0.05)).toFixed(2)+' aprox. La descripción automática con Gemini se cobra según uso.':'Estas escenas ya están guardadas en el formato elegido. Puedes elegir otro contenido.';
+  studioEl('recipeGenerate').hidden=!!job;studioEl('recipeGenerate').disabled=locked||!count;studioEl('recipeGenerate').textContent='Crear '+count+' imágenes';
+  studioEl('recipeNew').hidden=!job||job.status!=='done'||locked;
+  studioEl('recipeHeading').textContent=job?(job.status==='done'?'Imágenes de esta creación':'Tus imágenes, una a una'):'Imágenes que vas a crear';
+  studioEl('recipeHint').textContent=job?'Toca una imagen guardada para verla en grande.':'Cada situación tiene un plano general, uno medio, un detalle de manos y uno desde atrás. Estas son las siguientes imágenes pendientes.';
+  var grid=studioEl('recipePreview'),key=(job?job.id:'draft')+'|'+settings.aspect+'|'+recipes.map(function(r){return r.id;}).join(',');
+  if(grid.dataset.selection!==key){grid.innerHTML='';grid.dataset.selection=key;recipes.forEach(function(r,i){grid.appendChild(studioRecipeTile(r,i,settings.aspect));});}
+  var rows=[];
+  recipes.forEach(function(recipe,index){
+    var card=grid.children[index],asset=STUDIO.assets.find(function(a){return a.recipeId===recipe.id&&a.aspect===settings.aspect&&!a.archived;});
+    var pending=job&&(job.pendingRecipeIds||[]),current=pending&&pending[0]===recipe.id;
+    var failed=job&&(job.recipeResults||{})[recipe.id]==='failed';
+    var state=asset?(pending&&pending.includes(recipe.id)?'Imagen guardada':'Lista'):failed?'No se completó':job&&job.stopped?'Sin crear':current?(STUDIO_LIBRARY.running?'Creando…':'En pausa'):'Por crear';
+    card.querySelector('.studio-tile-state').textContent=state;card.dataset.state=asset?'saved':failed?'failed':current&&STUDIO_LIBRARY.running?'creating':'pending';
+    var button=card.querySelector('button');
+    if(asset){rows.push(asset);button.disabled=false;button.setAttribute('aria-label','Ver '+asset.title);button.onclick=function(){studioOpenAsset(asset);};var placeholder=button.querySelector('.studio-tile-placeholder');if(placeholder)placeholder.lastChild.textContent='Cargando vista previa…';}
+  });
+  if(!rows.length)return;
+  try{
+    var links=await studioLibraryLinks(rows);if(grid.dataset.selection!==key)return;
+    Array.from(grid.children).forEach(function(card){
+      var asset=rows.find(function(a){return a.recipeId===card.dataset.recipeId;});if(!asset||!links[asset.id])return;
+      var button=card.querySelector('button'),src=links[asset.id].url;
+      if(button.dataset.url!==src){button.innerHTML='';button.appendChild(studioMedia(asset,src));button.dataset.url=src;}
+    });
+  }catch(e){studioLibraryMessage('La imagen está guardada. No se pudo cargar la vista previa: '+e.message,true);}
 }
 async function studioGenerateRecipe(){
-  STUDIO.assets=await studioLoadAll('assets');studioPaintRecipes();var recipes=studioRecipeBatch();if(!recipes.length)return;
-  if(!confirm('Generar '+recipes.length+' imágenes con los prompts preparados: $'+(recipes.length*imgCost()).toFixed(2)+' aprox., más la descripción automática con Gemini. Una sola aprobación para todo el lote. ¿Comenzar?'))return;
-  studioLibraryMessage('Preparando las referencias y el lote de imágenes…');
-  await loadRefs();
-  return studioLibraryStart({type:'generate',recipeIds:recipes.map(function(r){return r.id;}),model:imgModel,aspect:imgFmt});
+  if(STUDIO_LIBRARY.job&&STUDIO_LIBRARY.job.status!=='done'){studioLibraryMessage('Hay un trabajo pendiente. Toca Continuar o Detener antes de crear otras imágenes.');return;}
+  STUDIO.assets=await studioLoadAll('assets');STUDIO_LIBRARY.draft=true;await studioPaintRecipes();var recipes=studioRecipeBatch();if(!recipes.length)return;
+  // Snapshot the existing selectors before any asynchronous preparation.
+  var config={type:'generate',recipeIds:recipes.map(function(r){return r.id;}),model:imgModel,aspect:imgFmt};
+  if(!confirm('Crear '+recipes.length+' imágenes con '+studioModelLabel(config.model)+' en '+config.aspect+': $'+(recipes.length*imgCost()).toFixed(2)+' aprox., más la descripción automática. Se guardarán para reutilizarlas. ¿Comenzar?'))return;
+  STUDIO_LIBRARY.preparing=true;studioLibraryControls();await studioPaintRecipes();studioLibraryMessage('Preparando el personaje para estas escenas…');
+  try{await loadRefs();return await studioLibraryStart(config);}
+  finally{STUDIO_LIBRARY.preparing=false;studioLibraryControls();await studioPaintRecipes();}
 }
 async function studioGenerateMissing(){
   if(!lastRes||!STUDIO.plan.length)throw new Error('Prepara el montaje desde la biblioteca primero.');
@@ -551,6 +678,22 @@ function studioInit(){
   var bind=function(id,fn){var el=studioEl(id);if(el)el.onclick=function(){studioGuard(fn);};};
   bind('libraryLoad',studioLoadLibrary);bind('libraryUpload',studioUploadFiles);bind('libraryCatalog',studioCatalogExisting);bind('libraryImport',studioImportLibrary);bind('libraryResume',studioLibraryResume);bind('libraryStop',studioLibraryStop);
   studioEl('libraryPause').onclick=function(){STUDIO_LIBRARY.pause=true;this.textContent='Terminando la toma actual…';};
+  studioEl('librarySavedTab').onclick=function(){studioLibraryView('saved');};studioEl('libraryCreateTab').onclick=function(){studioLibraryView('create');};
+  ['librarySavedTab','libraryCreateTab'].forEach(function(id){studioEl(id).onkeydown=function(e){
+    if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();var create=e.key==='End'||(e.key!=='Home'&&id==='librarySavedTab');studioLibraryView(create?'create':'saved');studioEl(create?'libraryCreateTab':'librarySavedTab').focus();}
+  };});
+  studioEl('libraryShowProgress').onclick=function(){STUDIO_LIBRARY.draft=false;studioLibraryView('create');};
+  studioEl('recipeNew').onclick=function(){STUDIO_LIBRARY.draft=true;studioLibraryMessage('');studioPaintRecipes();};
+  studioEl('librarySettings').onclick=studioLibrarySettings;
+  studioEl('librarySettingsClose').onclick=function(){studioEl('librarySettingsDialog').close();};
+  studioEl('librarySettingsDialog').addEventListener('close',function(){
+    var home=STUDIO_LIBRARY.settingsHome;if(home){home.parent.insertBefore(studioEl('genSettings'),home.next);STUDIO_LIBRARY.settingsHome=null;}studioPaintRecipes();
+  });
+  studioEl('libraryViewerClose').onclick=function(){studioEl('libraryViewer').close();};
+  studioEl('libraryViewer').addEventListener('close',function(){
+    studioEl('libraryViewerContent').querySelectorAll('video,audio').forEach(function(el){el.pause();el.removeAttribute('src');el.load();});studioEl('libraryViewerContent').innerHTML='';
+  });
+  ['libraryViewer','librarySettingsDialog'].forEach(function(id){studioEl(id).addEventListener('click',function(e){if(e.target===this)this.close();});});
   studioEl('librarySource').value=localStorage.getItem('lh_library_source')||'';
   studioEl('recipeCategory').onchange=studioPaintRecipes;studioEl('recipeBatchSize').onchange=studioPaintRecipes;
   ['selImgFmt','selImgModel'].forEach(function(id){var el=studioEl(id);if(el)el.addEventListener('change',studioPaintRecipes);});

@@ -46,6 +46,19 @@ test('a generated image saved before interruption is described on resume without
   const a=(await s.read(assets.PREFIX+assets.idFor(lib.imageObject('receta-0-2','9:16'))+'.json')).data;assert.equal(a.recipeId,'receta-0-2');assert.equal(a.character,'insignia');
   j=await lib.start(s,{type:'generate',recipeIds:['receta-0-2'],model:'gemini-3.1-flash-image',aspect:'9:16'},'generation-request-002');await finish(s,j,deps);assert.equal(generated,2);assert.equal(analyzed,2);
 });
+test('generation exposes the fixed selection and saved settings through progress and stop, including every existing image format',async()=>{
+  const html=require('fs').readFileSync(require('path').join(__dirname,'../public/index.html'),'utf8');
+  const options=id=>[...html.match(new RegExp('id="'+id+'"[\\s\\S]*?</select>'))[0].matchAll(/<option value="([^"]+)"/g)].map(m=>m[1]);
+  for(const model of options('selImgModel'))for(const aspect of options('selImgFmt')){
+    const s=new Store(),ids=['receta-0-2','receta-0-0'];
+    let j=await lib.start(s,{type:'generate',recipeIds:ids,model,aspect},'settings-request-001');assert.deepEqual(j.settings,{model,aspect});assert.deepEqual(j.recipeIds,ids);
+    j=await lib.advance(s,j.id,{generate:async(st,r,c,object)=>{assert.equal(c.model,model);assert.equal(c.aspect,aspect);await st.bytes(object,Buffer.alloc(200),'image/png');return {...r,recipeId:r.id,kind:'image',aspect:c.aspect};}});
+    assert.equal(j.lastAsset.recipeId,ids[0]);assert.deepEqual(j.recipeIds,ids);assert.deepEqual(j.pendingRecipeIds,ids);
+    j=await lib.advance(s,j.id,{analyze:async(st,info)=>analysis(info)});assert.deepEqual(j.recipeIds,ids);assert.deepEqual(j.pendingRecipeIds,[ids[1]]);assert.equal(j.recipeResults[ids[0]],'ready');
+    j=await lib.stop(s,j.id);assert.equal(j.stopped,true);assert.deepEqual(j.recipeIds,ids);assert.equal(j.recipeResults[ids[1]],undefined);assert.deepEqual(j.settings,{model,aspect});
+    assert.ok(await s.info(lib.imageObject(ids[0],aspect)),'stopping keeps the generated file');
+  }
+});
 test('cross-bucket copies resume by rewrite token, preserve metadata and copy each object generation only once',async()=>{
   const s=new Store();const info=s.add('coleccion/toma.mp4',{titulo:'Título original',descripcion:'Una descripción completa que ya existía en mi otra biblioteca.',etiquetas:'taller,trabajar',aspectRatio:'9:16',customField:'conservar'},true);
   let analyzed=0;const deps={analyze:async()=>{analyzed++;throw new Error('Metadata is already complete');}};

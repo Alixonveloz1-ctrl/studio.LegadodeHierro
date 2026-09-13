@@ -22,7 +22,11 @@ function eligible(info,foreign=false){
 function publicJob(j){
   if(!j)return null;
   return {id:j.id,type:j.type,status:j.status,stage:j.stage,completed:j.completed,failed:j.failed,skipped:j.skipped,total:j.total,
-    discovering:j.type!=='generate'&&!j.exhausted,error:j.error||'',failures:(j.failures||[]).slice(-8),lastAsset:j.lastAsset||null};
+    discovering:j.type!=='generate'&&!j.exhausted,error:j.error||'',failures:(j.failures||[]).slice(-8),lastAsset:j.lastAsset||null,
+    // Keep the original selection visible after items leave the processing queue.
+    recipeIds:j.type==='generate'?(j.recipeIds||[...new Set([j.lastAsset?.recipeId,...j.queue.map(r=>r.recipeId)].filter(Boolean))]):[],
+    pendingRecipeIds:j.type==='generate'?j.queue.map(r=>r.recipeId):[],recipeResults:j.recipeResults||{},
+    settings:j.type==='generate'?j.settings:null,stopped:!!j.stopped};
 }
 function importedMetadata(info,record){
   const meta=info.metadata||{};let embedded={};try{embedded=JSON.parse(meta.record||meta.catalog||'{}');}catch(e){}
@@ -64,8 +68,8 @@ async function start(store,c,requestId){
     if(!Array.isArray(c.recipeIds))throw failure('Elige las tomas del lote.',400);
     const recipes=core.recipes(),ids=[...new Set(c.recipeIds)];
     if(!ids.length||ids.length>recipes.length||!ids.every(id=>recipes.some(r=>r.id===id)))throw failure('Elige un lote de tomas preparadas.',400);
-    if(!['gemini-2.5-flash-image','gemini-3.1-flash-image','gemini-3-pro-image'].includes(c.model)||!['9:16','16:9','1:1','4:5'].includes(c.aspect))throw failure('Modelo o formato del lote inválido.',400);
-    job.settings={model:c.model,aspect:c.aspect};job.queue=ids.map(recipeId=>({recipeId}));job.exhausted=true;job.total=ids.length;
+    if(!['gemini-2.5-flash-image','gemini-3.1-flash-image','gemini-3-pro-image'].includes(c.model)||!['9:16','16:9','1:1','4:5','3:4','2:3','21:9'].includes(c.aspect))throw failure('Modelo o formato de imagen inválido.',400);
+    job.settings={model:c.model,aspect:c.aspect};job.recipeIds=ids;job.recipeResults={};job.queue=ids.map(recipeId=>({recipeId}));job.exhausted=true;job.total=ids.length;
   }
   await store.put(ACTIVE,job,existing?existing.generation:0);return publicJob(job);
 }
@@ -151,7 +155,10 @@ async function advance(store,id,deps=models){
         }
         if(!result.pending)await store.put(key,result,0);
       }
-      if(!result.pending){job.queue.shift();if(result.error){job.failed++;job.failures=job.failures.concat({name:result.name,error:result.error}).slice(-20);}else if(result.skipped)job.skipped++;else job.completed++;job.lastAsset=result.asset||job.lastAsset;job.stage=(job.type==='import'?'Copiando y organizando':'Organizando la biblioteca')+' · '+(job.completed+job.skipped+job.failed)+' de '+job.total;}
+      if(!result.pending){
+        if(job.type==='generate')job.recipeResults={...job.recipeResults,[item.recipeId]:result.error?'failed':'ready'};
+        job.queue.shift();if(result.error){job.failed++;job.failures=job.failures.concat({name:result.name,error:result.error}).slice(-20);}else if(result.skipped)job.skipped++;else job.completed++;job.lastAsset=result.asset||job.lastAsset;job.stage=(job.type==='import'?'Copiando y organizando':'Organizando la biblioteca')+' · '+(job.completed+job.skipped+job.failed)+' de '+job.total;
+      }
     }
     job.status=!job.queue.length&&job.exhausted?'done':'ready';job.leaseUntil=0;
     if(job.status==='done')job.stage=job.completed+' materiales organizados · '+job.skipped+' ya estaban listos'+(job.failed?' · '+job.failed+' no se pudieron completar. Puedes volver a organizar o generar las tomas pendientes.':'. Biblioteca lista.');
@@ -167,7 +174,7 @@ async function advance(store,id,deps=models){
 async function stop(store,id){
   const old=await store.read(ACTIVE);if(!old||old.data.id!==id)throw failure('El lote cambió.',409);
   if(old.data.leaseUntil>Date.now())throw failure('La toma actual está terminando. Espera unos segundos.',409);
-  const job={...old.data,status:'done',stage:'Lote detenido. Todo el material terminado sigue guardado.',queue:[],leaseUntil:0};
+  const job={...old.data,status:'done',stopped:true,stage:'Creación detenida. Todo el material terminado sigue guardado.',queue:[],leaseUntil:0};
   await store.put(ACTIVE,job,old.generation);return publicJob(job);
 }
 module.exports={ACTIVE,BASE,imageObject,sourceConfig,eligible,importedMetadata,sourceMetadata,publicJob,start,advance,stop,catalog};

@@ -148,7 +148,7 @@ section{margin-bottom:20px}
 .voxP:active{border-color:#c4897a;color:#c4897a}
 #voxPanel summary::-webkit-details-marker{display:none}
 </style>
-<link rel="stylesheet" href="/studio.css?v=20260913c">
+<link rel="stylesheet" href="/studio.css?v=20260913d">
 </head>
 <body>
 
@@ -199,37 +199,62 @@ section{margin-bottom:20px}
     <details class="studio-card" id="projectsPanel"><summary>Mis proyectos guardados</summary><button id="projectsLoad" type="button">Actualizar lista</button><div id="projectList" class="studio-row"></div></details>
     <details class="studio-card" id="libraryPanel">
       <summary>Biblioteca de imágenes, videos y música</summary>
-      <p>Gemini mira tus imágenes y videos, escucha la música y completa sus títulos, descripciones y etiquetas para elegir el material de cada escena.</p>
-      <div class="studio-row"><button id="libraryCatalog">Organizar mi material automáticamente</button><button id="libraryLoad">Actualizar biblioteca</button></div>
-      <p class="studio-help">Revisa el material guardado con Gemini. Conserva las descripciones ya analizadas y solo procesa lo pendiente.</p>
+      <p>Tu material queda guardado aquí para usarlo en las escenas de nuevos videos.</p>
+      <div class="studio-library-tabs" role="tablist" aria-label="Biblioteca">
+        <button id="librarySavedTab" role="tab" aria-selected="true" aria-controls="librarySavedView">Mi biblioteca</button>
+        <button id="libraryCreateTab" role="tab" aria-selected="false" aria-controls="libraryCreateView" tabindex="-1">Crear imágenes</button>
+      </div>
       <div id="libraryWork" class="studio-library-work" hidden>
         <p id="libraryWorkStatus" role="status" aria-live="polite"></p>
-        <progress id="libraryProgress" max="100" value="0"></progress>
-        <div class="studio-row"><button id="libraryResume" hidden>Reanudar lote</button><button id="libraryPause" hidden>Pausar después de esta toma</button><button id="libraryStop" hidden>Terminar este lote</button></div>
-        <p class="studio-help">Cada archivo terminado queda guardado. Si sales de la aplicación, puedes reanudar al volver.</p>
+        <progress id="libraryProgress" max="100" value="0" aria-label="Avance del trabajo"></progress>
+        <div class="studio-row"><button id="libraryResume" hidden>Continuar</button><button id="libraryPause" hidden>Pausar</button><button id="libraryStop" hidden>Detener</button><button id="libraryShowProgress" hidden>Ver imágenes</button></div>
+        <p class="studio-help">Cada imagen aparece al guardarse. Si sales, toca Continuar al volver.</p>
       </div>
       <div id="libraryNotice" class="studio-status" role="status" hidden></div>
-      <details open><summary>Crear tomas para mi biblioteca</summary>
-        <p>240 tomas preparadas de trabajo, dinero, disciplina, familia y momentos de reflexión. Los prompts y los distintos planos ya están escritos.</p>
-        <div class="studio-row"><label>Contenido<select id="recipeCategory"><option value="">Todo Legado de Hierro</option value="trabajo">Trabajo y negocio</option><option value="dinero">Dinero y decisiones</option><option value="disciplina">Disciplina y aprendizaje</option><option value="familia">Familia y relaciones</option><option value="reflexion">Reflexión y momentos difíciles</option></select></label>
-        <label>Imágenes del lote<select id="recipeBatchSize"><option value="12">12 imágenes</option><option value="24">24 imágenes</option><option value="48">48 imágenes</option><option value="240">Todas las pendientes</option></select></label></div>
-        <p id="recipeSummary"></p><button id="recipeGenerate">Generar lote y guardarlo</button>
-        <details><summary>Ver las tomas del próximo lote</summary><ol id="recipePreview"></ol></details>
-      </details>
-      <div class="studio-row"><label>Buscar escena<input id="librarySearch" type="search" placeholder="Ej. calcular presupuesto, caminar solo"></label><label>Tipo<select id="libraryKind"><option value="">Todos</option><option value="image">Imágenes</option><option value="video">Videos</option><option value="music">Música</option></select></label></div>
-      <p id="libraryCount"></p><div id="libraryGrid" class="studio-grid"></div>
-      <div class="studio-row"><button id="libraryPrev" disabled>Anterior</button><button id="libraryNext" disabled>Siguiente</button></div>
-      <details><summary>Copiar otra biblioteca de Google Cloud</summary>
-        <p>Indica el bucket de origen una vez. Copia los archivos directamente y conserva los nombres, descripciones y etiquetas disponibles. Gemini completa los datos que falten.</p>
-        <label>Bucket o carpeta de origen<input id="librarySource" placeholder="gs://mi-bucket/carpeta/" autocomplete="off" spellcheck="false"></label>
-        <button id="libraryImport">Copiar y organizar biblioteca</button>
-      </details>
-      <details><summary>Añadir archivos del teléfono</summary>
-        <p>Selecciona varios archivos juntos. Sus descripciones se preparan automáticamente.</p>
-        <label>Imágenes, videos o música<input type="file" id="libraryFiles" multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,audio/mpeg,audio/wav,audio/mp4,audio/ogg"></label>
-        <button id="libraryUpload">Guardar y organizar archivos</button>
-      </details>
+      <div id="librarySavedView" role="tabpanel" aria-labelledby="librarySavedTab">
+        <div class="studio-row studio-library-tools"><button id="libraryCatalog">Organizar material existente</button><button id="libraryLoad">Actualizar</button></div>
+        <p class="studio-help">Gemini mira los archivos y completa sus descripciones automáticamente. Solo analiza lo pendiente.</p>
+        <div class="studio-library-filters"><label>Buscar escena<input id="librarySearch" type="search" placeholder="Buscar en mi biblioteca"></label><label>Tipo<select id="libraryKind"><option value="">Todos</option><option value="image">Imágenes</option><option value="video">Videos</option><option value="music">Música</option></select></label></div>
+        <p id="libraryCount"></p><div id="libraryGrid" class="studio-media-grid"></div>
+        <div class="studio-library-pages"><button id="libraryPrev" disabled>Anterior</button><button id="libraryNext" disabled>Siguiente</button></div>
+        <details><summary>Traer material de otra biblioteca o del teléfono</summary>
+          <details><summary>Copiar otra biblioteca de Google Cloud</summary>
+            <p>Indica el bucket de origen una vez. Copia los archivos directamente y conserva los nombres, descripciones y etiquetas disponibles. Gemini completa los datos que falten.</p>
+            <label>Bucket o carpeta de origen<input id="librarySource" placeholder="gs://mi-bucket/carpeta/" autocomplete="off" spellcheck="false"></label>
+            <button id="libraryImport">Copiar y organizar biblioteca</button>
+          </details>
+          <details><summary>Añadir archivos del teléfono</summary>
+            <p>Selecciona varios archivos juntos. Sus descripciones se preparan automáticamente.</p>
+            <label>Imágenes, videos o música<input type="file" id="libraryFiles" multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,audio/mpeg,audio/wav,audio/mp4,audio/ogg"></label>
+            <button id="libraryUpload">Guardar y organizar archivos</button>
+          </details>
+        </details>
+      </div>
+      <div id="libraryCreateView" role="tabpanel" aria-labelledby="libraryCreateTab" hidden>
+        <h3>Escenas para reutilizar en tus videos</h3>
+        <p>Las escenas ya están escritas: trabajar, revisar gastos, estudiar, compartir con la familia… Cada situación tiene cuatro encuadres del personaje de Legado de Hierro.</p>
+        <p>Al crear, cada tarjeta se convierte en una imagen real y se guarda automáticamente. Después, el estudio puede elegirla cuando encaje con una escena de tu guion.</p>
+        <div id="recipeControls">
+          <div class="studio-library-filters"><label>Contenido<select id="recipeCategory"><option value="">Todo Legado de Hierro</option><option value="trabajo">Trabajo y negocio</option><option value="dinero">Dinero y decisiones</option><option value="disciplina">Disciplina y aprendizaje</option><option value="familia">Familia y relaciones</option><option value="reflexion">Reflexión y momentos difíciles</option></select></label>
+          <label>Cuántas imágenes<select id="recipeBatchSize"><option value="12">12 imágenes</option><option value="24">24 imágenes</option><option value="48">48 imágenes</option><option value="240">Todas las pendientes</option></select></label></div>
+        </div>
+        <div class="studio-library-settings"><p id="recipeSettings"></p><button id="librarySettings">Cambiar modelo o formato</button></div>
+        <p id="recipeSummary"></p><button id="recipeGenerate" class="studio-primary">Crear imágenes</button>
+        <button id="recipeNew" hidden>Crear otras imágenes</button>
+        <h3 id="recipeHeading">Imágenes que vas a crear</h3>
+        <p id="recipeHint" class="studio-help">Las tarjetas muestran la escena y su encuadre. La imagen aparecerá aquí cuando se genere.</p>
+        <div id="recipePreview" class="studio-media-grid"></div>
+      </div>
     </details>
+    <dialog id="libraryViewer" class="studio-dialog studio-card" aria-labelledby="libraryViewerTitle">
+      <div class="studio-dialog-head"><h2 id="libraryViewerTitle">Vista previa</h2><button id="libraryViewerClose" type="button">Cerrar</button></div>
+      <div id="libraryViewerContent"></div>
+    </dialog>
+    <dialog id="librarySettingsDialog" class="studio-dialog studio-card" aria-labelledby="librarySettingsTitle">
+      <div class="studio-dialog-head"><h2 id="librarySettingsTitle">Tus generadores y formatos</h2><button id="librarySettingsClose" type="button">Listo</button></div>
+      <p>Son los mismos ajustes que usas al producir tus videos. La biblioteca usa el modelo y formato de imagen que elijas aquí.</p>
+      <div id="librarySettingsContent"></div>
+    </dialog>
     <section class="studio-card" id="episodeTools" hidden>
       <h2>Guion y montaje de este proyecto</h2><p id="scriptReview" class="studio-status"></p>
       <details><summary>Ver la revisión del guion</summary><div id="editorialPlan"></div>
@@ -688,8 +713,8 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/studio-core.js?v=20260913c"></script>
-<script src="/app.js?v=20260913c"></script>
-<script src="/studio.js?v=20260913c"></script>
+<script src="/studio-core.js?v=20260913d"></script>
+<script src="/app.js?v=20260913d"></script>
+<script src="/studio.js?v=20260913d"></script>
 </body>
 </html>
