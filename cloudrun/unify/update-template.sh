@@ -64,15 +64,48 @@ cd "$LEGADO_WORK_DIR/source"
 # EMBED_FILES
 LEGADO_STEP='construir el nuevo montador'
 printf '\n3/6 Construyendo el nuevo montador. Este paso puede tardar varios minutos...\n'
+# A no-traffic deployment can leave latestReadyRevisionName pointing to the
+# previous revision. Name this deployment explicitly and use only that name.
+LEGADO_REVISION_SUFFIX="lh-$(python3 -c 'import secrets; print(secrets.token_hex(8))')"
+LEGADO_REVISION="legado-unify-$LEGADO_REVISION_SUFFIX"
 gcloud run deploy legado-unify --project "$LEGADO_PROJECT_ID" --region "$LEGADO_REGION" --source . \
   --memory 2Gi --cpu 2 --timeout 300 --cpu-throttling --min-instances 0 --max-instances 1 \
-  --no-traffic --update-env-vars "RENDER_JOB_RESOURCE=projects/$LEGADO_PROJECT_ID/locations/$LEGADO_REGION/jobs/legado-render" --quiet
-LEGADO_REVISION=$(gcloud run services describe legado-unify --project "$LEGADO_PROJECT_ID" --region "$LEGADO_REGION" --format='value(status.latestReadyRevisionName)')
-LEGADO_IMAGE=$(gcloud run revisions describe "$LEGADO_REVISION" --project "$LEGADO_PROJECT_ID" --region "$LEGADO_REGION" --format='value(status.imageDigest)')
-if [ -z "$LEGADO_REVISION" ] || [ -z "$LEGADO_IMAGE" ]; then
-  printf '\nNo se pudo identificar el montador construido.\n' >&2
+  --revision-suffix "$LEGADO_REVISION_SUFFIX" --deploy-health-check --no-traffic \
+  --update-env-vars "RENDER_JOB_RESOURCE=projects/$LEGADO_PROJECT_ID/locations/$LEGADO_REGION/jobs/legado-render" --quiet
+LEGADO_STEP='comprobar la nueva revisión'
+LEGADO_IMAGE=''
+for LEGADO_ATTEMPT in 1 2 3 4 5; do
+  if gcloud run revisions describe "$LEGADO_REVISION" --project "$LEGADO_PROJECT_ID" --region "$LEGADO_REGION" --format=json > "$LEGADO_WORK_DIR/revision.json" && \
+    LEGADO_IMAGE=$(python3 - "$LEGADO_WORK_DIR/revision.json" "$LEGADO_REVISION" "projects/$LEGADO_PROJECT_ID/locations/$LEGADO_REGION/jobs/legado-render" <<'PY_REVISION'
+import json,re,sys
+d=json.load(open(sys.argv[1]))
+if d.get('metadata',{}).get('name')!=sys.argv[2]:
+    sys.exit('La revisión recibida no es la que se acaba de construir.')
+status=d.get('status',{})
+if not any(c.get('type')=='Ready' and str(c.get('status')).lower()=='true' for c in status.get('conditions',[])):
+    sys.exit('La nueva revisión todavía no está lista.')
+containers=d.get('spec',{}).get('containers',[])
+env=containers[0].get('env',[]) if containers else []
+if not any(e.get('name')=='RENDER_JOB_RESOURCE' and e.get('value')==sys.argv[3] for e in env):
+    sys.exit('La nueva revisión no tiene el ejecutor de videos largos esperado.')
+image=status.get('imageDigest','')
+if not re.fullmatch(r'[a-zA-Z0-9./:_-]+@sha256:[a-fA-F0-9]{64}',image):
+    sys.exit('Google todavía no entregó la imagen exacta de la nueva revisión.')
+print(image)
+PY_REVISION
+)
+  then break; fi
+  LEGADO_IMAGE=''
+  sleep 2
+done
+# This description can contain private environment values. Keep it outside the
+# source directory, discard it now, and print only the revision identifier.
+rm -f "$LEGADO_WORK_DIR/revision.json"
+if [ -z "$LEGADO_IMAGE" ]; then
+  printf '\nNo se pudo comprobar la revisión nueva. El montador anterior sigue activo.\n' >&2
   return 1
 fi
+printf '\nNueva revisión comprobada: %s\n' "$LEGADO_REVISION"
 LEGADO_STEP='instalar el ejecutor de videos largos'
 printf '\n4/6 Instalando el ejecutor de videos largos...\n'
 gcloud run jobs deploy legado-render --project "$LEGADO_PROJECT_ID" --region "$LEGADO_REGION" --image "$LEGADO_IMAGE" \
