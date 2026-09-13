@@ -18,13 +18,13 @@ const ALLOWED_VIDEO_MODELS = {
   'veo-2.0-generate-001': true,
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-app-key');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  // Puerta de seguridad en linea (este archivo es ESM: no usa require). Mismo
+  // Puerta de seguridad en linea. Mismo
   // criterio que api/_auth.js: sin APP_KEY se abre SOLO fuera de produccion.
   // Este es el endpoint mas caro de todos (Veo cuesta por clip), asi que un
   // fallo de configuracion aqui no puede dejarlo publico.

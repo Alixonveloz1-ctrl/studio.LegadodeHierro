@@ -60,6 +60,21 @@ function makeStore(signal) {
       const r = await call('/upload/storage/v1/b/'+bucket+'/o?uploadType=media&name='+encodeURIComponent(object)+'&ifGenerationMatch=0',
         {method:'POST',headers:{'Content-Type':mime},body:bytes}); return r.json();
     },
+    async readBytes(object, limit) {
+      const meta = await call(route(object));
+      if (meta.status === 404) throw failure('Un archivo del montaje ya no está disponible.',404);
+      const m = await meta.json();
+      if (!Number.isFinite(Number(m.size)) || Number(m.size) > limit) throw failure('Este montaje necesita actualizar el servidor de Google Cloud por el tamaño de los archivos.',409);
+      const r = await call(route(object)+'?alt=media&generation='+m.generation);
+      if (r.status === 404) throw failure('El archivo cambió durante la lectura. Reintenta.',409);
+      const chunks = []; let size = 0;
+      for await (const chunk of r.body) {
+        size += chunk.length;
+        if (size > limit) throw failure('El archivo supera el límite del montaje anterior. Actualiza Google Cloud.',409);
+        chunks.push(chunk);
+      }
+      return Buffer.concat(chunks);
+    },
     async info(object) { const r = await call(route(object)); return r.status === 404 ? null : r.json(); },
     async list(prefix,cursor,size) {
       const r = await call('/storage/v1/b/'+bucket+'/o?prefix='+encodeURIComponent(prefix)+'&maxResults='+(size || 100)

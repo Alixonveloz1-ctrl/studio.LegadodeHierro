@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 fallos=0
 
 echo "== sintaxis =="
-for f in api/*.js cloudrun/unify/*.js public/*.js tests/*.js; do
+for f in api/*.js server/*.js cloudrun/unify/*.js public/*.js tests/*.js; do
   if node --check "$f" >/dev/null 2>&1; then
     printf '  ok    %s\n' "$f"
   else
@@ -165,9 +165,9 @@ echo "== la version del montaje =="
 # La herramienta le dice sola al usuario si su Cloud Run esta al dia comparando
 # dos constantes. Si se tocan sin bumpear la version, dira "al dia" mintiendo.
 vser=$(grep -m1 "^const VERSION = '" cloudrun/unify/index.js | sed "s/.*'\(.*\)'.*/\1/")
-vesp=$(grep -m1 "^const VERSION_ESPERADA = '" api/unify.js | sed "s/.*'\(.*\)'.*/\1/")
+vesp=$(grep -m1 "^const VERSION_ESPERADA = '" server/unify.js | sed "s/.*'\(.*\)'.*/\1/")
 if [ -z "$vser" ] || [ -z "$vesp" ]; then
-  echo "  FALTA la constante VERSION en el servicio o VERSION_ESPERADA en api/unify.js"; fallos=$((fallos+1))
+  echo "  FALTA la constante VERSION en el servicio o VERSION_ESPERADA en server/unify.js"; fallos=$((fallos+1))
 elif [ "$vser" != "$vesp" ]; then
   echo "  DESCUADRADAS: el servicio dice $vser y la herramienta espera $vesp"; fallos=$((fallos+1))
 else

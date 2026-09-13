@@ -48,7 +48,7 @@ async function mirarPanel(browser, puerto) {
 
   // ---- el servicio publica su version y la herramienta la consulta ----
   const CR = fs.readFileSync(RAIZ + '/cloudrun/unify/index.js', 'utf8');
-  const API = fs.readFileSync(RAIZ + '/api/unify.js', 'utf8');
+  const API = fs.readFileSync(RAIZ + '/server/unify.js', 'utf8');
   const vS = (CR.match(/^const VERSION = '([^']+)'/m) || [])[1];
   const vE = (API.match(/^const VERSION_ESPERADA = '([^']+)'/m) || [])[1];
   t('el servicio tiene una versión', !!vS, vS);

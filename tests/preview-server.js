@@ -14,10 +14,10 @@ const store={
   async info(p){return memory.has(p)?{name:p,size:memory.get(p).bytes.length}:null;},
   async list(prefix,cursor,size){const all=[...memory].filter(([k])=>k.startsWith(prefix)).sort(([a],[b])=>a.localeCompare(b));const start=Number(cursor)||0;return {items:all.slice(start,start+(size||100)).map(([name,v])=>({name,size:v.bytes.length,contentType:v.mime,metadata:{record:JSON.stringify(v.record)}})),nextPageToken:start+(size||100)<all.length?String(start+(size||100)):''};}
 };
-const base=require('../api/_store');base.makeStore=()=>store;base.signedUrl=(object)=>'http://127.0.0.1:'+PORT+'/media/'+encodeURIComponent(object);
+const base=require('../server/_store');base.makeStore=()=>store;base.signedUrl=(object)=>'http://127.0.0.1:'+PORT+'/media/'+encodeURIComponent(object);
 const paragraph='Imagina que quieres ofrecer un servicio. Antes de comprar herramientas, habla con una persona que tenga ese problema. Pregunta qué necesita, propone una prueba pequeña y anota lo que cuesta hacerla. Así puedes tomar una decisión con información concreta.';
 const scenes=['Calcular presupuesto en la oficina con una calculadora y manos en primer plano','Caminar solo por una calle tranquila, plano general, determinación y luz sobria'];
-require('../api/_text').generateText=async(prompt)=>{
+require('../server/_text').generateText=async(prompt)=>{
   if(prompt.includes('ESTA LLAMADA SOLO PLANIFICA'))return {text:JSON.stringify({sections:Array.from({length:Number((/EXACTAMENTE (\d+) sections/.exec(prompt)||[])[1])||6},(_,i)=>({title:'Parte '+i,beat:'Decisión nueva, ejemplo y consecuencia observable '+i})),scenes:Array.from({length:prompt.includes('EXACTAMENTE 8 scenes')?8:10},(_,i)=>scenes[i%2]),set:'Estudio con pizarra, luz cálida, un mismo traje'})};
   if(prompt.includes('ENCARGO DE ESTA ETAPA'))return {text:Array(5).fill(paragraph).join('\n\n')};
   if(prompt.startsWith('Adapt the following'))return {text:'You can start with a small test and a concrete decision. '.repeat(20)};
@@ -25,9 +25,9 @@ require('../api/_text').generateText=async(prompt)=>{
   const n=Number((/exactamente (\d+) líneas PROMPT/.exec(prompt)||[])[1])||5;
   return {text:'BLOQUE A\n'+Array(n).fill(paragraph).join('\n\n')+'\nLegado de Hierro.\n\nBLOQUE C\n'+Array.from({length:n},(_,i)=>'PROMPT '+(i+1)+': '+scenes[i%2]).join('\n'),finishReason:'STOP'};
 };
-require('../api/_voice').generateAudioChunk=async()=>({parts:[wave().toString('base64')],alignments:[null],format:'wav'});
-const handlers={studio:require('../api/studio'),'studio-job':require('../api/studio-job'),generate:require('../api/generate')};
-const {register}=require('../api/_assets');
+require('../server/_voice').generateAudioChunk=async()=>({parts:[wave().toString('base64')],alignments:[null],format:'wav'});
+const handlers={studio:require('../server/studio'),'studio-job':require('../server/studio-job'),generate:require('../server/generate')};
+const {register}=require('../server/_assets');
 async function seed(){for(let i=0;i<4;i++){const object='legado-studio/media/fixture-'+i+(i%2?'.png':'.mp4');await store.bytes(object,i%2?png:fs.readFileSync(clip),i%2?'image/png':'video/mp4');await register(store,{kind:i%2?'image':'video',title:'Toma de prueba '+(i+1),description:scenes[i%2],aspect:'9:16',favorite:i===0},object);}}
 const json=(res,d,status=200)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(d));};
 seed().then(()=>http.createServer(async(req,res)=>{

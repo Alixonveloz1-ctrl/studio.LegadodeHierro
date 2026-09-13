@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const base=require('../api/_store');
+const base=require('../server/_store');
 const memory=new Map();let generation=0;
 const store={
   async read(p){return memory.has(p)?structuredClone(memory.get(p)):null;},
@@ -9,7 +9,7 @@ const store={
 };
 base.makeStore=()=>store;base.signedUrl=(o,method)=>'https://storage.example.test/'+encodeURIComponent(o)+(method?'?method='+method:'');
 process.env.APP_KEY='test-only-personal-key';
-const handler=require('../api/studio'),jobHandler=require('../api/studio-job');
+const handler=require('../server/studio'),jobHandler=require('../server/studio-job');
 async function request(body,authorized=true,fn=handler){
   const res={statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.statusCode=n;return this;},json(d){this.body=d;return this;},end(){return this;}};
   await fn({method:'POST',headers:authorized?{'x-app-key':process.env.APP_KEY}:{},body},res);return res;

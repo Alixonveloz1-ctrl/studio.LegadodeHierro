@@ -3,8 +3,8 @@ const assert = require('node:assert/strict');
 const {generateKeyPairSync} = require('node:crypto');
 const core = require('../public/studio-core');
 const {fitTimeline} = require('../cloudrun/unify/timeline');
-const {createJob,advanceJob,BASE} = require('../api/_jobs');
-const {cleanAsset,safeObject} = require('../api/_assets');
+const {createJob,advanceJob,BASE} = require('../server/_jobs');
+const {cleanAsset,safeObject} = require('../server/_assets');
 
 class MemoryStore {
   constructor(){this.data=new Map();this.seq=0;this.failNextState=false;}
@@ -103,7 +103,7 @@ test('library metadata has stable IDs, retains favorites and refuses private buc
   assert.equal(core.recipes().length,96);
 });
 test('text deadline includes authentication and response body; MAX_TOKENS is rejected',async()=>{
-  const {generateText}=require('../api/_text'),original=global.fetch;
+  const {generateText}=require('../server/_text'),original=global.fetch;
   global.fetch=async(url,opts)=>{
     if(url.includes('oauth2'))return {ok:true,json:async()=>({access_token:'fake-token'})};
     return {ok:true,json:async()=>({candidates:[{finishReason:'MAX_TOKENS',content:{parts:[{text:'BLOQUE A\nIncomplete'}]}}]})};

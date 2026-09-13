@@ -2,7 +2,7 @@
 // inventar otros: todos los reels eran el mismo hombre solo. Ahora hay 31
 // secundarios y el director tiene que poder llamarlos.
 const { chromium } = require('playwright-core');
-const { REPARTO } = require('/home/user/studio.LegadodeHierro/api/_personajes.js');
+const { REPARTO } = require('/home/user/studio.LegadodeHierro/server/_personajes.js');
 
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', headless: true });

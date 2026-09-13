@@ -1,8 +1,8 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const core=require('../public/studio-core');
-const {createJob,advanceJob,BASE}=require('../api/_jobs');
-const {parsePlan,parseReview}=require('../api/_editorial');
+const {createJob,advanceJob,BASE}=require('../server/_jobs');
+const {parsePlan,parseReview}=require('../server/_editorial');
 class MemoryStore {
   constructor(){this.rows=new Map();this.seq=0;this.failState=false;}
   async read(p){return structuredClone(this.rows.get(p)||null);}

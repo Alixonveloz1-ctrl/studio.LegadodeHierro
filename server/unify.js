@@ -31,10 +31,8 @@ module.exports = async (req, res) => {
     const url = process.env.CLOUD_RUN_UNIFY_URL;
     if (!url) return res.json({ estado: 'sin-configurar', esperada: VERSION_ESPERADA });
     try {
-      const ctrl = new AbortController();
-      const corta = setTimeout(() => ctrl.abort(), 8000);
-      const r = await fetch(url.replace(/\/+$/, '') + '/', { signal: ctrl.signal });
-      clearTimeout(corta);
+      const r = await fetch(url.replace(/\/+$/, '') + '/', { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error('El servicio respondió HTTP '+r.status);
       const d = await r.json().catch(() => ({}));
       // Un servicio anterior a este cambio no devuelve version: eso YA significa
       // que esta desactualizado, no que no se pueda saber.
@@ -42,6 +40,7 @@ module.exports = async (req, res) => {
       return res.json({
         estado: actual === VERSION_ESPERADA && d.durable ? 'al-dia' : 'desactualizado',
         actual: actual, esperada: VERSION_ESPERADA,
+        legacyAvailable: d.service === 'legado-unify' && d.durable === undefined,
       });
     } catch (e) {
       return res.json({ estado: 'sin-respuesta', esperada: VERSION_ESPERADA, error: String(e.message || e) });
@@ -66,7 +65,16 @@ module.exports = async (req, res) => {
     }
     // An object must have a catalog entry. A crafted browser request cannot ask
     // the render worker to download credentials or unrelated bucket objects.
-    const store=makeStore(AbortSignal.timeout(25000));
+    const deadline=AbortSignal.timeout(50000);
+    const url=process.env.CLOUD_RUN_UNIFY_URL,key=process.env.UNIFY_KEY;
+    if(!url||!key)throw failure('Falta configurar el servicio de montaje.');
+    const service=url.replace(/\/+$/,'');
+    const health=await fetch(service+'/',{signal:AbortSignal.any([deadline,AbortSignal.timeout(8000)])});
+    const capability=await health.json().catch(()=>({}));
+    if(!health.ok||capability.service!=='legado-unify')throw failure('No se pudo comprobar el servidor de montaje. Reintenta en unos segundos.',502);
+    const legacy=capability.durable===undefined;
+    if(!legacy&&!capability.durable)throw failure('Al servidor de Google Cloud le falta configurar el ejecutor de montajes. Completa su actualización; tus materiales están guardados.',409);
+    const store=makeStore(deadline);
     const unique=[...new Set(body.shots.map(s=>s.object))];
     for(let offset=0;offset<unique.length;offset+=8){
       await Promise.all(unique.slice(offset,offset+8).map(async object=>{
@@ -75,12 +83,12 @@ module.exports = async (req, res) => {
       if(body.shots.some(s=>s.object===object&&s.kind!==entry.data.kind))throw failure('El tipo de una toma no coincide con el archivo.',400);
       }));
     }
-    const url=process.env.CLOUD_RUN_UNIFY_URL,key=process.env.UNIFY_KEY;
-    if(!url||!key)throw failure('Falta configurar el servicio de montaje.');
-    const r=await fetch(url.replace(/\/+$/,'')+'/start',{method:'POST',signal:AbortSignal.timeout(22000),headers:{'Content-Type':'application/json','X-Unify-Key':key},
-      body:JSON.stringify({shots:body.shots,audioObjects:body.audioObjects,music:music,srt:body.srt||'',targetSeconds:Number(body.targetSeconds)||0,aspect:body.aspect})});
+    let payload={shots:body.shots,audioObjects:body.audioObjects,music:music,srt:body.srt||'',targetSeconds:Number(body.targetSeconds)||0,aspect:body.aspect};
+    if(legacy)payload=await require('./_legacy-render').legacyPayload(payload,store);
+    const r=await fetch(service+'/start',{method:'POST',signal:AbortSignal.any([deadline,AbortSignal.timeout(15000)]),headers:{'Content-Type':'application/json','X-Unify-Key':key},
+      body:JSON.stringify(payload)});
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.jobId)throw failure(d.error||'No se pudo iniciar el montaje.',502);
-    return res.json({success:true,jobId:d.jobId});
+    return res.json({success:true,jobId:d.jobId,legacy:legacy});
   }catch(e){return res.status(e.status&&e.status<600?e.status:500).json({error:e.message});}
 };

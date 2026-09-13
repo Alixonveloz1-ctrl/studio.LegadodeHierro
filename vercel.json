@@ -1,43 +1,7 @@
 {
   "version": 2,
   "functions": {
-    "api/image.js": {
-      "maxDuration": 60
-    },
-    "api/generate.js": {
-      "maxDuration": 60
-    },
-    "api/audio.js": {
-      "maxDuration": 60
-    },
-    "api/video-start.js": {
-      "maxDuration": 60
-    },
-    "api/trends.js": {
-      "maxDuration": 60
-    },
-    "api/unify.js": {
-      "maxDuration": 60
-    },
-    "api/unify-status.js": {
-      "maxDuration": 30
-    },
-    "api/music.js": {
-      "maxDuration": 30
-    },
-    "api/music-gen.js": {
-      "maxDuration": 60
-    },
-    "api/videos.js": {
-      "maxDuration": 60
-    },
-    "api/refs.js": {
-      "maxDuration": 60
-    },
-    "api/studio.js": {
-      "maxDuration": 60
-    },
-    "api/studio-job.js": {
+    "api/index.js": {
       "maxDuration": 60
     }
   },
@@ -95,6 +59,64 @@
           "value": "public, max-age=0, must-revalidate"
         }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/audio",
+      "destination": "/api/index?endpoint=audio"
+    },
+    {
+      "source": "/api/generate",
+      "destination": "/api/index?endpoint=generate"
+    },
+    {
+      "source": "/api/image",
+      "destination": "/api/index?endpoint=image"
+    },
+    {
+      "source": "/api/login",
+      "destination": "/api/index?endpoint=login"
+    },
+    {
+      "source": "/api/music",
+      "destination": "/api/index?endpoint=music"
+    },
+    {
+      "source": "/api/music-gen",
+      "destination": "/api/index?endpoint=music-gen"
+    },
+    {
+      "source": "/api/refs",
+      "destination": "/api/index?endpoint=refs"
+    },
+    {
+      "source": "/api/studio",
+      "destination": "/api/index?endpoint=studio"
+    },
+    {
+      "source": "/api/studio-job",
+      "destination": "/api/index?endpoint=studio-job"
+    },
+    {
+      "source": "/api/trends",
+      "destination": "/api/index?endpoint=trends"
+    },
+    {
+      "source": "/api/unify",
+      "destination": "/api/index?endpoint=unify"
+    },
+    {
+      "source": "/api/unify-status",
+      "destination": "/api/index?endpoint=unify-status"
+    },
+    {
+      "source": "/api/video-start",
+      "destination": "/api/index?endpoint=video-start"
+    },
+    {
+      "source": "/api/videos",
+      "destination": "/api/index?endpoint=videos"
     }
   ]
 }

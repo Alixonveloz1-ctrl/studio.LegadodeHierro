@@ -8,7 +8,7 @@ Herramienta de un solo operador para preparar guiones, narraciones, imágenes, c
 - Referencias propias y de canales afines con fuentes y límites de evidencia. Tres aperturas, plan narrativo, revisión de siete criterios, una ronda de corrección y escenas basadas en el texto final. [Análisis editorial](docs/GUIONES-2026-09.md) y [ejemplos originales](docs/EJEMPLOS-GUIONES.md).
 - Biblioteca persistente de imágenes, videos y música, con descripciones, acciones, lugares, encuadres, continuidad, etiquetas, colecciones y favoritos. Recupera clips antiguos y acepta importaciones desde el teléfono. Propone un montaje, alterna materiales compatibles y señala los huecos. Permite generar únicamente las escenas pendientes.
 - 96 encargos de tomas para ampliar la biblioteca de forma ordenada. Son propuestas; no se generan ni cobran automáticamente.
-- Guiones largos y narraciones por etapas guardadas. Al interrumpirse una petición se recupera el trabajo terminado. El montaje se ejecuta como Cloud Run Job y continúa aunque se cierre el teléfono.
+- Guiones largos y narraciones por etapas guardadas. Al interrumpirse una petición se recupera el trabajo terminado. Con Google Cloud actualizado, el montaje se ejecuta como Cloud Run Job y continúa aunque se cierre el teléfono.
 - Resultados por publicación y ventanas de 24 horas, 7 y 28 días. Se comparan plataforma y duración similares, se separan ingresos y bonos y se conservan los valores desconocidos como tales.
 
 No hay una fórmula que garantice viralidad o ingresos. La aplicación permite producir con menos gasto repetido y comprobar qué historias, ganchos y métodos funcionan con el público real.
@@ -29,7 +29,7 @@ Consulta [la guía de uso y actualización](docs/ACTUALIZACION-2026-09.md). La i
 | Parte | Implementación |
 |---|---|
 | Interfaz | HTML y JavaScript; `app.js`, `studio-core.js`, `studio.js` |
-| API | Vercel Functions, Node.js 24 |
+| API | Una función Node.js 24 compartida y una función Edge para consultar Veo; las URLs públicas se conservan |
 | Texto e imágenes | Google Vertex AI Gemini; modelos configurados en los adaptadores existentes |
 | Voz | Gemini TTS, Chirp 3 HD o ElevenLabs |
 | Persistencia | Google Cloud Storage: fichas, proyectos, etapas y archivos |
@@ -70,7 +70,7 @@ npm run test:render
 
 Las pruebas de lógica, API e interfaz simulan proveedores y almacenamiento. La prueba de render usa el código de producción y FFmpeg real para un MP4 vertical de ocho minutos con recursos sintéticos, música de cuatro segundos repetida y subtítulos al final. Ninguna prueba llama a servicios de generación de pago.
 
-Al modificar el ejecutor, incrementa su `VERSION` y `VERSION_ESPERADA` en `api/unify.js`, y regenera los instaladores:
+Al modificar el ejecutor, incrementa su `VERSION` y `VERSION_ESPERADA` en `server/unify.js`, y regenera los instaladores:
 
 ```bash
 npm run build:installers
@@ -82,4 +82,6 @@ El navegador avanza los trabajos de guion y voz por etapas. Si se cierra, hay qu
 
 Los subtítulos sin tiempos del proveedor son estimados dentro de cada tramo medido y deben escucharse antes de publicar. Las coincidencias de biblioteca usan descripciones y etiquetas; no incluyen reconocimiento automático del contenido de los archivos antiguos. Los videos antiguos deben revisarse y catalogarse.
 
-La nueva API de montaje requiere actualizar Cloud Run y Vercel en la misma intervención. No mezcles la interfaz nueva con el servicio anterior. La versión esperada es `2026-09-13.1` y debe informar que el ejecutor duradero está configurado.
+La API detecta el servidor de montaje instalado. Mientras Google Cloud conserve el servidor anterior, permite montar imágenes o clips por separado dentro de sus límites previos. El montaje mixto, los tiempos personalizados de imágenes y la recuperación duradera necesitan ejecutar el actualizador de Google Cloud. La versión esperada es `2026-09-13.1` y debe informar que el ejecutor duradero está configurado.
+
+Los cambios en `main` disparan el despliegue automático del proyecto existente `legado-de-hierro-final`. Los manejadores viven en `server/`; `api/index.js` y las reescrituras de `vercel.json` los agrupan para respetar el límite del plan Hobby. No se necesita subir de plan ni crear otro proyecto.

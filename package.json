@@ -12,7 +12,7 @@
     "jsdom": "^30.0.1"
   },
   "scripts": {
-    "test": "node --test tests/studio.test.js tests/editorial.test.js tests/dom.test.js tests/api.test.js tests/worker.test.js",
+    "test": "node --test tests/studio.test.js tests/editorial.test.js tests/dom.test.js tests/api.test.js tests/worker.test.js tests/deployment.test.js",
     "test:render": "node --test tests/render.test.js",
     "check": "bash comprobar.sh",
     "build:installers": "python3 scripts/build-installers.py"

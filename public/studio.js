@@ -435,7 +435,7 @@ async function studioRenderVideo(){
   payload.targetSeconds=Number(owner.dO&&owner.dO.id)||0;
   studioMessage('Enviando el montaje con archivos guardados...');
   var d=await studioAPI('start',payload,'/api/unify');
-  var renders=owner.renders||{};renders[lang]={jobId:d.jobId,music:payload.music};owner.renders=renders;
+  var renders=owner.renders||{};renders[lang]={jobId:d.jobId,music:payload.music,legacy:!!d.legacy};owner.renders=renders;
   await studioSaveProject(owner,{renders:renders});
   return studioWatchRender(d.jobId,owner,lang);
 }

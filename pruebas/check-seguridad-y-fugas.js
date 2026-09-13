@@ -7,7 +7,7 @@ const REPO = '/home/user/studio.LegadodeHierro';
   let ok=0,ko=0; const t=(n,c)=>{console.log((c?'PASS  ':'FAIL  ')+n);c?ok++:ko++;};
 
   // ===== 0.1 la puerta no se abre sola en produccion (prueba del modulo real) =====
-  const authPath = path.join(REPO,'api/_auth.js');
+  const authPath = path.join(REPO,'server/_auth.js');
   const cargar = (env) => {
     delete require.cache[require.resolve(authPath)];
     const guardado = { APP_KEY: process.env.APP_KEY, VERCEL_ENV: process.env.VERCEL_ENV };

@@ -153,7 +153,7 @@ const server = http.createServer((req, res) => {
     let b3=''; req.on('data',c=>b3+=c);
     req.on('end',()=>{
       let d={}; try{ d=JSON.parse(b3); }catch(e){}
-      const { REPARTO } = require('/home/user/studio.LegadodeHierro/api/_personajes.js');
+      const { REPARTO } = require('/home/user/studio.LegadodeHierro/server/_personajes.js');
       if(d.action==='imagenes'){
         // El insignia se devuelve con un HUECO (falta la vista 2), que es el caso
         // que antes descolocaba los botones ↺ y pasaba en silencio.

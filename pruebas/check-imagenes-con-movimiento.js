@@ -88,7 +88,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-'));
       probe(clipC, 'stream=width,height').split('\n').join('x') === '1080x1920');
 
     // --- el endpoint acepta imagenes sin videos ---
-    const U = fs.readFileSync('/home/user/studio.LegadodeHierro/api/unify.js', 'utf8');
+    const U = fs.readFileSync('/home/user/studio.LegadodeHierro/server/unify.js', 'utf8');
     t('api/unify.js acepta imágenes cuando no hay clips',
       /!videos\.length && !imagenes\.length/.test(U) && /imagenes: imagenes/.test(U));
     t('Cloud Run monta el reel con imágenes si no llegan clips',

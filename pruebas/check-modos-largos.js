@@ -131,7 +131,7 @@ Iron Legacy.`;
 
   // ---- el tope de planos y la descarga sin repetir ----
   const fs2 = require('fs');
-  const U = fs2.readFileSync('/home/user/studio.LegadodeHierro/api/unify.js', 'utf8');
+  const U = fs2.readFileSync('/home/user/studio.LegadodeHierro/server/unify.js', 'utf8');
   const CR = fs2.readFileSync('/home/user/studio.LegadodeHierro/cloudrun/unify/index.js', 'utf8');
   t('el tope de planos sube a 60 (los reels seguían en 10)', /videos\.length > 60/.test(U) && /videos\.length > 60/.test(CR));
   t('Cloud Run no descarga la misma toma dos veces', /yaBajado/.test(CR));

@@ -4247,6 +4247,7 @@ async function comprobarCloudRun(){
   }else if(d.estado==='desactualizado'){
     css('#c4a05a66','#fbf5e8','#8a6a1f');
     el.innerHTML='⚠ <b>Al montaje le falta la última actualización.</b> '
+      +(d.legacyAvailable?'Puedes seguir montando con imágenes o con clips por separado dentro de los límites anteriores. Para mezclarlos y recuperar montajes largos, actualiza Google Cloud.<br>':'')
       +'Tiene la versión '+escHtml(d.actual||'anterior a las versiones')+' y necesita la '+escHtml(d.esperada||'')+'.<br>'
       +'Corre esto una vez en la terminal de Google Cloud:<br>'
       +'<code style="display:block;margin-top:5px;padding:6px 8px;background:#fff;border:1px solid #e0d5bd;border-radius:6px;font-size:11px;word-break:break-all">curl -sL https://studio.legadodehierro.com/u.sh | bash</code>';
