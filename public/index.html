@@ -148,7 +148,7 @@ section{margin-bottom:20px}
 .voxP:active{border-color:#c4897a;color:#c4897a}
 #voxPanel summary::-webkit-details-marker{display:none}
 </style>
-<link rel="stylesheet" href="/studio.css?v=20260913d">
+<link rel="stylesheet" href="/studio.css?v=20260913e">
 </head>
 <body>
 
@@ -217,18 +217,22 @@ section{margin-bottom:20px}
         <div class="studio-library-filters"><label>Buscar escena<input id="librarySearch" type="search" placeholder="Buscar en mi biblioteca"></label><label>Tipo<select id="libraryKind"><option value="">Todos</option><option value="image">Imágenes</option><option value="video">Videos</option><option value="music">Música</option></select></label></div>
         <p id="libraryCount"></p><div id="libraryGrid" class="studio-media-grid"></div>
         <div class="studio-library-pages"><button id="libraryPrev" disabled>Anterior</button><button id="libraryNext" disabled>Siguiente</button></div>
-        <details><summary>Traer material de otra biblioteca o del teléfono</summary>
-          <details><summary>Copiar otra biblioteca de Google Cloud</summary>
+        <button id="libraryBring" type="button" aria-expanded="false" aria-controls="libraryBringPanel">Traer material de otra biblioteca o del teléfono</button>
+        <div id="libraryBringPanel" class="studio-import-panel" hidden>
+          <div class="studio-row"><button id="libraryBringCloud" type="button" aria-pressed="true">Desde Google Cloud</button><button id="libraryBringPhone" type="button" aria-pressed="false">Desde el teléfono</button></div>
+          <section id="libraryCloudPanel">
+            <h3>Copiar otra biblioteca de Google Cloud</h3>
             <p>Indica el bucket de origen una vez. Copia los archivos directamente y conserva los nombres, descripciones y etiquetas disponibles. Gemini completa los datos que falten.</p>
             <label>Bucket o carpeta de origen<input id="librarySource" placeholder="gs://mi-bucket/carpeta/" autocomplete="off" spellcheck="false"></label>
             <button id="libraryImport">Copiar y organizar biblioteca</button>
-          </details>
-          <details><summary>Añadir archivos del teléfono</summary>
+          </section>
+          <section id="libraryPhonePanel" hidden><h3>Añadir archivos del teléfono</h3>
             <p>Selecciona varios archivos juntos. Sus descripciones se preparan automáticamente.</p>
             <label>Imágenes, videos o música<input type="file" id="libraryFiles" multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,audio/mpeg,audio/wav,audio/mp4,audio/ogg"></label>
             <button id="libraryUpload">Guardar y organizar archivos</button>
-          </details>
-        </details>
+          </section>
+          <p id="libraryImportBusy" role="status" hidden>Hay un trabajo de biblioteca en curso. Puedes preparar el origen aquí; para comenzar la copia o subida, pausa y detén ese trabajo. Sus archivos guardados se conservan.</p>
+        </div>
       </div>
       <div id="libraryCreateView" role="tabpanel" aria-labelledby="libraryCreateTab" hidden>
         <h3>Escenas para reutilizar en tus videos</h3>
@@ -236,7 +240,7 @@ section{margin-bottom:20px}
         <p>Al crear, cada tarjeta se convierte en una imagen real y se guarda automáticamente. Después, el estudio puede elegirla cuando encaje con una escena de tu guion.</p>
         <div id="recipeControls">
           <div class="studio-library-filters"><label>Contenido<select id="recipeCategory"><option value="">Todo Legado de Hierro</option><option value="trabajo">Trabajo y negocio</option><option value="dinero">Dinero y decisiones</option><option value="disciplina">Disciplina y aprendizaje</option><option value="familia">Familia y relaciones</option><option value="reflexion">Reflexión y momentos difíciles</option></select></label>
-          <label>Cuántas imágenes<select id="recipeBatchSize"><option value="12">12 imágenes</option><option value="24">24 imágenes</option><option value="48">48 imágenes</option><option value="240">Todas las pendientes</option></select></label></div>
+          <label>Cuántas imágenes<select id="recipeBatchSize"><option value="1">1 imagen</option><option value="12" selected>12 imágenes</option><option value="24">24 imágenes</option><option value="48">48 imágenes</option><option value="240">Todas las pendientes</option></select></label></div>
         </div>
         <div class="studio-library-settings"><p id="recipeSettings"></p><button id="librarySettings">Cambiar modelo o formato</button></div>
         <p id="recipeSummary"></p><button id="recipeGenerate" class="studio-primary">Crear imágenes</button>
@@ -713,8 +717,8 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/studio-core.js?v=20260913d"></script>
-<script src="/app.js?v=20260913d"></script>
-<script src="/studio.js?v=20260913d"></script>
+<script src="/studio-core.js?v=20260913e"></script>
+<script src="/app.js?v=20260913e"></script>
+<script src="/studio.js?v=20260913e"></script>
 </body>
 </html>

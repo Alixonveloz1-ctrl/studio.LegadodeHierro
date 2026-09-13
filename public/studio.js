@@ -517,8 +517,10 @@ function studioLibrarySettings(){
 function studioLibraryControls(){
   var locked=STUDIO_LIBRARY.running||STUDIO_LIBRARY.preparing;
   ['libraryCatalog','libraryImport','libraryUpload','recipeCategory','recipeBatchSize'].forEach(function(id){studioEl(id).disabled=locked;});
-  ['selImgModel','selImgFmt','selVidModel','selVidFmt'].forEach(function(id){studioEl(id).disabled=locked;});
-  studioEl('librarySettings').disabled=locked;
+  // A running job has a saved configuration. Viewing or changing future
+  // preferences must never be blocked by cataloging, copying or generation.
+  ['selImgModel','selImgFmt','selVidModel','selVidFmt','librarySettings'].forEach(function(id){studioEl(id).disabled=false;});
+  studioEl('libraryImportBusy').hidden=!locked;
   studioEl('libraryPause').hidden=!STUDIO_LIBRARY.running;
   if(!STUDIO_LIBRARY.running)studioEl('libraryPause').textContent='Pausar';
 }
@@ -615,7 +617,7 @@ async function studioPaintRecipes(){
   var count=recipes.length,settings=job?job.settings:{model:imgModel,aspect:imgFmt},locked=STUDIO_LIBRARY.running||STUDIO_LIBRARY.preparing;
   studioEl('recipeControls').hidden=!!job;studioEl('librarySettings').hidden=!!job;
   studioEl('recipeSettings').textContent=studioModelLabel(settings.model)+' · '+settings.aspect+(job?' · Ajustes de esta creación':' · Tus ajustes de imagen');
-  studioEl('recipeSummary').textContent=job?'Todo lo que ves guardado ya está disponible en Mi biblioteca.':count?count+' imágenes · $'+(count*(IMG_COST[settings.model]||0.05)).toFixed(2)+' aprox. La descripción automática con Gemini se cobra según uso.':'Estas escenas ya están guardadas en el formato elegido. Puedes elegir otro contenido.';
+  studioEl('recipeSummary').textContent=job?'Todo lo que ves guardado ya está disponible en Mi biblioteca.':locked?'Hay un trabajo de biblioteca en curso. Puedes cambiar tus ajustes; para crear imágenes, primero pausa y detén ese trabajo.':count?count+' imágenes · $'+(count*(IMG_COST[settings.model]||0.05)).toFixed(2)+' aprox. La descripción automática con Gemini se cobra según uso.':'Estas escenas ya están guardadas en el formato elegido. Puedes elegir otro contenido.';
   studioEl('recipeGenerate').hidden=!!job;studioEl('recipeGenerate').disabled=locked||!count;studioEl('recipeGenerate').textContent='Crear '+count+' imágenes';
   studioEl('recipeNew').hidden=!job||job.status!=='done'||locked;
   studioEl('recipeHeading').textContent=job?(job.status==='done'?'Imágenes de esta creación':'Tus imágenes, una a una'):'Imágenes que vas a crear';
@@ -648,8 +650,8 @@ async function studioGenerateRecipe(){
   // Snapshot the existing selectors before any asynchronous preparation.
   var config={type:'generate',recipeIds:recipes.map(function(r){return r.id;}),model:imgModel,aspect:imgFmt};
   if(!confirm('Crear '+recipes.length+' imágenes con '+studioModelLabel(config.model)+' en '+config.aspect+': $'+(recipes.length*imgCost()).toFixed(2)+' aprox., más la descripción automática. Se guardarán para reutilizarlas. ¿Comenzar?'))return;
-  STUDIO_LIBRARY.preparing=true;studioLibraryControls();await studioPaintRecipes();studioLibraryMessage('Preparando el personaje para estas escenas…');
-  try{await loadRefs();return await studioLibraryStart(config);}
+  STUDIO_LIBRARY.preparing=true;
+  try{studioLibraryControls();await studioPaintRecipes();studioLibraryMessage('Preparando el personaje para estas escenas…');await loadRefs();return await studioLibraryStart(config);}
   finally{STUDIO_LIBRARY.preparing=false;studioLibraryControls();await studioPaintRecipes();}
 }
 async function studioGenerateMissing(){
@@ -685,6 +687,10 @@ function studioInit(){
   studioEl('libraryShowProgress').onclick=function(){STUDIO_LIBRARY.draft=false;studioLibraryView('create');};
   studioEl('recipeNew').onclick=function(){STUDIO_LIBRARY.draft=true;studioLibraryMessage('');studioPaintRecipes();};
   studioEl('librarySettings').onclick=studioLibrarySettings;
+  studioEl('libraryBring').onclick=function(){var panel=studioEl('libraryBringPanel');panel.hidden=!panel.hidden;this.setAttribute('aria-expanded',String(!panel.hidden));};
+  ['Cloud','Phone'].forEach(function(source){studioEl('libraryBring'+source).onclick=function(){
+    ['Cloud','Phone'].forEach(function(name){studioEl('library'+name+'Panel').hidden=name!==source;studioEl('libraryBring'+name).setAttribute('aria-pressed',String(name===source));});
+  };});
   studioEl('librarySettingsClose').onclick=function(){studioEl('librarySettingsDialog').close();};
   studioEl('librarySettingsDialog').addEventListener('close',function(){
     var home=STUDIO_LIBRARY.settingsHome;if(home){home.parent.insertBefore(studioEl('genSettings'),home.next);STUDIO_LIBRARY.settingsHome=null;}studioPaintRecipes();

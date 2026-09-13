@@ -220,7 +220,7 @@ test('each saved image appears before the next generation, the selection stays f
     const grid=w.document.querySelector('#recipePreview'),first=grid.firstElementChild;
     assert.equal(grid.children.length,12);assert.equal(first.dataset.recipeId,config.recipeIds[0]);assert.ok(first.querySelector('img').src.includes('media.example.test'));assert.match(first.textContent,/Imagen guardada/);
     assert.deepEqual([...grid.children].map(c=>c.dataset.recipeId),config.recipeIds);assert.equal(grid.querySelectorAll('input, textarea, li').length,0);
-    assert.equal(w.document.querySelector('#selImgModel').disabled,true);
+    assert.equal(w.document.querySelector('#selImgModel').disabled,false);
     w.document.querySelector('#libraryPause').click();release();await running;
     assert.equal(grid.firstElementChild,first,'progress updates keep the existing image element in place');assert.equal(w.document.querySelector('#libraryResume').hidden,false);
     assert.equal(w.document.querySelector('#recipeGenerate').hidden,true);assert.equal(w.document.querySelector('#selImgModel').disabled,false);
@@ -242,4 +242,23 @@ test('each saved image appears before the next generation, the selection stays f
     v.document.querySelector('#recipeNew').click();assert.equal(v.document.querySelector('#recipeGenerate').hidden,false);assert.match(v.document.querySelector('#recipeSettings').textContent,/9:16/);
     assert.deepEqual(a.errors,[]);assert.deepEqual(reloaded.errors,[]);
   }finally{if(release)release();a.close();if(reloaded)reloaded.close();}
+});
+
+test('active cataloging leaves model settings and both import panels usable, and preparation errors release controls',async()=>{
+  const a=await app();try{
+    const {w}=a;
+    w.STUDIO_LIBRARY.running=true;
+    await w.studioLibraryPaint({id:'catalog-test',type:'catalog',status:'ready',total:100,completed:15,stage:'15 de 100'});
+    const bring=w.document.querySelector('#libraryBring');bring.click();assert.equal(bring.getAttribute('aria-expanded'),'true');assert.equal(w.document.querySelector('#libraryCloudPanel').hidden,false);
+    w.document.querySelector('#libraryBringPhone').click();assert.equal(w.document.querySelector('#libraryPhonePanel').hidden,false);assert.equal(w.document.querySelector('#libraryCloudPanel').hidden,true);
+    assert.ok(w.document.querySelector('#libraryPhonePanel input[type=file]'));w.document.querySelector('#libraryBringCloud').click();assert.ok(w.document.querySelector('#libraryCloudPanel #librarySource'));
+    assert.equal(w.document.querySelector('#libraryImportBusy').hidden,false);
+    w.document.querySelector('#libraryCreateTab').click();assert.equal(w.document.querySelector('#librarySettings').disabled,false);
+    w.document.querySelector('#librarySettings').click();assert.equal(w.document.querySelector('#librarySettingsDialog').open,true);assert.equal(w.document.querySelector('#selImgModel').disabled,false);
+    const select=w.document.querySelector('#selImgFmt');select.value='16:9';select.dispatchEvent(new w.Event('change'));assert.equal(w.imgFmt,'16:9');w.document.querySelector('#librarySettingsClose').click();
+    w.STUDIO_LIBRARY.running=false;w.STUDIO_LIBRARY.job=null;
+    w.document.querySelector('#recipeBatchSize').value='1';w.loadRefs=async()=>{throw new Error('Reference connection failed');};
+    await assert.rejects(w.studioGenerateRecipe(),/Reference connection failed/);
+    assert.equal(w.STUDIO_LIBRARY.preparing,false);assert.equal(w.document.querySelector('#recipeGenerate').disabled,false);assert.equal(w.document.querySelector('#librarySettings').disabled,false);
+  }finally{a.close();}
 });
