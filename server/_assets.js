@@ -10,15 +10,21 @@ function cleanAsset(input, object, previous) {
   const inferred=require('../public/studio-core').continuity(input.description);
   input={...inferred,...input};
   const r = {...previous,id:idFor(object),object,updatedAt:new Date().toISOString()};
-  for (const k of ['title','description','action','location','mood','shot','character','setId','collection','recipeId','sourceProject']) {
+  for (const k of ['title','description','action','location','mood','shot','character','setId','collection','recipeId','sourceProject','catalogSource']) {
     if (typeof input[k] === 'string') r[k] = input[k].trim().slice(0,k === 'description' ? 1600 : 180);
   }
   r.kind = ['image','video','music'].includes(input.kind) ? input.kind : (r.kind || (/\.(mp4|mov|webm)$/i.test(object) ? 'video' : /\.(wav|mp3|m4a|ogg)$/i.test(object) ? 'music' : 'image'));
-  if (input.aspect !== undefined) r.aspect = ['9:16','16:9','1:1','4:5'].includes(input.aspect) ? input.aspect : '';
+  if (input.aspect !== undefined) r.aspect = ['9:16','16:9','1:1','4:5','3:4','4:3','2:3','3:2','5:4','21:9'].includes(input.aspect) ? input.aspect : '';
   if (input.duration !== undefined) r.duration = Math.max(0,Math.min(7200,Number(input.duration) || 0));
   if (Array.isArray(input.tags)) r.tags = [...new Set(input.tags.map(x=>String(x).trim().slice(0,40)).filter(Boolean))].slice(0,24);
   if (typeof input.favorite === 'boolean') r.favorite = input.favorite;
   if (typeof input.archived === 'boolean') r.archived = input.archived;
+  if (input.analysis && typeof input.analysis === 'object') {
+    r.analysis={};for(const k of ['version','generation','model','at'])if(input.analysis[k]!==undefined)r.analysis[k]=String(input.analysis[k]).slice(0,100);
+  }
+  if (input.importedFrom && typeof input.importedFrom === 'object') {
+    r.importedFrom={};for(const k of ['bucket','object','generation'])if(typeof input.importedFrom[k]==='string')r.importedFrom[k]=input.importedFrom[k].slice(0,900);
+  }
   r.createdAt = r.createdAt || new Date().toISOString(); r.version = (r.version || 0)+1;
   return r;
 }

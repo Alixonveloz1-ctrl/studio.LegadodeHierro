@@ -54,14 +54,15 @@ test('cloud project opens with captions, stable ID, saved scene plan and recover
   }finally{a.close();}
 });
 
-test('library creates a complete mixed-source plan and never requests paid media; discovery is paged for mobile',async()=>{
+test('library creates a complete mixed-source plan without paid media and keeps optional edits collapsed on mobile',async()=>{
   const a=await app();try{
     const {w,assets,calls,errors}=a;w.lastRes=episode(w);assets.push(...['image','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/'+i,aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
     await w.studioLoadLibrary();w.document.querySelector('#buildScenePlan').click();await ready(()=>!w.STUDIO.busy);
     assert.equal(w.STUDIO.plan.length,30);assert.ok(w.STUDIO.plan.every(p=>p.assetId));assert.notEqual(w.STUDIO.plan[0].assetId,w.STUDIO.plan[1].assetId);
     assert.equal(w.document.querySelectorAll('#scenePlan .studio-shot').length,30);assert.equal(calls.filter(c=>c.input==='/api/image'||c.input==='/api/video-start').length,0);
-    await w.studioDiscover(false);assert.equal(w.document.querySelectorAll('#discoveryGrid .studio-asset').length,8);assert.equal(w.document.querySelector('#discoveryMore').hidden,false);
-    await w.studioDiscover(true);assert.equal(w.document.querySelectorAll('#discoveryGrid .studio-asset').length,8);
+    assert.equal(w.document.querySelectorAll('#libraryGrid .studio-asset').length,2);
+    assert.ok([...w.document.querySelectorAll('#libraryGrid details')].every(d=>!d.open));
+    assert.equal(w.document.querySelector('#libraryUploadDescription'),null);assert.equal(w.document.querySelector('#recipeSelect'),null);
     assert.deepEqual(errors,[]);
   }finally{a.close();}
 });
@@ -164,5 +165,29 @@ test('choosing an idea analyzes its video automatically and reuses the result; f
     await w.studioPrepareReference(w.buildEpisodeMsg(idea.concept,'negocio','historia','historia','60'));assert.equal(analyzes,1);
     delete idea.analysis;w.studioAPI=async()=>{throw new Error('Video unavailable');};
     const next=w.buildEpisodeMsg(idea.concept,'negocio','historia','historia','60');assert.equal(await w.studioPrepareReference(next),'');assert.match(next.editorial.referenceNotice,/estructura propuesta/);
+  }finally{a.close();}
+});
+
+
+test('one library batch uses predefined prompts, skips saved recipes and resumes the saved server position',async()=>{
+  const a=await app();try{
+    const {w,assets}=a;assets.push({id:'a'.repeat(32),object:'legado-studio/media/old.png',kind:'image',recipeId:'receta-0-2',aspect:'9:16',title:'Guardada',description:'Toma general en la oficina'});
+    w.imgFmt='9:16';w.imgModel='gemini-3.1-flash-image';let approvals=0;w.confirm=()=>{approvals++;return true;};w.loadRefs=async()=>[];
+    const api=w.studioAPI;let config,advances=0,completed=0;
+    w.studioAPI=async(action,data,endpoint)=>{
+      if(action==='library-start'){config=data.config;return {job:{id:'batch-test',status:'ready',total:12,completed:0,stage:'Preparado'}};}
+      if(action==='library-advance'){advances++;completed++;return {job:{id:'batch-test',status:completed===12?'done':'ready',completed,total:12,stage:'Guardando toma '+completed}};}
+      return api(action,data,endpoint);
+    };
+    await w.studioGenerateRecipe();assert.equal(approvals,1);assert.equal(advances,12);assert.equal(config.recipeIds.length,12);assert.ok(!config.recipeIds.includes('receta-0-2'));assert.equal(config.model,w.imgModel);
+    assert.equal(w.document.querySelector('#libraryWork').hidden,false);assert.match(w.document.querySelector('#libraryWorkStatus').textContent,/12/);
+    assert.equal(w.document.querySelectorAll('#recipePreview input, #recipePreview textarea').length,0);
+    let starts=0;advances=0;w.studioAPI=async(action)=>{
+      if(action==='library-start'){starts++;throw new Error('Must resume existing job');}
+      if(action==='library-status')return {job:{id:'saved-batch',status:'ready',total:12,completed:11,stage:'11 guardadas'}};
+      if(action==='library-advance'){advances++;return {job:{id:'saved-batch',status:'done',total:12,completed:12,stage:'Listo'}};}
+      return {items:[]};
+    };
+    await w.studioLibraryResume();assert.equal(advances,1);assert.equal(starts,0);
   }finally{a.close();}
 });

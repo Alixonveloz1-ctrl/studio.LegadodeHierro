@@ -4,7 +4,15 @@ const assets = require('./_assets');
 const core = require('../public/studio-core');
 const idOK = x=>typeof x === 'string' && /^[a-zA-Z0-9_-]{8,100}$/.test(x);
 module.exports = jsonHandler(async (b,res) => {
-  const store = makeStore(), action = b.action;
+  const action=b.action,store = makeStore(action?.startsWith('library-')?AbortSignal.timeout(54000):undefined);
+  if(action?.startsWith('library-')){
+    const library=require('./_library');
+    if(action==='library-start')return res.json({success:true,job:await library.start(store,b.config,b.requestId)});
+    if(action==='library-advance')return res.json({success:true,job:await library.advance(store,b.id)});
+    if(action==='library-stop')return res.json({success:true,job:await library.stop(store,b.id)});
+    if(action==='library-status')return res.json({success:true,job:library.publicJob((await store.read(library.ACTIVE))?.data)});
+    throw failure('Operación de biblioteca desconocida.',400);
+  }
   if (action === 'assets') return res.json({success:true,...await assets.listAssets(store,b.cursor)});
   if (action === 'asset-save') return res.json({success:true,asset:await assets.register(store,b.asset || {},b.object,b.legacy === true)});
   if (action === 'links') return res.json({success:true,items:await assets.links(store,b.ids)});

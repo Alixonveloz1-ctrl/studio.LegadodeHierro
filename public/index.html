@@ -148,7 +148,7 @@ section{margin-bottom:20px}
 .voxP:active{border-color:#c4897a;color:#c4897a}
 #voxPanel summary::-webkit-details-marker{display:none}
 </style>
-<link rel="stylesheet" href="/studio.css?v=20260913b">
+<link rel="stylesheet" href="/studio.css?v=20260913c">
 </head>
 <body>
 
@@ -199,18 +199,36 @@ section{margin-bottom:20px}
     <details class="studio-card" id="projectsPanel"><summary>Mis proyectos guardados</summary><button id="projectsLoad" type="button">Actualizar lista</button><div id="projectList" class="studio-row"></div></details>
     <details class="studio-card" id="libraryPanel">
       <summary>Biblioteca de imágenes, videos y música</summary>
-      <p>El material que generas se guarda automáticamente para reutilizarlo según cada escena. Aquí puedes buscarlo, recuperar clips anteriores o subir tus propios archivos.</p>
-      <div class="studio-row"><button id="libraryLoad">Cargar biblioteca</button><label>Buscar escena<input id="librarySearch" type="search" placeholder="Ej. calcular presupuesto, caminar solo"></label><label>Tipo<select id="libraryKind"><option value="">Todos</option><option value="image">Imágenes</option><option value="video">Videos</option><option value="music">Música</option></select></label></div>
+      <p>Gemini mira tus imágenes y videos, escucha la música y completa sus títulos, descripciones y etiquetas para elegir el material de cada escena.</p>
+      <div class="studio-row"><button id="libraryCatalog">Organizar mi material automáticamente</button><button id="libraryLoad">Actualizar biblioteca</button></div>
+      <p class="studio-help">Revisa el material guardado con Gemini. Conserva las descripciones ya analizadas y solo procesa lo pendiente.</p>
+      <div id="libraryWork" class="studio-library-work" hidden>
+        <p id="libraryWorkStatus" role="status" aria-live="polite"></p>
+        <progress id="libraryProgress" max="100" value="0"></progress>
+        <div class="studio-row"><button id="libraryResume" hidden>Reanudar lote</button><button id="libraryPause" hidden>Pausar después de esta toma</button><button id="libraryStop" hidden>Terminar este lote</button></div>
+        <p class="studio-help">Cada archivo terminado queda guardado. Si sales de la aplicación, puedes reanudar al volver.</p>
+      </div>
+      <div id="libraryNotice" class="studio-status" role="status" hidden></div>
+      <details open><summary>Crear tomas para mi biblioteca</summary>
+        <p>240 tomas preparadas de trabajo, dinero, disciplina, familia y momentos de reflexión. Los prompts y los distintos planos ya están escritos.</p>
+        <div class="studio-row"><label>Contenido<select id="recipeCategory"><option value="">Todo Legado de Hierro</option value="trabajo">Trabajo y negocio</option><option value="dinero">Dinero y decisiones</option><option value="disciplina">Disciplina y aprendizaje</option><option value="familia">Familia y relaciones</option><option value="reflexion">Reflexión y momentos difíciles</option></select></label>
+        <label>Imágenes del lote<select id="recipeBatchSize"><option value="12">12 imágenes</option><option value="24">24 imágenes</option><option value="48">48 imágenes</option><option value="240">Todas las pendientes</option></select></label></div>
+        <p id="recipeSummary"></p><button id="recipeGenerate">Generar lote y guardarlo</button>
+        <details><summary>Ver las tomas del próximo lote</summary><ol id="recipePreview"></ol></details>
+      </details>
+      <div class="studio-row"><label>Buscar escena<input id="librarySearch" type="search" placeholder="Ej. calcular presupuesto, caminar solo"></label><label>Tipo<select id="libraryKind"><option value="">Todos</option><option value="image">Imágenes</option><option value="video">Videos</option><option value="music">Música</option></select></label></div>
       <p id="libraryCount"></p><div id="libraryGrid" class="studio-grid"></div>
       <div class="studio-row"><button id="libraryPrev" disabled>Anterior</button><button id="libraryNext" disabled>Siguiente</button></div>
-      <details><summary>Recuperar clips ya generados</summary><label><input type="checkbox" id="libraryLegacy"> Incluir archivos antiguos del bucket compartido para escoger los de este canal</label><button id="libraryDiscover">Buscar clips existentes</button><div id="discoveryGrid" class="studio-grid"></div><button id="discoveryMore" hidden>Ver siguiente página</button></details>
-      <details><summary>Subir material propio desde el teléfono</summary>
-        <label>Archivos (hasta 300 MB cada uno)<input type="file" id="libraryFiles" multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,audio/mpeg,audio/wav,audio/mp4"></label>
-        <label>Qué ocurre en estos archivos<textarea id="libraryUploadDescription" placeholder="Ej. el protagonista explica en la pizarra de su oficina, plano medio, luz cálida."></textarea></label>
-        <div class="studio-row"><label>Colección<input id="libraryUploadCollection" placeholder="Ej. Oficina original"></label><label>Formato<select id="libraryUploadAspect"><option value="9:16">Vertical 9:16</option><option value="16:9">Horizontal 16:9</option><option value="1:1">Cuadrado</option><option value="">Audio / por revisar</option></select></label></div>
-        <button id="libraryUpload">Guardar archivos en la biblioteca</button>
+      <details><summary>Copiar otra biblioteca de Google Cloud</summary>
+        <p>Indica el bucket de origen una vez. Copia los archivos directamente y conserva los nombres, descripciones y etiquetas disponibles. Gemini completa los datos que falten.</p>
+        <label>Bucket o carpeta de origen<input id="librarySource" placeholder="gs://mi-bucket/carpeta/" autocomplete="off" spellcheck="false"></label>
+        <button id="libraryImport">Copiar y organizar biblioteca</button>
       </details>
-      <details><summary>Ampliar la biblioteca con tomas específicas</summary><p>96 tomas propuestas de trabajo, decisiones, dinero, disciplina y familia. Son encargos para construir tu biblioteca, no archivos ya generados. Cada generación se confirma con su coste estimado.</p><label>Toma<select id="recipeSelect"></select></label><button id="recipeGenerate">Generar esta imagen y guardarla</button></details>
+      <details><summary>Añadir archivos del teléfono</summary>
+        <p>Selecciona varios archivos juntos. Sus descripciones se preparan automáticamente.</p>
+        <label>Imágenes, videos o música<input type="file" id="libraryFiles" multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,audio/mpeg,audio/wav,audio/mp4,audio/ogg"></label>
+        <button id="libraryUpload">Guardar y organizar archivos</button>
+      </details>
     </details>
     <section class="studio-card" id="episodeTools" hidden>
       <h2>Guion y montaje de este proyecto</h2><p id="scriptReview" class="studio-status"></p>
@@ -670,8 +688,8 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/studio-core.js?v=20260913b"></script>
-<script src="/app.js?v=20260913b"></script>
-<script src="/studio.js?v=20260913b"></script>
+<script src="/studio-core.js?v=20260913c"></script>
+<script src="/app.js?v=20260913c"></script>
+<script src="/studio.js?v=20260913c"></script>
 </body>
 </html>

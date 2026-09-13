@@ -254,6 +254,7 @@
     if (r.nonFollowers !== null && r.nonFollowers > 100) throw new Error('El porcentaje debe estar entre 0 y 100.');
     r.format = formatFor(r.duration); return r;
   }
+  var IMAGE_STYLE='Recurring signature character: the SAME man in every image, his face IDENTICAL to the reference images -- a 35-year-old man, short black hair slicked back, short well-groomed dark beard, strong jawline, intense dark eyes, serious expression. Keep his face, hair and beard consistent across all images. Wardrobe and setting follow the scene described below (do not force a suit if the scene is humble). Cinematic American 2D comic-book / graphic-novel illustration, digitally inked and coloured: semi-realistic proportions and anatomy (realistic adult faces, never cartoonish, no manga eyes, no caricature), clean bold ink outlines of varying weight (heavier on the silhouette, finer inside the face), cel-shading with hard-edged shadows plus soft gradients on skin and fabric, subtle cross-hatching in the deepest shadows, warm muted palette, cinematic contrast with one clear light direction, hair drawn in defined strands, detailed irises. Never watercolour, never sketch, never flat vector, never halftone dots. IMPORTANT: this describes the DRAWING STYLE only. Each image is ONE single scene that fills the entire frame as one continuous illustration. NEVER a multi-panel comic page, NEVER split into panels, boxes, vignettes, a grid or a collage, NO dividing lines or internal borders. STRICTLY NOT photorealistic, not a photograph, not a 3D render, not CGI. No text, no letters, no captions, no watermark anywhere in the image. ';
   var RECIPES = [
     ['planificar','oficina','Diseñar el primer horario de trabajo en una agenda'],
     ['calcular','casa','Separar gastos esenciales y dinero disponible en la mesa de casa'],
@@ -278,15 +279,52 @@
     ['planificar','casa','Preparar la ropa y los materiales para mañana'],
     ['caminar','ciudad','Avanzar por una calle tranquila al final del día'],
     ['explicar','tienda','Mostrar a otra persona cómo atender un pedido'],
-    ['trabajar','oficina','Cerrar una tarea terminada y registrar el avance']
+    ['trabajar','oficina','Cerrar una tarea terminada y registrar el avance'],
+    ['decidir','casa','Apagar el teléfono y sentarse a terminar una tarea pendiente'],
+    ['descansar','casa','Sentarse al borde de la cama después de un día difícil'],
+    ['calcular','casa','Abrir una factura y revisar sus gastos con una calculadora'],
+    ['trabajar','taller','Reparar un objeto desgastado en vez de desecharlo'],
+    ['aprender','oficina','Revisar un error en un cuaderno y corregirlo paso a paso'],
+    ['planificar','casa','Poner una alarma temprano y dejar el teléfono lejos de la cama'],
+    ['entrenar','gimnasio','Descansar entre series y prepararse para intentarlo una vez más'],
+    ['caminar','calle','Caminar hacia el trabajo mientras la ciudad empieza a despertar'],
+    ['escuchar','casa','Escuchar a su hijo sentado a su altura en la sala'],
+    ['familia','casa','Preparar la cena junto a su pareja al volver del trabajo'],
+    ['vender','tienda','Entregar con cuidado el primer pedido a un cliente'],
+    ['calcular','tienda','Contar pocas monedas al cerrar una jornada de ventas'],
+    ['trabajar','oficina','Reabrir el cuaderno tras recibir una respuesta negativa'],
+    ['decidir','casa','Guardar una compra innecesaria y conservar el dinero para una meta'],
+    ['planificar','taller','Limpiar el banco de trabajo para empezar un encargo nuevo'],
+    ['aprender','casa','Practicar una habilidad siguiendo un ejemplo en su cuaderno'],
+    ['escuchar','oficina','Escuchar una crítica, respirar y tomar una nota útil'],
+    ['explicar','oficina','Explicar a un compañero cómo corregir un error concreto'],
+    ['decidir','calle','Detenerse en una esquina y retomar su camino con decisión'],
+    ['descansar','casa','Beber agua junto a una ventana y dejar descansar los hombros'],
+    ['familia','casa','Ayudar a su hijo con una tarea sin distracciones'],
+    ['escuchar','casa','Sentarse junto a un familiar mayor y escuchar su consejo'],
+    ['trabajar','taller','Entregar a tiempo una reparación cuidadosamente terminada'],
+    ['vender','tienda','Escuchar una queja del cliente y ofrecer una solución concreta'],
+    ['calcular','oficina','Separar en sobres el ahorro y los gastos de su pequeño negocio'],
+    ['planificar','oficina','Marcar una tarea completada y elegir la siguiente'],
+    ['entrenar','gimnasio','Atarse las zapatillas antes de comenzar a entrenar'],
+    ['caminar','ciudad','Volver a casa cansado llevando su bolso de trabajo'],
+    ['aprender','taller','Observar a una persona experimentada reparar una pieza'],
+    ['trabajar','casa','Terminar un proyecto personal en una mesa modesta por la noche'],
+    ['decidir','oficina','Cerrar una oferta que no conviene y volver a su propio trabajo'],
+    ['familia','casa','Dejar el bolso de trabajo y abrazar a su familia al llegar'],
+    ['calcular','casa','Revisar sus ahorros modestos y anotar el siguiente aporte'],
+    ['descansar','calle','Sentarse un momento en un banco tras una caminata larga'],
+    ['explicar','taller','Mostrar con las manos cómo una pieza encaja con otra'],
+    ['planificar','casa','Preparar comida y herramientas para la jornada siguiente']
   ];
   function recipes() {
     var shots = ['plano medio', 'detalle de las manos', 'plano general', 'plano desde la espalda'];
     return RECIPES.flatMap(function(r, i) { return shots.map(function(shot, j) {
-      return {id: 'receta-' + i + '-' + j, action:r[0], location:r[1], shot:shot, title:r[2] + ' · ' + shot,
-        description:r[2] + '. ' + shot + ', en ' + r[1] + ', luz cinematográfica sobria. Una sola acción, sin texto ni logotipos. No lluvia ni fantasía.'};
+      var category=['calcular','vender'].includes(r[0])?'dinero':['familia','escuchar'].includes(r[0])&&r[1]==='casa'?'familia':['trabajar','explicar'].includes(r[0])?'trabajo':['decidir','descansar','caminar'].includes(r[0])?'reflexion':'disciplina';
+      return {id: 'receta-' + i + '-' + j, category:category, action:r[0], location:r[1], shot:shot, title:r[2] + ' · ' + shot,
+        description:r[2] + '. ' + shot + ', en ' + r[1] + ', luz cinematográfica sobria. El protagonista insignia del canal viste ropa cotidiana apropiada para la acción. Una sola acción, sin texto ni logotipos. No lluvia ni fantasía.'};
     }); });
   }
-  return {AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,
+  return {IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,
     continuity:continuity,scenePlan:scenePlan,selectPlan:selectPlan,familyFor:familyFor,formatFor:formatFor,feedback:feedback,validateMetric:validateMetric,recipes:recipes,segments:segments};
 });

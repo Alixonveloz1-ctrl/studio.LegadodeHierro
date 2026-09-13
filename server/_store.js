@@ -36,8 +36,9 @@ function makeStore(signal) {
     if (!r.ok && r.status !== 404) throw failure(r.status === 412 ? 'El trabajo está siendo actualizado. Vuelve a consultar.' : 'Almacenamiento: HTTP '+r.status,r.status);
     return r;
   }
-  const route = obj=>'/storage/v1/b/'+encodeURIComponent(bucket)+'/o/'+encodeURIComponent(obj);
+  const route = (obj,b=bucket)=>'/storage/v1/b/'+encodeURIComponent(b)+'/o/'+encodeURIComponent(obj);
   return {
+    bucket,
     async read(object) {
       const meta = await call(route(object)); if (meta.status === 404) return null;
       const m = await meta.json();
@@ -76,6 +77,26 @@ function makeStore(signal) {
       return Buffer.concat(chunks);
     },
     async info(object) { const r = await call(route(object)); return r.status === 404 ? null : r.json(); },
+    async sourceInfo(source,object) { const r=await call(route(object,source));return r.status===404?null:r.json(); },
+    async sourceJSON(source,object,limit=1048576) {
+      const meta=await call(route(object,source));if(meta.status===404)return null;
+      const m=await meta.json();if(Number(m.size)>limit)return null;
+      const r=await call(route(object,source)+'?alt=media&generation='+m.generation);if(r.status===404)return null;
+      let size=0;const chunks=[];
+      for await(const chunk of r.body){size+=chunk.length;if(size>limit)return null;chunks.push(chunk);}
+      try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch(e){return null;}
+    },
+    async sourceList(source,prefix,cursor,size=100) {
+      const r=await call('/storage/v1/b/'+encodeURIComponent(source)+'/o?prefix='+encodeURIComponent(prefix)+'&maxResults='+size
+        +'&fields=items(name,size,contentType,generation,crc32c),nextPageToken'+(cursor?'&pageToken='+encodeURIComponent(cursor):''));
+      if(r.status===404)throw failure('No se encontró el bucket de origen.',404);return r.json();
+    },
+    async rewriteFrom(source,object,rewriteToken) {
+      const q=new URLSearchParams({ifGenerationMatch:'0',ifSourceGenerationMatch:String(source.generation),maxBytesRewrittenPerCall:String(64*1024*1024)});
+      if(rewriteToken)q.set('rewriteToken',rewriteToken);
+      const r=await call(route(source.object,source.bucket)+'/rewriteTo/b/'+encodeURIComponent(bucket)+'/o/'+encodeURIComponent(object)+'?'+q,{method:'POST'});
+      if(r.status===404)throw failure('El archivo de origen ya no está disponible.',404);return r.json();
+    },
     async list(prefix,cursor,size) {
       const r = await call('/storage/v1/b/'+bucket+'/o?prefix='+encodeURIComponent(prefix)+'&maxResults='+(size || 100)
         +'&fields=items(name,size,contentType,timeCreated,metadata),nextPageToken'+(cursor ? '&pageToken='+encodeURIComponent(cursor) : '')); return r.json();

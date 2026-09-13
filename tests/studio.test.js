@@ -100,7 +100,7 @@ test('library metadata has stable IDs, retains favorites and refuses private buc
   const a=cleanAsset({kind:'video',description:'Caminar por la calle',favorite:true},'legado-videos/a.mp4');
   const b=cleanAsset({description:'Caminar solo por la calle'},a.object,a);assert.equal(a.id,b.id);assert.equal(b.favorite,true);assert.equal(b.version,2);
   assert.equal(safeObject('refs/secret.json',true),false);assert.equal(safeObject('unify/job.mp4',true),false);assert.equal(safeObject('../x.mp4',true),false);
-  assert.equal(core.recipes().length,96);
+  assert.equal(core.recipes().length,240);assert.equal(new Set(core.recipes().map(r=>r.id)).size,240);assert.ok(core.recipes().every(r=>r.description.length>100&&r.category));
 });
 test('text deadline includes authentication and response body; MAX_TOKENS is rejected',async()=>{
   const {generateText}=require('../server/_text'),original=global.fetch;

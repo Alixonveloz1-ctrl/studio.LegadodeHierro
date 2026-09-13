@@ -100,8 +100,8 @@ async function studioLoadAll(action){
 async function studioLoadLibrary(){
   studioMessage('Leyendo la biblioteca...');
   STUDIO.assets=await studioLoadAll('assets');
-  studioMessage(STUDIO.assets.filter(function(a){return !a.archived;}).length+' materiales. Las fichas sin descripción necesitan catalogarse antes de elegirlas automáticamente.');
-  studioPaintRecipes();await studioPaintLibrary();loadMusicList();
+  studioMessage('');
+  studioPaintRecipes();await studioPaintLibrary();loadMusicList();await studioLibraryStatus();
 }
 function studioMedia(asset,url){
   var el=document.createElement(asset.kind==='image'?'img':asset.kind==='music'?'audio':'video');
@@ -109,15 +109,16 @@ function studioMedia(asset,url){
   else{el.controls=true;el.preload='none';if(asset.kind==='video'){el.playsInline=true;el.muted=true;}}
   el.src=url;return el;
 }
-var STUDIO_PAGE=0,STUDIO_DISCOVERY=null;
+var STUDIO_PAGE=0;
 async function studioPaintLibrary(){
   var grid=studioEl('libraryGrid');if(!grid)return;
   var q=LH.norm(studioEl('librarySearch').value),kind=studioEl('libraryKind').value;
   var rows=STUDIO.assets.filter(function(a){return !a.archived&&(!kind||a.kind===kind)&&(!q||LH.norm([a.title,a.description,a.location,a.action,(a.tags||[]).join(' '),a.collection].join(' ')).includes(q));});
+  STUDIO_PAGE=Math.min(STUDIO_PAGE,Math.max(0,Math.ceil(rows.length/8)-1));
   var page=rows.slice(STUDIO_PAGE*8,STUDIO_PAGE*8+8);
   grid.innerHTML='';studioEl('libraryCount').textContent=rows.length+' coincidencias · página '+(STUDIO_PAGE+1);
   studioEl('libraryPrev').disabled=STUDIO_PAGE===0;studioEl('libraryNext').disabled=(STUDIO_PAGE+1)*8>=rows.length;
-  if(!page.length){grid.textContent='Sin materiales en esta selección. Importa archivos o recupera los clips que ya generaste.';return;}
+  if(!page.length){grid.textContent='Organiza tu material guardado o genera un lote de tomas para empezar.';return;}
   var d=await studioAPI('links',{ids:page.map(function(a){return a.id;})});
   d.items.forEach(function(a){grid.appendChild(studioAssetCard(a,a.url));});
 }
@@ -125,37 +126,23 @@ function studioInput(label,value,type){
   var l=document.createElement('label');l.appendChild(document.createTextNode(label));var input=document.createElement(type==='textarea'?'textarea':'input');
   if(type!=='textarea')input.type=type||'text';input.value=value||'';l.appendChild(input);return {label:l,input:input};
 }
-function studioAssetCard(asset,url,legacy){
+function studioAssetCard(asset,url){
   var card=document.createElement('div');card.className='studio-asset';card.appendChild(studioMedia(asset,url));
-  var title=document.createElement('strong');title.textContent=asset.title||'Material sin catalogar';card.appendChild(title);
-  var desc=studioInput('Qué se ve y qué acción ocurre',asset.description,'textarea');card.appendChild(desc.label);
-  var tags=studioInput('Etiquetas, separadas por comas',(asset.tags||[]).join(', '));card.appendChild(tags.label);
-  var character=studioInput('Personaje (ej. insignia, manos, sin rostro)',asset.character);card.appendChild(character.label);
-  var set=studioInput('Lugar y vestuario de continuidad (opcional)',asset.setId);card.appendChild(set.label);
-  var ratio=document.createElement('select');ratio.setAttribute('aria-label','Formato del material');
-  [['','Formato por revisar'],['9:16','Vertical 9:16'],['16:9','Horizontal 16:9'],['1:1','Cuadrado'],['4:5','Vertical 4:5']].forEach(function(p){var o=new Option(p[1],p[0]);o.selected=asset.aspect===p[0];ratio.add(o);});card.appendChild(ratio);
-  var favorite=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.checked=!!asset.favorite;favorite.appendChild(check);favorite.appendChild(document.createTextNode(' Favorito del canal'));card.appendChild(favorite);
-  var save=document.createElement('button');save.textContent=legacy?'Catalogar para reutilizar':'Guardar ficha';
-  save.onclick=async function(){save.disabled=true;try{
-    var edited=Object.assign({},asset,{description:desc.input.value,tags:tags.input.value.split(',').map(function(t){return t.trim();}),favorite:check.checked,character:character.input.value,setId:set.input.value,aspect:ratio.value});
-    delete edited.url;
-    var d=await studioAPI('asset-save',{object:asset.object,asset:edited,legacy:!!legacy});
-    STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==d.asset.id;}).concat(d.asset);asset=d.asset;save.textContent='Guardado';studioMessage('Material catalogado. Ya puede participar en el montaje automático.');
-  }catch(e){studioMessage(e.message,true);}finally{save.disabled=false;}};card.appendChild(save);
-  if(asset.kind==='music'){var use=document.createElement('button');use.textContent='Usar como música del canal';use.onclick=function(){localStorage.setItem('lh_music_sel',asset.object);loadMusicList();studioMessage('Música elegida. Se conservará en los siguientes proyectos hasta que la cambies.');};card.appendChild(use);}
+  var title=document.createElement('strong');title.textContent=asset.title||'Material pendiente de organizar';card.appendChild(title);
+  var description=document.createElement('p');description.textContent=asset.description||'Gemini preparará su descripción al organizar la biblioteca.';card.appendChild(description);
+  var details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Ajustar descripción (opcional)';details.appendChild(summary);
+  var name=studioInput('Título',asset.title),desc=studioInput('Descripción',asset.description,'textarea');details.appendChild(name.label);details.appendChild(desc.label);
+  var save=document.createElement('button');save.textContent='Guardar ajuste';save.onclick=async function(){save.disabled=true;try{
+    var d=await studioAPI('asset-save',{object:asset.object,legacy:true,asset:Object.assign({},asset,{title:name.input.value,description:desc.input.value,catalogSource:'manual'})});
+    asset=d.asset;title.textContent=asset.title;description.textContent=asset.description;details.open=false;
+    STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==asset.id;}).concat(asset);
+  }catch(e){studioLibraryMessage(e.message,true);}finally{save.disabled=false;}};details.appendChild(save);card.appendChild(details);
+  var favorite=document.createElement('button');favorite.className='studio-favorite';favorite.textContent=asset.favorite?'★ Favorito':'☆ Marcar favorito';favorite.onclick=async function(){favorite.disabled=true;try{
+    var d=await studioAPI('asset-save',{object:asset.object,legacy:true,asset:{favorite:!asset.favorite}});asset=d.asset;
+    STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==asset.id;}).concat(asset);favorite.textContent=asset.favorite?'★ Favorito':'☆ Marcar favorito';
+  }catch(e){studioLibraryMessage(e.message,true);}finally{favorite.disabled=false;}};card.appendChild(favorite);
+  if(asset.kind==='music'){var use=document.createElement('button');use.textContent='Usar como música del canal';use.onclick=function(){localStorage.setItem('lh_music_sel',asset.object);musicLoaded=false;loadMusicList();};card.appendChild(use);}
   return card;
-}
-async function studioDiscover(more){
-  if(!more)STUDIO_DISCOVERY={cursor:'',legacy:studioEl('libraryLegacy').checked,items:[],started:false};
-  var state=STUDIO_DISCOVERY;if(!state)return;
-  if(!state.items.length&&(!state.started||state.cursor)){
-    var d=await studioAPI('discover',{cursor:state.cursor,legacy:state.legacy});state.cursor=d.cursor;state.started=true;
-    state.items=d.items.filter(function(a){return !STUDIO.assets.some(function(x){return x.object===a.object;});});
-  }
-  var grid=studioEl('discoveryGrid');grid.innerHTML='';
-  state.items.splice(0,8).forEach(function(a){grid.appendChild(studioAssetCard(a,a.url,true));});
-  studioEl('discoveryMore').hidden=!state.cursor&&!state.items.length;
-  studioMessage('Mira cada material y describe su acción y formato. Se muestran hasta ocho por página para facilitar la revisión en el teléfono.');
 }
 async function studioUploadBlob(blob,metadata,narration){
   var mime=blob.type||'video/mp4';if(mime==='audio/x-wav')mime='audio/wav';
@@ -172,12 +159,13 @@ async function studioCatalogMusic(track,description){
 }
 async function studioUploadFiles(){
   var files=Array.from(studioEl('libraryFiles').files||[]);if(!files.length)return;
-  var desc=studioEl('libraryUploadDescription').value.trim();if(!desc)throw new Error('Describe lo que ocurre en los archivos que vas a subir.');
+  var objects=[];
   for(var i=0;i<files.length;i++){
-    studioMessage('Guardando archivo '+(i+1)+' de '+files.length);
-    await studioUploadBlob(files[i],{title:files[i].name,description:desc,kind:files[i].type.startsWith('audio/')?'music':files[i].type.startsWith('image/')?'image':'video',aspect:studioEl('libraryUploadAspect').value,collection:studioEl('libraryUploadCollection').value});
+    studioLibraryMessage('Guardando archivo '+(i+1)+' de '+files.length);
+    var asset=await studioUploadBlob(files[i],{kind:files[i].type.startsWith('audio/')?'music':files[i].type.startsWith('image/')?'image':'video',collection:'Mis archivos'});objects.push(asset.object);
   }
-  studioEl('libraryFiles').value='';await studioPaintLibrary();musicLoaded=false;loadMusicList();studioMessage(files.length+' archivos guardados para reutilizar.');
+  studioEl('libraryFiles').value='';await studioPaintLibrary();musicLoaded=false;loadMusicList();
+  return studioLibraryStart({type:'catalog',objects:objects});
 }
 function studioSaveImage(src,description,index,extra){
   var previous=STUDIO.imageSaves[src]||Promise.resolve();
@@ -473,19 +461,69 @@ async function studioResumeRender(){
   if(!r)throw new Error('Este proyecto todavía no tiene un montaje iniciado en este idioma.');
   return studioWatchRender(r.jobId,lastRes,lang);
 }
+var STUDIO_LIBRARY={running:false,pause:false,job:null};
+function studioLibraryMessage(text,error){var el=studioEl('libraryNotice');el.hidden=!text;el.textContent=text;el.className='studio-status'+(error?' studio-error':'');}
+function studioLibraryPaint(job){
+  STUDIO_LIBRARY.job=job;studioEl('libraryWork').hidden=!job;if(!job)return;
+  studioEl('libraryWorkStatus').textContent=job.error||job.stage;
+  var done=(job.completed||0)+(job.skipped||0)+(job.failed||0),progress=studioEl('libraryProgress');progress.max=Math.max(1,job.total||1);progress.value=done;
+  studioEl('libraryResume').hidden=STUDIO_LIBRARY.running||job.status==='done';
+  studioEl('libraryPause').hidden=!STUDIO_LIBRARY.running;if(!STUDIO_LIBRARY.running)studioEl('libraryPause').textContent='Pausar después de esta toma';studioEl('libraryStop').hidden=STUDIO_LIBRARY.running||job.status==='done';
+  ['libraryCatalog','recipeGenerate','libraryImport','libraryUpload'].forEach(function(id){studioEl(id).disabled=STUDIO_LIBRARY.running;});
+  if(job.lastAsset){STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==job.lastAsset.id;}).concat(job.lastAsset);}
+}
+async function studioLibraryStatus(){var d=await studioAPI('library-status');studioLibraryPaint(d.job||null);}
+async function studioLibraryRun(job){
+  if(STUDIO_LIBRARY.running)return;STUDIO_LIBRARY.running=true;STUDIO_LIBRARY.pause=false;studioLibraryMessage('');
+  try{
+    while(job.status!=='done'&&!STUDIO_LIBRARY.pause){
+      studioLibraryPaint(job);var d=await studioAPI('library-advance',{id:job.id});job=d.job;
+      if(job.busy)await new Promise(function(r){setTimeout(r,2000);});
+    }
+    studioLibraryPaint(job);studioLibraryMessage(job.status==='done'?job.stage:'Lote pausado. Puedes reanudar desde la última toma guardada.');
+  }catch(e){studioLibraryMessage(e.message,true);try{await studioLibraryStatus();job=STUDIO_LIBRARY.job;}catch(ignored){}}
+  finally{
+    STUDIO_LIBRARY.running=false;studioLibraryPaint(job);STUDIO.assets=await studioLoadAll('assets');studioPaintRecipes();await studioPaintLibrary();
+  }
+}
+async function studioLibraryStart(config){
+  var pending=null;try{pending=JSON.parse(localStorage.getItem('lh_library_start')||'null');}catch(e){}
+  if(!pending||JSON.stringify(pending.config)!==JSON.stringify(config))pending={requestId:nextUid(),config:config};
+  localStorage.setItem('lh_library_start',JSON.stringify(pending));
+  var d=await studioAPI('library-start',pending);localStorage.removeItem('lh_library_start');studioLibraryPaint(d.job);
+  if(d.job.existing){studioLibraryMessage('Hay un lote guardado. Reanúdalo o termina ese lote antes de comenzar otro.');return;}
+  return studioLibraryRun(d.job);
+}
+async function studioCatalogExisting(){return studioLibraryStart({type:'catalog'});}
+async function studioLibraryResume(){
+  var pending=null;try{pending=JSON.parse(localStorage.getItem('lh_library_start')||'null');}catch(e){}
+  if(pending)return studioLibraryStart(pending.config);
+  await studioLibraryStatus();if(STUDIO_LIBRARY.job&&STUDIO_LIBRARY.job.status!=='done')return studioLibraryRun(STUDIO_LIBRARY.job);
+}
+async function studioLibraryStop(){
+  var job=STUDIO_LIBRARY.job;if(!job)return;
+  var d=await studioAPI('library-stop',{id:job.id});studioLibraryPaint(d.job);studioLibraryMessage(d.job.stage);
+}
+async function studioImportLibrary(){
+  var source=studioEl('librarySource').value.trim();if(!source)throw new Error('Indica el bucket de origen una sola vez.');
+  localStorage.setItem('lh_library_source',source);return studioLibraryStart({type:'import',source:source});
+}
+function studioRecipeBatch(){
+  var category=studioEl('recipeCategory').value,limit=Number(studioEl('recipeBatchSize').value);
+  return LH.recipes().filter(function(r){return (!category||r.category===category)&&!STUDIO.assets.some(function(a){return a.recipeId===r.id&&a.aspect===imgFmt&&!a.archived;});})
+    .sort(function(a,b){return [2,0,1,3].indexOf(Number(a.id.split('-')[2]))-[2,0,1,3].indexOf(Number(b.id.split('-')[2]));}).slice(0,limit);
+}
 function studioPaintRecipes(){
-  var sel=studioEl('recipeSelect');sel.innerHTML='';LH.recipes().forEach(function(r){
-    var exists=STUDIO.assets.some(function(a){return a.recipeId===r.id;});sel.add(new Option((exists?'✓ Guardada · ':'')+r.title,r.id));
-  });
+  var recipes=studioRecipeBatch(),count=recipes.length;
+  studioEl('recipeSummary').textContent=count?count+' tomas pendientes · formato '+imgFmt+' · imágenes: $'+(count*imgCost()).toFixed(2)+' aprox. La descripción con Gemini se cobra aparte según uso.':'Estas tomas ya están guardadas para el formato elegido.';
+  var list=studioEl('recipePreview');list.innerHTML='';recipes.forEach(function(r){var li=document.createElement('li');li.textContent=r.title;list.appendChild(li);});
 }
 async function studioGenerateRecipe(){
-  var recipe=LH.recipes().find(function(r){return r.id===studioEl('recipeSelect').value;});if(!recipe)return;
-  if(!confirm('Generar 1 imagen para la biblioteca. Coste estimado: $'+imgCost().toFixed(2)+'. Podrás reutilizarla en todos tus videos. ¿Generar?'))return;
-  var refs=await loadRefs();if(refs.length<MIN_REFS)throw new Error('Faltan las referencias del personaje.');
-  studioMessage('Generando la toma elegida...');
-  var src=await genOneImage(imgPromptPrefix(imgFmt)+recipe.description,refs);
-  await studioSaveImage(src,recipe.description,0,{title:recipe.title,recipeId:recipe.id,action:recipe.action,location:recipe.location,shot:recipe.shot,collection:'Tomas reutilizables'});
-  cost+=imgCost();updCost();studioPaintRecipes();await studioPaintLibrary();studioMessage('Toma guardada en la biblioteca. Puedes animarla desde una escena del proyecto.');
+  STUDIO.assets=await studioLoadAll('assets');studioPaintRecipes();var recipes=studioRecipeBatch();if(!recipes.length)return;
+  if(!confirm('Generar '+recipes.length+' imágenes con los prompts preparados: $'+(recipes.length*imgCost()).toFixed(2)+' aprox., más la descripción automática con Gemini. Una sola aprobación para todo el lote. ¿Comenzar?'))return;
+  studioLibraryMessage('Preparando las referencias y el lote de imágenes…');
+  await loadRefs();
+  return studioLibraryStart({type:'generate',recipeIds:recipes.map(function(r){return r.id;}),model:imgModel,aspect:imgFmt});
 }
 async function studioGenerateMissing(){
   if(!lastRes||!STUDIO.plan.length)throw new Error('Prepara el montaje desde la biblioteca primero.');
@@ -505,13 +543,18 @@ async function studioGenerateMissing(){
 }
 async function studioGuard(fn){
   if(STUDIO.busy)return;STUDIO.busy=true;
-  try{await fn();}catch(e){studioMessage(e.message,true);}finally{STUDIO.busy=false;}
+  try{await fn();}catch(e){if(studioEl('libraryPanel').open)studioLibraryMessage(e.message,true);else studioMessage(e.message,true);}finally{STUDIO.busy=false;}
 }
 function studioInit(){
   studioPaintPending();studioPaintRecipes();
   studioEl('projectsPanel').addEventListener('toggle',function(){if(this.open)studioGuard(studioOpenProjects);});
   var bind=function(id,fn){var el=studioEl(id);if(el)el.onclick=function(){studioGuard(fn);};};
-  bind('libraryLoad',studioLoadLibrary);bind('libraryUpload',studioUploadFiles);bind('libraryDiscover',function(){return studioDiscover(false);});bind('discoveryMore',function(){return studioDiscover(true);});
+  bind('libraryLoad',studioLoadLibrary);bind('libraryUpload',studioUploadFiles);bind('libraryCatalog',studioCatalogExisting);bind('libraryImport',studioImportLibrary);bind('libraryResume',studioLibraryResume);bind('libraryStop',studioLibraryStop);
+  studioEl('libraryPause').onclick=function(){STUDIO_LIBRARY.pause=true;this.textContent='Terminando la toma actual…';};
+  studioEl('librarySource').value=localStorage.getItem('lh_library_source')||'';
+  studioEl('recipeCategory').onchange=studioPaintRecipes;studioEl('recipeBatchSize').onchange=studioPaintRecipes;
+  ['selImgFmt','selImgModel'].forEach(function(id){var el=studioEl(id);if(el)el.addEventListener('change',studioPaintRecipes);});
+  studioEl('libraryPanel').addEventListener('toggle',function(){if(this.open&&!STUDIO_LIBRARY.running)studioGuard(studioLoadLibrary);});
   bind('studioPending',studioResume);bind('projectsLoad',studioOpenProjects);bind('buildScenePlan',studioBuildPlan);bind('generateMissing',studioGenerateMissing);bind('recipeGenerate',studioGenerateRecipe);bind('scriptSave',studioEditScript);bind('resumeRender',studioResumeRender);bind('audioRestoreES',function(){return studioRecoverAudio('es');});bind('audioRestoreEN',function(){return studioRecoverAudio('en');});
   bind('scriptRecheck',studioReviewScript);
   studioEl('librarySearch').onchange=function(){STUDIO_PAGE=0;studioGuard(studioPaintLibrary);};studioEl('libraryKind').onchange=studioEl('librarySearch').onchange;
