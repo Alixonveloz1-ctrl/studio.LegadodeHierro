@@ -55,14 +55,17 @@ Vercel y Google Cloud son despliegues separados. La API detecta el servidor de m
 
 No se han ejecutado generaciones reales de texto, voz o imágenes para validar la actualización. El estado de publicación se comprueba en los despliegues de Vercel y en el indicador de montaje dentro de la aplicación.
 
-Se puede completar desde un navegador, incluido el teléfono, usando Google Cloud Shell y el panel de Vercel. Debe hacerse con las cuentas que ya administran esta aplicación.
+Desde el celular basta con abrir [Cloud Shell](https://shell.cloud.google.com/) y escribir esta única línea:
 
-1. En Google Cloud selecciona el proyecto donde existe `legado-unify`. El instalador usa por defecto `creaciondecontenido1`, región `us-central1`; se pueden ajustar con `LEGADO_PROJECT_ID` y `LEGADO_REGION`.
-2. Guarda la revisión activa de Cloud Run y el despliegue activo de Vercel para poder volver atrás. Espera a que termine cualquier montaje en curso.
-3. Abre el repositorio de esta actualización en Cloud Shell, entra en su carpeta y ejecuta `bash cloudrun/unify/actualizar.sh`. El script compila los archivos incluidos, instala `legado-render`, configura su permiso y conserva la clave del servicio. Añade CORS para la subida directa sin borrar las reglas de otros orígenes. No ejecuta ninguna generación.
-4. La actualización de `main` despliega Vercel automáticamente y conserva las variables de entorno. El adaptador permite publicar primero Vercel y completar después Google Cloud, sin presentar el montaje anterior como duradero.
-5. Recarga la aplicación. El comprobador debe mostrar servicio `2026-09-13.1` actualizado y con el job configurado.
-6. Comprueba primero guardado/restauración de un proyecto, subida de un archivo pequeño y montaje con recursos existentes. Después valida una generación corta con tus proveedores. Finalmente prueba un relato de cinco minutos y otro de ocho, revisando duración, voz y subtítulos.
+```bash
+curl -fsSL https://studio.legadodehierro.com/u.sh | bash
+```
+
+Si Google solicita **Autorizar**, pulsa ese botón. Espera hasta ver **LISTO: montaje actualizado**, vuelve a la aplicación y recarga. El indicador de montaje debe mostrar que está actualizado. Si aparece un error, conserva una captura de las últimas líneas; el mismo comando puede repetirse.
+
+El instalador incluye todos los archivos necesarios, usa por defecto `creaciondecontenido1` y `us-central1`, conserva la clave y la cuenta del servicio actual y añade las subidas desde el teléfono sin borrar las reglas de otros proyectos. Prepara una revisión sin tráfico, instala el job y su permiso y luego activa la revisión. Si falla la comprobación final, restablece el tráfico anterior. No inicia generaciones. La descarga debe estar completa antes de ejecutar operaciones de Google Cloud.
+
+Después de instalar, verifica guardado y recuperación de un proyecto y el montaje de archivos existentes. Luego prueba el relato de cinco u ocho minutos con tus proveedores, revisando duración, voz y subtítulos.
 
 Para un origen distinto, ejecuta el actualizador con `LEGADO_STUDIO_ORIGIN=https://tu-dominio`. Si utilizas una vista previa de Vercel, añade explícitamente ese origen a CORS conservando las reglas que ya tiene el bucket. Las URLs firmadas no sustituyen los permisos de lectura/escritura de la cuenta de servicio.
 
@@ -70,9 +73,9 @@ El job dispone de una hora por intento, un reintento y 2 GiB de memoria. Su cuen
 
 ## Verificación realizada y pendiente
 
-Pasaron 38 pruebas automatizadas de guiones por partes, revisión y corrección editorial, recuperación de audio, escrituras concurrentes, API, catálogo, mediciones, controles DOM y arranque del ejecutor. Se comprobó que una revisión guardada se recupera sin otra llamada, que se rechazan citas inexistentes y que la corrección no entra en un ciclo infinito. FFmpeg produjo un MP4 vertical real de ocho minutos con narración sintética dividida, imágenes, video, música audible cerca del final y subtítulos. La diferencia entre duración del video y la narración quedó dentro de un fotograma en las comprobaciones del plan.
+Pasaron 42 pruebas automatizadas de guiones por partes, revisión y corrección editorial, recuperación de audio, escrituras concurrentes, API, catálogo, mediciones, controles DOM y arranque del ejecutor. Se comprobó que una revisión guardada se recupera sin otra llamada, que se rechazan citas inexistentes y que la corrección no entra en un ciclo infinito. FFmpeg produjo un MP4 vertical real de ocho minutos con narración sintética dividida, imágenes, video, música audible cerca del final y subtítulos. La diferencia entre duración del video y la narración quedó dentro de un fotograma en las comprobaciones del plan.
 
-Las pruebas de despliegue verifican las rutas agrupadas, su autenticación, el rechazo de rutas internas y la compatibilidad de ambos contratos de montaje.
+Las pruebas de despliegue verifican las rutas agrupadas, su autenticación, el rechazo de rutas internas y la compatibilidad de ambos contratos de montaje. Cuatro pruebas adicionales ejecutan el instalador con Google Cloud simulado: instalación completa sin incluir claves en la compilación, fallo del job antes de cambiar tráfico, recuperación de la revisión anterior si falla la comprobación final y descarga incompleta sin operaciones en la nube.
 
 La prueba de interfaz usa los archivos reales de HTML y JavaScript en un DOM local simulado. El navegador de vista previa fue bloqueado por el entorno; no constituye una comprobación visual en Safari. Quedan por verificar con acceso al despliegue real: permisos de Google, CORS, ejecución del job, respuestas reales de los proveedores y reproducción/descarga desde el iPhone. No se han comprobado mejoras de alcance o ingresos posteriores a esta actualización.
 

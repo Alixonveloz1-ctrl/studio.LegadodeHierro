@@ -56,6 +56,19 @@ El servicio Cloud Run conserva `BUCKET` y `UNIFY_KEY`. El actualizador instala e
 
 La subida directa necesita CORS para el origen del estudio. El instalador añade GET/HEAD/PUT para `https://studio.legadodehierro.com` conservando las reglas existentes. Para otro dominio usa `LEGADO_STUDIO_ORIGIN` al actualizar.
 
+## Actualizar el montaje desde el celular
+
+1. Abre [Cloud Shell](https://shell.cloud.google.com/) con la cuenta que administra tu proyecto.
+2. Escribe esta única línea y pulsa Enter:
+
+```bash
+curl -fsSL https://studio.legadodehierro.com/u.sh | bash
+```
+
+3. Si Google muestra **Autorizar**, pulsa ese botón. Espera a que diga **LISTO: montaje actualizado** y recarga la aplicación.
+
+El archivo `public/u.sh` incluye el montador completo. Selecciona el proyecto configurado en el instalador, conserva las claves existentes, prepara el ejecutor y comprueba que responde. Las claves no forman parte del archivo público. La instalación no genera videos.
+
 ## Verificación local
 
 Requiere Node.js 24, Python 3 y, para la prueba de montaje, FFmpeg/ffprobe.
