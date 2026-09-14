@@ -7,6 +7,7 @@ function validateConfig(c) {
   if (!c || !['script','audio','english','review'].includes(c.type)) throw failure('Tipo de trabajo inválido.',400);
   if (c.type === 'script') {
     if (typeof c.prompt !== 'string' || c.prompt.length > 160000 || c.prompt.length < 20) throw failure('Falta el encargo del guion.',400);
+    if(c.wordsPerSecond!==undefined&&(!Number.isFinite(c.wordsPerSecond)||c.wordsPerSecond<1||c.wordsPerSecond>4))throw failure('Ritmo de narración inválido.',400);
     if (![30,45,60,90,120,180,300,480].includes(Number(c.seconds))) throw failure('Duración no admitida.',400);
     if (c.editorialVersion!==undefined && c.editorialVersion!==2) throw failure('Versión editorial inválida.',400);
     if (c.editorialVersion===2 && (!Number.isInteger(c.sceneCount)||c.sceneCount<3||c.sceneCount>40||(c.mode==='profesor'&&c.sceneCount!==8))) throw failure('Número de escenas inválido.',400);
@@ -57,7 +58,7 @@ async function createJob(store, config, requestId) {
   const id = 'task-'+createHash('sha256').update(requestId+'|'+hash).digest('hex').slice(0,32);
   const path = BASE+id+'.json', old = await store.read(path); if (old) return publicJob(old.data);
   const chunks = config.type === 'audio' ? core.chunks(config.text,80,3200) : config.type === 'english' ? core.chunks(config.text,220,6000) : [];
-  const total = config.type === 'script' ? Math.max(1,Math.ceil(Number(config.seconds)*2.35/220)) : config.type==='review'?1:chunks.length;
+  const total = config.type === 'script' ? Math.max(1,Math.ceil(Number(config.seconds)*(Number(config.wordsPerSecond)||2.35)/220)) : config.type==='review'?1:chunks.length;
   const job = {id,config,hash,chunks,total,parts:[],status:'ready',stage:config.type === 'script'?'Preparando el esquema':'Listo para comenzar',createdAt:new Date().toISOString(),leaseUntil:0};
   try { await store.put(path,job,0); } catch(e) { if (e.status !== 412) throw e; return publicJob((await store.read(path)).data); }
   return publicJob(job);

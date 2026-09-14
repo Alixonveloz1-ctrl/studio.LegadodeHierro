@@ -148,7 +148,7 @@ section{margin-bottom:20px}
 .voxP:active{border-color:#c4897a;color:#c4897a}
 #voxPanel summary::-webkit-details-marker{display:none}
 </style>
-<link rel="stylesheet" href="/studio.css?v=20260914l">
+<link rel="stylesheet" href="/studio.css?v=20260914m">
 </head>
 <body>
 
@@ -267,7 +267,7 @@ section{margin-bottom:20px}
       <details id="scriptDraftBox" hidden><summary>Comparar con el borrador anterior a la mejora</summary><p id="scriptDraft" class="studio-status"></p></details>
       <details><summary>Editar el guion antes de narrarlo</summary><textarea id="scriptEdit" rows="10"></textarea><button id="scriptSave">Guardar esta versión del guion</button></details>
       <div id="sceneSettings"></div>
-      <div class="studio-row"><button id="buildScenePlan">Asignar videos del banco al guion</button><button id="generateMissingImages">Generar imágenes pendientes</button><button id="generateMissing">Generar videos pendientes</button><button id="resumeRender">Consultar mi montaje</button></div>
+      <div class="studio-row"><button id="buildScenePlan">Asignar videos del banco al guion</button><button id="generateMissingImages">Generar imágenes pendientes</button><button id="generateMissing">Generar videos pendientes</button></div>
       <p>Primero genera las imágenes y revísalas. Cuando estén bien, pulsa «Generar videos pendientes». Cada paso conserva lo que ya tienes.</p>
       <div class="studio-row"><button id="audioRestoreES">Recuperar narración ES</button><button id="audioRestoreEN">Recuperar narración EN</button></div>
       <div id="scenePlan" class="studio-plan"></div>
@@ -649,7 +649,7 @@ section{margin-bottom:20px}
       <div class="scard" id="unifyCard" style="border:1.5px solid #7a9ec444;margin-top:14px;display:none">
         <div class="shdr" style="background:#e8f0f8">
           <div><div class="stitl" style="color:#7a9ec4">🎞 Video Final — Unificación</div><div class="ssub" id="unifySub">Une los clips, ajusta la velocidad al audio y pega la narración</div></div>
-          <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button>
+          <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button><button class="cbtn" id="resumeRender" hidden>Ver montaje iniciado</button><div id="unifyFeedback" style="flex-basis:100%"><div class="stxt" id="unifySt" role="status" aria-live="polite"></div><div class="serr" id="unifyErr" role="alert"></div></div>
         </div>
         <div class="sbody">
           <div id="crVer" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;padding:9px 11px;border-radius:9px"></div>
@@ -702,8 +702,8 @@ section{margin-bottom:20px}
             </label>
             <div class="stxt" id="musicSt" style="margin-top:6px"></div>
           </div>
-          <div class="stxt" id="unifySt"></div>
-          <div class="serr" id="unifyErr"></div>
+
+
           <div id="unifyRes" style="display:none"></div>
         </div>
       </div>
@@ -719,8 +719,8 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/studio-core.js?v=20260914l"></script>
-<script src="/app.js?v=20260914l"></script>
-<script src="/studio.js?v=20260914l"></script>
+<script src="/studio-core.js?v=20260914m"></script>
+<script src="/app.js?v=20260914m"></script>
+<script src="/studio.js?v=20260914m"></script>
 </body>
 </html>

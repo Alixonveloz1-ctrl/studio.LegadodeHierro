@@ -4151,6 +4151,7 @@ function totalClips(){
 }
 
 function updUnifyCard(){
+  var recover=document.getElementById('resumeRender');if(recover)recover.hidden=!(lastRes&&lastRes.renders&&lastRes.renders[unifyLang()]);
   if(!musicLoaded)loadMusicList();
   var sub=document.getElementById('unifySub');if(!sub)return;
   var audio=unifyLang()==='en'?audEN:audES;
@@ -4234,10 +4235,10 @@ function wireUnifyLang(){
 }
 
 async function unifyVideo(){
-  if(STUDIO.busy)return;
-  var btn=document.getElementById('bunify');btn.disabled=true;STUDIO.busy=true;
-  try{await studioRenderVideo();}catch(e){studioMessage(e.message,true);document.getElementById('unifyErr').textContent=e.message;document.getElementById('unifyErr').style.display='block';}
-  finally{btn.disabled=false;STUDIO.busy=false;}
+  if(STUDIO.busy){studioMontageMessage('Espera a que termine la generación en curso antes de montar.',true);return;}
+  var btn=document.getElementById('bunify');btn.disabled=true;STUDIO.busy=true;var label=btn.textContent;btn.textContent='Montando…';studioMontageMessage('Preparando el video final…');
+  try{await studioRenderVideo();}catch(e){studioMontageMessage(e.message,true);}
+  finally{btn.disabled=false;btn.textContent=label;STUDIO.busy=false;}
 }
 
 function renderFinalVid(){

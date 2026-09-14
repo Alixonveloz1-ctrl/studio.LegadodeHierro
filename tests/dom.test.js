@@ -27,7 +27,7 @@ async function app(initialStorage={}){
       else if(b.action==='projects')d={items:[...projects].map(([id,p])=>({id,topic:p.topic,updatedAt:'2026-09-13'}))};
       else if(b.action==='assets')d={items:assets};
       else if(b.action==='select-videos')d={plan:w.LH.selectPlan(b.scenes,assets)};
-      else if(b.action==='links')d={items:b.ids.map(id=>({...assets.find(a=>a.id===id),url:'https://media.example.test/'+id}))};
+      else if(b.action==='links')d={items:b.ids.map(id=>({...assets.find(a=>a.id===id),duration:60,url:'https://media.example.test/'+id}))};
       else if(b.action==='asset-save'){const prior=assets.find(a=>a.object===b.object)||{};const asset={...prior,...b.asset,id:prior.id||String(assets.length+1).padStart(32,'0'),object:b.object,version:(prior.version||0)+1};if(prior.id)assets.splice(assets.indexOf(prior),1);assets.push(asset);d={asset};}
       else if(b.action==='discover')d={items:Array.from({length:20},(_,i)=>({object:'legado-videos/old'+i+'.mp4',kind:'video',title:'Clip '+i,url:'https://media.example.test/old'+i}))};
       else d={items:[]};
@@ -445,4 +445,22 @@ test('video batch continues after a failed shot and preserves existing media DOM
  await w.studioGenerateMissing();await tick();await tick();assert.deepEqual(attempts,[0,1,2]);assert.equal(w.STUDIO.plan[1].assetId,'still1');assert.match(w.document.getElementById('sceneBatchProgress').textContent,/2 de 3/);assert.match(w.document.getElementById('sceneBatchProgress').textContent,/provider failed/);assert.equal(w.STUDIO.batch,false);
  const card=w.document.querySelector('[data-shot="0"]');const media=card.querySelector('video');w.studioPaintPlan();await tick();assert.equal(w.document.querySelector('[data-shot="0"]'),card);assert.equal(card.querySelector('video'),media);
  }finally{a.close();}
+});
+
+test('montage progress and errors appear beside the original start button, recovery only for a saved render',async()=>{
+ const a=await app();try{const {w}=a;w.lastRes=episode(w);w.updUnifyCard();assert.equal(w.document.getElementById('resumeRender').hidden,true);
+ w.STUDIO.busy=true;await w.unifyVideo();assert.match(w.document.getElementById('unifyErr').textContent,/generación en curso/);w.STUDIO.busy=false;
+ w.studioRenderVideo=async()=>{w.studioMontageMessage('Montando los clips');assert.equal(w.document.getElementById('unifySt').style.display,'block');throw Error('render failure');};
+ await w.unifyVideo();assert.match(w.document.getElementById('unifyFeedback').textContent,/render failure/);assert.equal(w.document.getElementById('bunify').disabled,false);
+ w.lastRes.renders={es:{jobId:'saved'}};w.UNIFY_LANG='es';w.updUnifyCard();assert.equal(w.document.getElementById('resumeRender').hidden,false);
+ }finally{a.close();}
+});
+test('coverage redistributes available clip time and plans missing coverage before starting a paid render',async()=>{
+ const a=await app();try{const {w}=a;w.lastRes=episode(w);w.STUDIO.plan=[{scene:0,start:0,duration:20,description:'Adulto trabajando',assetId:'a'},{scene:1,start:20,duration:10,description:'Adulto decidiendo',assetId:'b'}];
+ const linked=[{object:'a',duration:8},{object:'b',duration:10}],shots=[{object:'a',duration:20},{object:'b',duration:10}];await w.studioFitMontageCoverage(shots,linked,30);assert.equal(shots[0].duration,16);assert.equal(shots[1].duration,14);
+ await assert.rejects(w.studioFitMontageCoverage(shots,linked,40),/Preparé 1 toma nueva/);assert.equal(w.STUDIO.plan.length,3);assert.equal(w.STUDIO.plan[0].assetId,'a');assert.equal(w.STUDIO.plan[2].assetId,'');await tick();await tick();
+ }finally{a.close();}
+});
+test('actual narration pace feeds the next script duration estimate',async()=>{
+ const a=await app();try{const {w}=a;w.studioRememberSpeech({dur:80},Array(148).fill('palabra').join(' '));assert.equal(w.studioSpeechRate(),1.85);assert.equal(Math.round(60*w.studioSpeechRate()),111);}finally{a.close();}
 });

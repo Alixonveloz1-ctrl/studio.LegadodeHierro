@@ -108,7 +108,7 @@ async function requestReview(j,deps){
   }
 }
 async function responseFor(j,key,deps) {
-  const c={...j.config,prompt:stageContext(j.config.prompt)},target=Math.round(Number(c.seconds)*2.35/j.total);
+  const c={...j.config,prompt:stageContext(j.config.prompt)},target=Math.round(Number(c.seconds)*(Number(c.wordsPerSecond)||2.35)/j.total);
   if (key==='plan') {
     const p=c.prompt+'\n\nETAPA ACTUAL: SOLO PLAN EDITORIAL. Ignora el formato de BLOQUES o escenas del encargo en esta llamada. '
       +'Devuelve JSON válido: {"audienceMoment":"momento concreto del espectador y restricción", "promise":"una promesa verificable dentro del video", "payoff":"cómo y dónde se entregará", '
@@ -132,7 +132,7 @@ async function responseFor(j,key,deps) {
   const i=Number(key.split('-')[1]),repair=key.startsWith('repair-');
   const p=c.prompt+'\n\nETAPA ACTUAL: '+(repair?'CORREGIR':'ESCRIBIR')+' SOLO la parte '+(i+1)+' de '+j.total+'. '
     +'Devuelve únicamente texto hablado, sin JSON, BLOQUES, PROMPTS, encabezados, numeración editorial o notas. '
-    +'Entre '+Math.floor(target*.85)+' y '+Math.ceil(target*1.15)+' palabras. '
+    +'Entre '+Math.floor(target*.95)+' y '+Math.ceil(target*1.05)+' palabras. '
     +(i===0?'Empieza con el gancho elegido, salvo que la revisión pida mejorarlo. ':'Continúa el hilo; no repitas el gancho ni la introducción. ')
     +(i===j.total-1?'Cumple la promesa y cierra con Legado de Hierro. ':'No cierres el video, no añadas llamadas a seguir y no digas Legado de Hierro todavía. ')
     +'\nPLAN: '+JSON.stringify(j.outline)+'\nPARTE ACTUAL: '+JSON.stringify(j.outline.sections[i])
