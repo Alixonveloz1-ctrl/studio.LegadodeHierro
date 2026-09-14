@@ -429,3 +429,20 @@ test('animation follows the selected source image and does not silently generate
  await assert.rejects(w.studioAnimateShot(0,w.document.createElement('div')),/imagen de origen/);assert.equal(generated,0);assert.equal(w.STUDIO.plan[0].assetId,'old');await tick();await tick();
  }finally{a.close();}
 });
+
+test('real image batch completes multiple saved shots without replacing earlier previews or replaying hidden gallery saves',async()=>{
+ const a=await app();try{const {w,assets}=a;w.lastRes=episode(w);w.STUDIO.assets=assets;w.STUDIO.plan=[0,1,2].map(i=>({scene:i,start:i*8,duration:8,assetId:'',description:'Adulto trabajando '+i}));
+ w.studioPaintPlan();w.loadRefs=async()=>Array(10).fill('ref');w.prepararImagen=async p=>({prompt:p,refs:[]});let generated=0,saved=0,first;
+ w.genOneImage=async()=>{generated++;if(generated>1)assert.equal(w.document.querySelector('[data-shot="0"]'),first);return 'data:image/png;base64,'+generated;};
+ w.studioSaveImage=async(src,description,n)=>{saved++;const asset={id:'image'+n,kind:'image',object:'image'+n+'.png',description};assets.push(asset);return asset;};
+ const paint=w.studioPaintPlan;w.studioPaintPlan=()=>{paint();if(!first&&w.STUDIO.plan[0].assetId)first=w.document.querySelector('[data-shot="0"]');};
+ await w.studioGenerateMissingImages();await tick();await tick();assert.equal(generated,3);assert.equal(saved,3);assert.ok(w.STUDIO.plan.every(p=>p.assetId));assert.match(w.document.getElementById('sceneBatchProgress').textContent,/3 de 3/);assert.equal(w.document.getElementById('igrid').children.length,0);
+ }finally{a.close();}
+});
+test('video batch continues after a failed shot and preserves existing media DOM',async()=>{
+ const a=await app();try{const {w,assets}=a;w.lastRes=episode(w);w.vidFmt='9:16';assets.push(...[0,1,2].map(i=>({id:'still'+i,kind:'image',aspect:'9:16'})));w.STUDIO.assets=assets;w.STUDIO.plan=assets.map((a,i)=>({scene:i,start:i*8,duration:8,assetId:a.id}));w.studioPaintPlan();await tick();await tick();const unchanged=w.document.querySelector('[data-shot="2"]');let attempts=[];
+ w.genVideoForSlot=async n=>{attempts.push(n);if(n===1){w.vidState[n]='error';w.vidErrMsg[n]='provider failed';return;}const video={id:'video'+n,kind:'video'};assets.push(video);w.vids[n]={assetId:video.id};w.vidState[n]='done';};
+ await w.studioGenerateMissing();await tick();await tick();assert.deepEqual(attempts,[0,1,2]);assert.equal(w.STUDIO.plan[1].assetId,'still1');assert.match(w.document.getElementById('sceneBatchProgress').textContent,/2 de 3/);assert.match(w.document.getElementById('sceneBatchProgress').textContent,/provider failed/);assert.equal(w.STUDIO.batch,false);
+ const card=w.document.querySelector('[data-shot="0"]');const media=card.querySelector('video');w.studioPaintPlan();await tick();assert.equal(w.document.querySelector('[data-shot="0"]'),card);assert.equal(card.querySelector('video'),media);
+ }finally{a.close();}
+});

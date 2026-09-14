@@ -310,7 +310,7 @@ function studioUnifyWorkspace(){
   studioPaintProjects();
 }
 function studioPaintCurrentImages(){
-  var grid=studioEl('igrid');grid.innerHTML='';imgs.forEach(function(a,i){if(!a)return;var div=document.createElement('div');grid.appendChild(div);setSlotOk(div,a.src,i);});
+  var grid=studioEl('igrid');if(studioEl('imgCard').hidden)return;grid.innerHTML='';imgs.forEach(function(a,i){if(!a)return;var div=document.createElement('div');grid.appendChild(div);setSlotOk(div,a.src,i);});
 }
 async function studioZipLibrary(zip,slug){
   var existing=new Set(imgs.concat(vids).filter(Boolean).map(function(a){return a.assetId;}));
@@ -348,12 +348,14 @@ async function studioBuildPlan(){
 }
 function studioShotVideo(p){return !!STUDIO.assets.find(function(a){return a.id===p.assetId&&a.kind==='video';});}
 function studioPaintPlan(){
-  var grid=studioEl('scenePlan');if(!grid)return;grid.innerHTML='';
-  for(var k=STUDIO.plan.length-1;k>0;k--){var s=STUDIO.plan[k],p=STUDIO.plan[k-1];if(p.scene===s.scene&&p.assetId===s.assetId&&p.description===s.description){p.duration+=s.duration;STUDIO.plan.splice(k,1);}}
+  var grid=studioEl('scenePlan');if(!grid)return;
+  var oldRows=Array.from(grid.children);if(grid._plan!==STUDIO.plan){grid.replaceChildren();oldRows=[];}grid._plan=STUDIO.plan;
+  for(var k=STUDIO.batch?0:STUDIO.plan.length-1;k>0;k--){var s=STUDIO.plan[k],p=STUDIO.plan[k-1];if(p.scene===s.scene&&p.assetId===s.assetId&&p.description===s.description){p.duration+=s.duration;STUDIO.plan.splice(k,1);}}
   var currentPlan=STUDIO.plan;
-  studioPlanPreviews(currentPlan,grid);
   STUDIO.plan.forEach(function(p,i){
-    var row=document.createElement('div');row.className='studio-shot';row.dataset.shot=String(i);
+    var signature=JSON.stringify(p),old=oldRows[i];
+    if(old&&old.dataset.signature===signature)return;
+    var row=document.createElement('div');row.className='studio-shot';row.dataset.shot=String(i);row.dataset.signature=signature;
     var title=document.createElement('strong');title.textContent=(i+1)+' · '+p.start.toFixed(1)+'–'+(p.start+p.duration).toFixed(1)+' s';row.appendChild(title);
     var select=document.createElement('select');select.setAttribute('aria-label','Material de la toma '+(i+1));select.add(new Option('Elegir material para esta toma',''));
     var edits=document.createElement('details'),editTitle=document.createElement('summary');editTitle.textContent='Cambiar esta toma';edits.appendChild(editTitle);row.appendChild(edits);
@@ -366,7 +368,7 @@ function studioPaintPlan(){
       candidates.forEach(function(a){var o=new Option((ids.includes(a.id)?'Sugerido · ':'')+(a.title||a.description||'Video guardado')+(a.aspect?' · '+a.aspect:''),a.id);o.selected=p.assetId===a.id;select.add(o);});
     }
     var help=document.createElement('p');help.className='studio-muted';help.textContent='Puedes elegir cualquier video disponible para reutilizarlo. Los sugeridos aparecen primero; revisa la vista previa al seleccionarlo.';edits.appendChild(help);
-    search.input.oninput=choices;choices();
+    search.input.oninput=choices;edits.addEventListener('toggle',function(){if(edits.open)choices();});choices();
     select.onchange=function(){p.assetId=select.value;p.reason='Selección manual';studioPersistAssets();studioPaintPlan();updUnifyCard();};edits.appendChild(select);
     var placeholder=document.createElement('div');placeholder.className='studio-plan-preview studio-asset';placeholder.textContent=p.assetId?'Cargando vista previa…':'Sin material asignado';row.prepend(placeholder);
     var asset=STUDIO.assets.find(function(a){return a.id===p.assetId;});
@@ -375,8 +377,10 @@ function studioPaintPlan(){
     function action(label,kind,fn){var b=document.createElement('button');b.textContent=label;b.className='shot-'+kind;b.onclick=function(){studioGuard(async function(){b.disabled=true;try{await fn();}finally{b.disabled=false;}});};actions.appendChild(b);}
     action(asset?'↻ Regenerar imagen':'＋ Generar imagen','image',function(){return studioGenerateShot(i,true);});
     if(asset)action(asset.kind==='video'?'↻ Regenerar video':'▶ Generar video','video',function(){return studioAnimateShot(i,row);});
-    grid.appendChild(row);
+    if(old&&old.parentNode===grid)old.replaceWith(row);else grid.appendChild(row);
   });
+  oldRows.slice(STUDIO.plan.length).forEach(function(row){row.remove();});
+  studioPlanPreviews(currentPlan,grid);
 }
 function studioPreviewError(plan,grid,index,id){
   if(STUDIO.plan!==plan)return;
@@ -394,7 +398,9 @@ async function studioPlanPreviews(plan,grid){
       var linked=links[p.assetId],a=linked&&linked.asset||STUDIO.assets.find(function(a){return a.id===p.assetId;});
       var row=grid.querySelector('[data-shot="'+i+'"]');
       if(!a||!row||!linked||!linked.url){studioPreviewError(plan,grid,i,p.assetId);return;}
-      var box=row.querySelector('.studio-plan-preview');if(!box)return;box.textContent='';
+      var box=row.querySelector('.studio-plan-preview');if(!box)return;
+      if(box.dataset.previewUrl===linked.url&&box.querySelector('img,video,audio'))return;
+      box.dataset.previewUrl=linked.url;box.textContent='';
       var media=studioMedia(a,linked.url);if(a.kind==='video'){media.preload='metadata';media.src=linked.url.split('#')[0]+'#t=0.001';}
       media.addEventListener('error',function(){studioPreviewError(plan,grid,i,p.assetId);});box.appendChild(media);
       if(a.kind==='video'){var play=document.createElement('button');play.textContent='Reproducir video';play.onclick=async function(){try{await media.play();}catch(e){play.textContent='No se pudo reproducir. Recargar';play.onclick=function(){delete STUDIO_LIBRARY_LINKS[p.assetId];studioPlanPreviews(plan,grid);};}};box.appendChild(play);}
@@ -819,13 +825,25 @@ async function studioGenerateBatch(kind){
   if(!count){studioMessage(kind==='image'?'No hay imágenes pendientes.':'No hay imágenes listas para animar. Genera y revisa las imágenes primero.');return;}
   if(kind==='video'&&pending.some(function(p){var a=STUDIO.assets.find(function(a){return a.id===p.assetId;});return a.aspect&&a.aspect!==vidFmt;}))throw new Error('El formato de video debe coincidir con el de las imágenes que vas a animar.');
   if(!confirm(kind==='image'?'Generar '+count+' imágenes: $'+(count*imgCost()).toFixed(2)+' aprox. Al terminar podrás revisarlas antes de crear videos.':'¿Ya revisaste las imágenes? Generar '+count+' videos: $'+(count*vidCost()).toFixed(2)+' aprox.'))return;
-  for(var i=0;i<plan.length;i++){
-    if(owner!==lastRes||plan!==STUDIO.plan)return;
-    if(!eligible(plan[i]))continue;
-    if(kind==='image')await studioGenerateShot(i);
-    else await studioAnimateShot(i,studioEl('scenePlan').querySelector('[data-shot="'+i+'"]'));
-  }
-  studioMessage(kind==='image'?'Imágenes listas. Revísalas y regenera las que necesites antes de crear los videos.':'Videos listos. Las tomas sin imagen siguen pendientes.');
+  var queue=pending.slice(),completed=0,failed=[];
+  var progress=studioEl('sceneBatchProgress');if(!progress){progress=document.createElement('p');progress.id='sceneBatchProgress';progress.className='studio-status';progress.setAttribute('role','status');studioEl('scenePlan').before(progress);}
+  var controls=Array.from(document.querySelectorAll('#generateMissing,#generateMissingImages,#buildScenePlan,.studio-model-trigger'));
+  var disabled=controls.map(function(b){return b.disabled;});controls.forEach(function(b){b.disabled=true;});STUDIO.batch=true;
+  try{
+    for(var j=0;j<queue.length;j++){
+      if(owner!==lastRes||plan!==STUDIO.plan){progress.textContent='El lote se detuvo al cambiar de proyecto. Lo terminado está guardado.';return;}
+      var i=plan.indexOf(queue[j]);if(i<0||!eligible(plan[i]))continue;
+      progress.textContent=(kind==='image'?'Generando imágenes':'Generando videos')+' · '+completed+' de '+count+' listas · toma '+(i+1);
+      try{
+        if(kind==='image')await studioGenerateShot(i);
+        else await studioAnimateShot(i,studioEl('scenePlan').querySelector('[data-shot="'+i+'"]'));
+        completed++;
+      }catch(e){failed.push('Toma '+(i+1)+': '+e.message);}
+    }
+    progress.textContent=completed+' de '+count+' '+(kind==='image'?'imágenes listas. Revísalas antes de generar videos.':'videos listos.')+(failed.length?' Pendientes: '+failed.join(' · '):'');
+    studioMessage('',false);
+  }finally{STUDIO.batch=false;controls.forEach(function(b,i){b.disabled=disabled[i];});}
+
 }
 async function studioGuard(fn){
   if(STUDIO.busy)return;STUDIO.busy=true;
