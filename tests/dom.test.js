@@ -412,3 +412,20 @@ test('regeneration keeps the old image on failure and uses the linked image for 
  await assert.rejects(w.studioAnimateShot(0,w.document.querySelector('.studio-shot')),/video failed/);assert.equal(w.STUDIO.plan[0].assetId,'video');assert.equal(w.vids[0].assetId,'video');assert.equal(w.imgs[0].assetId,'unrelated');
  }finally{a.close();}
 });
+
+test('batch image generation stops before animation; video batch uses only reviewed existing images',async()=>{
+ const a=await app();try{const {w,assets}=a;w.lastRes=episode(w);assets.push({id:'ready',kind:'video'},{id:'still',kind:'image',aspect:'9:16'});w.STUDIO.assets=assets;
+ w.STUDIO.plan=[{scene:0,start:0,duration:8,assetId:'ready'},{scene:1,start:8,duration:8,assetId:'still'},{scene:2,start:16,duration:8,assetId:''}];
+ let imageCalls=0,videoCalls=0;w.vidFmt='9:16';w.studioGenerateShot=async i=>{imageCalls++;assets.push({id:'new',kind:'image',aspect:'9:16'});w.STUDIO.plan[i].assetId='new';};
+ w.studioAnimateShot=async i=>{videoCalls++;assets.push({id:'animated'+i,kind:'video'});w.STUDIO.plan[i].assetId='animated'+i;};
+ await w.studioGenerateMissingImages();assert.equal(imageCalls,1);assert.equal(videoCalls,0);assert.equal(w.STUDIO.plan[0].assetId,'ready');assert.equal(w.STUDIO.plan[1].assetId,'still');
+ w.STUDIO.plan.push({scene:3,start:24,duration:8,assetId:''});await w.studioGenerateMissing();assert.equal(imageCalls,1);assert.equal(videoCalls,2);assert.equal(w.STUDIO.plan[3].assetId,'');
+ }finally{a.close();}
+});
+test('animation follows the selected source image and does not silently generate a replacement image',async()=>{
+ const a=await app();try{const {w,assets}=a;w.lastRes=episode(w);w.imgs[0]={description:'Hold a cup with the right hand'};
+ assert.match(w.buildVideoMotionPrompt(0),/Hold a cup/);assert.ok(!w.buildVideoMotionPrompt(0).includes('Calcular presupuesto'));
+ assets.push({id:'old',kind:'video'});w.STUDIO.assets=assets;w.STUDIO.plan=[{scene:0,start:0,duration:8,assetId:'old'}];let generated=0;w.studioGenerateShot=async()=>{generated++;};
+ await assert.rejects(w.studioAnimateShot(0,w.document.createElement('div')),/imagen de origen/);assert.equal(generated,0);assert.equal(w.STUDIO.plan[0].assetId,'old');await tick();await tick();
+ }finally{a.close();}
+});

@@ -3820,52 +3820,15 @@ async function generateVideoForCurrentSlot(idx,box){
 // Movimiento natural y variado segun la escena, pero con control estricto de expresion facial
 // (autoridad financiera, nunca tristeza ni distorsion) y de que cualquier accion tenga sentido real.
 function buildVideoMotionPrompt(idx){
-  var base=lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'';
+  var base=imgs[idx]&&imgs[idx].description||(lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'');
   // Fuera la marca [CON: id]: es una instruccion nuestra para elegir referencias,
   // no algo que el generador de video deba leer (acabaria dibujando el texto).
   base=String(base).replace(/\[CON:\s*[a-z0-9-]+\s*\]/gi,'').replace(/^\s+/,'');
-  return 'ANIMATION STYLE (strict, must match the input image exactly): American 2D comic book illustration style, clean ink outlines, flat cel-shading with hard color blocks and visible shading edges -- NOT 3D, NOT 3D render, NOT CGI, NOT photorealistic, NOT realistic rendering, NOT Pixar style, NOT smooth 3D shading. The animation must preserve the flat 2D comic look of the source image throughout the entire clip.\n\n'
-    // OJO: aqui NO se nombra la lluvia. Los modelos de video no manejan bien la
-    // negacion: escribir "sin lluvia" mete la palabra en el prompt y acaba
-    // generandola igual (por eso salia agua hasta dentro del coche). Se describe
-    // en POSITIVO lo que si debe haber, y las palabras prohibidas viven solo en
-    // el negativePrompt de la API, que es donde de verdad restan.
-    +'ATMOSPHERE (strict): the air is completely dry and still. Indoor scenes keep dry floors, dry surfaces and calm indoor air. Outdoor scenes have clear skies and dry ground. Every surface stays dry from the first frame to the last. The environment and the sky match the source image exactly, with nothing added to the air.\n\n'
-    +'OBJECT AND HAND REALISM (strict): every object stays the SAME object for the whole clip -- it never morphs, transforms, changes type, multiplies, or turns into a different thing (a cup stays a cup, a paper stays a paper, a pen stays a pen). The character ONLY touches and interacts with the object the action requires; he does NOT reach for or pick up unrelated objects (coffee cups, glasses, decorations). Hands are steady and calm -- NO trembling, NO shaking, NO jitter. When signing or writing, ONE hand holds ONE pen; the other hand rests naturally -- never two pens, never writing with both hands at once. Papers and objects on the desk stay in place -- they do NOT jump, fly, flip, or scatter on their own. Correct human anatomy: exactly five fingers per hand, no extra or missing fingers, no merging.\n\n'
-    +'MANDATORY ACTION FOR THIS CLIP (this single action drives the body, hands, and gaze direction for the ENTIRE clip): '+base+'\n\n'
-    +'EYE LINE AND BODY DIRECTION (strict, this is not optional): the character looks at and engages with WHATEVER THE ACTION DESCRIBES -- his hands and the task, the person he is dealing with, the goods he is handling, the space he is overseeing. The character does NOT look at the camera, does NOT pose for the camera, does NOT turn the head toward the viewer, UNLESS the action explicitly says the character is speaking directly to camera. There is no head tilting, no modeling pose, no fashion-style head turn, no posing of any kind -- only the working posture that the action requires.\n\n'
-    +'This is not a static pose and not a frozen stance with arms crossed -- the character is actively, physically DOING the described action with continuous natural motion for the full duration of the clip. A slow zoom toward a motionless or posing character is NOT acceptable.\n\n'
-    +'Match the action to natural, continuous physical motion driven by what THIS scene shows. The range of entrepreneurial actions is wide -- pick whatever fits this scene: '
-    +'working with the hands or tools -- arms and hands move with the real gesture of the task, steady and purposeful; '
-    +'carrying, lifting, moving or arranging goods or boxes -- the body lifts, turns and sets things down with natural weight; '
-    +'greeting a person or closing a deal -- a firm confident handshake, a nod, natural conversational gestures with a client or partner; '
-    +'counting cash or handling money -- the hands move through the bills or coins deliberately; '
-    +'directing, teaching or motivating a team -- open confident gestures toward the people or the work; '
-    +'overseeing or surveying an operation -- calm attentive gaze sweeping across the space, subtle grounded body shifts; '
-    +'walking through the workplace or the street -- a steady even adult stride (see locomotion rule); '
-    +'speaking to camera -- the ONLY case where he faces the viewer, with natural confident hand gestures and an animated talking mouth; '
-    +'signing or writing -- ONLY if the scene is clearly about that: head down toward the page, one hand one pen moving in a smooth continuous stroke. '
-    +'Whatever the action, the character is actively DOING it with continuous grounded motion from the first frame to the last -- never a frozen pose, never arms crossed, never reduced to just a camera move or a slow zoom onto a motionless character.\n\n'
-    +'NATURAL LOCOMOTION (strict): if the character is walking, he walks like a normal adult -- a smooth, steady, even stride at a constant calm pace, weight shifting naturally from one foot to the other, arms swinging subtly and naturally. ABSOLUTELY NO hopping, NO skipping, NO bouncing, NO little jumps, NO sudden bursts of speed, NO breaking into a jog or run, NO gliding or floating, NO moonwalking, NO stutter-steps. The walking speed stays constant and unhurried the whole clip. He only runs or jogs if the described action explicitly says he is running or jogging; otherwise it is always a calm natural walk.\n\n'
-    +'FACIAL EXPRESSION ONLY (this controls the face, never the body posture or head direction, which are governed entirely by the action above): serious, focused, professional, concentrated on the task at hand. '
-    +'NEVER sad, NEVER frowning, NEVER a long or droopy face, NEVER distorted or asymmetrical eyes, NEVER a flirtatious or seductive look, NEVER a modeling or beauty-pageant expression. '
-    +'Expression stays consistent and composed throughout the clip. Natural subtle blinking only.\n\n'
-    +'IF (AND ONLY IF) writing or signing on paper is actually visible in the source image: one hand holds one pen and moves in ONE smooth, confident, continuous adult gesture -- a flowing signature, NOT an attempt to spell out block letters. Any writing or text ALREADY on the page stays EXACTLY as it is -- it must NOT morph, wobble or turn into scribbles. ABSOLUTELY NO childish scribbles, random loops, zigzags or crayon-like marks. Do NOT add paper, a pen or writing that is not already clearly in the source image.\n\n'
-    +'HEAD AND NECK MOVEMENT (strict): head movements must be minimal and slow -- slight forward nod or minor downward tilt toward the work only. '
-    +'NO neck rotation, NO side-to-side head turning, NO looking up then down dramatically, NO head tilting. '
-    +'Keeping the head relatively stable prevents anatomy distortion in the 2D comic style.\n\n'
-    +'Realistic human anatomy proportions at all times (within the 2D comic style): natural hand and finger movement, no warping, no melting features, no extra or missing fingers, no distortion of the face or body.\n\n'
-    +'CINEMATIC CAMERA MOVEMENT (mandatory): choose ONE of the following based on the scene action and apply it dynamically and intentionally throughout the entire clip -- '
-    +'LOW ANGLE PUSH-IN: camera starts low looking up at the character with authority and slowly pushes forward -- use for power, decision-making, or speaking to camera; '
-    +'TRACKING FOLLOW: camera follows the character hands or body movement fluidly -- use for working with the hands, handling goods, or walking; '
-    +'DRAMATIC PUSH-IN: camera starts at medium distance and pushes in decisively toward the face or hands -- use for moments of confrontation or revelation; '
-    +'SLOW ORBIT: camera moves laterally around the character in a slow deliberate arc -- use for closing a deal, thinking, or surveying the scene; '
-    +'HIGH-TO-LOW: camera starts slightly above eye level and slowly descends to a commanding low angle -- use for establishing authority. '
-    +'NO static camera. NO simple mechanical zoom. NO forward drift with no direction. The camera must feel like a human cinematographer chose this shot intentionally for this specific scene.\n\n'
-    +'CLIP START AND END (strict): the clip must start and end cleanly on a fully opaque, fully visible frame. '
-    +'NO fade in, NO fade out, NO dissolve, NO cross-fade, NO transition effect of any kind at the beginning or end of the clip. '
-    +'NO double image, NO ghosting, NO transparency effect, NO overlapping frames. '
-    +'The last frame must be as solid and clear as the first frame -- cut clean, no blending.';
+  return 'Animate the supplied image as one continuous 2D graphic-novel shot. The supplied image is the source of truth for the people, pose, props, framing and lighting. Preserve each adult character’s identity and clothing. '
+    +'SCENE CONTEXT: '+base+'\n'
+    +'Choose ONE small, physically plausible movement already supported by the visible pose. Keep the starting grip and contact points stable. A person holding a cup makes a small natural movement with that same hand; a resting hand remains resting. Do not combine successive actions or add gestures, props or people. '
+    +'Preserve the anatomy of every visible person: two arms connected to their respective shoulders, two hands connected to their wrists, five fingers per hand. Keep hidden limbs hidden and silhouettes distinct. '
+    +'Use restrained natural motion and subtle blinking. Keep the camera steady for close-ups of hands or object interactions; otherwise a gentle push-in is sufficient. Preserve the drawing and solid opaque frames throughout. No cuts, transitions, morphing, duplicated limbs or overlapping exposures.';
 }
 
 async function genAllVideos(){
