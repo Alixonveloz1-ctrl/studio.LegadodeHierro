@@ -1,14 +1,18 @@
 const {token,failure} = require('./_store');
 const MODEL = 'gemini-3-flash-preview';
 async function generateText(prompt,options) {
-  const o = options || {}, signal = o.signal || AbortSignal.timeout(43000);
+  const o = options || {}, signal = o.signal || AbortSignal.timeout(o.timeoutMs || 43000);
   if (!process.env.GCP_PROJECT_ID) throw failure('GCP_PROJECT_ID no configurado.');
+  const started=Date.now();let phase='authentication';
+  try {
   const access = await token(signal);
+  phase='model';
   const r = await fetch('https://aiplatform.googleapis.com/v1/projects/'+encodeURIComponent(process.env.GCP_PROJECT_ID)+'/locations/global/publishers/google/models/'+MODEL+':generateContent',
     {method:'POST',signal,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({
       system_instruction:{parts:[{text:'Escribe exactamente el formato solicitado. No inventes datos, biografías ni resultados. Sin preámbulo ni markdown.'+(o.instruction?' '+o.instruction:'')}]},
       contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:Math.min(65536,Math.max(16384,(o.maxTokens || 8192)+8192)),...(o.json?{responseMimeType:'application/json'}:{}),temperature:1,thinkingConfig:{thinkingLevel:'LOW'}}
     })});
+  phase='response';
   const d = await r.json();
   if (!r.ok) throw failure((d.error && d.error.message) || 'El modelo no respondió (HTTP '+r.status+').',r.status >= 500 ? 502 : r.status);
   const c = d.candidates && d.candidates[0];
@@ -17,6 +21,11 @@ async function generateText(prompt,options) {
   if (!text || finishReason !== 'STOP') console.error('[text-incomplete]',JSON.stringify({model:MODEL,finishReason,usage:d.usageMetadata,stage:o.stage||'text'}));
   if (!text || finishReason !== 'STOP') throw failure('Respuesta incompleta del modelo ('+(finishReason || 'sin texto')+'). La etapa no se dio por terminada.',502);
   if (o.blocks && !/^\s*BLOQUE\s+A\s*$/mi.test(text)) throw failure('La respuesta no incluye el guion solicitado.',502);
+  console.info('[text-complete]',JSON.stringify({stage:o.stage||'text',elapsedMs:Date.now()-started,chars:text.length}));
   return {text,model:MODEL,finishReason,chars:text.length};
+  } catch(e) {
+    console.warn('[text-failed]',JSON.stringify({stage:o.stage||'text',phase,elapsedMs:Date.now()-started,error:e.name,status:e.status}));
+    throw e;
+  }
 }
 module.exports = {generateText,MODEL};

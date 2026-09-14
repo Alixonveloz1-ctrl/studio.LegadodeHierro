@@ -20,7 +20,8 @@ test('every public Node route is packaged in one function and keeps its authenti
     assert.equal(res.statusCode,401,endpoint);
   }
   assert.deepEqual(fs.readdirSync(path.join(__dirname,'../api')).sort(),['index.js','video-status.js']);
-  assert.equal(config.functions['api/index.js'].maxDuration,60);
+  assert.equal(config.functions['api/index.js'].maxDuration,300);
+  assert.equal(config.fluid,true);
 });
 test('routing does not expose helpers or inherited object properties',async()=>{
   for(const endpoint of ['_store','constructor','__proto__','../server/_store',['studio','login'],undefined]){

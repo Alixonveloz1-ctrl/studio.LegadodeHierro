@@ -132,3 +132,15 @@ test('video-only assignment never chooses an image even when it scores better an
   assert.equal(core.selectPlan([scene],[image,video])[0].assetId,'video');
   const gap=core.selectPlan([scene],[image])[0];assert.equal(gap.assetId,'');assert.match(gap.reason,/No se encontró un video compatible/);
 });
+
+test('job text receives a longer deadline while ordinary calls retain their deadline',async()=>{
+  const {generateText}=require('../server/_text');
+  const originalFetch=global.fetch,originalTimeout=AbortSignal.timeout,deadlines=[];
+  AbortSignal.timeout=ms=>{deadlines.push(ms);return originalTimeout(ms);};
+  global.fetch=async(url)=>url.includes('oauth2')?Response.json({access_token:'fake-token'}):Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:'Narración completa.'}]}}]});
+  try{
+    await generateText('test',{timeoutMs:240000,stage:'write-0'});
+    await generateText('test');
+    assert.ok(deadlines.includes(240000));assert.ok(deadlines.includes(43000));
+  }finally{global.fetch=originalFetch;AbortSignal.timeout=originalTimeout;}
+});

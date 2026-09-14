@@ -167,3 +167,19 @@ test('invalid response checkpoint survives state-write loss and bounds automatic
   assert.equal(calls,3);
   assert.equal((await store.read(BASE+j.id+'.json')).data.parts.length,0);
 });
+
+test('a slow stage stays owned after the old 65-second lease and completes once',async()=>{
+  const store=new MemoryStore(),originalNow=Date.now;
+  let clock=originalNow(),release,calls=0;
+  Date.now=()=>clock;
+  try{
+    const j=await createJob(store,config(60),'slow-stage-lease-001');
+    const running=runStep(store,j,async()=>{calls++;return new Promise(resolve=>{release=()=>resolve({text:JSON.stringify(plan(1))});});});
+    while(!release)await new Promise(resolve=>setImmediate(resolve));
+    clock+=80000;
+    const second=await runStep(store,j,async()=>{calls++;throw Error('duplicate model call');});
+    assert.equal(second.busy,true);assert.equal(calls,1);
+    release();const done=await running;assert.equal(done.status,'ready');assert.equal(calls,1);
+    assert.equal((await store.read(BASE+j.id+'.json')).data.leaseUntil,0);
+  }finally{Date.now=originalNow;}
+});

@@ -3,7 +3,7 @@ var STUDIO={assets:[],plan:[],imageRefs:{},imageSaves:{},audioJobs:{},uploadedAu
 function studioEl(id){return document.getElementById(id);}
 function studioMessage(message,error){var el=studioEl('studioStatus');if(el){el.hidden=!message;el.textContent=message;el.className='studio-status'+(error?' studio-error':'');}}
 async function studioAPI(action,data,endpoint){
-  var r=await fetch(endpoint||'/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(57000),body:JSON.stringify(Object.assign({action:action},data||{}))});
+  var r=await fetch(endpoint||'/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(endpoint==='/api/studio-job'?310000:57000),body:JSON.stringify(Object.assign({action:action},data||{}))});
   var d=await r.json().catch(function(){return {};});
   if(!r.ok){var e=new Error(d.error||'No se pudo completar esta etapa (HTTP '+r.status+'). Lo guardado se conserva.');e.status=r.status;e.storageRateLimited=d.storageRateLimited===true;e.retryAfterMs=Number(d.retryAfterMs)||0;throw e;}
   return d;

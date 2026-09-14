@@ -69,7 +69,7 @@ async function advanceJob(store,id,deps) {
   if (job.status === 'done') return publicJob(job);
   if (job.leaseUntil > Date.now()) return {...publicJob(job),busy:true};
   const owner = randomUUID();
-  job.leaseOwner = owner; job.leaseUntil = Date.now()+65000; job.status = 'running'; job.error = '';
+  job.leaseOwner = owner; job.leaseUntil = Date.now()+315000; job.status = 'running'; job.error = '';
   let saved;
   try { saved = await store.put(path,job,old.generation); } catch(e) { if (e.status === 412) return {...publicJob(job),busy:true}; throw e; }
   try {
