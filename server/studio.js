@@ -13,6 +13,7 @@ module.exports = jsonHandler(async (b,res) => {
     if(action==='library-status')return res.json({success:true,job:library.publicJob((await store.read(library.ACTIVE))?.data)});
     throw failure('Operación de biblioteca desconocida.',400);
   }
+  if (action === 'select-videos') return res.json({success:true,plan:await require('./_selection').selectVideos(store,b)});
   if (action === 'assets') return res.json({success:true,...await assets.listAssets(store,b.cursor)});
   if (action === 'asset-save') return res.json({success:true,asset:await assets.register(store,b.asset || {},b.object,b.legacy === true)});
   if (action === 'links') return res.json({success:true,items:await assets.links(store,b.ids)});

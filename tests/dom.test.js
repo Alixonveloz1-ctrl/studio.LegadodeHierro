@@ -26,6 +26,7 @@ async function app(initialStorage={}){
       else if(b.action==='project-get')d={project:projects.get(b.id)};
       else if(b.action==='projects')d={items:[...projects].map(([id,p])=>({id,topic:p.topic,updatedAt:'2026-09-13'}))};
       else if(b.action==='assets')d={items:assets};
+      else if(b.action==='select-videos')d={plan:w.LH.selectPlan(b.scenes,assets)};
       else if(b.action==='links')d={items:b.ids.map(id=>({...assets.find(a=>a.id===id),url:'https://media.example.test/'+id}))};
       else if(b.action==='asset-save'){const prior=assets.find(a=>a.object===b.object)||{};const asset={...prior,...b.asset,id:prior.id||String(assets.length+1).padStart(32,'0'),object:b.object,version:(prior.version||0)+1};if(prior.id)assets.splice(assets.indexOf(prior),1);assets.push(asset);d={asset};}
       else if(b.action==='discover')d={items:Array.from({length:20},(_,i)=>({object:'legado-videos/old'+i+'.mp4',kind:'video',title:'Clip '+i,url:'https://media.example.test/old'+i}))};
@@ -57,13 +58,13 @@ test('cloud project opens with captions, stable ID, saved scene plan and recover
   }finally{a.close();}
 });
 
-test('library creates a complete mixed-source plan without paid media and keeps optional edits collapsed on mobile',async()=>{
+test('library creates a video-only plan without paid media and keeps optional edits collapsed on mobile',async()=>{
   const a=await app();try{
-    const {w,assets,calls,errors}=a;w.lastRes=episode(w);assets.push(...['image','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/'+i,aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
+    const {w,assets,calls,errors}=a;w.lastRes=episode(w);assets.push(...['image','video','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/'+i,aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
     await w.studioLoadLibrary();w.document.querySelector('#buildScenePlan').click();await ready(()=>!w.STUDIO.busy);
     assert.equal(w.STUDIO.plan.length,30);assert.ok(w.STUDIO.plan.every(p=>p.assetId));assert.notEqual(w.STUDIO.plan[0].assetId,w.STUDIO.plan[1].assetId);
     assert.equal(w.document.querySelectorAll('#scenePlan .studio-shot').length,30);assert.equal(calls.filter(c=>c.input==='/api/image'||c.input==='/api/video-start').length,0);
-    assert.equal(w.document.querySelectorAll('#libraryGrid .studio-media-tile').length,2);
+    assert.equal(w.document.querySelectorAll('#libraryGrid .studio-media-tile').length,3);
     assert.equal(w.document.querySelectorAll('#libraryGrid input, #libraryGrid textarea, #libraryGrid details').length,0);
     w.document.querySelector('#libraryGrid button').click();await ready(()=>w.document.querySelector('#libraryViewerContent .studio-asset'));
     assert.equal(w.document.querySelector('#libraryViewer').open,true);assert.equal(w.document.querySelector('#libraryViewer details').open,false);
@@ -292,14 +293,14 @@ test('script transients retry the same saved job automatically, with a finite li
 
 test('library button assigns scenes without opening the legacy picker and ZIP includes unique library sources',async()=>{
   const a=await app();try{
-    const {w,assets,calls}=a;w.lastRes=episode(w);assets.push(...['image','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/a'+i+(i?'.mp4':'.png'),aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
+    const {w,assets,calls}=a;w.lastRes=episode(w);assets.push(...['image','video','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/a'+i+(i?'.mp4':'.png'),aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
     w.renderOut(w.lastRes);await w.studioUseLibrary();await tick();
     assert.ok(w.STUDIO.plan.every(p=>p.assetId));assert.equal(w.document.querySelector('#bancoPanel').style.display,'none');assert.match(w.document.querySelector('#bbanco').textContent,/Asignar/);
     assert.ok(w.document.querySelectorAll('#scenePlan .studio-plan-preview').length>0);
     assert.ok([...w.document.querySelectorAll('#scenePlan details')].every(d=>!d.open));
     const original=w.fetch;w.fetch=async(url,opts)=>String(url).startsWith('https://media.example.test/')?{ok:true,arrayBuffer:async()=>new Uint8Array([1,2,3]).buffer}:original(url,opts);
     const files=new Map();await w.studioZipLibrary({file:(name,data)=>files.set(name,data)},'test');
-    assert.equal(files.size,2);assert.ok([...files.keys()].some(k=>k.endsWith('.mp4')));assert.ok([...files.keys()].some(k=>k.endsWith('.png')));
+    assert.equal(files.size,2);assert.ok([...files.keys()].some(k=>k.endsWith('.mp4')));assert.ok([...files.keys()].every(k=>k.endsWith('.mp4')));
     assert.equal(calls.filter(c=>c.input==='/api/image'||c.input==='/api/video-start').length,0);
   }finally{a.close();}
 });
@@ -319,5 +320,16 @@ test('eight shot cards show three assigned previews and five generation controls
     w.genVideoForSlot=async(n,box,batch)=>{called={n,batch,id:w.imgs[n].assetId};w.vids[n]={assetId:'8'.repeat(32),object:'legado-videos/new.mp4'};w.vidState[n]='done';assets.push({id:'8'.repeat(32),kind:'video',object:'legado-videos/new.mp4',description:'Animada'});};
     await w.studioAnimateShot(3,w.document.querySelector('[data-shot="3"]'));assert.deepEqual(called,{n:3,batch:true,id:'9'.repeat(32)});assert.equal(w.STUDIO.plan[3].assetId,'8'.repeat(32));assert.equal(w.STUDIO.plan[0].assetId,assets[0].id);
     await tick();const media=w.document.querySelector('[data-shot="0"] img');media.dispatchEvent(new w.Event('error'));assert.match(w.document.querySelector('[data-shot="0"]').textContent,/Recargar vista previa/);
+  }finally{a.close();}
+});
+
+test('montage rejects pending images and completing a newly created scene animates it using the existing video flow',async()=>{
+  const a=await app();try{
+    const {w,assets}=a;w.lastRes=episode(w);assets.push({id:'1'.repeat(32),kind:'image',aspect:'9:16',object:'legado-studio/media/image.png'});w.STUDIO.assets=assets;w.STUDIO.plan=[{scene:0,start:0,duration:60,assetId:assets[0].id}];
+    await assert.rejects(w.studioPrepareMontage({dur:60,audioObjects:['legado-studio/media/voice.wav']}),/pendientes de convertir a video/);
+    let animations=0;w.studioAnimateShot=async i=>{animations++;assets.push({id:'2'.repeat(32),kind:'video',aspect:'9:16',object:'legado-videos/video.mp4'});w.STUDIO.plan[i].assetId='2'.repeat(32);};
+    await w.studioGenerateMissing();assert.equal(animations,1);
+    const payload=await w.studioPrepareMontage({dur:60,audioObjects:['legado-studio/media/voice.wav']});assert.ok(payload.shots.every(s=>s.kind==='video'));
+    await w.studioGenerateMissing();assert.equal(animations,1);
   }finally{a.close();}
 });

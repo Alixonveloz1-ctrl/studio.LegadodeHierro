@@ -2049,7 +2049,7 @@ function renderOut(r){
   if(!document.getElementById('bbanco')){
     var bb=document.createElement('button');
     bb.id='bbanco';
-    bb.textContent='📼 Asignar imágenes y videos al guion';
+    bb.textContent='📼 Asignar videos del banco al guion';
     bb.style.cssText='width:100%;margin-top:8px;padding:12px;background:#fff;border:2px solid #9ab47a;border-radius:10px;font-size:13px;font-weight:700;color:#6a8a4a;cursor:pointer;font-family:inherit';
     bb.addEventListener('click',studioUseLibrary);
     document.getElementById('imgCard').appendChild(bb);
@@ -4187,8 +4187,8 @@ function updUnifyCard(){
   if(!musicLoaded)loadMusicList();
   var sub=document.getElementById('unifySub');if(!sub)return;
   var audio=unifyLang()==='en'?audEN:audES;
-  var visual=STUDIO.plan.length?STUDIO.plan.every(function(p){return !!p.assetId;}):totalClips()>0;
-  sub.textContent=visual&&audio?'Listo para montar con imágenes, clips o una mezcla de ambos y la narración completa.'
+  var visual=STUDIO.plan.length?STUDIO.plan.every(studioShotVideo):totalClips()>0;
+  sub.textContent=visual&&audio?'Listo para montar con videos y la narración completa.'
     :'Falta: '+(!visual?'seleccionar material visual ':'')+(!audio?' · narración '+unifyLang().toUpperCase():'');
 }
 

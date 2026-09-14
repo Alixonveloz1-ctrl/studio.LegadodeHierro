@@ -124,3 +124,11 @@ test('ordinary scenes can reuse unlabelled sets by meaning, while professor and 
   assert.equal(core.selectPlan([scene],[{...a,setId:'otro_lugar'}])[0].assetId,'');
   const strict=core.scenePlan({...episode,modo:'profesor'},10,'9:16')[0];assert.equal(core.selectPlan([strict],[a])[0].assetId,'');
 });
+
+test('video-only assignment never chooses an image even when it scores better and does not pretend an unmatched clip is missing from storage',()=>{
+  const scene={description:'Calcular presupuesto en oficina con calculadora',aspect:'9:16',videoOnly:true};
+  const image={id:'image',kind:'image',aspect:'9:16',description:scene.description,favorite:true};
+  const video={...image,id:'video',kind:'video',favorite:false};
+  assert.equal(core.selectPlan([scene],[image,video])[0].assetId,'video');
+  const gap=core.selectPlan([scene],[image])[0];assert.equal(gap.assetId,'');assert.match(gap.reason,/No se encontró un video compatible/);
+});

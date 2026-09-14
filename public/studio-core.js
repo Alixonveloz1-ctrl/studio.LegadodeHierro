@@ -210,9 +210,11 @@
   function selectPlan(scenes, assets) {
     var used = {}, prev = '';
     return scenes.map(function(s) {
-      var candidates = rankAssets(assets, s, used, prev), best = candidates[0];
+      var candidates = rankAssets(assets, s, used, prev);
+      if(s.videoOnly)candidates=candidates.filter(function(c){return c.asset.kind==='video';});
+      var best = candidates[0];
       if (best) { used[best.asset.id] = (used[best.asset.id] || 0) + 1; prev = best.asset.id; }
-      return Object.assign({}, s, {assetId: best ? best.asset.id : '', reason: best ? best.reason : 'Falta material que corresponda a esta escena', alternatives: candidates.slice(0, 5).map(function(c) { return c.asset.id; })});
+      return Object.assign({}, s, {assetId: best ? best.asset.id : '', reason: best ? best.reason : (s.videoOnly?'No se encontró un video compatible en la biblioteca':'Falta material que corresponda a esta escena'), alternatives: candidates.slice(0, 5).map(function(c) { return c.asset.id; })});
     });
   }
   function familyFor(mode) { return mode === 'profesor' ? 'metodo' : mode === 'relato' || mode === 'historia' ? 'relato' : 'identidad'; }

@@ -115,3 +115,13 @@ test('invalid reviews retry once then deliver 60-second, 5-minute and 8-minute s
     await runStep(store,j,text);assert.equal(reviews,2);
   }
 });
+
+test('video selection evaluates the whole story, can abstain, excludes stills and reuses its saved decision',async()=>{
+  const {selectVideos}=require('../server/_selection');const store=new MemoryStore();
+  const catalog=[{id:'video-a',object:'legado-videos/a.mp4',kind:'video',description:'Calcular presupuesto en oficina con calculadora',aspect:'9:16'},{id:'image-a',object:'legado-studio/media/a.png',kind:'image',description:'Calcular presupuesto en oficina con calculadora',aspect:'9:16'}];
+  store.list=async()=>({items:catalog.map(a=>({metadata:{record:JSON.stringify(a)}}))});
+  const input={story:'Primero calcula el presupuesto. Luego conversa con su hija en casa.',scenes:[{scene:0,description:'Calcular presupuesto en oficina con calculadora',aspect:'9:16'},{scene:1,description:'Conversar con su hija en casa',aspect:'9:16'}]};let calls=0;
+  const model=async prompt=>{calls++;assert.ok(prompt.includes(input.story));assert.ok(!prompt.includes('image-a'));return {text:JSON.stringify({choices:[{scene:0,assetId:'video-a',reason:'La acción y el entorno corresponden al presupuesto.'},{scene:1,assetId:null,reason:'No hay evidencia de una conversación con su hija.'}]})};};
+  const selected=await selectVideos(store,input,model);assert.equal(selected[0].assetId,'video-a');assert.equal(selected[1].assetId,'');await selectVideos(store,input,model);assert.equal(calls,1);
+  await assert.rejects(selectVideos(store,{...input,story:'Otro guion'},async()=>({text:JSON.stringify({choices:[{scene:0,assetId:'image-a',reason:'No válido'},{scene:1,assetId:null,reason:'Sin material'}]})})),/no comprobados/);
+});

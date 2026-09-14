@@ -297,8 +297,7 @@ async function studioZipLibrary(zip,slug){
 async function studioUseLibrary(){
   var panel=studioEl('bancoPanel');if(panel)panel.style.display='none';
   try{
-    if(!STUDIO.plan.length)await studioBuildPlan();
-    else studioPaintPlan();
+    await studioBuildPlan();
     studioEl('episodeTools').scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){studioMessage('El guion está guardado. No se pudo asignar la biblioteca: '+e.message,true);}
 }
@@ -309,11 +308,15 @@ async function studioBuildPlan(){
   if(!lastRes)throw new Error('Genera o restaura un guion primero.');
   var owner=lastRes;STUDIO.assets=await studioLoadAll('assets');if(owner!==lastRes)return;
   var audio=unifyLang()==='en'?audEN:audES,duration=audio&&audio.dur||Number(lastRes.dO&&lastRes.dO.id)||60;
-  var scenes=LH.scenePlan(lastRes,duration,imgFmt);
-  STUDIO.plan=LH.selectPlan(scenes,STUDIO.assets);studioPaintPlan();await studioPersistAssets();updUnifyCard();
-  var gaps=STUDIO.plan.filter(function(p){return !p.assetId;}).length;
-  studioMessage(gaps?'Plan preparado: '+gaps+' tomas necesitan material. Puedes elegirlo, importarlo o generarlo.':STUDIO.plan.length+' tomas elegidas. Revisa la secuencia antes de montar; no se generó contenido nuevo.');
+  var scenes=LH.scenePlan(lastRes,duration,vidFmt).map(function(s){return Object.assign(s,{videoOnly:true});});
+  studioMessage('Comprobando qué videos cuentan esta historia y mantienen la continuidad…');
+  var chosen=await studioAPI('select-videos',{story:owner.a,scenes:scenes});if(owner!==lastRes)return;
+  if(!Array.isArray(chosen.plan)||chosen.plan.length!==scenes.length)throw new Error('No se pudo completar la selección de videos.');
+  STUDIO.plan=chosen.plan;studioPaintPlan();await studioPersistAssets();updUnifyCard();
+  var gaps=STUDIO.plan.filter(function(p){return !studioShotVideo(p);}).length;
+  studioMessage(gaps?'Plan preparado: '+gaps+' tomas no encontraron un video compatible. Puedes buscar otro clip; no se generó contenido nuevo.':STUDIO.plan.length+' tomas elegidas. Revisa la secuencia antes de montar; no se generó contenido nuevo.');
 }
+function studioShotVideo(p){return !!STUDIO.assets.find(function(a){return a.id===p.assetId&&a.kind==='video';});}
 function studioPaintPlan(){
   var grid=studioEl('scenePlan');if(!grid)return;grid.innerHTML='';
   var currentPlan=STUDIO.plan;
@@ -329,8 +332,8 @@ function studioPaintPlan(){
     var search=studioInput('Buscar otro material para esta toma','','search');edits.appendChild(search.label);
     function choices(){
       var q=LH.norm(search.input.value),ids=(p.alternatives||[]).concat(p.assetId?[p.assetId]:[]);
-      var candidates=STUDIO.assets.filter(function(a){return !a.archived&&a.kind!=='music'&&(!a.aspect||a.aspect===p.aspect)&&(q?LH.norm([a.title,a.description,(a.tags||[]).join(' ')].join(' ')).includes(q):ids.includes(a.id));}).slice(0,25);
-      var selected=STUDIO.assets.find(function(a){return a.id===p.assetId;});if(selected&&!candidates.some(function(a){return a.id===selected.id;}))candidates.unshift(selected);
+      var candidates=STUDIO.assets.filter(function(a){return !a.archived&&a.kind==='video'&&(!a.aspect||a.aspect===p.aspect)&&(q?LH.norm([a.title,a.description,(a.tags||[]).join(' ')].join(' ')).includes(q):ids.includes(a.id));}).slice(0,25);
+      var selected=STUDIO.assets.find(function(a){return a.id===p.assetId;});if(selected&&selected.kind==='video'&&!candidates.some(function(a){return a.id===selected.id;}))candidates.unshift(selected);
       select.innerHTML='';select.add(new Option('Elegir material para esta toma',''));
       candidates.forEach(function(a){var o=new Option((a.kind==='video'?'Video · ':'Imagen · ')+(a.title||a.description),a.id);o.selected=p.assetId===a.id;select.add(o);});
     }
@@ -338,6 +341,7 @@ function studioPaintPlan(){
     select.onchange=function(){p.assetId=select.value;p.reason='Selección manual';studioPersistAssets();studioPaintPlan();updUnifyCard();};edits.appendChild(select);
     var placeholder=document.createElement('div');placeholder.className='studio-plan-preview studio-asset';placeholder.textContent=p.assetId?'Cargando vista previa…':'Sin material asignado';row.prepend(placeholder);
     var asset=STUDIO.assets.find(function(a){return a.id===p.assetId;});
+    var state=document.createElement('strong');state.textContent=asset?(asset.kind==='video'?'Video listo para el montaje':'Imagen · pendiente de convertir a video'):'Falta crear el video';row.insertBefore(state,title);
     if(!p.assetId){
       var generate=document.createElement('button');generate.textContent='Generar imagen';generate.onclick=function(){studioGuard(async function(){generate.disabled=true;try{await studioGenerateShot(i);}finally{generate.disabled=false;}});};row.appendChild(generate);
     }else if(asset&&asset.kind==='image'){
@@ -365,6 +369,7 @@ async function studioPlanPreviews(plan,grid){
       var box=row.querySelector('.studio-plan-preview');if(!box)return;box.textContent='';
       var media=studioMedia(a,linked.url);if(a.kind==='video'){media.preload='metadata';media.src=linked.url.split('#')[0]+'#t=0.001';}
       media.addEventListener('error',function(){studioPreviewError(plan,grid,i,p.assetId);});box.appendChild(media);
+      if(a.kind==='video'){var play=document.createElement('button');play.textContent='Reproducir video';play.onclick=async function(){try{await media.play();}catch(e){play.textContent='No se pudo reproducir. Recargar';play.onclick=function(){delete STUDIO_LIBRARY_LINKS[p.assetId];studioPlanPreviews(plan,grid);};}};box.appendChild(play);}
     });
   }catch(e){plan.forEach(function(p,i){if(p.assetId)studioPreviewError(plan,grid,i,p.assetId);});}
 }
@@ -516,17 +521,17 @@ async function studioPrepareMontage(audio){
     for(var k=0;k<ids.length;k+=50)linked=linked.concat((await studioAPI('links',{ids:ids.slice(k,k+50)})).items);
     var map={};linked.forEach(function(a){map[a.id]=a;});
     var planned=plan.reduce(function(n,s){return n+s.duration;},0);
-    plan.forEach(function(s){var a=map[s.assetId];if(!a)throw new Error('Un material del plan ya no está disponible. Selecciónalo de nuevo.');shots.push({object:a.object,kind:a.kind,duration:s.duration/planned*audio.dur,assetId:a.id});});
+    plan.forEach(function(s){var a=map[s.assetId];if(!a)throw new Error('Un material del plan ya no está disponible. Selecciónalo de nuevo.');if(a.kind!=='video')throw new Error('Hay imágenes pendientes de convertir a video. Pulsa «Completar videos pendientes».');shots.push({object:a.object,kind:a.kind,duration:s.duration/planned*audio.dur,assetId:a.id});});
   }else{
     var scenes=LH.scenePlan(owner,audio.dur,imgFmt);
     for(var i=0;i<scenes.length;i++){
       var sc=scenes[i],v=vids[sc.scene],im=imgs[sc.scene];
       if(v&&v.remoteUrl){if(!v.object)await studioRegisterVideo(v,owner.c[sc.scene],sc.scene);shots.push({kind:'video',object:v.object,duration:sc.duration,assetId:v.assetId});}
-      else if(im&&im.src){if(!im.object){var a=await studioSaveImage(im.src,owner.c[sc.scene],sc.scene);im.object=a.object;im.assetId=a.id;}shots.push({kind:'image',object:im.object,duration:sc.duration,assetId:im.assetId});}
+      else if(im&&im.src)throw new Error('Convierte la imagen de la escena '+(sc.scene+1)+' a video antes de montar.');
       else throw new Error('Falta material para la escena '+(sc.scene+1)+'. Elige una imagen o un video de la biblioteca, o genera esa escena.');
     }
   }
-  return {shots:shots,audioObjects:audio.audioObjects,aspect:imgFmt};
+  return {shots:shots,audioObjects:audio.audioObjects,aspect:vidFmt};
 }
 async function studioRenderVideo(){
   if(!lastRes)throw new Error('Genera un guion primero.');
@@ -758,20 +763,21 @@ async function studioAnimateShot(index,row){
   await studioPersistAssets();studioPaintPlan();updUnifyCard();
 }
 async function studioGenerateMissing(){
-  if(!lastRes||!STUDIO.plan.length)throw new Error('Prepara el montaje desde la biblioteca primero.');
-  var missing=Array.from(new Set(STUDIO.plan.filter(function(p){return !p.assetId;}).map(function(p){return p.scene;})));
-  if(!missing.length){studioMessage('Todas las tomas tienen material.');return;}
-  if(!confirm('Faltan imágenes para '+missing.length+' escenas. Coste estimado: $'+(missing.length*imgCost()).toFixed(2)+'. Las imágenes quedarán en la biblioteca para reutilizarse. ¿Generarlas?'))return;
-  var owner=lastRes,refs=await loadRefs();if(refs.length<MIN_REFS)throw new Error('Faltan referencias del protagonista.');
-  for(var i=0;i<missing.length;i++){
-    var n=missing[i];studioMessage('Generando solo la escena pendiente '+(i+1)+' de '+missing.length);
-    var prepared=await prepararImagen(owner.c[n],refs),src=await genOneImage(imgPromptPrefix(imgFmt)+prepared.prompt,prepared.refs);
-    imgs[n]={src:src,idx:n+1};var a=await studioSaveImage(src,owner.c[n],n);
-    STUDIO.plan.forEach(function(p){if(p.scene===n&&!p.assetId){p.assetId=a.id;p.reason='Imagen nueva guardada para reutilizar';}});
-    cost+=imgCost();updCost();await studioPersistAssets();studioPaintPlan();
-    if(i<missing.length-1)await new Promise(function(r){setTimeout(r,PAUSA_IMAGENES);});
+  if(!lastRes||!STUDIO.plan.length)throw new Error('Prepara las escenas del guion primero.');
+  var plan=STUDIO.plan,owner=lastRes,pending=plan.filter(function(p){return !studioShotVideo(p);});
+  if(!pending.length){studioMessage('Todas las tomas tienen video.');return;}
+  var images=new Set(pending.filter(function(p){return !p.assetId;}).map(function(p){return p.scene;})).size;
+  var videos=new Set(pending.map(function(p){return p.scene+'|'+(p.assetId||'new');})).size;
+  if(images&&imgFmt!==vidFmt)throw new Error('Usa el mismo formato de imagen y video para crear las tomas pendientes.');
+  if(!confirm('Crear '+images+' imágenes y '+videos+' videos con tus modelos actuales. Coste estimado: $'+(images*imgCost()+videos*vidCost()).toFixed(2)+'. Se guardará cada resultado. ¿Continuar?'))return;
+  for(var i=0;i<plan.length;i++){
+    if(owner!==lastRes||plan!==STUDIO.plan)return;
+    if(studioShotVideo(plan[i]))continue;
+    if(!plan[i].assetId)await studioGenerateShot(i);
+    if(owner!==lastRes||plan!==STUDIO.plan)return;
+    await studioAnimateShot(i,studioEl('scenePlan').querySelector('[data-shot="'+i+'"]'));
   }
-  studioPaintCurrentImages();studioMessage('Huecos completos. El resto del material se reutilizó.');
+  studioMessage('Todas las tomas tienen video. Listo para montar con la narración.');
 }
 async function studioGuard(fn){
   if(STUDIO.busy)return;STUDIO.busy=true;
