@@ -4,6 +4,8 @@ const {createHash,randomUUID}=require('crypto');
 const {failure}=require('./_store');
 const assets=require('./_assets'),core=require('../public/studio-core'),models=require('./_library-model');
 const ACTIVE='legado-studio/library/active.json',BASE='legado-studio/library/';
+const CHANNEL_PREFIXES=['legado-videos/','legado-studio/media/'];
+const SCOPE_VERSION=2;
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const imageObject=(id,aspect)=>'legado-studio/media/library-'+hash('v1|'+id+'|'+aspect)+'.png';
 function sourceConfig(value){
@@ -22,7 +24,7 @@ function eligible(info,foreign=false){
 function publicJob(j){
   if(!j)return null;
   return {id:j.id,type:j.type,status:j.status,stage:j.stage,completed:j.completed,failed:j.failed,skipped:j.skipped,total:j.total,
-    discovering:j.type!=='generate'&&!j.exhausted,error:j.error||'',failures:(j.failures||[]).slice(-8),lastAsset:j.lastAsset||null,
+    discovering:j.type!=='generate'&&!j.exhausted,error:j.error||'',failures:(j.failures||[]).slice(-8),lastAsset:j.lastAsset&&assets.channelAsset(j.lastAsset)?j.lastAsset:null,
     // Keep the original selection visible after items leave the processing queue.
     recipeIds:j.type==='generate'?(j.recipeIds||[...new Set([j.lastAsset?.recipeId,...j.queue.map(r=>r.recipeId)].filter(Boolean))]):[],
     pendingRecipeIds:j.type==='generate'?j.queue.map(r=>r.recipeId):[],recipeResults:j.recipeResults||{},
@@ -60,6 +62,7 @@ async function start(store,c,requestId){
     const page=await store.sourceList(job.source.bucket,job.source.prefix,'',100);
     job.queue=(page.items||[]).filter(it=>eligible(it,true));job.cursor=page.nextPageToken||'';job.exhausted=!job.cursor;job.total=job.queue.length;
   }
+  if(c.type==='catalog'){job.scopeVersion=SCOPE_VERSION;job.prefixIndex=0;}
   if(c.type==='catalog'&&Array.isArray(c.objects)){
     if(c.objects.length>1000||!c.objects.every(object=>eligible({name:object},true)))throw failure('La selección contiene archivos que no se pueden catalogar.',400);
     job.queue=[...new Set(c.objects)].map(name=>({name}));job.exhausted=true;job.total=job.queue.length;
@@ -128,15 +131,23 @@ async function importItem(store,job,item,deps){
 async function advance(store,id,deps=models){
   const old=await store.read(ACTIVE);if(!old||old.data.id!==id)throw failure('Este lote ya no está activo.',409);
   const job=old.data;if(job.status==='done')return publicJob(job);
+  // Never resume an old bucket-wide scan after the channel scope changed.
+  if(job.type==='catalog'&&job.scopeVersion!==SCOPE_VERSION){
+    if(job.leaseUntil>Date.now())return {...publicJob(job),busy:true};
+    Object.assign(job,{scopeVersion:SCOPE_VERSION,prefixIndex:0,queue:[],cursor:'',exhausted:false,total:0,completed:0,skipped:0,failed:0,lastAsset:null});
+  }
   if(job.leaseUntil>Date.now())return {...publicJob(job),busy:true};
   job.leaseOwner=randomUUID();job.leaseUntil=Date.now()+65000;job.status='running';job.error='';
   let claim;try{claim=await store.put(ACTIVE,job,old.generation);}catch(e){if(e.status===412)return {...publicJob(job),busy:true};throw e;}
   try{
-    if(!job.queue.length&&!job.exhausted){
-      const source=job.source||{bucket:store.bucket,prefix:''};
+    if(!job.exhausted&&(job.type==='catalog'||!job.queue.length)){
+      const source=job.source||{bucket:store.bucket,prefix:CHANNEL_PREFIXES[job.prefixIndex||0]};
       const page=await store.sourceList(source.bucket,source.prefix,job.cursor,100);
-      job.queue=(page.items||[]).filter(it=>eligible(it,job.type==='import'));job.cursor=page.nextPageToken||'';job.exhausted=!job.cursor;job.total+=job.queue.length;
-      job.stage='Buscando imágenes, clips y música guardados';
+      const found=(page.items||[]).filter(it=>eligible(it,job.type==='import'));
+      job.queue=job.queue.concat(found);job.total=job.type==='catalog'?job.queue.length:job.total+found.length;job.cursor=page.nextPageToken||'';
+      if(job.type==='catalog'&&!job.cursor){job.prefixIndex++;job.exhausted=job.prefixIndex>=CHANNEL_PREFIXES.length;}
+      else job.exhausted=!job.cursor;
+      job.stage=job.exhausted?'Preparación lista · '+job.total+' archivos por revisar':'Buscando material de Legado de Hierro · '+job.total+' archivos encontrados';
     }else if(job.queue.length){
       const item=job.queue[0],key=BASE+'steps/'+job.id+'/'+hash(item.name||item.recipeId)+'.json';
       let result=(await store.read(key))?.data;

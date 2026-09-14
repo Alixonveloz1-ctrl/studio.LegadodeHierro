@@ -148,7 +148,7 @@ section{margin-bottom:20px}
 .voxP:active{border-color:#c4897a;color:#c4897a}
 #voxPanel summary::-webkit-details-marker{display:none}
 </style>
-<link rel="stylesheet" href="/studio.css?v=20260913f">
+<link rel="stylesheet" href="/studio.css?v=20260914a">
 </head>
 <body>
 
@@ -213,7 +213,7 @@ section{margin-bottom:20px}
       <div id="libraryNotice" class="studio-status" role="status" hidden></div>
       <div id="librarySavedView" role="tabpanel" aria-labelledby="librarySavedTab">
         <div class="studio-row studio-library-tools"><button id="libraryCatalog">Organizar material existente</button><button id="libraryLoad">Actualizar</button></div>
-        <p class="studio-help">Se organiza una vez y queda guardado. Al volver a abrir la aplicación, solo se carga tu biblioteca. Gemini analiza únicamente archivos nuevos, modificados o pendientes.</p>
+        <p class="studio-help">Se organiza una vez y queda guardado. Al volver a abrir la aplicación, solo se carga tu biblioteca. Solo se buscan las carpetas de Legado de Hierro. Primero se cuenta el material y después Gemini organiza lo pendiente.</p>
         <div class="studio-library-filters"><label>Buscar escena<input id="librarySearch" type="search" placeholder="Buscar en mi biblioteca"></label><label>Tipo<select id="libraryKind"><option value="">Todos</option><option value="image">Imágenes</option><option value="video">Videos</option><option value="music">Música</option></select></label></div>
         <p id="libraryCount"></p><div id="libraryGrid" class="studio-media-grid"></div>
         <div class="studio-library-pages"><button id="libraryPrev" disabled>Anterior</button><button id="libraryNext" disabled>Siguiente</button></div>
@@ -717,8 +717,8 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/studio-core.js?v=20260913f"></script>
-<script src="/app.js?v=20260913f"></script>
-<script src="/studio.js?v=20260913f"></script>
+<script src="/studio-core.js?v=20260914a"></script>
+<script src="/app.js?v=20260914a"></script>
+<script src="/studio.js?v=20260914a"></script>
 </body>
 </html>

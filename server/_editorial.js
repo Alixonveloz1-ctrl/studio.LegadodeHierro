@@ -87,9 +87,9 @@ async function responseFor(j,key,deps) {
       +'"hooks":[{"text":"primera frase original", "why":"por qué conecta con el tema"}], "selectedHook":0, "sections":[{"title":"función de la parte", "beat":"hecho, ejemplo o decisión NUEVA y cómo conecta con la anterior"}]}. '
       +'Exactamente 3 hooks DISTINTOS, no paráfrasis; selectedHook índice de 0 a 2 del más adecuado. Exactamente '+j.total+' sections, cada una de unas '+target+' palabras al desarrollarse. '
       +'Con una sola sección, su beat debe contener toda la progresión, no únicamente el gancho. Define el desenlace antes de desarrollar. No escribir aún narración ni imágenes.';
-    return parsePlan((await deps.text(p,{maxTokens:4000})).text,j.total);
+    return parsePlan((await deps.text(p,{maxTokens:4000,json:true,stage:key})).text,j.total);
   }
-  if (key==='review'||key==='review-final') return parseReview((await deps.text(reviewPrompt(j),{maxTokens:4500})).text,j.parts);
+  if (key==='review'||key==='review-final') return parseReview((await deps.text(reviewPrompt(j),{maxTokens:4500,json:true,stage:'review'})).text,j.parts);
   if (key==='visuals') {
     const count=c.sceneCount,professor=c.mode==='profesor',a=scriptText(j);
     const p=c.prompt+'\n\nETAPA ACTUAL: SOLO PLAN VISUAL del guion definitivo. No cambiar ni volver a escribir narración. '
@@ -98,7 +98,7 @@ async function responseFor(j,key,deps) {
         :'El prompt k corresponde al fragmento k de FRAGMENTOS VISUALES; si cae en medio de una oración interpreta su contexto sin inventar otra acción. ')
       +'Prioriza acciones, manos y objetos que se puedan reutilizar, con continuidad explícita. Nunca inventes un cambio de país o época. '
       +'\nGUION DEFINITIVO: '+a+'\nFRAGMENTOS VISUALES: '+JSON.stringify(core.segments(a,count));
-    return parseVisuals((await deps.text(p,{maxTokens:6500})).text,count,professor);
+    return parseVisuals((await deps.text(p,{maxTokens:6500,json:true,stage:key})).text,count,professor);
   }
   const i=Number(key.split('-')[1]),repair=key.startsWith('repair-');
   const p=c.prompt+'\n\nETAPA ACTUAL: '+(repair?'CORREGIR':'ESCRIBIR')+' SOLO la parte '+(i+1)+' de '+j.total+'. '
@@ -110,7 +110,7 @@ async function responseFor(j,key,deps) {
     +'\nCONTEXTO DE LAS PARTES YA ESCRITAS (no repetir): '+JSON.stringify(j.parts.map((s,n)=>({section:n+1,text:s.text})))
     +(repair?'\nCORRECCIONES PARA ESTA PARTE: '+JSON.stringify(j.firstReview.checks.filter(q=>q.status==='revise'&&q.section===i+1))
       +'\nConserva las acciones, personajes, lugares y datos necesarios para la continuidad. Corrige el problema con un ejemplo original; no cambies arbitrariamente el tema ni inventes pruebas.':'');
-  return validatePart((await deps.text(p,{maxTokens:2500})).text,target);
+  return validatePart((await deps.text(p,{maxTokens:2500,stage:key})).text,target);
 }
 function applyResponse(j,key,value) {
   if (key==='plan') j.outline=value;
@@ -143,7 +143,7 @@ function qualityFor(job) {
 async function reviewExisting(config,deps) {
   const parts=core.chunks(config.text,220,6000).map(text=>({text}));
   const j={config,parts,outline:config.plan||{},repaired:[]};
-  j.firstReview=parseReview((await deps.text(reviewPrompt(j),{maxTokens:4500})).text,parts);
+  j.firstReview=parseReview((await deps.text(reviewPrompt(j),{maxTokens:4500,json:true,stage:'review'})).text,parts);
   const quality=qualityFor(j);quality.scriptFingerprint=core.fingerprint(config.text);
   return {quality};
 }

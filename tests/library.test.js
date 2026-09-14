@@ -132,3 +132,23 @@ test('Storage paces a new function instance using the last modification of the p
   };
   try{const s=base.makeStore();await s.read('progress.json');await s.put('progress.json',{completed:26},'1');assert.ok(wroteAt-start>=1100);}finally{global.fetch=original;}
 });
+
+test('automatic organization discovers only channel folders before processing and keeps its total fixed',async()=>{
+  const s=new Store();for(const name of ['legado-videos/a.mp4','legado-videos/b.mp4','legado-videos/c.mp4','legado-studio/media/a.png','otro-proyecto/a.png','musica/shared.mp3'])s.add(name);
+  const prefixes=[],orig=s.sourceList.bind(s);s.sourceList=async(...args)=>{prefixes.push(args[1]);return orig(...args);};
+  let j=await lib.start(s,{type:'catalog'},'scope-request-001'),calls=0;
+  const deps={analyze:async(st,info)=>{calls++;assert.equal(j.discovering,false);assert.equal(j.total,4);return analysis(info);}};
+  while(j.discovering){j=await lib.advance(s,j.id,deps);assert.equal(calls,0);}
+  while(j.status!=='done'){j=await lib.advance(s,j.id,deps);assert.equal(j.total,4);}
+  assert.equal(calls,4);assert.deepEqual([...new Set(prefixes)],['legado-videos/','legado-studio/media/']);
+});
+test('resuming a legacy bucket-wide scan drops foreign queue entries without deleting files or saved records',async()=>{
+  const s=new Store(),foreign=s.add('other-project/a.png');s.add('legado-videos/good.mp4');
+  const foreignAsset=await assets.register(s,analysis(foreign),foreign.name,true);
+  let j=await lib.start(s,{type:'catalog'},'scope-request-002');const row=await s.read(lib.ACTIVE);
+  delete row.data.scopeVersion;row.data.queue=[foreign];row.data.cursor='old-page';row.data.total=300;
+  await s.put(lib.ACTIVE,row.data,row.generation);
+  j=await finish(s,j,{analyze:async(st,info)=>{assert.equal(info.name,'legado-videos/good.mp4');return analysis(info);}});
+  assert.equal(j.total,1);assert.ok(await s.info(foreign.name));assert.ok(await s.read(assets.PREFIX+foreignAsset.id+'.json'));
+  const listed=await assets.listAssets(s);assert.equal(listed.items.length,1);assert.equal(listed.items[0].object,'legado-videos/good.mp4');
+});

@@ -106,6 +106,7 @@ test('text deadline includes authentication and response body; MAX_TOKENS is rej
   const {generateText}=require('../server/_text'),original=global.fetch;
   global.fetch=async(url,opts)=>{
     if(url.includes('oauth2'))return {ok:true,json:async()=>({access_token:'fake-token'})};
+    const cfg=JSON.parse(opts.body).generationConfig;assert.ok(cfg.maxOutputTokens>=16384);assert.equal(cfg.thinkingConfig.thinkingLevel,'LOW');
     return {ok:true,json:async()=>({candidates:[{finishReason:'MAX_TOKENS',content:{parts:[{text:'BLOQUE A\nIncomplete'}]}}]})};
   };
   try{

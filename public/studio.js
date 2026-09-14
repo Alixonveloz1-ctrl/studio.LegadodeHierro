@@ -530,6 +530,7 @@ async function studioLibraryPaint(job){
   if(job){
     if(job.lastAsset)STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==job.lastAsset.id;}).concat(job.lastAsset);
     var done=(job.completed||0)+(job.skipped||0)+(job.failed||0),progress=studioEl('libraryProgress');progress.max=Math.max(1,job.total||1);progress.value=done;
+    if(job.discovering)progress.removeAttribute('value');
     var status=job.error||job.stage;
     if(job.type==='generate'&&job.recipeIds&&job.recipeIds.length){
       var saved=job.recipeIds.filter(function(id){return STUDIO.assets.some(function(a){return a.recipeId===id&&a.aspect===job.settings.aspect&&!a.archived;});}).length;

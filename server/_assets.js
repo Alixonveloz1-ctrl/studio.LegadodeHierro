@@ -6,6 +6,9 @@ function safeObject(object,legacy) {
   return typeof object === 'string' && object.length < 900 && !object.includes('..') && !/[\x00-\x1f\\]/.test(object)
     && (/^(legado-videos\/|legado-studio\/media\/|musica\/)/.test(object) || (legacy && !/^(unify|refs|personajes|legado-studio)\//.test(object)));
 }
+function channelAsset(a){
+  return /^(legado-videos\/|legado-studio\/media\/)/.test(a.object||'') || !!a.importedFrom || a.catalogSource==='manual' || (a.kind==='music'&&a.catalogSource!=='gemini');
+}
 function cleanAsset(input, object, previous) {
   const inferred=require('../public/studio-core').continuity(input.description);
   input={...inferred,...input};
@@ -41,7 +44,7 @@ async function register(store,input,object,legacy) {
 }
 async function listAssets(store,cursor) {
   const d = await store.list(PREFIX,cursor,100);
-  return {items:(d.items || []).map(it=>{try{return JSON.parse(it.metadata.record);}catch(e){return null;}}).filter(Boolean),cursor:d.nextPageToken || ''};
+  return {items:(d.items || []).map(it=>{try{return JSON.parse(it.metadata.record);}catch(e){return null;}}).filter(a=>a&&channelAsset(a)),cursor:d.nextPageToken || ''};
 }
 async function links(store,ids) {
   if (!Array.isArray(ids) || ids.length > 100) throw failure('Máximo 100 materiales por consulta.',400);
@@ -56,4 +59,4 @@ async function links(store,ids) {
   }
   return out.sort((a,b)=>unique.indexOf(a.id)-unique.indexOf(b.id));
 }
-module.exports = {PREFIX,idFor,safeObject,cleanAsset,register,listAssets,links};
+module.exports = {PREFIX,idFor,channelAsset,safeObject,cleanAsset,register,listAssets,links};
