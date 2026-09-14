@@ -6,7 +6,7 @@ async function generateText(prompt,options) {
   const access = await token(signal);
   const r = await fetch('https://aiplatform.googleapis.com/v1/projects/'+encodeURIComponent(process.env.GCP_PROJECT_ID)+'/locations/global/publishers/google/models/'+MODEL+':generateContent',
     {method:'POST',signal,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({
-      system_instruction:{parts:[{text:'Escribe exactamente el formato solicitado. No inventes datos, biografías ni resultados. Sin preámbulo ni markdown.'}]},
+      system_instruction:{parts:[{text:'Escribe exactamente el formato solicitado. No inventes datos, biografías ni resultados. Sin preámbulo ni markdown.'+(o.instruction?' '+o.instruction:'')}]},
       contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:Math.min(65536,Math.max(16384,(o.maxTokens || 8192)+8192)),...(o.json?{responseMimeType:'application/json'}:{}),temperature:1,thinkingConfig:{thinkingLevel:'LOW'}}
     })});
   const d = await r.json();

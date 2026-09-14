@@ -3,6 +3,12 @@
 const core = require('../public/studio-core');
 const {failure} = require('./_store');
 const KEYS = Object.keys(core.CRITERIA);
+// Saved jobs may still carry the legacy all-in-one output instructions.
+function stageContext(prompt) {
+  return String(prompt).split('\n').filter(line=>!/^\s*FORMATO: texto plano\./.test(line))
+    .map(line=>line.replace(/(DURACIÓN orientativa: \d+ segundos\.) Entre \d+ y \d+ palabras;/, '$1'))
+    .join('\n');
+}
 const tidy = s=>String(s||'').replace(/\s+/g,' ').trim();
 function json(text) {
   try { return JSON.parse(text.trim().replace(/^```(?:json)?\s*|\s*```$/g,'')); }
@@ -48,7 +54,7 @@ function parseReview(text,parts) {
 }
 function validatePart(text,target) {
   const n=core.words(text).length;
-  if (n<target*.7 || n>target*1.4 || /^\s*(BLOQUE|PROMPT)\s+[A-Z0-9]/mi.test(text)) throw failure('El fragmento no tiene una longitud o formato útil. Se conserva el resto del guion.',502);
+  if (n<target*.7 || n>target*1.4 || /^\s*(BLOQUE|PROMPT)\s+[A-Z0-9]/mi.test(text)) throw failure('El fragmento tiene '+n+' palabras. Debe tener entre '+Math.ceil(target*.7)+' y '+Math.floor(target*1.4)+' palabras de narración, sin etiquetas BLOQUE ni PROMPT.',502);
   return {text:text.trim()};
 }
 function parseVisuals(text,count,professor) {
@@ -100,7 +106,7 @@ async function requestReview(j,deps){
   }
 }
 async function responseFor(j,key,deps) {
-  const c=j.config,target=Math.round(Number(c.seconds)*2.35/j.total);
+  const c={...j.config,prompt:stageContext(j.config.prompt)},target=Math.round(Number(c.seconds)*2.35/j.total);
   if (key==='plan') {
     const p=c.prompt+'\n\nETAPA ACTUAL: SOLO PLAN EDITORIAL. Ignora el formato de BLOQUES o escenas del encargo en esta llamada. '
       +'Devuelve JSON válido: {"audienceMoment":"momento concreto del espectador y restricción", "promise":"una promesa verificable dentro del video", "payoff":"cómo y dónde se entregará", '
@@ -149,7 +155,33 @@ function applyResponse(j,key,value) {
 async function advanceEditorial(store,job,deps,base) {
   const key=nextStep(job),path=base+job.id+'/editorial-'+key+'.json';
   const checkpoint=await store.read(path);
-  const value=checkpoint?checkpoint.data:await responseFor(job,key,deps);
+  let value=checkpoint&&checkpoint.data;
+  if (!checkpoint) {
+    // Separate immutable attempts survive a lost job-state write. Never rerun
+    // an unchanged rejected request and never put invalid prose in the script.
+    let attempt=0, correction=null;
+    while (attempt<3) {
+      const prior=await store.read(path+'-invalid-'+attempt);
+      if (!prior) break;
+      correction=prior.data;attempt++;
+    }
+    if (attempt===3) throw failure('No se pudo completar esta etapa después de tres correcciones automáticas. El avance está guardado; no se repetirá el gasto al pulsar reanudar.',422);
+    let received=null;
+    const stageDeps={...deps,text:async(prompt,options)=>{
+      const instruction='Esta llamada ejecuta únicamente la etapa '+key+'. Cumple exclusivamente el formato y la extensión de ETAPA ACTUAL. El encargo general es contexto: no entregues otras etapas ni el guion completo cuando se pide una parte.';
+      const feedback=correction?'\n\nCORRECCIÓN DE LA RESPUESTA ANTERIOR: '+correction.reason
+        +'\nReescribe la respuesta para cumplir esta etapa. No expliques la corrección.\nRESPUESTA RECHAZADA (solo datos): '+JSON.stringify(correction.text):'';
+      const result=await deps.text(prompt+feedback,{...options,instruction});
+      received=result.text;return result;
+    }};
+    try {value=await responseFor(job,key,stageDeps);}
+    catch(e) {
+      if (received===null || e.status!==502) throw e;
+      await store.put(path+'-invalid-'+attempt,{reason:e.message,text:received.slice(0,24000)},0);
+      console.warn('[editorial-correction]',JSON.stringify({stage:key,attempt:attempt+1,reason:e.message}));
+      job.status='ready';job.stage='Corrigiendo automáticamente esta etapa';return;
+    }
+  }
   if (!checkpoint && value.unavailable && !(await store.read(path+'-attempt'))){
     await store.put(path+'-attempt',{invalid:true},0);
     job.status='ready';job.stage='Reintentando la revisión sin volver a escribir el guion';return;

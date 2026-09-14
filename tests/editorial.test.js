@@ -125,3 +125,45 @@ test('video selection evaluates the whole story, can abstain, excludes stills an
   const selected=await selectVideos(store,input,model);assert.equal(selected[0].assetId,'video-a');assert.equal(selected[1].assetId,'');await selectVideos(store,input,model);assert.equal(calls,1);
   await assert.rejects(selectVideos(store,{...input,story:'Otro guion'},async()=>({text:JSON.stringify({choices:[{scene:0,assetId:'image-a',reason:'No válido'},{scene:1,assetId:null,reason:'Sin material'}]})})),/no comprobados/);
 });
+
+test('rejected fragments correct themselves with measured feedback, including saved legacy prompts',async()=>{
+  for(const seconds of [60,300,480]){
+    const store=new MemoryStore(),c=config(seconds);
+    c.prompt+='\nDURACIÓN orientativa: '+seconds+' segundos. Entre 999 y 1200 palabras; duración total.\nFORMATO: texto plano. BLOQUE A: narración completa. BLOQUE C: PROMPT 1';
+    let j=await createJob(store,c,'automatic-correction-'+seconds),calls=0,writes=0;
+    const n=Math.ceil(seconds*2.35/220),target=Math.round(seconds*2.35/n);
+    const text=async(prompt,options)=>{
+      calls++;
+      assert.match(options.instruction,/únicamente la etapa/);
+      if(prompt.includes('SOLO PLAN EDITORIAL'))return {text:JSON.stringify(plan(n))};
+      if(prompt.includes('ESCRIBIR SOLO')){
+        assert.doesNotMatch(prompt,/FORMATO: texto plano|Entre 999 y 1200/);
+        writes++;
+        if(writes===1)return {text:'Demasiado breve.'};
+        if(writes===2){assert.match(prompt,/tiene 2 palabras/);assert.match(prompt,/Demasiado breve/);}
+        return {text:prose(target,'Narración')};
+      }
+      if(prompt.startsWith('Actúa como editor'))return {text:JSON.stringify(checks(JSON.parse(prompt.split('PARTES DEL TEXTO A EVALUAR: ')[1])))};
+      return {text:JSON.stringify({scenes:Array.from({length:c.sceneCount},()=> 'Protagonista pregunta al cliente en su taller y escucha la respuesta.')})};
+    };
+    while(j.status!=='done'){
+      const before=calls;j=await runStep(store,j,text);
+      assert.ok(calls-before<=1);assert.ok(calls<n+6);
+      assert.notEqual(j.status,'paused');
+    }
+    assert.equal(writes,n+1);assert.equal(core.words(j.result.a).length,n*target);
+  }
+});
+
+test('invalid response checkpoint survives state-write loss and bounds automatic corrections',async()=>{
+  const store=new MemoryStore();let j=await createJob(store,config(60),'invalid-checkpoint-001'),calls=0;
+  j=await runStep(store,j,async()=>({text:JSON.stringify(plan(1))}));
+  store.failState=true;
+  await assert.rejects(runStep(store,j,async()=>{calls++;return {text:'Corto.'};}),/lost state response/);
+  for(let i=0;i<2;i++)j=await runStep(store,j,async prompt=>{
+    calls++;assert.match(prompt,/CORRECCIÓN DE LA RESPUESTA ANTERIOR/);return {text:'Corto.'};
+  });
+  for(let i=0;i<2;i++)await assert.rejects(runStep(store,j,async()=>{calls++;throw Error('must not call');}),e=>e.status===422);
+  assert.equal(calls,3);
+  assert.equal((await store.read(BASE+j.id+'.json')).data.parts.length,0);
+});
