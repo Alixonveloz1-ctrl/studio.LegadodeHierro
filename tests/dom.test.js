@@ -278,3 +278,28 @@ test('a storage throttle resumes the same job automatically and waiting can be p
     await w.studioLibraryRun(job);assert.equal(attempts,1);assert.equal(w.document.querySelector('#libraryResume').hidden,false);assert.equal(w.STUDIO_LIBRARY.running,false);
   }finally{a.close();}
 });
+
+test('script transients retry the same saved job automatically, with a finite limit',async()=>{
+  const a=await app();try{
+    const {w}=a;let advances=0,creates=0;const waits=[];
+    w.studioRetryWait=async ms=>waits.push(ms);
+    w.studioAPI=async(action,b)=>{if(action==='create'){creates++;return {id:'same-job',status:'ready'};}assert.equal(b.id,'same-job');advances++;if(advances<3){const e=new Error('temporary');e.status=504;throw e;}return {id:'same-job',status:'done',result:{a:'saved script'}};};
+    const out=await w.studioRunJob({type:'script'},'request-001');assert.equal(out.a,'saved script');assert.equal(creates,1);assert.equal(advances,3);assert.deepEqual(waits,[3000,6000]);
+    advances=0;w.studioAPI=async action=>{if(action==='create')return {id:'same-job',status:'ready'};advances++;const e=new Error('persistent');e.status=503;throw e;};
+    await assert.rejects(w.studioRunJob({type:'script'},'request-002'),/persistent/);assert.equal(advances,3);
+  }finally{a.close();}
+});
+
+test('library button assigns scenes without opening the legacy picker and ZIP includes unique library sources',async()=>{
+  const a=await app();try{
+    const {w,assets,calls}=a;w.lastRes=episode(w);assets.push(...['image','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/a'+i+(i?'.mp4':'.png'),aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
+    w.renderOut(w.lastRes);await w.studioUseLibrary();await tick();
+    assert.ok(w.STUDIO.plan.every(p=>p.assetId));assert.equal(w.document.querySelector('#bancoPanel').style.display,'none');assert.match(w.document.querySelector('#bbanco').textContent,/Asignar/);
+    assert.ok(w.document.querySelectorAll('#scenePlan .studio-plan-preview').length>0);
+    assert.ok([...w.document.querySelectorAll('#scenePlan details')].every(d=>!d.open));
+    const original=w.fetch;w.fetch=async(url,opts)=>String(url).startsWith('https://media.example.test/')?{ok:true,arrayBuffer:async()=>new Uint8Array([1,2,3]).buffer}:original(url,opts);
+    const files=new Map();await w.studioZipLibrary({file:(name,data)=>files.set(name,data)},'test');
+    assert.equal(files.size,2);assert.ok([...files.keys()].some(k=>k.endsWith('.mp4')));assert.ok([...files.keys()].some(k=>k.endsWith('.png')));
+    assert.equal(calls.filter(c=>c.input==='/api/image'||c.input==='/api/video-start').length,0);
+  }finally{a.close();}
+});

@@ -1,5 +1,5 @@
 const {token,failure} = require('./_store');
-const MODEL = 'gemini-3.1-pro-preview';
+const MODEL = 'gemini-3-flash-preview';
 async function generateText(prompt,options) {
   const o = options || {}, signal = o.signal || AbortSignal.timeout(43000);
   if (!process.env.GCP_PROJECT_ID) throw failure('GCP_PROJECT_ID no configurado.');

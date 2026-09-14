@@ -1432,6 +1432,7 @@ async function generate(){
     resetReelAssets();
     saveHistory(lastRes);
     renderOut(lastRes);
+    await studioAutoAssign();
   }catch(e){
     showErr(e.message||'Error de conexion.');
   }finally{
@@ -2048,9 +2049,9 @@ function renderOut(r){
   if(!document.getElementById('bbanco')){
     var bb=document.createElement('button');
     bb.id='bbanco';
-    bb.textContent='📼 Usar videos ya generados';
+    bb.textContent='📼 Asignar imágenes y videos al guion';
     bb.style.cssText='width:100%;margin-top:8px;padding:12px;background:#fff;border:2px solid #9ab47a;border-radius:10px;font-size:13px;font-weight:700;color:#6a8a4a;cursor:pointer;font-family:inherit';
-    bb.addEventListener('click',abrirBanco);
+    bb.addEventListener('click',studioUseLibrary);
     document.getElementById('imgCard').appendChild(bb);
     var bp=document.createElement('div');
     bp.id='bancoPanel';
@@ -4669,6 +4670,7 @@ async function exportAll(){
   var slug=(lastRes&&lastRes.topic?lastRes.topic:'reel').slice(0,25).replace(/[^a-zA-Z0-9]/g,'-');
   try{
     var zip=new JSZip();
+    await studioZipLibrary(zip,slug);
     if(lastRes&&lastRes.a) zip.file(slug+'-guion-es.txt',lastRes.a);
     if(lastRes&&lastRes.f) zip.file(slug+'-guion-en.txt',lastRes.f);
     var capFull='';
@@ -5300,6 +5302,7 @@ async function genTrendOne(i){
     resetReelAssets();
     saveHistory(lastRes);
     renderOut(lastRes);
+    await studioAutoAssign();
   }catch(e){
     showErr(e.message||'Error de conexion.');
   }finally{

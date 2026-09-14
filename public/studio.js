@@ -41,11 +41,22 @@ async function studioPrepareReference(context){
 function studioPending(){try{return JSON.parse(localStorage.getItem('lh_pending_job')||'null');}catch(e){return null;}}
 function studioRemember(pending){if(pending)localStorage.setItem('lh_pending_job',JSON.stringify(pending));else localStorage.removeItem('lh_pending_job');studioPaintPending();}
 function studioPaintPending(){var el=studioEl('studioPending'),p=studioPending();if(el){el.hidden=!p;el.textContent=p?'Reanudar '+(p.label||'trabajo guardado'):'';}}
+async function studioRetryWait(ms){await new Promise(function(resolve){setTimeout(resolve,ms);});}
 async function studioRunJob(config,requestId,onProgress){
   var d=await studioAPI('create',{config:config,requestId:requestId},'/api/studio-job');
+  var retries=0;
   while(d.status!=='done'){
     if(onProgress)onProgress(d);
-    d=await studioAPI('advance',{id:d.id},'/api/studio-job');
+    try{
+      var next=await studioAPI('advance',{id:d.id},'/api/studio-job');
+      if(!next.busy)retries=0;d=next;
+    }catch(e){
+      var temporary=[408,429,500,502,503,504].includes(e.status)||['TimeoutError','AbortError','TypeError'].includes(e.name);
+      if(config.type!=='script'||!temporary||retries>=2||e.retryAfterMs>60000)throw e;
+      var wait=Math.max(3000*Math.pow(2,retries++),e.retryAfterMs||0);
+      if(onProgress)onProgress(Object.assign({},d,{stage:'Recuperando la etapa automáticamente · intento '+retries+' de 2'}));
+      await studioRetryWait(wait);continue;
+    }
     if(d.busy)await new Promise(function(r){setTimeout(r,2500);});
   }
   if(onProgress)onProgress(d);return d.result;
@@ -71,7 +82,7 @@ async function studioResume(){
     applySelection(m.mode,m.t,String(m.seconds),m.h);
     lastRes=Object.assign({},out,{uid:p.requestId,studioRequestId:p.requestId,topic:m.topic,modo:m.mode,editorial:m.editorial,
       tO:THEMES.find(function(t){return t.id===m.t;}),hO:HOOKS.find(function(h){return h.id===m.h;}),dO:DURS.concat(DURS_LARGAS).find(function(d){return d.id===String(m.seconds);})});
-    resetReelAssets();saveHistory(lastRes);renderOut(lastRes);
+    resetReelAssets();saveHistory(lastRes);renderOut(lastRes);await studioAutoAssign();
   }catch(e){studioMessage(e.message,true);}finally{loading=false;updGBtn();}
 }
 async function studioEnglish(text){
@@ -272,25 +283,50 @@ async function studioOpenProjects(){
 function studioPaintCurrentImages(){
   var grid=studioEl('igrid');grid.innerHTML='';imgs.forEach(function(a,i){if(!a)return;var div=document.createElement('div');grid.appendChild(div);setSlotOk(div,a.src,i);});
 }
+async function studioZipLibrary(zip,slug){
+  var existing=new Set(imgs.concat(vids).filter(Boolean).map(function(a){return a.assetId;}));
+  var ids=Array.from(new Set(STUDIO.plan.map(function(p){return p.assetId;}).filter(function(id){return id&&!existing.has(id);}))),items=[];
+  for(var i=0;i<ids.length;i+=100){var d=await studioAPI('links',{ids:ids.slice(i,i+100)});items=items.concat(d.items||[]);}
+  if(items.length!==ids.length)throw new Error('Falta recuperar una toma de la biblioteca para el ZIP.');
+  for(var j=0;j<items.length;j++){
+    var a=items[j],r=await fetch(a.url);if(!r.ok)throw new Error('No se pudo incluir una toma de la biblioteca en el ZIP.');
+    var ext=(a.object||'').split('.').pop();if(!/^[a-z0-9]{2,5}$/i.test(ext))ext=a.kind==='video'?'mp4':'png';
+    zip.file((a.kind==='video'?'videos/':'imagenes/')+slug+'-biblioteca-'+a.id+'.'+ext,await r.arrayBuffer());
+  }
+}
+async function studioUseLibrary(){
+  var panel=studioEl('bancoPanel');if(panel)panel.style.display='none';
+  try{
+    if(!STUDIO.plan.length)await studioBuildPlan();
+    else studioPaintPlan();
+    studioEl('episodeTools').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){studioMessage('El guion está guardado. No se pudo asignar la biblioteca: '+e.message,true);}
+}
+async function studioAutoAssign(){
+  try{await studioBuildPlan();}catch(e){studioMessage('Guion guardado. No se pudo cargar la biblioteca: '+e.message,true);}
+}
 async function studioBuildPlan(){
   if(!lastRes)throw new Error('Genera o restaura un guion primero.');
-  var owner=lastRes;if(!STUDIO.assets.length)await studioLoadLibrary();if(owner!==lastRes)return;
+  var owner=lastRes;STUDIO.assets=await studioLoadAll('assets');if(owner!==lastRes)return;
   var audio=unifyLang()==='en'?audEN:audES,duration=audio&&audio.dur||Number(lastRes.dO&&lastRes.dO.id)||60;
   var scenes=LH.scenePlan(lastRes,duration,imgFmt);
-  STUDIO.plan=LH.selectPlan(scenes,STUDIO.assets);studioPaintPlan();await studioPersistAssets();
+  STUDIO.plan=LH.selectPlan(scenes,STUDIO.assets);studioPaintPlan();await studioPersistAssets();updUnifyCard();
   var gaps=STUDIO.plan.filter(function(p){return !p.assetId;}).length;
   studioMessage(gaps?'Plan preparado: '+gaps+' tomas necesitan material. Puedes elegirlo, importarlo o generarlo.':STUDIO.plan.length+' tomas elegidas. Revisa la secuencia antes de montar; no se generó contenido nuevo.');
 }
 function studioPaintPlan(){
   var grid=studioEl('scenePlan');if(!grid)return;grid.innerHTML='';
+  var currentPlan=STUDIO.plan;
+  studioPlanPreviews(currentPlan,grid);
   STUDIO.plan.forEach(function(p,i){
-    var row=document.createElement('div');row.className='studio-shot';
+    var row=document.createElement('div');row.className='studio-shot';row.dataset.shot=String(i);
     var title=document.createElement('strong');title.textContent=(i+1)+' · '+p.start.toFixed(1)+'–'+(p.start+p.duration).toFixed(1)+' s';row.appendChild(title);
     var text=document.createElement('p');text.textContent=p.description;row.appendChild(text);
     if(p.narration){var spoken=document.createElement('details'),heading=document.createElement('summary'),words=document.createElement('p');heading.textContent='Texto que acompaña a esta escena';words.textContent=p.narration;spoken.appendChild(heading);spoken.appendChild(words);row.appendChild(spoken);}
     var reason=document.createElement('p');reason.textContent=p.reason;reason.className=p.assetId?'':'studio-gap';row.appendChild(reason);
     var select=document.createElement('select');select.setAttribute('aria-label','Material de la toma '+(i+1));select.add(new Option('Elegir material para esta toma',''));
-    var search=studioInput('Buscar otro material para esta toma','','search');row.appendChild(search.label);
+    var edits=document.createElement('details'),editTitle=document.createElement('summary');editTitle.textContent='Cambiar esta toma';edits.appendChild(editTitle);row.appendChild(edits);
+    var search=studioInput('Buscar otro material para esta toma','','search');edits.appendChild(search.label);
     function choices(){
       var q=LH.norm(search.input.value),ids=(p.alternatives||[]).concat(p.assetId?[p.assetId]:[]);
       var candidates=STUDIO.assets.filter(function(a){return !a.archived&&a.kind!=='music'&&(!a.aspect||a.aspect===p.aspect)&&(q?LH.norm([a.title,a.description,(a.tags||[]).join(' ')].join(' ')).includes(q):ids.includes(a.id));}).slice(0,25);
@@ -299,10 +335,23 @@ function studioPaintPlan(){
       candidates.forEach(function(a){var o=new Option((a.kind==='video'?'Video · ':'Imagen · ')+(a.title||a.description),a.id);o.selected=p.assetId===a.id;select.add(o);});
     }
     search.input.oninput=choices;choices();
-    select.onchange=function(){p.assetId=select.value;p.reason='Selección manual';studioPersistAssets();};row.appendChild(select);
+    select.onchange=function(){p.assetId=select.value;p.reason='Selección manual';studioPersistAssets();studioPaintPlan();updUnifyCard();};edits.appendChild(select);
     var preview=document.createElement('button');preview.textContent='Ver toma';preview.onclick=async function(){try{if(!p.assetId)return;var a=(await studioAPI('links',{ids:[p.assetId]})).items[0];var old=row.querySelector('.studio-plan-preview');if(old)old.remove();var box=document.createElement('div');box.className='studio-plan-preview studio-asset';box.appendChild(studioMedia(a,a.url));row.appendChild(box);}catch(e){studioMessage(e.message,true);}};row.appendChild(preview);
     grid.appendChild(row);
   });
+}
+async function studioPlanPreviews(plan,grid){
+  try{
+    var ids=Array.from(new Set(plan.map(function(p){return p.assetId;}).filter(Boolean)));
+    var rows=ids.map(function(id){return {id:id};});
+    var links=await studioLibraryLinks(rows);
+    if(STUDIO.plan!==plan)return;
+    plan.forEach(function(p,i){
+      var a=STUDIO.assets.find(function(a){return a.id===p.assetId;}),row=grid.querySelector('[data-shot="'+i+'"]');
+      if(!a||!row||!links[p.assetId])return;
+      var box=document.createElement('div');box.className='studio-plan-preview studio-asset';box.appendChild(studioMedia(a,links[p.assetId].url));row.prepend(box);
+    });
+  }catch(e){studioMessage('La selección está guardada; no se pudieron cargar las vistas previas.',true);}
 }
 function studioRenderEpisode(res){
   studioEl('episodeTools').hidden=false;
