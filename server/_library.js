@@ -5,7 +5,7 @@ const {failure}=require('./_store');
 const assets=require('./_assets'),core=require('../public/studio-core'),models=require('./_library-model');
 const ACTIVE='legado-studio/library/active.json',BASE='legado-studio/library/';
 const CHANNEL_PREFIXES=['legado-videos/','legado-studio/media/'];
-const SCOPE_VERSION=2;
+const SCOPE_VERSION=3;
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const imageObject=(id,aspect)=>'legado-studio/media/library-'+hash('v1|'+id+'|'+aspect)+'.png';
 function sourceConfig(value){
@@ -23,7 +23,7 @@ function eligible(info,foreign=false){
 }
 function publicJob(j){
   if(!j)return null;
-  return {id:j.id,type:j.type,status:j.status,stage:j.stage,completed:j.completed,failed:j.failed,skipped:j.skipped,total:j.total,
+  return {id:j.id,type:j.type,status:j.status,stage:j.stage,completed:j.completed,failed:j.failed,skipped:j.skipped,total:j.total,alreadyReady:j.alreadyReady||0,
     discovering:j.type!=='generate'&&!j.exhausted,error:j.error||'',failures:(j.failures||[]).slice(-8),lastAsset:j.lastAsset&&assets.channelAsset(j.lastAsset)?j.lastAsset:null,
     // Keep the original selection visible after items leave the processing queue.
     recipeIds:j.type==='generate'?(j.recipeIds||[...new Set([j.lastAsset?.recipeId,...j.queue.map(r=>r.recipeId)].filter(Boolean))]):[],
@@ -62,10 +62,10 @@ async function start(store,c,requestId){
     const page=await store.sourceList(job.source.bucket,job.source.prefix,'',100);
     job.queue=(page.items||[]).filter(it=>eligible(it,true));job.cursor=page.nextPageToken||'';job.exhausted=!job.cursor;job.total=job.queue.length;
   }
-  if(c.type==='catalog'){job.scopeVersion=SCOPE_VERSION;job.prefixIndex=0;}
+  if(c.type==='catalog'){job.scopeVersion=SCOPE_VERSION;job.prefixIndex=0;job.known={};job.indexCursor='';job.indexReady=false;job.alreadyReady=0;}
   if(c.type==='catalog'&&Array.isArray(c.objects)){
     if(c.objects.length>1000||!c.objects.every(object=>eligible({name:object},true)))throw failure('La selección contiene archivos que no se pueden catalogar.',400);
-    job.queue=[...new Set(c.objects)].map(name=>({name}));job.exhausted=true;job.total=job.queue.length;
+    job.indexReady=true;job.queue=[...new Set(c.objects)].map(name=>({name}));job.exhausted=true;job.total=job.queue.length;
   }
   if(c.type==='generate'){
     if(!Array.isArray(c.recipeIds))throw failure('Elige las tomas del lote.',400);
@@ -76,10 +76,13 @@ async function start(store,c,requestId){
   }
   await store.put(ACTIVE,job,existing?existing.generation:0);return publicJob(job);
 }
+function catalogReady(info,previous){
+  return !!(previous?.archived
+    || (previous?.analysis?.version===models.VERSION&&previous.analysis.generation===String(info.generation))
+    || (previous?.catalogSource==='imported'&&previous.description&&previous.tags?.length&&(previous.aspect||previous.kind==='music')));
+}
 async function catalog(store,info,previous,deps,defaults={}){
-  if(previous?.archived)return {asset:previous,skipped:true};
-  if(previous?.analysis?.version===models.VERSION&&previous.analysis.generation===String(info.generation))return {asset:previous,skipped:true};
-  if(previous?.catalogSource==='imported'&&previous.description&&previous.tags?.length&&(previous.aspect||previous.kind==='music'))return {asset:previous,skipped:true};
+  if(catalogReady(info,previous))return {asset:previous,skipped:true};
   const path=BASE+'analysis/'+hash(info.name+'|'+info.generation+'|'+models.VERSION)+'.json';
   let cached=await store.read(path),data=cached?.data;
   if(!data){data=await deps.analyze(store,info);try{await store.put(path,data,0);}catch(e){if(e.status!==412)throw e;}}
@@ -134,20 +137,28 @@ async function advance(store,id,deps=models){
   // Never resume an old bucket-wide scan after the channel scope changed.
   if(job.type==='catalog'&&job.scopeVersion!==SCOPE_VERSION){
     if(job.leaseUntil>Date.now())return {...publicJob(job),busy:true};
-    Object.assign(job,{scopeVersion:SCOPE_VERSION,prefixIndex:0,queue:[],cursor:'',exhausted:false,total:0,completed:0,skipped:0,failed:0,lastAsset:null});
+    Object.assign(job,{scopeVersion:SCOPE_VERSION,prefixIndex:0,known:{},indexCursor:'',indexReady:false,alreadyReady:0,queue:[],cursor:'',exhausted:false,total:0,completed:0,skipped:0,failed:0,lastAsset:null});
   }
   if(job.leaseUntil>Date.now())return {...publicJob(job),busy:true};
   job.leaseOwner=randomUUID();job.leaseUntil=Date.now()+65000;job.status='running';job.error='';
   let claim;try{claim=await store.put(ACTIVE,job,old.generation);}catch(e){if(e.status===412)return {...publicJob(job),busy:true};throw e;}
   try{
-    if(!job.exhausted&&(job.type==='catalog'||!job.queue.length)){
+    if(job.type==='catalog'&&!job.indexReady){
+      const page=await assets.listAssets(store,job.indexCursor);
+      for(const a of page.items)job.known[a.object]={analysis:a.analysis,archived:a.archived,catalogSource:a.catalogSource,description:!!a.description,tags:a.tags?.length?[true]:[],aspect:a.aspect,kind:a.kind};
+      job.indexCursor=page.cursor;job.indexReady=!page.cursor;
+      job.stage='Comprobando qué material ya está organizado';
+    }else if(!job.exhausted&&(job.type==='catalog'||!job.queue.length)){
       const source=job.source||{bucket:store.bucket,prefix:CHANNEL_PREFIXES[job.prefixIndex||0]};
       const page=await store.sourceList(source.bucket,source.prefix,job.cursor,100);
-      const found=(page.items||[]).filter(it=>eligible(it,job.type==='import'));
+      const found=(page.items||[]).filter(it=>eligible(it,job.type==='import')).filter(it=>{
+        if(job.type==='catalog'&&catalogReady(it,job.known[it.name])){job.alreadyReady++;return false;}
+        return true;
+      });
       job.queue=job.queue.concat(found);job.total=job.type==='catalog'?job.queue.length:job.total+found.length;job.cursor=page.nextPageToken||'';
       if(job.type==='catalog'&&!job.cursor){job.prefixIndex++;job.exhausted=job.prefixIndex>=CHANNEL_PREFIXES.length;}
       else job.exhausted=!job.cursor;
-      job.stage=job.exhausted?'Preparación lista · '+job.total+' archivos por revisar':'Buscando material de Legado de Hierro · '+job.total+' archivos encontrados';
+      job.stage=job.exhausted?'Preparación lista · '+job.total+' archivos pendientes':'Buscando material de Legado de Hierro · '+job.total+' archivos encontrados';
     }else if(job.queue.length){
       const item=job.queue[0],key=BASE+'steps/'+job.id+'/'+hash(item.name||item.recipeId)+'.json';
       let result=(await store.read(key))?.data;
@@ -172,7 +183,7 @@ async function advance(store,id,deps=models){
       }
     }
     job.status=!job.queue.length&&job.exhausted?'done':'ready';job.leaseUntil=0;
-    if(job.status==='done')job.stage=job.completed+' materiales organizados · '+job.skipped+' ya estaban listos'+(job.failed?' · '+job.failed+' no se pudieron completar. Puedes volver a organizar o generar las tomas pendientes.':'. Biblioteca lista.');
+    if(job.status==='done'){delete job.known;job.stage=job.total===0?'Biblioteca al día · '+(job.alreadyReady||0)+' materiales ya organizados. No hay pendientes.':job.completed+' materiales organizados · '+(job.skipped+(job.alreadyReady||0))+' ya estaban listos'+(job.failed?' · '+job.failed+' no se pudieron completar. Puedes volver a organizar o generar las tomas pendientes.':'. Biblioteca lista.');}
     await store.put(ACTIVE,job,claim.generation);return publicJob(job);
   }catch(e){
     const current=await store.read(ACTIVE).catch(()=>null);

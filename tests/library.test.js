@@ -26,7 +26,7 @@ test('catalog scans every page and analyzes media itself, preserves corrections 
   let j=await lib.start(s,{type:'catalog'},'catalog-request-001');j=await finish(s,j,deps);assert.equal(calls,2);assert.equal(j.completed,2);
   const a=(await s.read(assets.PREFIX+assets.idFor('legado-videos/sample_0.mp4')+'.json')).data;assert.equal(a.title,'Calcular el presupuesto');assert.equal(a.kind,'video');
   await assets.register(s,{title:'Mi título corregido',description:'Mi descripción de la acción en la oficina.',catalogSource:'manual'},a.object,true);
-  j=await lib.start(s,{type:'catalog'},'catalog-request-002');j=await finish(s,j,deps);assert.equal(calls,2);assert.equal(j.skipped,2);
+  j=await lib.start(s,{type:'catalog'},'catalog-request-002');j=await finish(s,j,deps);assert.equal(calls,2);assert.equal(j.alreadyReady,2);assert.equal(j.total,0);
   const old=s.files.get(a.object).info;old.generation='changed-generation';j=await lib.start(s,{type:'catalog'},'catalog-request-003');await finish(s,j,deps);assert.equal(calls,3);
   assert.equal((await s.read(assets.PREFIX+a.id+'.json')).data.title,'Mi título corregido');
 });
@@ -151,4 +151,15 @@ test('resuming a legacy bucket-wide scan drops foreign queue entries without del
   j=await finish(s,j,{analyze:async(st,info)=>{assert.equal(info.name,'legado-videos/good.mp4');return analysis(info);}});
   assert.equal(j.total,1);assert.ok(await s.info(foreign.name));assert.ok(await s.read(assets.PREFIX+foreignAsset.id+'.json'));
   const listed=await assets.listAssets(s);assert.equal(listed.items.length,1);assert.equal(listed.items[0].object,'legado-videos/good.mp4');
+});
+
+test('a second scan of 136 organized files queues nothing; only new or changed files become pending',async()=>{
+  const s=new Store();for(let i=0;i<136;i++)s.add('legado-videos/clip-'+i+'.mp4');
+  const list=s.list.bind(s);s.list=async(prefix,cursor)=>{const all=(await list(prefix)).items,offset=Number(cursor)||0;return {items:all.slice(offset,offset+100),nextPageToken:offset+100<all.length?String(offset+100):''};};
+  let calls=0;const deps={analyze:async(st,info)=>{calls++;return analysis(info);}};
+  async function run(request){let j=await lib.start(s,{type:'catalog'},request);for(let i=0;i<500&&j.status!=='done';i++)j=await lib.advance(s,j.id,deps);assert.equal(j.status,'done');return j;}
+  let j=await run('pending-first-001');assert.equal(j.completed,136);assert.equal(calls,136);
+  j=await run('pending-second-002');assert.equal(j.total,0);assert.equal(j.alreadyReady,136);assert.equal(calls,136);assert.match(j.stage,/No hay pendientes/);
+  s.add('legado-videos/new.mp4');s.files.get('legado-videos/clip-0.mp4').info.generation='changed';
+  j=await run('pending-third-003');assert.equal(j.total,2);assert.equal(j.completed,2);assert.equal(j.alreadyReady,135);assert.equal(calls,138);
 });
