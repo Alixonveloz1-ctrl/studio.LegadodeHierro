@@ -5,7 +5,7 @@ const {failure} = require('./_store');
 const KEYS = Object.keys(core.CRITERIA);
 // Saved jobs may still carry the legacy all-in-one output instructions.
 function stageContext(prompt) {
-  return core.ADULT_RULE+'\n'+String(prompt).split('\n').filter(line=>!/^\s*FORMATO: texto plano\./.test(line) && !(/^\s*- /.test(line)&&core.hasMinors(line)))
+  return core.ADULT_RULE+'\n'+core.BRAND_VOICE+'\n'+core.CHANNEL_BASIS+'\n'+String(prompt).split('\n').filter(line=>!/^\s*FORMATO: texto plano\./.test(line) && !(/^\s*- /.test(line)&&core.hasMinors(line)))
     .map(line=>line.replace(/(DURACIÓN orientativa: \d+ segundos\.) Entre \d+ y \d+ palabras;/, '$1'))
     .join('\n');
 }
@@ -93,7 +93,7 @@ function reviewPrompt(j) {
     +'promise: se cumple lo ofrecido, incluido el número exacto de pasos del título o entrada; una afirmación general no sustituye una demostración. '
     +'progression: cada parte añade algo distinto; no encadena sinónimos ni vuelve a empezar. '
     +'specificity: ejemplo comprensible y al menos una decisión realizable con tiempo o recursos limitados. '
-    +'respect: firmeza sin despreciar empleo, oficio, pobreza, familia o público; no asumir su pasado. '
+    +'respect: voz directa, oral y emocional de Legado de Hierro; corregir abstracciones académicas conservando el significado, sin volver el texto una clase de negocios. Firmeza sin despreciar empleo, oficio, pobreza, familia o público; no asumir su pasado. '
     +'integrity: no biografía, credenciales, estadísticas, citas, testimonios ni ganancias inventadas; relatos ilustrativos identificados. Comprobar coherencia con los hechos aportados, sin afirmar verificación externa. '
     +'ending: resuelve la tensión y deja una acción útil; no pedir palabra clave, prometer regalos o asesorías inexistentes. '
     +'\nENCARGO: '+j.config.prompt+'\nPLAN (intención; no prueba de cumplimiento): '+JSON.stringify(j.outline)

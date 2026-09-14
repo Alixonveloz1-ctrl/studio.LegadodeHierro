@@ -99,9 +99,15 @@
       if(prev&&prev.kind==='video'&&s.kind==='video'&&prev.object===s.object)prev.duration+=Number(s.duration);
       else out.push(Object.assign({},s));return out;},[]);
   }
+  // Channel voice applies to ideas, writing and revisions, regardless of format.
+  var BRAND_VOICE='VOZ DE LEGADO DE HIERRO: cruda, directa, en segunda persona, con emoción y español hablado. Habla a un adulto que quiere superarse y hacerse responsable de sus decisiones. Disciplina, dignidad, autosuficiencia, identidad y construcción personal; el tema elegido manda. Nunca tono de tesis, consultoría empresarial ni motivación de cartel.'
+    +' Reconocimiento concreto, tensión personal, coste de seguir igual, decisión y consecuencia: que se vea y se sienta, sin convertirlo en una exposición teórica. Frases pronunciables, verbos claros y ritmo variado. La emoción continúa después del gancho. No humillar, inventar el pasado del espectador ni culpar a otros de su vida.'
+    +' TÍTULOS E IDEAS: una frase directa de 4 a 10 palabras, que podría decirse en voz alta. Evita nominalizaciones como “La transición de ser el ejecutor total”, “Recuperar la autonomía profesional” o “Priorizar la velocidad direccional”. Ejemplos de TONO, no temas para repetir: “Tu palabra también cuenta cuando estás cansado”, “No necesitas que todos entiendan tu camino”.'
+    +' Las referencias externas aportan recursos narrativos, nunca sustituyen la voz del canal. Si una idea guardada tiene un título académico, conserva su conflicto y reescribe su expresión en esta voz antes de narrarla. No leas etiquetas, categorías ni explicaciones de estructura.';
+  var CHANNEL_BASIS='BASE PROPIA DOCUMENTADA (auditoría del 13 de septiembre de 2026): los Reels de identidad y decisión personal “Prepárate para quedarte…” y el reto de un año tuvieron alcance e ingresos registrados en el panel. Se observaron aperturas y fragmentos, no transcripciones completas: tensión personal, apelación directa y decisión comprensible. Usa esos recursos, sin copiar frases ni la oferta de asesorías. También hubo prácticas largas con ingresos; no imponer una historia o una clase de negocios a todos los modos. Esto es evidencia histórica, no una garantía de retención o ingresos para un guion nuevo.';
   function editorial(options) {
     var o = options || {};
-    return ADULT_RULE+'\nDIRECCIÓN EDITORIAL DE LEGADO DE HIERRO\nPÚBLICO: ' + (AUDIENCES[o.audience] || AUDIENCES.constructor)
+    return ADULT_RULE+'\n'+BRAND_VOICE+'\n'+CHANNEL_BASIS+'\nDIRECCIÓN EDITORIAL DE LEGADO DE HIERRO\nPÚBLICO: ' + (AUDIENCES[o.audience] || AUDIENCES.constructor)
       + '\nFAMILIA: ' + (FAMILIES[o.family] || FAMILIES.identidad)
       + '\nDestino: ' + (o.platform === 'youtube' ? 'YouTube' : 'Facebook') + '. Idioma principal: español natural, cercano y firme.'
       + '\nEVIDENCIA DEL CANAL: funcionaron tanto conflictos de identidad en piezas cortas como métodos concretos y prácticas largas. Esto orienta experimentos; no demuestra una fórmula de viralidad. Conservar la identidad visual y la música recurrente cuando sirvan a la narración.'
@@ -338,6 +344,6 @@
         description:r[2] + '. ' + shot + ', en ' + r[1] + ', luz cinematográfica sobria. El protagonista insignia del canal viste ropa cotidiana apropiada para la acción. Una sola acción, sin texto ni logotipos. No lluvia ni fantasía.'};
     }); });
   }
-  return {ADULT_RULE:ADULT_RULE,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,
+  return {BRAND_VOICE:BRAND_VOICE,CHANNEL_BASIS:CHANNEL_BASIS,ADULT_RULE:ADULT_RULE,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,
     continuity:continuity,scenePlan:scenePlan,selectPlan:selectPlan,familyFor:familyFor,formatFor:formatFor,feedback:feedback,validateMetric:validateMetric,recipes:recipes,segments:segments};
 });

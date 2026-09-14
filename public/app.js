@@ -393,7 +393,7 @@ function buildSP(mode,editorialOptions){
   mode=mode||sMode;
   var options=editorialOptions||(typeof studioOptions==='function'?studioOptions(mode):{family:LH.familyFor(mode)});
   var story=mode==='historia'||mode==='relato';
-  return LH.editorial(options)+'\n\n'+reglaPromesa(esModoLargo(mode))
+  return LH.editorial(options)+'\n\n'+fuerzaEmocional(esModoLargo(mode))+'\n'+reglaPromesa(esModoLargo(mode))
     +'\nVOZ: firme, próxima y concreta; español natural, sin calcos del inglés. '
     +'El protagonista visual del canal es una ilustración, no una afirmación de que el autor vivió las historias. '
     +(story?'HISTORIA: un conflicto, una decisión y consecuencias observables. Situación ilustrativa salvo hechos aportados por el autor. Mantén continuidad espacial y de vestuario. '
