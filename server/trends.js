@@ -17,7 +17,7 @@ async function callModel(parts,search,signal){
   return d;
 }
 module.exports=jsonHandler(async(b,res)=>{
-  const signal=AbortSignal.timeout(50000);
+  const signal=AbortSignal.timeout(240000);
   if(b.action==='analyze'){
     const url=research.youtubeURL(b.videoUrl);
     if(!url)throw failure('La referencia no es un video público de YouTube válido.',400);
@@ -30,6 +30,6 @@ module.exports=jsonHandler(async(b,res)=>{
     return res.json({success:true,analysis,reused:false});
   }
   if(b.action&&b.action!=='search')throw failure('Operación de investigación desconocida.',400);
-  const d=await callModel([{text:research.searchPrompt(b.avoid,b.mode,b.seconds)}],true,signal);
-  return res.json({success:true,...research.parseResearch(d)});
+  const result=await research.searchWithRecovery(b,(parts,search)=>callModel(parts,search,signal));
+  return res.json({success:true,...result});
 });

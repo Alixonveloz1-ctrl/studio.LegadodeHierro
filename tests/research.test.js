@@ -38,3 +38,15 @@ test('analysis is authenticated, saved once, reused and sends the video itself w
   assert.equal(calls[0].body.contents[0].parts[0].fileData.fileUri,'https://www.youtube.com/watch?v=d1K48J72HMY');
   assert.equal(calls[0].body.contents[0].parts[0].videoMetadata.endOffset,'180s');assert.ok(calls[0].init.signal);assert.equal(saved.size,1);
 });
+
+test('search automatically retrieves evidence separately when the creative answer omits sources',async()=>{
+ const ideas=Array.from({length:5},(_,i)=>({...brief,concept:'Decisión '+i})),calls=[];
+ const evidence=response({report:'Video público con una decisión observable.'});
+ const result=await research.searchWithRecovery({mode:'reel',seconds:60},async(parts,search)=>{calls.push({parts,search});return calls.length===1?response({ideas},false):calls.length===2?evidence:response({ideas},false);});
+ assert.deepEqual(calls.map(c=>c.search),[true,true,false]);assert.equal(result.ideas.length,5);assert.equal(result.sources[0].uri,evidence.candidates[0].groundingMetadata.groundingChunks[0].web.uri);assert.match(calls[2].parts[0].text,/INFORME DE BÚSQUEDA/);
+});
+test('search uses one call when grounded and stops after two ungrounded attempts',async()=>{
+ const ideas=Array.from({length:5},(_,i)=>({...brief,concept:'Decisión '+i}));let calls=0;
+ await research.searchWithRecovery({},async()=>{calls++;return response({ideas});});assert.equal(calls,1);calls=0;
+ await assert.rejects(research.searchWithRecovery({},async()=>{calls++;return response({ideas},false);}),/segundo intento/);assert.equal(calls,2);
+});
