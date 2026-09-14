@@ -314,7 +314,7 @@ test('eight shot cards show three assigned previews and five generation controls
     const cards=[...w.document.querySelectorAll('.studio-shot')];assert.equal(cards.length,8);assert.equal(w.document.querySelectorAll('.studio-plan-preview img,.studio-plan-preview video').length,3);
     assert.equal(cards.filter(c=>c.textContent.includes('Generar imagen')).length,5);assert.equal(cards.filter(c=>c.textContent.includes('Generar video')).length,2);assert.ok(cards.every(c=>!c.textContent.includes('Ver toma')));
     w.loadRefs=async()=>Array(10).fill('ref');w.prepararImagen=async()=>({prompt:'prepared',refs:[]});w.genOneImage=async()=> 'data:image/png;base64,AA==';
-    w.studioSaveImage=async(src,desc,n)=>{const saved={id:'9'.repeat(32),object:'legado-studio/media/new.png',kind:'image',aspect:'9:16',description:desc};assets.push(saved);w.imgs[n].assetId=saved.id;return saved;};
+    w.studioSaveImage=async(src,desc,n)=>{const saved={id:'9'.repeat(32),object:'legado-studio/media/new.png',kind:'image',aspect:'9:16',description:desc};assets.push(saved);return saved;};
     await w.studioGenerateShot(3);await tick();assert.equal(w.STUDIO.plan[3].assetId,'9'.repeat(32));assert.ok(w.document.querySelector('[data-shot="3"] img'));
     w.vidFmt='9:16';let called;
     w.genVideoForSlot=async(n,box,batch)=>{called={n,batch,id:w.imgs[n].assetId};w.vids[n]={assetId:'8'.repeat(32),object:'legado-videos/new.mp4'};w.vidState[n]='done';assets.push({id:'8'.repeat(32),kind:'video',object:'legado-videos/new.mp4',description:'Animada'});};
@@ -394,4 +394,21 @@ test('one shot workspace owns the original model controls and thumbnail across r
     assert.ok(w.document.getElementById('sceneSettings').contains(settings));
     assert.ok(w.document.querySelectorAll('#scenePlan .studio-shot').length>0);
   }finally{a.close();}
+});
+
+test('model picker shows complete labels and updates the original model selector',async()=>{
+ const a=await app();try{const {w}=a,select=w.document.getElementById('selImgModel');select.nextElementSibling.click();
+ const options=[...w.document.querySelectorAll('.studio-model-option')];assert.equal(options.length,3);options[2].click();
+ assert.equal(select.value,'gemini-3-pro-image');assert.equal(w.imgModel,select.value);assert.match(select.nextElementSibling.textContent,/máxima calidad/);
+ }finally{a.close();}
+});
+test('regeneration keeps the old image on failure and uses the linked image for a video retry',async()=>{
+ const a=await app();try{const {w,assets}=a;w.lastRes=episode(w);assets.push({id:'image',kind:'image',aspect:'9:16',object:'image.png'},{id:'video',kind:'video',sourceImageId:'image',object:'video.mp4'});w.STUDIO.assets=assets;
+ w.STUDIO.plan=[{scene:0,start:0,duration:8,assetId:'video',description:'Adulto trabajando',reason:'LONG UNWANTED REASON'}];w.imgs[0]={assetId:'unrelated',src:'unrelated'};w.vids[0]={assetId:'video'};w.vidState[0]='done';
+ w.studioPaintPlan();assert.ok(!w.document.getElementById('scenePlan').textContent.includes('LONG UNWANTED'));
+ w.loadRefs=async()=>Array(10).fill('ref');w.prepararImagen=async()=>({prompt:'p',refs:[]});w.genOneImage=async()=>{throw Error('provider failed');};
+ await assert.rejects(w.studioGenerateShot(0,true),/provider failed/);assert.equal(w.STUDIO.plan[0].assetId,'video');
+ w.vidFmt='9:16';w.genVideoForSlot=async n=>{assert.equal(w.imgs[n].assetId,'image');w.vidState[n]='error';w.vidErrMsg[n]='video failed';};
+ await assert.rejects(w.studioAnimateShot(0,w.document.querySelector('.studio-shot')),/video failed/);assert.equal(w.STUDIO.plan[0].assetId,'video');assert.equal(w.vids[0].assetId,'video');assert.equal(w.imgs[0].assetId,'unrelated');
+ }finally{a.close();}
 });

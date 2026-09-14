@@ -38,3 +38,19 @@
 
 #scenePlan .studio-shot>strong{display:block;margin:8px 0;overflow-wrap:anywhere}
 #projectList .studio-asset>button:first-child{width:100%;text-align:left}
+
+/* Production controls retain the studio's image green and video blue accents. */
+#genSettings>div:last-child{grid-template-columns:minmax(0,1fr)!important}
+#genSettings .genLbl{font-size:11px;letter-spacing:.04em;min-width:0}
+.studio-model-trigger{display:block;width:100%;margin-top:6px!important;padding:12px 14px!important;background:#fff!important;text-align:left;white-space:normal;line-height:1.45;font-size:14px!important;color:var(--tx)!important;border:1px solid var(--border)!important;border-radius:12px!important;box-shadow:0 2px 6px #30291b08}
+.studio-model-dialog{padding:20px;border:1px solid var(--border);border-radius:18px;background:var(--cream);color:var(--tx)}
+.studio-model-option{display:block;width:100%;padding:15px;margin:10px 0;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--tx);text-align:left;font:inherit}
+.studio-model-option[aria-pressed=true]{border-color:var(--gold);background:var(--warm);box-shadow:inset 3px 0 var(--gold)}
+#scenePlan{align-items:start}#scenePlan .studio-shot{background:#fff;box-shadow:0 3px 12px #30291b0a;padding:8px;border-radius:14px}
+#scenePlan .studio-plan-preview{padding:0;border:0;overflow:hidden;margin:0}
+#scenePlan .studio-shot>strong{font-size:12px;line-height:1.4;margin:8px 3px}
+#scenePlan .studio-shot-actions{display:grid;gap:7px;margin:12px 0}
+#scenePlan .studio-shot-actions button{padding:10px 6px;font-size:12px;line-height:1.4;width:100%;border-radius:9px}
+#scenePlan .shot-image{background:#eaf2ee;color:#416e5b;border-color:#abc5b8}#scenePlan .shot-video{background:#e8f0f8;color:#476e95;border-color:#b5cce3}
+#scenePlan summary{font-size:12px}#scenePlan .studio-plan-preview button{font-size:12px;padding:8px;width:100%}
+@media(min-width:760px){#genSettings>div:last-child{grid-template-columns:repeat(2,minmax(0,1fr))!important}}

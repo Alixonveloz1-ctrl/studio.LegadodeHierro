@@ -13,7 +13,7 @@ function cleanAsset(input, object, previous) {
   const inferred=require('../public/studio-core').continuity(input.description);
   input={...inferred,...input};
   const r = {...previous,id:idFor(object),object,updatedAt:new Date().toISOString()};
-  for (const k of ['title','description','action','location','mood','shot','character','setId','collection','recipeId','sourceProject','catalogSource']) {
+  for (const k of ['title','description','action','location','mood','shot','character','setId','collection','recipeId','sourceProject','sourceImageId','catalogSource']) {
     if (typeof input[k] === 'string') r[k] = input[k].trim().slice(0,k === 'description' ? 1600 : 180);
   }
   r.kind = ['image','video','music'].includes(input.kind) ? input.kind : (r.kind || (/\.(mp4|mov|webm)$/i.test(object) ? 'video' : /\.(wav|mp3|m4a|ogg)$/i.test(object) ? 'music' : 'image'));
