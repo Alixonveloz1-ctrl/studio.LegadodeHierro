@@ -333,12 +333,13 @@ function studioPaintPlan(){
     var edits=document.createElement('details'),editTitle=document.createElement('summary');editTitle.textContent='Cambiar esta toma';edits.appendChild(editTitle);row.appendChild(edits);
     var search=studioInput('Buscar otro material para esta toma','','search');edits.appendChild(search.label);
     function choices(){
-      var q=LH.norm(search.input.value),ids=(p.alternatives||[]).concat(p.assetId?[p.assetId]:[]);
-      var candidates=STUDIO.assets.filter(function(a){return !a.archived&&a.kind==='video'&&(!a.aspect||a.aspect===p.aspect)&&(q?LH.norm([a.title,a.description,(a.tags||[]).join(' ')].join(' ')).includes(q):ids.includes(a.id));}).slice(0,25);
-      var selected=STUDIO.assets.find(function(a){return a.id===p.assetId;});if(selected&&selected.kind==='video'&&!candidates.some(function(a){return a.id===selected.id;}))candidates.unshift(selected);
-      select.innerHTML='';select.add(new Option('Elegir material para esta toma',''));
-      candidates.forEach(function(a){var o=new Option((a.kind==='video'?'Video · ':'Imagen · ')+(a.title||a.description),a.id);o.selected=p.assetId===a.id;select.add(o);});
+      var q=LH.norm(search.input.value),ids=(p.alternatives||[]);
+      var candidates=STUDIO.assets.filter(function(a){return !a.archived&&!LH.hasMinors(a)&&a.kind==='video'&&(!q||LH.norm([a.title,a.description,(a.tags||[]).join(' ')].join(' ')).includes(q));}).sort(function(a,b){return Number(ids.includes(b.id))-Number(ids.includes(a.id));});
+      var selected=STUDIO.assets.find(function(a){return a.id===p.assetId;});if(selected&&!selected.archived&&!LH.hasMinors(selected)&&selected.kind==='video'&&!candidates.some(function(a){return a.id===selected.id;}))candidates.unshift(selected);
+      select.innerHTML='';select.add(new Option(candidates.length?'Elegir entre '+candidates.length+' videos disponibles':q?'No hay videos con esa búsqueda':'No hay videos disponibles',''));
+      candidates.forEach(function(a){var o=new Option((ids.includes(a.id)?'Sugerido · ':'')+(a.title||a.description||'Video guardado')+(a.aspect?' · '+a.aspect:''),a.id);o.selected=p.assetId===a.id;select.add(o);});
     }
+    var help=document.createElement('p');help.className='studio-muted';help.textContent='Puedes elegir cualquier video disponible para reutilizarlo. Los sugeridos aparecen primero; revisa la vista previa al seleccionarlo.';edits.appendChild(help);
     search.input.oninput=choices;choices();
     select.onchange=function(){p.assetId=select.value;p.reason='Selección manual';studioPersistAssets();studioPaintPlan();updUnifyCard();};edits.appendChild(select);
     var placeholder=document.createElement('div');placeholder.className='studio-plan-preview studio-asset';placeholder.textContent=p.assetId?'Cargando vista previa…':'Sin material asignado';row.prepend(placeholder);

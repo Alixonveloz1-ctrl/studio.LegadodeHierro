@@ -348,3 +348,19 @@ test('secondary reference failures stop image generation and a later attempt fet
     await assert.rejects(w.prepararImagen('Un niño en la sala',['main-view']),/adultos/);
   }finally{a.close();}
 });
+
+test('manual shot picker includes every available video without an automatic match or format match',async()=>{
+  const a=await app();try{
+    const {w,assets}=a;w.lastRes=episode(w);
+    assets.push(...Array.from({length:32},(_,i)=>({id:'manual-'+i,kind:'video',title:'Video '+i,description:'Adulto trabajando en oficina',aspect:i%2?'16:9':'9:16'})));
+    assets.push({id:'excluded',kind:'video',description:'Un niño en la sala'}, {id:'still',kind:'image',description:'Adulto trabajando'}, {id:'archived',kind:'video',archived:true,description:'Adulto trabajando'});
+    w.STUDIO.assets=assets;w.STUDIO.plan=[{scene:0,start:0,duration:8,description:'Otra escena sin coincidencias',aspect:'9:16',assetId:'',alternatives:[]}];
+    w.studioPaintPlan();
+    const picker=w.document.querySelector('[aria-label="Material de la toma 1"]');
+    assert.equal(picker.options.length,33);assert.equal(picker.value,'');
+    assert.ok(Array.from(picker.options).some(o=>o.value==='manual-31'));
+    picker.value='manual-31';picker.dispatchEvent(new w.Event('change'));
+    assert.equal(w.STUDIO.plan[0].assetId,'manual-31');assert.equal(w.STUDIO.plan[0].reason,'Selección manual');
+    await tick();await tick();assert.ok(w.document.querySelector('[data-shot="0"] video'));
+  }finally{a.close();}
+});
