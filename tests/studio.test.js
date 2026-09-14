@@ -116,3 +116,11 @@ test('text deadline includes authentication and response body; MAX_TOKENS is rej
     await assert.rejects(generateText('test',{signal:controller.signal}),/deadline body/);clearTimeout(timer);
   }finally{global.fetch=original;}
 });
+
+test('ordinary scenes can reuse unlabelled sets by meaning, while professor and conflicting sets stay constrained',()=>{
+  const a={id:'a',kind:'image',description:'Calcular presupuesto en oficina con calculadora',aspect:'9:16'};
+  const episode={modo:'reel',a:'Calcular el presupuesto',c:['[LUGAR: oficina_casa] Calcular presupuesto en oficina con calculadora']};
+  const scene=core.scenePlan(episode,10,'9:16')[0];assert.equal(core.selectPlan([scene],[a])[0].assetId,'a');
+  assert.equal(core.selectPlan([scene],[{...a,setId:'otro_lugar'}])[0].assetId,'');
+  const strict=core.scenePlan({...episode,modo:'profesor'},10,'9:16')[0];assert.equal(core.selectPlan([strict],[a])[0].assetId,'');
+});

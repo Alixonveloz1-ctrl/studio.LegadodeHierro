@@ -146,7 +146,7 @@
     if (!asset || asset.kind === 'music' || asset.archived || !asset.description) return null;
     if (scene.aspect && asset.aspect !== scene.aspect) return null;
     if (scene.character && asset.character !== scene.character) return null;
-    if (scene.setId && asset.setId !== scene.setId) return null;
+    if (scene.setId && asset.setId !== scene.setId && !(scene.allowUnlabelledSet&&!asset.setId)) return null;
     var q = tagsFor(scene.description), a = tagsFor([asset.description, (asset.tags || []).join(' '), asset.action, asset.location, asset.mood, asset.shot].join(' '));
     // Action and location are constraints when requested, not just popularity bonuses.
     if (q.action.length && !q.action.some(function(x) { return a.action.indexOf(x) >= 0; })) return null;
@@ -203,7 +203,7 @@
     // but split them into manageable shots for selection and rendering.
     return result.flatMap(function(s) {
       var count = Math.max(1, Math.ceil(s.duration / 10)), out = [];
-      for(var i=0;i<count;i++)out.push(Object.assign({},s,continuity(s.description),{start:s.start+i*s.duration/count,duration:s.duration/count}));
+      for(var i=0;i<count;i++)out.push(Object.assign({},s,continuity(s.description),{start:s.start+i*s.duration/count,duration:s.duration/count,allowUnlabelledSet:episode.modo!=='profesor'}));
       return out;
     });
   }

@@ -303,3 +303,21 @@ test('library button assigns scenes without opening the legacy picker and ZIP in
     assert.equal(calls.filter(c=>c.input==='/api/image'||c.input==='/api/video-start').length,0);
   }finally{a.close();}
 });
+
+test('eight shot cards show three assigned previews and five generation controls, and image-to-video keeps the same shot',async()=>{
+  const a=await app();try{
+    const {w,assets}=a;w.lastRes=episode(w);
+    assets.push(...['image','video','image'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/'+i,aspect:'9:16',description:'Calcular presupuesto',title:'Toma '+i})));
+    w.STUDIO.assets=assets;w.STUDIO.plan=Array.from({length:8},(_,i)=>({scene:i,start:i*6,duration:6,description:'Escena '+i,assetId:i<3?assets[i].id:'',reason:i<3?'Asignada':'Falta material',aspect:'9:16'}));
+    w.studioPaintPlan();await tick();await tick();
+    const cards=[...w.document.querySelectorAll('.studio-shot')];assert.equal(cards.length,8);assert.equal(w.document.querySelectorAll('.studio-plan-preview img,.studio-plan-preview video').length,3);
+    assert.equal(cards.filter(c=>c.textContent.includes('Generar imagen')).length,5);assert.equal(cards.filter(c=>c.textContent.includes('Generar video')).length,2);assert.ok(cards.every(c=>!c.textContent.includes('Ver toma')));
+    w.loadRefs=async()=>Array(10).fill('ref');w.prepararImagen=async()=>({prompt:'prepared',refs:[]});w.genOneImage=async()=> 'data:image/png;base64,AA==';
+    w.studioSaveImage=async(src,desc,n)=>{const saved={id:'9'.repeat(32),object:'legado-studio/media/new.png',kind:'image',aspect:'9:16',description:desc};assets.push(saved);w.imgs[n].assetId=saved.id;return saved;};
+    await w.studioGenerateShot(3);await tick();assert.equal(w.STUDIO.plan[3].assetId,'9'.repeat(32));assert.ok(w.document.querySelector('[data-shot="3"] img'));
+    w.vidFmt='9:16';let called;
+    w.genVideoForSlot=async(n,box,batch)=>{called={n,batch,id:w.imgs[n].assetId};w.vids[n]={assetId:'8'.repeat(32),object:'legado-videos/new.mp4'};w.vidState[n]='done';assets.push({id:'8'.repeat(32),kind:'video',object:'legado-videos/new.mp4',description:'Animada'});};
+    await w.studioAnimateShot(3,w.document.querySelector('[data-shot="3"]'));assert.deepEqual(called,{n:3,batch:true,id:'9'.repeat(32)});assert.equal(w.STUDIO.plan[3].assetId,'8'.repeat(32));assert.equal(w.STUDIO.plan[0].assetId,assets[0].id);
+    await tick();const media=w.document.querySelector('[data-shot="0"] img');media.dispatchEvent(new w.Event('error'));assert.match(w.document.querySelector('[data-shot="0"]').textContent,/Recargar vista previa/);
+  }finally{a.close();}
+});
