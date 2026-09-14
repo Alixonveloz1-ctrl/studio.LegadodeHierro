@@ -1768,6 +1768,7 @@ function marcarPublicado(id){
 }
 
 function buildHistory(){
+  if(typeof studioPaintProjects==='function')studioPaintProjects();
   var grid=document.getElementById('histGrid');if(!grid)return;
   var lbl=document.getElementById('histLbl');
   var h=getHistory();

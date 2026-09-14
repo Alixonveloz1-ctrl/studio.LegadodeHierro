@@ -80,7 +80,7 @@ test('editing a script invalidates old narration, captions, plan and final outpu
     const {w,projects}=a;w.lastRes=episode(w);w.lastRes.renders={es:{jobId:'old'}};w.imgs=[{src:'https://media.example.test/a',object:'legado-studio/media/a',assetId:'1'.repeat(32)}];w.audES={url:'blob:old'};w.FINALES.es={url:'blob:old'};w.finalVid=w.FINALES.es;w.STUDIO.plan=[{assetId:'old'}];
     w.document.querySelector('#scriptEdit').value='Otra decisión concreta cambia la historia y sus consecuencias. Este es el guion revisado con una promesa diferente.';
     await w.studioEditScript();await w.STUDIO.saveQueue;
-    assert.equal(w.audES,null);assert.equal(w.finalVid,null);assert.equal(w.FINALES.es,null);assert.equal(w.lastCaption,'');assert.equal(w.STUDIO.plan.length,0);assert.equal(w.imgs.length,1);
+    assert.equal(w.audES,null);assert.equal(w.finalVid,null);assert.equal(w.FINALES.es,null);assert.equal(w.lastCaption,'');assert.ok(w.STUDIO.plan.every(p=>!p.assetId));assert.equal(w.imgs.length,1);
     assert.deepEqual(JSON.parse(JSON.stringify(projects.get('project-001').renders)),{});assert.equal(w.document.querySelector('#unifyRes').style.display,'none');
   }finally{a.close();}
 });
@@ -362,5 +362,36 @@ test('manual shot picker includes every available video without an automatic mat
     picker.value='manual-31';picker.dispatchEvent(new w.Event('change'));
     assert.equal(w.STUDIO.plan[0].assetId,'manual-31');assert.equal(w.STUDIO.plan[0].reason,'Selección manual');
     await tick();await tick();assert.ok(w.document.querySelector('[data-shot="0"] video'));
+  }finally{a.close();}
+});
+
+test('one reel list combines cloud and local history by ID, preserves same-title projects and restores local-only reels',async()=>{
+  const a=await app();try{
+    const {w,projects}=a,p=episode(w);p.topic='Tema compartido';projects.set(p.uid,p);
+    w.localStorage.setItem('lh_hist',JSON.stringify([{id:'r'+p.uid,a:p.a,topic:p.topic,fecha:'2026-09-13'}, {id:'rlocal-only',a:'Guion antiguo conservado',topic:p.topic,fecha:'2026-08-20',modo:'reel',d:'60',c:[]} ]));
+    await w.studioOpenProjects();
+    assert.equal(w.document.querySelectorAll('#projectList [data-project-id]').length,2);
+    assert.ok(w.document.getElementById('histBtn').hidden);assert.ok(w.document.getElementById('histPanel').hidden);
+    let restored;w.restoreHistory=(id)=>{restored=id;};
+    w.document.querySelector('[data-project-id="local-only"] button').click();assert.equal(restored,'rlocal-only');
+    w.studioLoadAll=async()=>{throw Error('offline');};await w.studioOpenProjects();
+    assert.equal(w.document.querySelectorAll('#projectList [data-project-id]').length,2);
+    assert.equal(JSON.parse(w.localStorage.getItem('lh_hist')).length,2);
+  }finally{a.close();}
+});
+
+test('one shot workspace owns the original model controls and thumbnail across rendering and the settings dialog',async()=>{
+  const a=await app();try{
+    const {w}=a,settings=w.document.getElementById('genSettings');
+    assert.ok(w.document.getElementById('episodeTools').contains(settings));
+    assert.ok(w.document.getElementById('imgCard').hidden);
+    w.lastRes=episode(w);w.renderOut(w.lastRes);
+    assert.ok(w.document.getElementById('imgCard').hidden,'renderOut must not expose the old duplicate panel');
+    assert.equal(w.document.querySelectorAll('#selImgModel').length,1);
+    assert.ok(w.document.getElementById('sceneExtras').contains(w.document.getElementById('bthumb')));
+    w.studioLibrarySettings();assert.ok(w.document.getElementById('librarySettingsContent').contains(settings));
+    w.document.getElementById('librarySettingsDialog').close();
+    assert.ok(w.document.getElementById('sceneSettings').contains(settings));
+    assert.ok(w.document.querySelectorAll('#scenePlan .studio-shot').length>0);
   }finally{a.close();}
 });

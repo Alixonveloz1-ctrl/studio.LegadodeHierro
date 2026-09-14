@@ -35,3 +35,6 @@
 
 .studio-import-panel{margin-top:12px;padding:12px;background:var(--cream);border:1px solid var(--border);border-radius:10px}.studio-import-panel section{margin-top:12px}#libraryBring{width:100%;text-align:left;margin-top:12px}#libraryImportBusy{color:#775922}
 .studio-plan{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-height:none;overflow:visible}.studio-shot{min-width:0;padding:10px;border:1px solid var(--border);border-radius:12px}.studio-plan-preview img,.studio-plan-preview video{width:100%;height:180px;object-fit:contain;background:#171717;border-radius:8px}.studio-shot details{margin-top:8px}.studio-shot select,.studio-shot input{width:100%;min-width:0}@media(min-width:900px){.studio-plan{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+#scenePlan .studio-shot>strong{display:block;margin:8px 0;overflow-wrap:anywhere}
+#projectList .studio-asset>button:first-child{width:100%;text-align:left}

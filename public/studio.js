@@ -264,21 +264,50 @@ async function studioRestoreAssets(item){
     vids=(p.videos||[]).map(function(a){return a&&map[a.assetId]?Object.assign({},a,{url:map[a.assetId].url,remoteUrl:map[a.assetId].url}):null;});
     vidState=vids.map(function(v){return v?'done':'idle';});
     Object.keys(STUDIO.videoOps).forEach(function(i){vidState[i]='error';vidErrMsg[i]='Hay una animación iniciada. Reintentar consulta su resultado sin iniciar otra.';});
+    linked.forEach(function(a){if(!STUDIO.assets.some(function(old){return old.id===a.id;}))STUDIO.assets.push(a);});
+    if(!STUDIO.plan.length)STUDIO.plan=LH.scenePlan(owner,Number(owner.dO&&owner.dO.id)||60,vidFmt).map(function(s){var media=vids[s.scene]||imgs[s.scene];return Object.assign(s,{assetId:media&&media.assetId||'',reason:media?'Material guardado de esta escena':'Pendiente de asignar video'});});
     studioPaintCurrentImages();studioPaintPlan();updUnifyCard();
     if(STUDIO.audioJobs.es||STUDIO.audioJobs.en||STUDIO.uploadedAudio.es||STUDIO.uploadedAudio.en)studioMessage('Proyecto restaurado. Usa “Recuperar narración” para continuar con su voz guardada. “Generar audio” utiliza los ajustes de voz que elijas ahora.');
   }catch(e){studioMessage('No se pudieron restaurar los materiales: '+e.message,true);}
 }
-async function studioOpenProjects(){
-  var rows=await studioLoadAll('projects'),grid=studioEl('projectList');grid.innerHTML='';
-  rows.sort(function(a,b){return b.updatedAt.localeCompare(a.updatedAt);}).forEach(function(row){
-    var b=document.createElement('button');b.textContent=row.topic||'Proyecto guardado';b.onclick=function(){studioGuard(async function(){
-      if(loading)throw new Error('Espera a que termine la etapa actual.');
-      var d=await studioAPI('project-get',{id:row.id});if(!d.project)throw new Error('No se encontró el proyecto.');
-      lastRes=d.project;lastRes.uid=row.id;STUDIO.versions[row.id]=d.project.version;
-      applySelection(lastRes.modo,lastRes.tO&&lastRes.tO.id,lastRes.dO&&lastRes.dO.id,lastRes.hO&&lastRes.hO.id);
-      resetReelAssets();studioRestoreEditorial(lastRes.editorial);studioEl('conc').value=lastRes.topic||'';renderOut(lastRes);await studioRestoreAssets();
-    });};grid.appendChild(b);
+var STUDIO_PROJECT_ROWS=[];
+function studioPaintProjects(){
+  var grid=studioEl('projectList');if(!grid)return;grid.replaceChildren();
+  var records=new Map();
+  getHistory().forEach(function(item,i){records.set(String(item.id).replace(/^r/,''),{id:String(item.id).replace(/^r/,''),local:item,index:i,topic:item.topic||firstLine(item.a),updatedAt:item.fecha||''});});
+  STUDIO_PROJECT_ROWS.forEach(function(row){records.set(String(row.id),Object.assign({},records.get(String(row.id))||{},row,{cloud:true}));});
+  var rows=Array.from(records.values()).sort(function(a,b){return String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));});
+  if(!rows.length){var empty=document.createElement('p');empty.textContent='Tus reels aparecerán aquí al guardarse.';grid.appendChild(empty);}
+  rows.forEach(function(row){
+    var card=document.createElement('div');card.className='studio-asset';card.dataset.projectId=row.id;
+    var b=document.createElement('button');b.textContent=row.topic||'Reel guardado';card.appendChild(b);
+    var date=document.createElement('p'),dt=new Date(row.updatedAt);date.textContent=isNaN(dt.getTime())?'Reel guardado':dt.toLocaleString('es',{dateStyle:'medium',timeStyle:'short'});card.appendChild(date);
+    b.onclick=function(){
+      if(!row.cloud){restoreHistory(row.local.id,row.index);return;}
+      studioGuard(async function(){
+        if(loading)throw new Error('Espera a que termine la etapa actual.');
+        var d=await studioAPI('project-get',{id:row.id});if(!d.project)throw new Error('No se encontró el proyecto.');
+        lastRes=d.project;lastRes.uid=row.id;STUDIO.versions[row.id]=d.project.version;
+        applySelection(lastRes.modo,lastRes.tO&&lastRes.tO.id,lastRes.dO&&lastRes.dO.id,lastRes.hO&&lastRes.hO.id);
+        resetReelAssets();studioRestoreEditorial(lastRes.editorial);studioEl('conc').value=lastRes.topic||'';renderOut(lastRes);await studioRestoreAssets();
+      });
+    };
+    if(row.local){var published=document.createElement('button');published.textContent=row.local.estado==='publicado'?'✓ Publicado':'Marcar publicado';published.onclick=function(){marcarPublicado(row.local.id);studioPaintProjects();};card.appendChild(published);}
+    grid.appendChild(card);
   });
+}
+async function studioOpenProjects(){
+  studioPaintProjects();
+  try{STUDIO_PROJECT_ROWS=await studioLoadAll('projects');studioPaintProjects();}
+  catch(e){studioMessage('No se pudieron cargar los reels de la nube. Los guardados en este teléfono siguen disponibles. '+e.message,true);}
+}
+function studioUnifyWorkspace(){
+  var tools=studioEl('episodeTools'),legacy=studioEl('imgCard');
+  var audio=studioEl('audioCard');audio.parentNode.insertBefore(tools,audio);
+  studioEl('sceneSettings').appendChild(studioEl('genSettings'));
+  ['bthumb','thumbBox','ist','ie'].forEach(function(id){studioEl('sceneExtras').appendChild(studioEl(id));});
+  legacy.hidden=true;
+  studioPaintProjects();
 }
 function studioPaintCurrentImages(){
   var grid=studioEl('igrid');grid.innerHTML='';imgs.forEach(function(a,i){if(!a)return;var div=document.createElement('div');grid.appendChild(div);setSlotOk(div,a.src,i);});
@@ -384,6 +413,8 @@ function studioRenderEpisode(res){
   if(/comenta\s+["“']?(yo puedo|si|am[eé]n)|asesor[ií]as?\s+(completamente\s+)?gratis/i.test(res.a))notes.push('Revisa el cierre: ofrece utilidad dentro del video y evita recompensas por comentar.');
   studioEl('scriptReview').textContent=notes.join('\n');studioEl('scriptEdit').value=res.a;
   studioPaintQuality(res);
+  if(!STUDIO.plan.length)STUDIO.plan=LH.scenePlan(res,seconds,vidFmt).map(function(s){return Object.assign(s,{assetId:'',reason:'Pendiente de asignar video'});});
+  studioPaintPlan();
 }
 function studioPaintQuality(res){
   var planBox=studioEl('editorialPlan'),reviewBox=studioEl('qualityReview'),plan=res.editorialPlan;
@@ -788,6 +819,7 @@ async function studioGuard(fn){
   try{await fn();}catch(e){if(studioEl('libraryPanel').open)studioLibraryMessage(e.message,true);else studioMessage(e.message,true);}finally{STUDIO.busy=false;}
 }
 function studioInit(){
+  studioUnifyWorkspace();
   studioPaintPending();studioPaintRecipes();
   studioEl('projectsPanel').addEventListener('toggle',function(){if(this.open)studioGuard(studioOpenProjects);});
   var bind=function(id,fn){var el=studioEl(id);if(el)el.onclick=function(){studioGuard(fn);};};
