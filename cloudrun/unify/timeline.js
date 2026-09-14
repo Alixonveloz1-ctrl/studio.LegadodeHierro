@@ -3,11 +3,12 @@ function validateShots(shots) {
   if (!Array.isArray(shots) || !shots.length || shots.length > 600) throw new Error('El montaje necesita entre 1 y 600 tomas.');
   for (const s of shots) {
     if (!s || !['image','video'].includes(s.kind) || typeof s.object !== 'string' || !s.object || s.object.includes('..') || /[\x00-\x1f\\]/.test(s.object)) throw new Error('Referencia de toma inválida.');
-    if (!Number.isFinite(Number(s.duration)) || Number(s.duration) < 0.1 || Number(s.duration) > 120) throw new Error('Duración de toma inválida.');
+    if (!Number.isFinite(Number(s.duration)) || Number(s.duration) < 0.1 || Number(s.duration) > 7200) throw new Error('Duración de toma inválida.');
   }
 }
 function fitTimeline(shots,audioSeconds,fps) {
   validateShots(shots);fps=fps||30;
+  shots=shots.reduce((out,s)=>{const prev=out[out.length-1];if(prev&&prev.kind==='video'&&s.kind==='video'&&prev.object===s.object)prev.duration+=Number(s.duration);else out.push({...s});return out;},[]);
   if (!(audioSeconds>0) || audioSeconds>7200) throw new Error('Duración de narración inválida.');
   const total=shots.reduce((n,s)=>n+Number(s.duration),0),frames=Math.round(audioSeconds*fps);
   if(frames<shots.length)throw new Error('Hay más tomas que fotogramas disponibles.');
@@ -18,4 +19,9 @@ function fitTimeline(shots,audioSeconds,fps) {
     const result={...s,start:previous/fps,duration:(end-previous)/fps,frames:end-previous};previous=end;return result;
   });
 }
-module.exports={validateShots,fitTimeline};
+function videoSpeed(sourceSeconds,targetSeconds) {
+  if(!(sourceSeconds>0)||!(targetSeconds>0))throw new Error('Duración de video inválida.');
+  if(targetSeconds>sourceSeconds*2+0.05)throw new Error('Esta toma necesita otro plano: alargar el clip más del doble rompería el movimiento natural. No se repetirá en bucle.');
+  return Math.max(1,targetSeconds/sourceSeconds);
+}
+module.exports={validateShots,fitTimeline,videoSpeed};

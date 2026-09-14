@@ -306,6 +306,7 @@ async function studioAutoAssign(){
 }
 async function studioBuildPlan(){
   if(!lastRes)throw new Error('Genera o restaura un guion primero.');
+  if(LH.hasMinors(lastRes.a)||LH.hasMinors(lastRes.c))throw new Error('Este guion guardado contiene personas fuera del reparto adulto. Hay que corregirlo antes de asignar material.');
   var owner=lastRes;STUDIO.assets=await studioLoadAll('assets');if(owner!==lastRes)return;
   var audio=unifyLang()==='en'?audEN:audES,duration=audio&&audio.dur||Number(lastRes.dO&&lastRes.dO.id)||60;
   var scenes=LH.scenePlan(lastRes,duration,vidFmt).map(function(s){return Object.assign(s,{videoOnly:true});});
@@ -319,6 +320,7 @@ async function studioBuildPlan(){
 function studioShotVideo(p){return !!STUDIO.assets.find(function(a){return a.id===p.assetId&&a.kind==='video';});}
 function studioPaintPlan(){
   var grid=studioEl('scenePlan');if(!grid)return;grid.innerHTML='';
+  for(var k=STUDIO.plan.length-1;k>0;k--){var s=STUDIO.plan[k],p=STUDIO.plan[k-1];if(p.scene===s.scene&&p.assetId===s.assetId&&p.description===s.description){p.duration+=s.duration;STUDIO.plan.splice(k,1);}}
   var currentPlan=STUDIO.plan;
   studioPlanPreviews(currentPlan,grid);
   STUDIO.plan.forEach(function(p,i){
@@ -531,7 +533,8 @@ async function studioPrepareMontage(audio){
       else throw new Error('Falta material para la escena '+(sc.scene+1)+'. Elige una imagen o un video de la biblioteca, o genera esa escena.');
     }
   }
-  return {shots:shots,audioObjects:audio.audioObjects,aspect:vidFmt};
+  shots=LH.mergeContinuousShots(shots);
+  return {continuousVideo:true,shots:shots,audioObjects:audio.audioObjects,aspect:vidFmt};
 }
 async function studioRenderVideo(){
   if(!lastRes)throw new Error('Genera un guion primero.');

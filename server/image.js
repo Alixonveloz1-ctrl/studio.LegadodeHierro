@@ -84,9 +84,12 @@ module.exports = async (req, res) => {
     } catch(e) { req.body = {}; }
   }
 
-  const userPrompt = req.body && req.body.prompt ? req.body.prompt : null;
+  let userPrompt = req.body && req.body.prompt ? req.body.prompt : null;
   const refImages = req.body && req.body.refImages ? req.body.refImages : [];
   if (!userPrompt) return res.status(400).json({ error: 'Prompt requerido' });
+  const policy=require('../public/studio-core');
+  if(policy.hasMinors(userPrompt))return res.status(400).json({error:'Esta imagen debe representar exclusivamente adultos.'});
+  userPrompt=policy.ADULT_RULE+'\n'+userPrompt;
 
   let model = req.body && req.body.model ? String(req.body.model) : 'gemini-2.5-flash-image';
   if (!ALLOWED_IMAGE_MODELS[model]) model = 'gemini-2.5-flash-image';

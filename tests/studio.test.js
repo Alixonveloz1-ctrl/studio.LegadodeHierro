@@ -144,3 +144,21 @@ test('job text receives a longer deadline while ordinary calls retain their dead
     assert.ok(deadlines.includes(240000));assert.ok(deadlines.includes(43000));
   }finally{global.fetch=originalFetch;AbortSignal.timeout=originalTimeout;}
 });
+
+test('adult-only policy rejects explicit young people and age references without excluding ordinary adult Spanish',()=>{
+  for(const text of ['Un niño en la sala','Su hija juega','Una adolescente','Un personaje de 12 años','A child in the room'])assert.equal(core.hasMinors(text),true,text);
+  assert.equal(core.hasMinors('Son adultos conversando con su pareja en casa.'),false);
+  assert.equal(core.hasMinors({containsMinors:true,description:'Una sala'}),true);
+  assert.ok(core.recipes().every(r=>!core.hasMinors(r)));
+  assert.equal(core.rankAssets([{id:'kid',kind:'video',description:'Niño caminando en casa',aspect:'9:16'}],{description:'Caminar en casa',aspect:'9:16'}).length,0);
+});
+
+test('consecutive video references form one hold, while later reuse remains separate',()=>{
+  const {fitTimeline,videoSpeed}=require('../cloudrun/unify/timeline');
+  const shots=['a','a','b','a'].map(object=>({object,kind:'video',duration:6}));
+  const timeline=fitTimeline(shots,24);
+  assert.deepEqual(timeline.map(s=>[s.object,s.start,s.duration]),[['a',0,12],['b',12,6],['a',18,6]]);
+  assert.equal(videoSpeed(8,12),1.5);assert.equal(videoSpeed(8,6),1);
+  assert.throws(()=>videoSpeed(8,30),/otro plano/);
+  assert.deepEqual(core.mergeContinuousShots(shots).map(s=>s.duration),[12,6,6]);
+});

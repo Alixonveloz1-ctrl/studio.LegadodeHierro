@@ -16,7 +16,7 @@ const { checkAuth } = require('./_auth');
 // La version de cloudrun/unify/index.js que espera ESTA copia del repositorio.
 // Si el Cloud Run desplegado devuelve otra, es que le falta la actualizacion.
 // comprobar.sh vigila que las dos vayan siempre a la par.
-const VERSION_ESPERADA = '2026-09-13.1';
+const VERSION_ESPERADA = '2026-09-14.1';
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -72,6 +72,7 @@ module.exports = async (req, res) => {
     const health=await fetch(service+'/',{signal:AbortSignal.any([deadline,AbortSignal.timeout(8000)])});
     const capability=await health.json().catch(()=>({}));
     if(!health.ok||capability.service!=='legado-unify')throw failure('No se pudo comprobar el servidor de montaje. Reintenta en unos segundos.',502);
+    if(body.continuousVideo && !capability.continuousVideo)throw failure('El montador de Google Cloud necesita la actualización para unir tomas sin repetir videos. El proyecto queda guardado.',409);
     const legacy=capability.durable===undefined;
     if(!legacy&&!capability.durable)throw failure('Al servidor de Google Cloud le falta configurar el ejecutor de montajes. Completa su actualización; tus materiales están guardados.',409);
     const store=makeStore(deadline);
@@ -80,6 +81,7 @@ module.exports = async (req, res) => {
       await Promise.all(unique.slice(offset,offset+8).map(async object=>{
       const entry=await store.read(PREFIX+idFor(object)+'.json');
       if(!entry||entry.data.object!==object||!['image','video'].includes(entry.data.kind))throw failure('Hay un material sin catalogar. Guárdalo en la biblioteca primero.',400);
+      if(require('../public/studio-core').hasMinors(entry.data))throw failure('Este material contiene personas fuera del reparto adulto y no puede incluirse en el montaje.',400);
       if(body.shots.some(s=>s.object===object&&s.kind!==entry.data.kind))throw failure('El tipo de una toma no coincide con el archivo.',400);
       }));
     }

@@ -129,7 +129,7 @@ var VIS_REGISTROS=[
   'el mundo del empleo por dentro: el cubiculo, la oficina de otro, la sala de juntas, el reloj marcando, el pasillo, la fila para entrar',
   'el detalle cerrado: las manos, un objeto que lo cuenta todo, el dinero contado, el telefono, la libreta, la puerta, las llaves — sin mostrar el rostro',
   'la soledad y la reflexion: una sola figura pequena en un espacio muy amplio, la espalda, el silencio, la distancia',
-  'las personas alrededor: un cliente, un socio, un hijo, un padre, alguien a quien se le ensena, una conversacion cara a cara',
+  'las personas alrededor: un cliente, un socio, una pareja adulta, un mentor, alguien a quien se le ensena, una conversacion cara a cara',
   'lo logrado con sobriedad: un espacio propio en calma, ordenado y digno, sin lujo ostentoso, luz suave',
   'el mismo lugar en dos tiempos: el contraste entre lo que era y lo que es, el antes y el despues dentro de un mismo encuadre',
   'el aire libre: un amanecer, una carretera, una azotea, el horizonte de la ciudad a lo lejos, un descampado',
@@ -1246,7 +1246,7 @@ function repartoDisponible(){
     var ps=(it.sem&&it.sem.personajes)?it.sem.personajes:[];
     ps.forEach(function(id){usos[id]=(usos[id]||0)+1;});
   });
-  return BIBLIA.filter(function(p){return !p.fijo;})
+  return BIBLIA.filter(function(p){return !p.fijo&&!LH.hasMinors(p);})
     .slice()
     .sort(function(a,b){return (usos[a.id]||0)-(usos[b.id]||0);});
 }
@@ -3040,9 +3040,10 @@ async function refsDeEscena(prompt){
   var extra=[],fichas=[];
   for(var i=0;i<ids.length&&i<2;i++){
     var p=personajePorId(ids[i]);
-    if(!p)continue;
+    if(!p)throw new Error('El personaje de esta escena no existe en el reparto: '+ids[i]);
+    if(LH.hasMinors(p))throw new Error('Esta escena utiliza un personaje excluido del reparto adulto.');
     fichas.push(p.nombre+' ('+(p.rol||'')+'): '+p.fisico+(p.vestuario?'. Viste: '+p.vestuario:''));
-    if(REFS_PERSONAJE[p.id]===undefined){
+    if(!REFS_PERSONAJE[p.id]){
       try{
         var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({action:'imagenes',id:p.id})});
@@ -3051,6 +3052,7 @@ async function refsDeEscena(prompt){
       }catch(e){ REFS_PERSONAJE[p.id]=null; }
     }
     var rp=REFS_PERSONAJE[p.id];
+    if(!rp||!rp.length)throw new Error('No se pudieron cargar las referencias de '+p.nombre+'. Se conserva la escena sin inventar otro rostro.');
     if(rp)extra=extra.concat(rp.slice(0,2)); // 2 vistas por secundario: suficiente y no infla la peticion
   }
   // La descripcion va SIEMPRE, tenga vistas o no: si el personaje aun no tiene
@@ -3064,6 +3066,7 @@ async function refsDeEscena(prompt){
 
 // Junta las referencias del protagonista con las de los secundarios de la escena.
 async function prepararImagen(promptCrudo,refsBase){
+  if(LH.hasMinors(promptCrudo))throw new Error('Esta escena debe reescribirse con adultos antes de generar.');
   var e=await refsDeEscena(promptCrudo);
   var refs=refsBase||[];
   if(e.refs)refs=refs.concat(e.refs);

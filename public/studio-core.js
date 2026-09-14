@@ -88,9 +88,20 @@
     if (current.length) out.push(current.join(' '));
     return out;
   }
+  var ADULT_RULE='REGLA DEL CANAL: todas las personas, protagonistas y secundarios son adultos de 25 años o más. Narrar y mostrar exclusivamente su vida adulta actual. Mantener esta regla en narración, ejemplos, recuerdos, descripciones y material seleccionado.';
+  function hasMinors(value) {
+    if(value&&typeof value==='object'&&value.containsMinors===true)return true;
+    var text=norm(typeof value==='string'?value:JSON.stringify(value||{}));
+    return /\b(ninos?|ninas?|hijos?|hijas?|bebes?|infancia|infantil|adolescentes?|children|child|kids?|baby|babies|toddler|teenager|daughter)\b/.test(text) || /\b(?:su|mi|tu|nuestro|your|his|her)\s+son\b|\b(?:de pequeno|de pequena|cuando era pequeno|cuando era pequena)\b/.test(text) || /\b(?:de|aged?|edad)\s+(?:[0-9]|1[0-7])\s*(?:anos?|years?)\b/.test(text);
+  }
+  function mergeContinuousShots(shots) {
+    return shots.reduce(function(out,s){var prev=out[out.length-1];
+      if(prev&&prev.kind==='video'&&s.kind==='video'&&prev.object===s.object)prev.duration+=Number(s.duration);
+      else out.push(Object.assign({},s));return out;},[]);
+  }
   function editorial(options) {
     var o = options || {};
-    return 'DIRECCIÓN EDITORIAL DE LEGADO DE HIERRO\nPÚBLICO: ' + (AUDIENCES[o.audience] || AUDIENCES.constructor)
+    return ADULT_RULE+'\nDIRECCIÓN EDITORIAL DE LEGADO DE HIERRO\nPÚBLICO: ' + (AUDIENCES[o.audience] || AUDIENCES.constructor)
       + '\nFAMILIA: ' + (FAMILIES[o.family] || FAMILIES.identidad)
       + '\nDestino: ' + (o.platform === 'youtube' ? 'YouTube' : 'Facebook') + '. Idioma principal: español natural, cercano y firme.'
       + '\nEVIDENCIA DEL CANAL: funcionaron tanto conflictos de identidad en piezas cortas como métodos concretos y prácticas largas. Esto orienta experimentos; no demuestra una fórmula de viralidad. Conservar la identidad visual y la música recurrente cuando sirvan a la narración.'
@@ -121,7 +132,7 @@
       escuchar: 'escuchar listening conversacion conversation equipo team',
       descansar: 'descansar rest pausa break respirar breathing',
       entrenar: 'entrenar training ejercicio exercise levantarse workout',
-      familia: 'familia family hijo child hija pareja partner'
+      familia: 'familia family pareja partner adultos'
     },
     mood: {
       tension: 'tension duda fear miedo frustration frustracion conflicto',
@@ -143,7 +154,7 @@
   var STOP = new Set('para desde sobre como mismo misma personaje hombre protagonist fondo imagen prompt plano una uno unos unas con sin del las los que por the and with from this that man same his her its'.split(' '));
   function tokens(t) { return Array.from(new Set(norm(t).split(/[^a-z0-9]+/).filter(function(w) { return w.length > 3 && !STOP.has(w); }))); }
   function assetScore(asset, scene, used, previous) {
-    if (!asset || asset.kind === 'music' || asset.archived || !asset.description) return null;
+    if (!asset || asset.kind === 'music' || asset.archived || hasMinors(asset) || !asset.description) return null;
     if (scene.aspect && asset.aspect !== scene.aspect) return null;
     if (scene.character && asset.character !== scene.character) return null;
     if (scene.setId && asset.setId !== scene.setId && !(scene.allowUnlabelledSet&&!asset.setId)) return null;
@@ -256,7 +267,7 @@
     if (r.nonFollowers !== null && r.nonFollowers > 100) throw new Error('El porcentaje debe estar entre 0 y 100.');
     r.format = formatFor(r.duration); return r;
   }
-  var IMAGE_STYLE='Recurring signature character: the SAME man in every image, his face IDENTICAL to the reference images -- a 35-year-old man, short black hair slicked back, short well-groomed dark beard, strong jawline, intense dark eyes, serious expression. Keep his face, hair and beard consistent across all images. Wardrobe and setting follow the scene described below (do not force a suit if the scene is humble). Cinematic American 2D comic-book / graphic-novel illustration, digitally inked and coloured: semi-realistic proportions and anatomy (realistic adult faces, never cartoonish, no manga eyes, no caricature), clean bold ink outlines of varying weight (heavier on the silhouette, finer inside the face), cel-shading with hard-edged shadows plus soft gradients on skin and fabric, subtle cross-hatching in the deepest shadows, warm muted palette, cinematic contrast with one clear light direction, hair drawn in defined strands, detailed irises. Never watercolour, never sketch, never flat vector, never halftone dots. IMPORTANT: this describes the DRAWING STYLE only. Each image is ONE single scene that fills the entire frame as one continuous illustration. NEVER a multi-panel comic page, NEVER split into panels, boxes, vignettes, a grid or a collage, NO dividing lines or internal borders. STRICTLY NOT photorealistic, not a photograph, not a 3D render, not CGI. No text, no letters, no captions, no watermark anywhere in the image. ';
+  var IMAGE_STYLE=ADULT_RULE+' Recurring signature character: the SAME man in every image, his face IDENTICAL to the reference images -- a 35-year-old man, short black hair slicked back, short well-groomed dark beard, strong jawline, intense dark eyes, serious expression. Keep his face, hair and beard consistent across all images. Wardrobe and setting follow the scene described below (do not force a suit if the scene is humble). Cinematic American 2D comic-book / graphic-novel illustration, digitally inked and coloured: semi-realistic proportions and anatomy (realistic adult faces, never cartoonish, no manga eyes, no caricature), clean bold ink outlines of varying weight (heavier on the silhouette, finer inside the face), cel-shading with hard-edged shadows plus soft gradients on skin and fabric, subtle cross-hatching in the deepest shadows, warm muted palette, cinematic contrast with one clear light direction, hair drawn in defined strands, detailed irises. Never watercolour, never sketch, never flat vector, never halftone dots. IMPORTANT: this describes the DRAWING STYLE only. Each image is ONE single scene that fills the entire frame as one continuous illustration. NEVER a multi-panel comic page, NEVER split into panels, boxes, vignettes, a grid or a collage, NO dividing lines or internal borders. STRICTLY NOT photorealistic, not a photograph, not a 3D render, not CGI. No text, no letters, no captions, no watermark anywhere in the image. ';
   var RECIPES = [
     ['planificar','oficina','Diseñar el primer horario de trabajo en una agenda'],
     ['calcular','casa','Separar gastos esenciales y dinero disponible en la mesa de casa'],
@@ -290,7 +301,7 @@
     ['planificar','casa','Poner una alarma temprano y dejar el teléfono lejos de la cama'],
     ['entrenar','gimnasio','Descansar entre series y prepararse para intentarlo una vez más'],
     ['caminar','calle','Caminar hacia el trabajo mientras la ciudad empieza a despertar'],
-    ['escuchar','casa','Escuchar a su hijo sentado a su altura en la sala'],
+    ['escuchar','casa','Escuchar a su pareja adulta sentados en la sala'],
     ['familia','casa','Preparar la cena junto a su pareja al volver del trabajo'],
     ['vender','tienda','Entregar con cuidado el primer pedido a un cliente'],
     ['calcular','tienda','Contar pocas monedas al cerrar una jornada de ventas'],
@@ -302,7 +313,7 @@
     ['explicar','oficina','Explicar a un compañero cómo corregir un error concreto'],
     ['decidir','calle','Detenerse en una esquina y retomar su camino con decisión'],
     ['descansar','casa','Beber agua junto a una ventana y dejar descansar los hombros'],
-    ['familia','casa','Ayudar a su hijo con una tarea sin distracciones'],
+    ['familia','casa','Ayudar a su pareja adulta con una tarea sin distracciones'],
     ['escuchar','casa','Sentarse junto a un familiar mayor y escuchar su consejo'],
     ['trabajar','taller','Entregar a tiempo una reparación cuidadosamente terminada'],
     ['vender','tienda','Escuchar una queja del cliente y ofrecer una solución concreta'],
@@ -327,6 +338,6 @@
         description:r[2] + '. ' + shot + ', en ' + r[1] + ', luz cinematográfica sobria. El protagonista insignia del canal viste ropa cotidiana apropiada para la acción. Una sola acción, sin texto ni logotipos. No lluvia ni fantasía.'};
     }); });
   }
-  return {IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,
+  return {ADULT_RULE:ADULT_RULE,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,
     continuity:continuity,scenePlan:scenePlan,selectPlan:selectPlan,familyFor:familyFor,formatFor:formatFor,feedback:feedback,validateMetric:validateMetric,recipes:recipes,segments:segments};
 });

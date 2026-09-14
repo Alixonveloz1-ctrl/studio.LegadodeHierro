@@ -1160,13 +1160,13 @@ const crypto = require('crypto');
 const { execFile } = require('child_process');
 const { Storage } = require('@google-cloud/storage');
 const {GoogleAuth} = require('google-auth-library');
-const {fitTimeline,validateShots} = require('./timeline');
+const {fitTimeline,validateShots,videoSpeed} = require('./timeline');
 
 // VERSION DEL SERVICIO. Cambia cada vez que se toca este archivo, y la
 // herramienta la compara con la que espera para decir sola si el Cloud Run que
 // hay corriendo esta al dia o le falta la ultima actualizacion. Antes no habia
 // forma de saberlo desde fuera y habia que preguntarlo, que es absurdo.
-const VERSION = '2026-09-13.1';
+const VERSION = '2026-09-14.1';
 
 const PORT = process.env.PORT || 8080;
 // Sin nombres de respaldo: el bucket SIEMPRE viene de la variable BUCKET del despliegue.
@@ -1347,9 +1347,9 @@ async function processJob(jobId, payload) {
       if(!source){source=path.join(dir,'source-'+i+(shot.kind==='image'?'.png':'.mp4'));await storage.bucket(BUCKET).file(shot.object).download({destination:source});sources.set(shot.object,source);}
       if(shot.kind==='image')await imagenAClip(source,out,shot.duration,destino.w,destino.h,i);
       else{
-        // Keep the natural motion. Trim a long clip, loop a short one; never
-        // slow an 8-second gesture down to fill an entire minute.
-        await run('ffmpeg',['-y','-stream_loop','-1','-i',source,'-t',shot.duration.toFixed(6),'-vf',encaje,'-r','30','-frames:v',String(shot.frames),'-an','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p',out]);
+        // One continuous pass. Adjacent references were merged in fitTimeline.
+        const speed=videoSpeed(await probeDuration(source),shot.duration);
+        await run('ffmpeg',['-y','-i',source,'-t',shot.duration.toFixed(6),'-vf','setpts='+speed.toFixed(8)+'*(PTS-STARTPTS),'+encaje,'-r','30','-frames:v',String(shot.frames),'-an','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p',out]);
       }
       await cached.save(fs.readFileSync(out),{contentType:'video/mp4'});scaled.push(out);
     }
@@ -1580,7 +1580,7 @@ async function startJob(data){
 }
 const server=http.createServer(async(req,res)=>{
   res.setHeader('Content-Type','application/json');
-  if(req.method==='GET'&&req.url==='/')return res.end(JSON.stringify({ok:true,service:'legado-unify',version:VERSION,durable:!!process.env.RENDER_JOB_RESOURCE}));
+  if(req.method==='GET'&&req.url==='/')return res.end(JSON.stringify({ok:true,service:'legado-unify',version:VERSION,continuousVideo:true,durable:!!process.env.RENDER_JOB_RESOURCE}));
   if(req.method!=='POST'||req.url!=='/start'){res.statusCode=404;return res.end(JSON.stringify({error:'Ruta desconocida'}));}
   const supplied=Buffer.from(String(req.headers['x-unify-key']||'')),expected=Buffer.from(UNIFY_KEY);
   if(!UNIFY_KEY||supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected)){res.statusCode=401;return res.end(JSON.stringify({error:'Clave inválida'}));}
@@ -1602,11 +1602,12 @@ function validateShots(shots) {
   if (!Array.isArray(shots) || !shots.length || shots.length > 600) throw new Error('El montaje necesita entre 1 y 600 tomas.');
   for (const s of shots) {
     if (!s || !['image','video'].includes(s.kind) || typeof s.object !== 'string' || !s.object || s.object.includes('..') || /[\x00-\x1f\\]/.test(s.object)) throw new Error('Referencia de toma inválida.');
-    if (!Number.isFinite(Number(s.duration)) || Number(s.duration) < 0.1 || Number(s.duration) > 120) throw new Error('Duración de toma inválida.');
+    if (!Number.isFinite(Number(s.duration)) || Number(s.duration) < 0.1 || Number(s.duration) > 7200) throw new Error('Duración de toma inválida.');
   }
 }
 function fitTimeline(shots,audioSeconds,fps) {
   validateShots(shots);fps=fps||30;
+  shots=shots.reduce((out,s)=>{const prev=out[out.length-1];if(prev&&prev.kind==='video'&&s.kind==='video'&&prev.object===s.object)prev.duration+=Number(s.duration);else out.push({...s});return out;},[]);
   if (!(audioSeconds>0) || audioSeconds>7200) throw new Error('Duración de narración inválida.');
   const total=shots.reduce((n,s)=>n+Number(s.duration),0),frames=Math.round(audioSeconds*fps);
   if(frames<shots.length)throw new Error('Hay más tomas que fotogramas disponibles.');
@@ -1617,7 +1618,12 @@ function fitTimeline(shots,audioSeconds,fps) {
     const result={...s,start:previous/fps,duration:(end-previous)/fps,frames:end-previous};previous=end;return result;
   });
 }
-module.exports={validateShots,fitTimeline};
+function videoSpeed(sourceSeconds,targetSeconds) {
+  if(!(sourceSeconds>0)||!(targetSeconds>0))throw new Error('Duración de video inválida.');
+  if(targetSeconds>sourceSeconds*2+0.05)throw new Error('Esta toma necesita otro plano: alargar el clip más del doble rompería el movimiento natural. No se repetirá en bucle.');
+  return Math.max(1,targetSeconds/sourceSeconds);
+}
+module.exports={validateShots,fitTimeline,videoSpeed};
 ARCHIVO_FIN
 
 LEGADO_STEP='construir el nuevo montador'
@@ -1684,7 +1690,7 @@ for LEGADO_ATTEMPT in 1 2 3 4 5; do
     python3 - "$LEGADO_WORK_DIR/health.json" <<'PY_HEALTH'
 import json,sys
 d=json.load(open(sys.argv[1]))
-sys.exit(0 if d.get('service')=='legado-unify' and d.get('version')=='2026-09-13.1' and d.get('durable') is True else 1)
+sys.exit(0 if d.get('service')=='legado-unify' and d.get('version')=='2026-09-14.1' and d.get('durable') is True else 1)
 PY_HEALTH
   then LEGADO_OK=1; break; fi
   sleep 2

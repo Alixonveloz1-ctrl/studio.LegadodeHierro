@@ -333,3 +333,18 @@ test('montage rejects pending images and completing a newly created scene animat
     await w.studioGenerateMissing();assert.equal(animations,1);
   }finally{a.close();}
 });
+
+test('secondary reference failures stop image generation and a later attempt fetches the real references again',async()=>{
+  const a=await app(),w=a.w;
+  try{
+    w.BIBLIA=[{id:'companera',nombre:'Compañera adulta',rol:'pareja',fisico:'Mujer de 35 años',vestuario:'camisa azul'}];
+    let attempts=0;
+    w.fetch=async()=>({ok:true,json:async()=>({refs:++attempts===1?[]:['adult-view-1','adult-view-2']})});
+    await assert.rejects(w.prepararImagen('[CON: companera] Conversan en casa',['main-view']),/referencias/);
+    w.apuntarPersonajes=()=>{};
+    const result=await w.prepararImagen('[CON: companera] Conversan en casa',['main-view']);
+    assert.deepEqual(Array.from(result.refs),['main-view','adult-view-1','adult-view-2']);
+    assert.match(result.prompt,/Mujer de 35/);assert.equal(attempts,2);
+    await assert.rejects(w.prepararImagen('Un niño en la sala',['main-view']),/adultos/);
+  }finally{a.close();}
+});

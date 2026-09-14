@@ -23,7 +23,7 @@ test('real 8-minute MP4: repeated video + moving images + two audio parts + shor
   try{
     const image=path.join(root,'image.png'),clip=path.join(root,'clip.mp4'),voice=path.join(root,'voice.wav'),music=path.join(root,'music.wav');
     ff(['-f','lavfi','-i','color=c=0x101020:s=180x320','-frames:v','1',image]);
-    ff(['-f','lavfi','-i','color=c=0x203040:s=180x320:r=30','-t','8','-c:v','libx264','-pix_fmt','yuv420p',clip]);
+    ff(['-f','lavfi','-i','color=c=0x203040:s=180x320:r=30','-t','240','-c:v','libx264','-pix_fmt','yuv420p',clip]);
     ff(['-f','lavfi','-i','sine=frequency=440:sample_rate=24000','-t','240','-c:a','pcm_s16le',voice]);
     ff(['-f','lavfi','-i','sine=frequency=110:sample_rate=48000','-t','4','-c:a','pcm_s16le',music]);
     files.set('legado-studio/media/img.png',image);files.set('legado-videos/clip.mp4',clip);files.set('legado-studio/media/a.wav',voice);files.set('legado-studio/media/b.wav',voice);files.set('musica/loop.wav',music);
@@ -36,7 +36,7 @@ test('real 8-minute MP4: repeated video + moving images + two audio parts + shor
     assert.ok(Math.abs(await probeDuration(out)-480)<0.15);assert.deepEqual(await probeSize(out),{w:720,h:1280});
     const audioDuration=Number(execFileSync('ffprobe',['-v','error','-select_streams','a:0','-show_entries','stream=duration','-of','csv=p=0',out],{encoding:'utf8'}));
     assert.ok(Math.abs(audioDuration-480)<0.15);
-    assert.equal([...saves.keys()].filter(k=>k.startsWith('unify/parts/')).length,6);
+    assert.equal([...saves.keys()].filter(k=>k.startsWith('unify/parts/')).length,4);
     // The bed still has energy in its own frequency band after minute 7. This
     // specifically catches the previous 12-copy cap dropping music early.
     const bed=ff(['-ss','470','-i',out,'-t','2','-vn','-af','lowpass=f=180','-ar','8000','-ac','1','-f','f32le','pipe:1']);

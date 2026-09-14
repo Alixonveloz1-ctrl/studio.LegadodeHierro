@@ -54,7 +54,7 @@ function runInstaller(failure,script=source){
   fs.mkdirSync(bin);
   fs.writeFileSync(path.join(bin,'gcloud'),mock,{mode:0o755});
   fs.writeFileSync(path.join(bin,'sleep'),'#!/bin/sh\nexit 0\n',{mode:0o755});
-  const health={service:'legado-unify',version:'2026-09-13.1',durable:failure!=='health'};
+  const health={service:'legado-unify',version:'2026-09-14.1',durable:failure!=='health'};
   fs.writeFileSync(path.join(bin,'curl'),'#!/usr/bin/env python3\nimport sys\nopen(sys.argv[sys.argv.index("-o")+1],"w").write('+JSON.stringify(JSON.stringify(health))+')\n',{mode:0o755});
   try{
     const result=spawnSync('bash',[],{input:script,encoding:'utf8',cwd:dir,timeout:20000,env:{...process.env,PATH:bin+path.delimiter+process.env.PATH,LH_INSTALL_LOG:log,LH_INSTALL_REVISION:path.join(dir,'revision'),LH_INSTALL_FAIL:failure||'',LEGADO_PROJECT_ID:'fixture',LEGADO_REGION:'us-central1'}});

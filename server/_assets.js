@@ -20,6 +20,7 @@ function cleanAsset(input, object, previous) {
   if (input.aspect !== undefined) r.aspect = ['9:16','16:9','1:1','4:5','3:4','4:3','2:3','3:2','5:4','21:9'].includes(input.aspect) ? input.aspect : '';
   if (input.duration !== undefined) r.duration = Math.max(0,Math.min(7200,Number(input.duration) || 0));
   if (Array.isArray(input.tags)) r.tags = [...new Set(input.tags.map(x=>String(x).trim().slice(0,40)).filter(Boolean))].slice(0,24);
+  if (typeof input.containsMinors === 'boolean') r.containsMinors=input.containsMinors;
   if (typeof input.favorite === 'boolean') r.favorite = input.favorite;
   if (typeof input.archived === 'boolean') r.archived = input.archived;
   if (input.analysis && typeof input.analysis === 'object') {

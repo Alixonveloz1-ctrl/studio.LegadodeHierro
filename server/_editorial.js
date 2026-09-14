@@ -5,7 +5,7 @@ const {failure} = require('./_store');
 const KEYS = Object.keys(core.CRITERIA);
 // Saved jobs may still carry the legacy all-in-one output instructions.
 function stageContext(prompt) {
-  return String(prompt).split('\n').filter(line=>!/^\s*FORMATO: texto plano\./.test(line))
+  return core.ADULT_RULE+'\n'+String(prompt).split('\n').filter(line=>!/^\s*FORMATO: texto plano\./.test(line) && !(/^\s*- /.test(line)&&core.hasMinors(line)))
     .map(line=>line.replace(/(DURACIÓN orientativa: \d+ segundos\.) Entre \d+ y \d+ palabras;/, '$1'))
     .join('\n');
 }
@@ -53,6 +53,7 @@ function parseReview(text,parts) {
   return {summary:r.summary,checks,reviewedAt:new Date().toISOString()};
 }
 function validatePart(text,target) {
+  if(core.hasMinors(text))throw failure('Reescribe esta narración exclusivamente con adultos de 25 años o más y situaciones de su vida adulta actual.',502);
   const n=core.words(text).length;
   if (n<target*.7 || n>target*1.4 || /^\s*(BLOQUE|PROMPT)\s+[A-Z0-9]/mi.test(text)) throw failure('El fragmento tiene '+n+' palabras. Debe tener entre '+Math.ceil(target*.7)+' y '+Math.floor(target*1.4)+' palabras de narración, sin etiquetas BLOQUE ni PROMPT.',502);
   return {text:text.trim()};
@@ -61,6 +62,7 @@ function parseVisuals(text,count,professor) {
   const d=json(text);
   if (!d || !Array.isArray(d.scenes) || d.scenes.length!==count || !d.scenes.every(s=>sentence(s,25,2200))
       || (professor&&!sentence(d.set,20,2200))) throw failure('El plan visual no cubre las escenas del guion revisado.',502);
+  if(core.hasMinors(d))throw failure('El plan visual debe mostrar exclusivamente adultos de 25 años o más.',502);
   return {scenes:d.scenes,set:professor?d.set:''};
 }
 function scriptText(job) {return job.parts.map(p=>p.text).join('\n\n');}
@@ -122,7 +124,8 @@ async function responseFor(j,key,deps) {
       +'Devuelve JSON {"set":"set único si es profesor", "scenes":["descripción visual"]}, exactamente '+count+' scenes. '
       +(professor?'Las primeras cinco son tomas del protagonista en el MISMO set y vestuario; las últimas tres ilustran ejemplos del guion con otras personas, fuera del set. '
         :'El prompt k corresponde al fragmento k de FRAGMENTOS VISUALES; si cae en medio de una oración interpreta su contexto sin inventar otra acción. ')
-      +'Prioriza acciones, manos y objetos que se puedan reutilizar, con continuidad explícita. Nunca inventes un cambio de país o época. '
+      +'Dirección visual: cada escena aporta un cambio visible de acción o encuadre con continuidad de lugar, luz, vestuario y personajes. No repitas descripciones idénticas en escenas consecutivas. '+
+      'Conserva obligatoriamente las marcas [CON: id] exactas del reparto en cada escena con secundarios; sin esa marca no se cargan sus imágenes de referencia. '+core.ADULT_RULE+' Prioriza acciones, manos y objetos que se puedan reutilizar, con continuidad explícita. Nunca inventes un cambio de país o época. '
       +'\nGUION DEFINITIVO: '+a+'\nFRAGMENTOS VISUALES: '+JSON.stringify(core.segments(a,count));
     return parseVisuals((await deps.text(p,{maxTokens:6500,json:true,stage:key})).text,count,professor);
   }
