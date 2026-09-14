@@ -58,7 +58,7 @@ async function studioEpisode(prompt,mode,seconds,context){
   studioRemember({requestId:reqId,config:config,meta:meta,label:'guion de '+(seconds<60?seconds+' segundos':seconds/60+' minutos')});
   var out=await studioRunJob(config,reqId,function(d){studioMessage(d.stage+' · '+d.completed+'/'+d.total+' etapas guardadas');var n=studioEl('gnote');if(n)n.textContent=d.stage;});
   out.studioRequestId=reqId;out.editorial=meta.editorial;
-  studioMessage(out.quality&&out.quality.status==='needs_revision'?'Guion guardado. La revisión dejó ajustes para leer antes de narrar.':'Guion, revisión y escenas guardados.');
+  studioMessage(out.quality&&out.quality.status==='unverified'?'Guion y escenas guardados. La revisión automática quedó pendiente.':out.quality&&out.quality.status==='needs_revision'?'Guion guardado. La revisión dejó ajustes para leer antes de narrar.':'Guion, revisión y escenas guardados.');
   // Keep the pointer until the episode itself is durably saved.
   return out;
 }
@@ -327,7 +327,7 @@ function studioPaintQuality(res){
   var note=document.createElement('p');note.className='studio-status';
   if(!current)note.textContent='Esta versión del texto aún no tiene revisión editorial. Guarda los cambios y pulsa «Revisar el guion guardado».';
   else{
-    note.textContent=(q.status==='needs_revision'?'Quedan ajustes para revisar: ':'Revisión completada: ')+q.summary;
+    note.textContent=(q.status==='unverified'?'Revisión pendiente: ':q.status==='needs_revision'?'Quedan ajustes para revisar: ':'Revisión completada: ')+q.summary;
     if(q.status==='needs_revision')note.classList.add('studio-error');
     if((q.rewrittenSections||[]).length)note.textContent+=' Se mejoraron las partes '+q.rewrittenSections.join(', ')+'.';
   }

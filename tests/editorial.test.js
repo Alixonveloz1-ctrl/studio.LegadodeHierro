@@ -91,3 +91,27 @@ test('references retain evidence limits and the intended duration changes the wr
   const privateData=/content\/insights|professional_dashboard|revenue|nonFollowers/;
   assert.equal(privateData.test(JSON.stringify(core.REFERENCES)),false);
 });
+
+test('review evidence IDs resolve to exact saved text and invalid IDs are rejected',()=>{
+  const parts=[{text:'Una pregunta concreta permite decidir qué servicio probar primero.'}];
+  const r=checks(parts);r.checks.forEach(c=>{c.evidenceId='1:0';delete c.evidence;delete c.section;});
+  const parsed=parseReview(JSON.stringify(r),parts);assert.equal(parsed.checks[0].evidence,parts[0].text);assert.equal(parsed.checks[0].section,1);
+  r.checks[0].evidenceId='99:0';assert.throws(()=>parseReview(JSON.stringify(r),parts),/inexistente/);
+});
+
+test('invalid reviews retry once then deliver 60-second, 5-minute and 8-minute scripts without claiming review approval',async()=>{
+  for(const seconds of [60,300,480]){
+    const store=new MemoryStore(),c=config(seconds),n=Math.ceil(seconds*2.35/220),target=Math.round(seconds*2.35/n);
+    let j=await createJob(store,c,'invalid-review-'+seconds),writes=0,reviews=0;
+    const text=async prompt=>{
+      if(prompt.includes('SOLO PLAN EDITORIAL'))return {text:JSON.stringify(plan(n))};
+      if(prompt.includes('ESCRIBIR SOLO')){writes++;return {text:prose(target,'Parte'+writes)};}
+      if(prompt.startsWith('Actúa como editor')){reviews++;return {text:'{"summary":"Una revisión incompleta","checks":[]}'};}
+      assert.match(prompt,/SOLO PLAN VISUAL/);
+      return {text:JSON.stringify({scenes:Array.from({length:c.sceneCount},()=> 'El protagonista toma una decisión en su taller, plano medio.')})};
+    };
+    for(let i=0;i<20&&j.status!=='done';i++)j=await runStep(store,j,text);
+    assert.equal(j.status,'done');assert.equal(writes,n);assert.equal(reviews,2);assert.equal(j.result.quality.status,'unverified');assert.equal(j.result.quality.checks.length,0);assert.equal(core.words(j.result.a).length,n*target);
+    await runStep(store,j,text);assert.equal(reviews,2);
+  }
+});
