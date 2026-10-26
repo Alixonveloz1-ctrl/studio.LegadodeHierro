@@ -802,6 +802,7 @@ function cierreDe(txt){
 var BIBLIA=[];
 
 function cargarBiblia(){
+  if(!document.getElementById('bibliaGrid'))return Promise.resolve([]);
   return fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'list'})})
     .then(function(r){return r.json();})
@@ -2045,20 +2046,6 @@ function renderOut(r){
     document.getElementById('imgCard').appendChild(ballvids);
   }
   ballvids.style.display='none';
-  // Boton del BANCO: reutilizar clips que ya viven en el bucket, sin generar
-  // (ni pagar) nada. Se crea una sola vez y siempre esta disponible.
-  if(!document.getElementById('bbanco')){
-    var bb=document.createElement('button');
-    bb.id='bbanco';
-    bb.textContent='📼 Asignar videos del banco al guion';
-    bb.style.cssText='width:100%;margin-top:8px;padding:12px;background:#fff;border:2px solid #9ab47a;border-radius:10px;font-size:13px;font-weight:700;color:#6a8a4a;cursor:pointer;font-family:inherit';
-    bb.addEventListener('click',studioUseLibrary);
-    document.getElementById('imgCard').appendChild(bb);
-    var bp=document.createElement('div');
-    bp.id='bancoPanel';
-    bp.style.cssText='display:none;margin-top:8px;border:1.5px solid var(--border);border-radius:10px;padding:10px;background:#fbfcf9;max-height:420px;overflow-y:auto';
-    document.getElementById('imgCard').appendChild(bp);
-  }
   document.getElementById('rES').style.display='none';
   document.getElementById('rEN').style.display='none';
   document.getElementById('ast').style.display='none';

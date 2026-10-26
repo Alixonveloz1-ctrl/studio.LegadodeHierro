@@ -642,7 +642,7 @@ async function studioResumeRender(){
   return studioWatchRender(r.jobId,lastRes,lang);
 }
 var STUDIO_LIBRARY={running:false,preparing:false,pause:false,job:null,draft:false,view:'saved'};
-function studioLibraryMessage(text,error){var el=studioEl('libraryNotice');el.hidden=!text;el.textContent=text;el.className='studio-status'+(error?' studio-error':'');}
+function studioLibraryMessage(text,error){var el=studioEl('libraryNotice');if(!el)return;el.hidden=!text;el.textContent=text;el.className='studio-status'+(error?' studio-error':'');}
 function studioLibraryView(view){
   STUDIO_LIBRARY.view=view;
   ['saved','create'].forEach(function(name){
@@ -652,22 +652,20 @@ function studioLibraryView(view){
   if(view==='create')studioPaintRecipes();else studioPaintLibrary().catch(function(e){studioLibraryMessage(e.message,true);});
 }
 function studioLibrarySettings(){
-  // Move the existing controls into this dialog; never create another set.
-  var panel=studioEl('genSettings'),dialog=studioEl('librarySettingsDialog');
+  // Sin panel de biblioteca, los ajustes se quedan donde están.
+  var panel=studioEl('genSettings'),dialog=studioEl('librarySettingsDialog');if(!dialog)return;
   STUDIO_LIBRARY.settingsHome={parent:panel.parentNode,next:panel.nextSibling};
   studioEl('librarySettingsContent').appendChild(panel);dialog.showModal();
 }
 function studioLibraryControls(){
   var locked=STUDIO_LIBRARY.running||STUDIO_LIBRARY.preparing;
-  ['libraryCatalog','libraryImport','libraryUpload','recipeCategory','recipeBatchSize'].forEach(function(id){studioEl(id).disabled=locked;});
-  // A running job has a saved configuration. Viewing or changing future
-  // preferences must never be blocked by cataloging, copying or generation.
-  ['selImgModel','selImgFmt','selVidModel','selVidFmt','librarySettings'].forEach(function(id){studioEl(id).disabled=false;});
-  studioEl('libraryImportBusy').hidden=!locked;
-  studioEl('libraryPause').hidden=!STUDIO_LIBRARY.running;
-  if(!STUDIO_LIBRARY.running)studioEl('libraryPause').textContent='Pausar';
+  ['libraryCatalog','libraryImport','libraryUpload','recipeCategory','recipeBatchSize'].forEach(function(id){var el=studioEl(id);if(el)el.disabled=locked;});
+  ['selImgModel','selImgFmt','selVidModel','selVidFmt','librarySettings'].forEach(function(id){var el=studioEl(id);if(el)el.disabled=false;});
+  var busy=studioEl('libraryImportBusy');if(busy)busy.hidden=!locked;
+  var pause=studioEl('libraryPause');if(pause){pause.hidden=!STUDIO_LIBRARY.running;if(!STUDIO_LIBRARY.running)pause.textContent='Pausar';}
 }
 async function studioLibraryPaint(job){
+  if(!studioEl('libraryWork'))return;
   var previous=STUDIO_LIBRARY.job,changed=job&&job.lastAsset&&(!previous||!previous.lastAsset||previous.lastAsset.id!==job.lastAsset.id||previous.lastAsset.version!==job.lastAsset.version);
   STUDIO_LIBRARY.job=job;studioEl('libraryWork').hidden=!job;studioLibraryControls();
   if(job){
@@ -771,6 +769,7 @@ function studioRecipeTile(recipe,index,aspect){
   return card;
 }
 async function studioPaintRecipes(){
+  if(!studioEl('recipePreview'))return;
   var job=studioRecipeJob(),all=LH.recipes(),recipes=job?job.recipeIds.map(function(id){return all.find(function(r){return r.id===id;});}).filter(Boolean):studioRecipeBatch();
   var count=recipes.length,settings=job?job.settings:{model:imgModel,aspect:imgFmt},locked=STUDIO_LIBRARY.running||STUDIO_LIBRARY.preparing;
   studioEl('recipeControls').hidden=!!job;studioEl('librarySettings').hidden=!!job;
@@ -884,7 +883,7 @@ async function studioGenerateBatch(kind){
 }
 async function studioGuard(fn){
   if(STUDIO.busy)return;STUDIO.busy=true;
-  try{await fn();}catch(e){if(studioEl('libraryPanel').open)studioLibraryMessage(e.message,true);else studioMessage(e.message,true);}finally{STUDIO.busy=false;}
+  try{await fn();}catch(e){var lp=studioEl('libraryPanel');if(lp&&lp.open)studioLibraryMessage(e.message,true);else studioMessage(e.message,true);}finally{STUDIO.busy=false;}
 }
 function studioInit(){
   studioUnifyWorkspace();studioModelPickers();
@@ -892,34 +891,34 @@ function studioInit(){
   studioEl('projectsPanel').addEventListener('toggle',function(){if(this.open)studioGuard(studioOpenProjects);});
   var bind=function(id,fn){var el=studioEl(id);if(el)el.onclick=function(){studioGuard(fn);};};
   bind('libraryLoad',studioLoadLibrary);bind('libraryUpload',studioUploadFiles);bind('libraryCatalog',studioCatalogExisting);bind('libraryImport',studioImportLibrary);bind('libraryResume',studioLibraryResume);bind('libraryStop',studioLibraryStop);
-  studioEl('libraryPause').onclick=function(){STUDIO_LIBRARY.pause=true;this.textContent='Terminando la toma actual…';};
-  studioEl('librarySavedTab').onclick=function(){studioLibraryView('saved');};studioEl('libraryCreateTab').onclick=function(){studioLibraryView('create');};
-  ['librarySavedTab','libraryCreateTab'].forEach(function(id){studioEl(id).onkeydown=function(e){
+  var _lp=studioEl('libraryPause');if(_lp)_lp.onclick=function(){STUDIO_LIBRARY.pause=true;this.textContent='Terminando la toma actual…';};
+  var _lst=studioEl('librarySavedTab');if(_lst)_lst.onclick=function(){studioLibraryView('saved');};var _lct=studioEl('libraryCreateTab');if(_lct)_lct.onclick=function(){studioLibraryView('create');};
+  ['librarySavedTab','libraryCreateTab'].forEach(function(id){var _el=studioEl(id);if(!_el)return;_el.onkeydown=function(e){
     if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();var create=e.key==='End'||(e.key!=='Home'&&id==='librarySavedTab');studioLibraryView(create?'create':'saved');studioEl(create?'libraryCreateTab':'librarySavedTab').focus();}
   };});
-  studioEl('libraryShowProgress').onclick=function(){STUDIO_LIBRARY.draft=false;studioLibraryView('create');};
-  studioEl('recipeNew').onclick=function(){STUDIO_LIBRARY.draft=true;studioLibraryMessage('');studioPaintRecipes();};
-  studioEl('librarySettings').onclick=studioLibrarySettings;
-  studioEl('libraryBring').onclick=function(){var panel=studioEl('libraryBringPanel');panel.hidden=!panel.hidden;this.setAttribute('aria-expanded',String(!panel.hidden));};
-  ['Cloud','Phone'].forEach(function(source){studioEl('libraryBring'+source).onclick=function(){
+  var _lsp=studioEl('libraryShowProgress');if(_lsp)_lsp.onclick=function(){STUDIO_LIBRARY.draft=false;studioLibraryView('create');};
+  var _rn=studioEl('recipeNew');if(_rn)_rn.onclick=function(){STUDIO_LIBRARY.draft=true;studioLibraryMessage('');studioPaintRecipes();};
+  var _ls=studioEl('librarySettings');if(_ls)_ls.onclick=studioLibrarySettings;
+  var _lb=studioEl('libraryBring');if(_lb)_lb.onclick=function(){var panel=studioEl('libraryBringPanel');panel.hidden=!panel.hidden;this.setAttribute('aria-expanded',String(!panel.hidden));};
+  ['Cloud','Phone'].forEach(function(source){var _el=studioEl('libraryBring'+source);if(!_el)return;_el.onclick=function(){
     ['Cloud','Phone'].forEach(function(name){studioEl('library'+name+'Panel').hidden=name!==source;studioEl('libraryBring'+name).setAttribute('aria-pressed',String(name===source));});
   };});
-  studioEl('librarySettingsClose').onclick=function(){studioEl('librarySettingsDialog').close();};
-  studioEl('librarySettingsDialog').addEventListener('close',function(){
+  var _lsc=studioEl('librarySettingsClose');if(_lsc)_lsc.onclick=function(){studioEl('librarySettingsDialog').close();};
+  var _lsd=studioEl('librarySettingsDialog');if(_lsd)_lsd.addEventListener('close',function(){
     var home=STUDIO_LIBRARY.settingsHome;if(home){home.parent.insertBefore(studioEl('genSettings'),home.next);STUDIO_LIBRARY.settingsHome=null;}studioPaintRecipes();
   });
-  studioEl('libraryViewerClose').onclick=function(){studioEl('libraryViewer').close();};
-  studioEl('libraryViewer').addEventListener('close',function(){
+  var _lvc=studioEl('libraryViewerClose');if(_lvc)_lvc.onclick=function(){studioEl('libraryViewer').close();};
+  var _lv=studioEl('libraryViewer');if(_lv)_lv.addEventListener('close',function(){
     studioEl('libraryViewerContent').querySelectorAll('video,audio').forEach(function(el){el.pause();el.removeAttribute('src');el.load();});studioEl('libraryViewerContent').innerHTML='';
   });
-  ['libraryViewer','librarySettingsDialog'].forEach(function(id){studioEl(id).addEventListener('click',function(e){if(e.target===this)this.close();});});
-  studioEl('librarySource').value=localStorage.getItem('lh_library_source')||'';
-  studioEl('recipeCategory').onchange=studioPaintRecipes;studioEl('recipeBatchSize').onchange=studioPaintRecipes;
+  ['libraryViewer','librarySettingsDialog'].forEach(function(id){var _el=studioEl(id);if(_el)_el.addEventListener('click',function(e){if(e.target===this)this.close();});});
+  var _lsrc=studioEl('librarySource');if(_lsrc)_lsrc.value=localStorage.getItem('lh_library_source')||'';
+  var _rc=studioEl('recipeCategory');if(_rc)_rc.onchange=studioPaintRecipes;var _rbs=studioEl('recipeBatchSize');if(_rbs)_rbs.onchange=studioPaintRecipes;
   ['selImgFmt','selImgModel'].forEach(function(id){var el=studioEl(id);if(el)el.addEventListener('change',studioPaintRecipes);});
-  studioEl('libraryPanel').addEventListener('toggle',function(){if(this.open&&!STUDIO_LIBRARY.running)studioGuard(studioLoadLibrary);});
+  var _lpanel=studioEl('libraryPanel');if(_lpanel)_lpanel.addEventListener('toggle',function(){if(this.open&&!STUDIO_LIBRARY.running)studioGuard(studioLoadLibrary);});
   bind('studioPending',studioResume);bind('projectsLoad',studioOpenProjects);bind('buildScenePlan',studioBuildPlan);bind('generateMissing',studioGenerateMissing);bind('generateMissingImages',studioGenerateMissingImages);bind('recipeGenerate',studioGenerateRecipe);bind('scriptSave',studioEditScript);bind('resumeRender',async function(){studioMontageMessage('Consultando el montaje iniciado…');try{await studioResumeRender();}catch(e){studioMontageMessage(e.message,true);}});bind('audioRestoreES',function(){return studioRecoverAudio('es');});bind('audioRestoreEN',function(){return studioRecoverAudio('en');});
   bind('scriptRecheck',studioReviewScript);
-  studioEl('librarySearch').onchange=function(){STUDIO_PAGE=0;studioGuard(studioPaintLibrary);};studioEl('libraryKind').onchange=studioEl('librarySearch').onchange;
+  var _lsearch=studioEl('librarySearch');if(_lsearch)_lsearch.onchange=function(){STUDIO_PAGE=0;studioGuard(studioPaintLibrary);};var _lkind=studioEl('libraryKind');if(_lkind&&_lsearch)_lkind.onchange=_lsearch.onchange;
   bind('libraryNext',function(){STUDIO_PAGE++;return studioPaintLibrary();});bind('libraryPrev',function(){STUDIO_PAGE=Math.max(0,STUDIO_PAGE-1);return studioPaintLibrary();});
 
 }

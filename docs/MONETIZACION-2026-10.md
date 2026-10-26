@@ -66,10 +66,9 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 7. **Sistema, no un video suelto:** Reels cortos para llegar a personas nuevas,
    piezas largas para sostener la vista y generar vistas aptas, y cierre comercial
    para convertir esa atención en ingresos reales.
-8. **Identidad visual:** continuidad dentro de cada video (mismo protagonista,
+8. **Identidad visual:** continuidad dentro de cada video (mismos personajes,
    vestuario y mundo en ese video), pero con acciones distintas en cada tramo.
-   El protagonista puede cambiar de un video a otro: la biblia de personajes es
-   opcional, no obligatoria, y ya no incluye menores.
+   No hay biblia ni protagonista fijo: cada video define sus propios personajes.
 
 ## Qué no debe hacer la herramienta
 
@@ -81,8 +80,19 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Inventar vivencias del autor, clientes, testimonios, estadísticas o resultados.
 - Convertir todos los temas en el mismo sermón sobre sueldo y quincena.
 - Copiar frases, personajes, cifras o la secuencia literal de otro video.
-- Obligar a usar siempre al mismo protagonista ni a la biblia completa de
-  personajes en todos los videos.
+- Usar una biblioteca, una biblia de personajes, un protagonista fijo o tomas
+  de videos anteriores para un video nuevo.
+
+## Pantalla simplificada: sin biblioteca, sin biblia, sin banco
+
+Desde el 26 de octubre de 2026, la pantalla ya no muestra el panel de
+biblioteca, ni el panel de biblia de personajes, ni el botón de asignar videos
+del banco, ni el botón del banco que se creaba al generar un video. Arriba del
+formulario hay una guía en 4 pasos: elegir, forjar y revisar el guion, generar
+voz, imágenes y videos de ese video, y unificar. Lo que sí se conserva es
+“Mis reels guardados”, porque el material de cada video debe guardarse para
+retomarlo. La música de un video se genera nueva para ese video; ya no hay
+una pista guardada “para siempre” en una biblioteca.
 
 ## Sin biblioteca, sin personajes fijos: cada video es una historia completa
 

@@ -58,19 +58,12 @@ test('cloud project opens with captions, stable ID, saved scene plan and recover
   }finally{a.close();}
 });
 
-test('library creates a video-only plan without paid media and keeps optional edits collapsed on mobile',async()=>{
+test('simplified UI shows no library, biblia or bank controls, and the main video flow is present',async()=>{
   const a=await app();try{
-    const {w,assets,calls,errors}=a;w.lastRes=episode(w);assets.push(...['image','video','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/'+i,aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
-    await w.studioLoadLibrary();w.document.querySelector('#buildScenePlan').click();await ready(()=>!w.STUDIO.busy);
-    assert.equal(w.STUDIO.plan.length,30);assert.ok(w.STUDIO.plan.every(p=>p.assetId));assert.notEqual(w.STUDIO.plan[0].assetId,w.STUDIO.plan[1].assetId);
-    assert.equal(w.document.querySelectorAll('#scenePlan .studio-shot').length,30);assert.equal(calls.filter(c=>c.input==='/api/image'||c.input==='/api/video-start').length,0);
-    assert.equal(w.document.querySelectorAll('#libraryGrid .studio-media-tile').length,3);
-    assert.equal(w.document.querySelectorAll('#libraryGrid input, #libraryGrid textarea, #libraryGrid details').length,0);
-    w.document.querySelector('#libraryGrid button').click();await ready(()=>w.document.querySelector('#libraryViewerContent .studio-asset'));
-    assert.equal(w.document.querySelector('#libraryViewer').open,true);assert.equal(w.document.querySelector('#libraryViewer details').open,false);
-    const edit=w.document.querySelector('#libraryViewer input');edit.value='Nombre corregido';w.document.querySelector('#libraryViewer details button').click();await ready(()=>w.document.querySelector('#libraryGrid').textContent.includes('Nombre corregido'));
-    w.document.querySelector('#libraryViewerClose').click();assert.equal(w.document.querySelector('#libraryViewer').open,false);
-    assert.equal(w.document.querySelector('#libraryUploadDescription'),null);assert.equal(w.document.querySelector('#recipeSelect'),null);
+    const {w,errors}=a;
+    for(const id of ['libraryPanel','bibliaPanel','bibliaBtn','buildScenePlan','libraryGrid','libraryViewer','librarySettingsDialog','bbanco','bancoPanel','selBibliaModel','libraryCreateTab','librarySavedTab'])assert.equal(w.document.getElementById(id),null,id+' debe estar eliminado');
+    for(const id of ['modeSelector','themeGrid','durGrid','hookGrid','conc','gbtn','projectsPanel','episodeTools','genSettings','selImgModel','selImgFmt','selVidModel','selVidFmt','unifyCard'])assert.ok(w.document.getElementById(id),id+' debe seguir presente');
+    assert.ok(w.document.querySelector('.studio-card strong')&&w.document.body.textContent.includes('Cómo crear un video, en 4 pasos'));
     assert.deepEqual(errors,[]);
   }finally{a.close();}
 });
@@ -177,94 +170,44 @@ test('choosing an idea analyzes its video automatically and reuses the result; f
 });
 
 
-test('the library uses the original selectors and mode changes and project restore preserve every chosen model and format',async()=>{
+test('model and format selectors work directly and survive mode changes and reload, without a library settings dialog',async()=>{
   const a=await app();let second;
   try{
     const {w}=a,panel=w.document.querySelector('#genSettings'),parent=panel.parentNode;
-    w.document.querySelector('#librarySettings').click();assert.equal(w.document.querySelector('#librarySettingsDialog').open,true);
-    assert.equal(w.document.querySelector('#librarySettingsContent #genSettings'),panel);
+    assert.equal(w.document.querySelector('#librarySettings'),null);assert.equal(w.document.querySelector('#librarySettingsDialog'),null);
     const choices={selImgModel:'gemini-3-pro-image',selImgFmt:'3:4',selVidModel:'veo-3.1-generate-001',selVidFmt:'16:9'};
     for(const [id,value] of Object.entries(choices)){const el=w.document.getElementById(id);el.value=value;el.dispatchEvent(new w.Event('change'));assert.equal(w.document.querySelectorAll('#'+id).length,1);}
-    w.document.querySelector('#librarySettingsClose').click();assert.equal(panel.parentNode,parent);
-    w.document.querySelector('#modeSelector [data-id="relato"]').click();w.document.querySelector('#modeSelector [data-id="impacto"]').click();
-    w.studioRestoreEditorial({platform:'youtube'});await w.studioPaintRecipes();
     assert.equal(w.imgModel,choices.selImgModel);assert.equal(w.imgFmt,'3:4');assert.equal(w.vidModel,choices.selVidModel);assert.equal(w.vidFmt,'16:9');
-    assert.match(w.document.querySelector('#recipeSettings').textContent,/Nano Banana Pro.*3:4/);
+    w.document.querySelector('#modeSelector [data-id="relato"]').click();w.document.querySelector('#modeSelector [data-id="impacto"]').click();
+    assert.equal(w.imgModel,choices.selImgModel);assert.equal(w.imgFmt,'3:4');
     const storage=Object.fromEntries(Object.keys(w.localStorage).map(k=>[k,w.localStorage.getItem(k)]));second=await app(storage);
     for(const [id,value] of Object.entries(choices))assert.equal(second.w.document.getElementById(id).value,value,'reload preserves '+id);
-    assert.equal(second.w.document.querySelector('#recipeCategory option[value="trabajo"]').textContent,'Trabajo y negocio');
-    second.w.document.querySelector('#libraryCreateTab').click();assert.equal(second.w.document.querySelector('#librarySavedView').hidden,true);
-    assert.equal(second.w.document.querySelector('#libraryCreateView').hidden,false);
-    second.w.document.querySelector('#libraryCreateTab').dispatchEvent(new second.w.KeyboardEvent('keydown',{key:'ArrowLeft'}));assert.equal(second.w.document.querySelector('#librarySavedTab').getAttribute('aria-selected'),'true');
+    assert.equal(panel.parentNode,parent);
   }finally{a.close();if(second)second.close();}
 });
 
-test('each saved image appears before the next generation, the selection stays fixed, and reload resumes the same choices',async()=>{
-  const a=await app();let reloaded,release;
-  try{
-    const {w,assets}=a;assets.push({id:'a'.repeat(32),object:'legado-studio/media/old.png',kind:'image',recipeId:'receta-0-2',aspect:'3:4',title:'Guardada',description:'Toma general en la oficina'});
-    w.imgFmt='3:4';w.imgModel='gemini-3.1-flash-image';let approvals=0;w.confirm=()=>{approvals++;return true;};w.loadRefs=async()=>[];
-    let job,config,advances=0;const api=w.studioAPI;
-    w.studioAPI=async(action,data,endpoint)=>{
-      if(action==='library-start'){
-        config=JSON.parse(JSON.stringify(data.config));job={id:'batch-test',type:'generate',status:'ready',total:12,completed:0,failed:0,skipped:0,stage:'Preparado',recipeIds:config.recipeIds,pendingRecipeIds:config.recipeIds,recipeResults:{},settings:{model:config.model,aspect:config.aspect}};return {job:structuredClone(job)};
-      }
-      if(action==='library-advance'){
-        advances++;
-        if(advances===1){const asset={id:'b'.repeat(32),object:'legado-studio/media/new.png',kind:'image',recipeId:config.recipeIds[0],aspect:config.aspect,title:'La primera imagen',version:1};assets.push(asset);job.lastAsset=asset;return {job:structuredClone(job)};}
-        await new Promise(r=>{release=r;});job={...job,completed:1,pendingRecipeIds:config.recipeIds.slice(1),recipeResults:{[config.recipeIds[0]]:'ready'}};return {job:structuredClone(job)};
-      }
-      return api(action,data,endpoint);
-    };
-    const running=w.studioGenerateRecipe();await ready(()=>advances===2);
-    assert.equal(approvals,1);assert.equal(config.recipeIds.length,12);assert.ok(!config.recipeIds.includes('receta-0-2'));assert.equal(config.model,w.imgModel);assert.equal(config.aspect,'3:4');
-    const grid=w.document.querySelector('#recipePreview'),first=grid.firstElementChild;
-    assert.equal(grid.children.length,12);assert.equal(first.dataset.recipeId,config.recipeIds[0]);assert.ok(first.querySelector('img').src.includes('media.example.test'));assert.match(first.textContent,/Imagen guardada/);
-    assert.deepEqual([...grid.children].map(c=>c.dataset.recipeId),config.recipeIds);assert.equal(grid.querySelectorAll('input, textarea, li').length,0);
-    assert.equal(w.document.querySelector('#selImgModel').disabled,false);
-    w.document.querySelector('#libraryPause').click();release();await running;
-    assert.equal(grid.firstElementChild,first,'progress updates keep the existing image element in place');assert.equal(w.document.querySelector('#libraryResume').hidden,false);
-    assert.equal(w.document.querySelector('#recipeGenerate').hidden,true);assert.equal(w.document.querySelector('#selImgModel').disabled,false);
-    reloaded=await app({'lh_gen_imgModel':'gemini-2.5-flash-image','lh_gen_imgFmt':'9:16'});const v=reloaded.w;reloaded.assets.push(...structuredClone(assets));const nextAPI=v.studioAPI;let starts=0,continued=0;
-    v.studioAPI=async(action,data,endpoint)=>{
-      if(action==='library-status')return {job:structuredClone(job)};
-      if(action==='library-start'){starts++;throw new Error('Must continue the saved job');}
-      if(action==='library-advance'){
-        continued++;assert.equal(data.id,job.id);assert.equal(job.settings.aspect,'3:4');
-        for(const [i,id] of config.recipeIds.slice(1).entries())reloaded.assets.push({id:String(i+1).padStart(32,'0'),object:'legado-studio/media/continued-'+i+'.png',kind:'image',recipeId:id,aspect:job.settings.aspect,title:'Guardada '+i});
-        job={...job,status:'done',completed:12,pendingRecipeIds:[],recipeResults:Object.fromEntries(config.recipeIds.map(id=>[id,'ready']))};return {job:structuredClone(job)};
-      }
-      return nextAPI(action,data,endpoint);
-    };
-    await v.studioLoadLibrary();assert.deepEqual([...v.document.querySelector('#recipePreview').children].map(c=>c.dataset.recipeId),config.recipeIds);
-    assert.match(v.document.querySelector('#recipeSettings').textContent,/Nano Banana 2.*3:4/);assert.equal(v.imgFmt,'9:16','restoring a job displays its settings without overwriting the current selectors');
-    await v.studioLibraryResume();assert.equal(continued,1);assert.equal(starts,0);assert.equal(v.document.querySelectorAll('#recipePreview img').length,12);
-    assert.equal(v.document.querySelector('#recipeNew').hidden,false);assert.equal(v.document.querySelector('#recipeGenerate').hidden,true);
-    v.document.querySelector('#recipeNew').click();assert.equal(v.document.querySelector('#recipeGenerate').hidden,false);assert.match(v.document.querySelector('#recipeSettings').textContent,/9:16/);
-    assert.deepEqual(a.errors,[]);assert.deepEqual(reloaded.errors,[]);
-  }finally{if(release)release();a.close();if(reloaded)reloaded.close();}
-});
-
-test('active cataloging leaves model settings and both import panels usable, and preparation errors release controls',async()=>{
+test('per-video generation needs no library panel: painting recipes without it does not crash',async()=>{
   const a=await app();try{
-    const {w}=a;
-    w.STUDIO_LIBRARY.running=true;
-    await w.studioLibraryPaint({id:'catalog-test',type:'catalog',status:'ready',total:100,completed:15,stage:'15 de 100'});
-    const bring=w.document.querySelector('#libraryBring');bring.click();assert.equal(bring.getAttribute('aria-expanded'),'true');assert.equal(w.document.querySelector('#libraryCloudPanel').hidden,false);
-    w.document.querySelector('#libraryBringPhone').click();assert.equal(w.document.querySelector('#libraryPhonePanel').hidden,false);assert.equal(w.document.querySelector('#libraryCloudPanel').hidden,true);
-    assert.ok(w.document.querySelector('#libraryPhonePanel input[type=file]'));w.document.querySelector('#libraryBringCloud').click();assert.ok(w.document.querySelector('#libraryCloudPanel #librarySource'));
-    assert.equal(w.document.querySelector('#libraryImportBusy').hidden,false);
-    w.document.querySelector('#libraryCreateTab').click();assert.equal(w.document.querySelector('#librarySettings').disabled,false);
-    w.document.querySelector('#librarySettings').click();assert.equal(w.document.querySelector('#librarySettingsDialog').open,true);assert.equal(w.document.querySelector('#selImgModel').disabled,false);
-    const select=w.document.querySelector('#selImgFmt');select.value='16:9';select.dispatchEvent(new w.Event('change'));assert.equal(w.imgFmt,'16:9');w.document.querySelector('#librarySettingsClose').click();
-    w.STUDIO_LIBRARY.running=false;w.STUDIO_LIBRARY.job=null;
-    w.document.querySelector('#recipeBatchSize').value='1';w.loadRefs=async()=>{throw new Error('Reference connection failed');};
-    await assert.rejects(w.studioGenerateRecipe(),/Reference connection failed/);
-    assert.equal(w.STUDIO_LIBRARY.preparing,false);assert.equal(w.document.querySelector('#recipeGenerate').disabled,false);assert.equal(w.document.querySelector('#librarySettings').disabled,false);
+    const {w,errors}=a;
+    assert.equal(w.document.querySelector('#recipePreview'),null);assert.equal(w.document.querySelector('#recipeGenerate'),null);assert.equal(w.document.querySelector('#recipeSettings'),null);
+    await w.studioPaintRecipes();await w.studioPaintLibrary();
+    assert.ok(w.document.querySelector('#genSettings'));assert.ok(w.document.querySelector('#selImgModel'));
+    assert.deepEqual(errors,[]);
   }finally{a.close();}
 });
 
-test('a storage throttle resumes the same job automatically and waiting can be paused',async()=>{
+test('library paint and controls are no-ops without a library panel',async()=>{
+  const a=await app();try{
+    const {w,errors}=a;
+    w.STUDIO_LIBRARY.running=true;
+    await w.studioLibraryPaint({id:'catalog-test',type:'catalog',status:'ready',total:100,completed:15,stage:'15 de 100'});
+    assert.equal(w.document.querySelector('#libraryPanel'),null);assert.equal(w.document.querySelector('#libraryBring'),null);assert.equal(w.document.querySelector('#librarySettings'),null);assert.equal(w.document.querySelector('#libraryImportBusy'),null);
+    w.STUDIO_LIBRARY.running=false;w.STUDIO_LIBRARY.job=null;w.studioLibraryControls();
+    assert.deepEqual(errors,[]);
+  }finally{a.close();}
+});
+
+test('a storage throttle resumes the same job automatically without library buttons',async()=>{
   const a=await app();try{
     const {w}=a,api=w.studioAPI;let attempts=0,starts=0;const waits=[];
     const job={id:'storage-retry',type:'catalog',status:'ready',completed:25,total:100,stage:'25 de 100'};
@@ -275,8 +218,8 @@ test('a storage throttle resumes the same job automatically and waiting can be p
     };
     w.studioLibraryWait=async ms=>{waits.push(ms);};
     await w.studioLibraryRun(job);assert.equal(attempts,2);assert.equal(starts,0);assert.deepEqual(waits,[5000]);
-    attempts=0;w.studioLibraryWait=async()=>{w.document.querySelector('#libraryPause').click();};
-    await w.studioLibraryRun(job);assert.equal(attempts,1);assert.equal(w.document.querySelector('#libraryResume').hidden,false);assert.equal(w.STUDIO_LIBRARY.running,false);
+    attempts=0;w.studioLibraryWait=async()=>{w.STUDIO_LIBRARY.pause=true;};
+    await w.studioLibraryRun(job);assert.equal(attempts,1);assert.equal(w.document.querySelector('#libraryPause'),null);assert.equal(w.document.querySelector('#libraryResume'),null);assert.equal(w.STUDIO_LIBRARY.running,false);
   }finally{a.close();}
 });
 
@@ -291,17 +234,12 @@ test('script transients retry the same saved job automatically, with a finite li
   }finally{a.close();}
 });
 
-test('library button assigns scenes without opening the legacy picker and ZIP includes unique library sources',async()=>{
+test('no bank button or bank panel in the simplified UI, even after rendering a project',async()=>{
   const a=await app();try{
-    const {w,assets,calls}=a;w.lastRes=episode(w);assets.push(...['image','video','video'].map((kind,i)=>({id:String(i+1).padStart(32,'0'),kind,object:'legado-studio/media/a'+i+(i?'.mp4':'.png'),aspect:'9:16',description:'Calcular presupuesto en oficina con calculadora',title:'Calcular '+i})));
-    w.renderOut(w.lastRes);await w.studioUseLibrary();await tick();
-    assert.ok(w.STUDIO.plan.every(p=>p.assetId));assert.equal(w.document.querySelector('#bancoPanel').style.display,'none');assert.match(w.document.querySelector('#bbanco').textContent,/Asignar/);
-    assert.ok(w.document.querySelectorAll('#scenePlan .studio-plan-preview').length>0);
-    assert.ok([...w.document.querySelectorAll('#scenePlan details')].every(d=>!d.open));
-    const original=w.fetch;w.fetch=async(url,opts)=>String(url).startsWith('https://media.example.test/')?{ok:true,arrayBuffer:async()=>new Uint8Array([1,2,3]).buffer}:original(url,opts);
-    const files=new Map();await w.studioZipLibrary({file:(name,data)=>files.set(name,data)},'test');
-    assert.equal(files.size,2);assert.ok([...files.keys()].some(k=>k.endsWith('.mp4')));assert.ok([...files.keys()].every(k=>k.endsWith('.mp4')));
-    assert.equal(calls.filter(c=>c.input==='/api/image'||c.input==='/api/video-start').length,0);
+    const {w,errors}=a;w.lastRes=episode(w);w.renderOut(w.lastRes);await tick();
+    assert.equal(w.document.querySelector('#bbanco'),null);assert.equal(w.document.querySelector('#bancoPanel'),null);assert.equal(w.document.querySelector('#buildScenePlan'),null);
+    assert.ok(w.document.querySelector('#episodeTools'));assert.ok(w.document.querySelector('#scenePlan'));
+    assert.deepEqual(errors,[]);
   }finally{a.close();}
 });
 
@@ -371,7 +309,7 @@ test('one reel list combines cloud and local history by ID, preserves same-title
     w.localStorage.setItem('lh_hist',JSON.stringify([{id:'r'+p.uid,a:p.a,topic:p.topic,fecha:'2026-09-13'}, {id:'rlocal-only',a:'Guion antiguo conservado',topic:p.topic,fecha:'2026-08-20',modo:'reel',d:'60',c:[]} ]));
     await w.studioOpenProjects();
     assert.equal(w.document.querySelectorAll('#projectList [data-project-id]').length,2);
-    assert.ok(w.document.getElementById('histBtn').hidden);assert.ok(w.document.getElementById('histPanel').hidden);
+    assert.equal(w.document.getElementById('histBtn'),null);assert.equal(w.document.getElementById('histPanel'),null);assert.ok(w.document.getElementById('projectsPanel'));
     let restored;w.restoreHistory=(id)=>{restored=id;};
     w.document.querySelector('[data-project-id="local-only"] button').click();assert.equal(restored,'rlocal-only');
     w.studioLoadAll=async()=>{throw Error('offline');};await w.studioOpenProjects();
@@ -380,7 +318,7 @@ test('one reel list combines cloud and local history by ID, preserves same-title
   }finally{a.close();}
 });
 
-test('one shot workspace owns the original model controls and thumbnail across rendering and the settings dialog',async()=>{
+test('one shot workspace owns the original model controls and thumbnail, without a library settings dialog',async()=>{
   const a=await app();try{
     const {w}=a,settings=w.document.getElementById('genSettings');
     assert.ok(w.document.getElementById('episodeTools').contains(settings));
@@ -389,9 +327,8 @@ test('one shot workspace owns the original model controls and thumbnail across r
     assert.ok(w.document.getElementById('imgCard').hidden,'renderOut must not expose the old duplicate panel');
     assert.equal(w.document.querySelectorAll('#selImgModel').length,1);
     assert.ok(w.document.getElementById('sceneExtras').contains(w.document.getElementById('bthumb')));
-    w.studioLibrarySettings();assert.ok(w.document.getElementById('librarySettingsContent').contains(settings));
-    w.document.getElementById('librarySettingsDialog').close();
-    assert.ok(w.document.getElementById('sceneSettings').contains(settings));
+    assert.equal(w.document.getElementById('librarySettingsDialog'),null);
+    const before=settings.parentNode;w.studioLibrarySettings();assert.equal(settings.parentNode,before,'without a library dialog, settings stay where they are');
     assert.ok(w.document.querySelectorAll('#scenePlan .studio-shot').length>0);
   }finally{a.close();}
 });

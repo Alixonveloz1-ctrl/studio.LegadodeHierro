@@ -197,68 +197,6 @@ section{margin-bottom:20px}
     <div id="studioStatus" class="studio-status" role="status" aria-live="polite" hidden></div>
     <button type="button" id="studioPending" class="studio-button" hidden>Reanudar trabajo</button>
     <details class="studio-card" id="projectsPanel"><summary>Mis reels guardados</summary><p>Abre un reel para continuar su guion, sus tomas, su audio y su montaje.</p><button id="projectsLoad" type="button">Actualizar lista</button><div id="projectList" class="studio-grid"></div></details>
-    <details class="studio-card" id="libraryPanel">
-      <summary>Biblioteca de imágenes, videos y música</summary>
-      <p>Tu material queda guardado aquí para usarlo en las escenas de nuevos videos.</p>
-      <div class="studio-library-tabs" role="tablist" aria-label="Biblioteca">
-        <button id="librarySavedTab" role="tab" aria-selected="true" aria-controls="librarySavedView">Mi biblioteca</button>
-        <button id="libraryCreateTab" role="tab" aria-selected="false" aria-controls="libraryCreateView" tabindex="-1">Crear para el banco</button>
-      </div>
-      <div id="libraryWork" class="studio-library-work" hidden>
-        <p id="libraryWorkStatus" role="status" aria-live="polite"></p>
-        <progress id="libraryProgress" max="100" value="0" aria-label="Avance del trabajo"></progress>
-        <div class="studio-row"><button id="libraryResume" hidden>Continuar</button><button id="libraryPause" hidden>Pausar</button><button id="libraryStop" hidden>Detener</button><button id="libraryShowProgress" hidden>Ver imágenes</button></div>
-        <p class="studio-help">Cada imagen aparece al guardarse. Si sales, toca Continuar al volver.</p>
-      </div>
-      <div id="libraryNotice" class="studio-status" role="status" hidden></div>
-      <div id="librarySavedView" role="tabpanel" aria-labelledby="librarySavedTab">
-        <div class="studio-row studio-library-tools"><button id="libraryCatalog">Organizar material existente</button><button id="libraryLoad">Actualizar</button></div>
-        <p class="studio-help">Se organiza una vez y queda guardado. Al volver a abrir la aplicación, solo se carga tu biblioteca. Solo se buscan las carpetas de Legado de Hierro. Primero se cuenta el material y después Gemini organiza lo pendiente.</p>
-        <div class="studio-library-filters"><label>Buscar escena<input id="librarySearch" type="search" placeholder="Buscar en mi biblioteca"></label><label>Tipo<select id="libraryKind"><option value="">Todos</option><option value="image">Imágenes</option><option value="video">Videos</option><option value="music">Música</option></select></label></div>
-        <p id="libraryCount"></p><div id="libraryGrid" class="studio-media-grid"></div>
-        <div class="studio-library-pages"><button id="libraryPrev" disabled>Anterior</button><button id="libraryNext" disabled>Siguiente</button></div>
-        <button id="libraryBring" type="button" aria-expanded="false" aria-controls="libraryBringPanel">Traer material de otra biblioteca o del teléfono</button>
-        <div id="libraryBringPanel" class="studio-import-panel" hidden>
-          <div class="studio-row"><button id="libraryBringCloud" type="button" aria-pressed="true">Desde Google Cloud</button><button id="libraryBringPhone" type="button" aria-pressed="false">Desde el teléfono</button></div>
-          <section id="libraryCloudPanel">
-            <h3>Copiar otra biblioteca de Google Cloud</h3>
-            <p>Indica el bucket de origen una vez. Copia los archivos directamente y conserva los nombres, descripciones y etiquetas disponibles. Gemini completa los datos que falten.</p>
-            <label>Bucket o carpeta de origen<input id="librarySource" placeholder="gs://mi-bucket/carpeta/" autocomplete="off" spellcheck="false"></label>
-            <button id="libraryImport">Copiar y organizar biblioteca</button>
-          </section>
-          <section id="libraryPhonePanel" hidden><h3>Añadir archivos del teléfono</h3>
-            <p>Selecciona varios archivos juntos. Sus descripciones se preparan automáticamente.</p>
-            <label>Imágenes, videos o música<input type="file" id="libraryFiles" multiple accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,audio/mpeg,audio/wav,audio/mp4,audio/ogg"></label>
-            <button id="libraryUpload">Guardar y organizar archivos</button>
-          </section>
-          <p id="libraryImportBusy" role="status" hidden>Hay un trabajo de biblioteca en curso. Puedes preparar el origen aquí; para comenzar la copia o subida, pausa y detén ese trabajo. Sus archivos guardados se conservan.</p>
-        </div>
-      </div>
-      <div id="libraryCreateView" role="tabpanel" aria-labelledby="libraryCreateTab" hidden>
-        <h3>Escenas para reutilizar en tus videos</h3>
-        <p>Las escenas ya están escritas: trabajar, revisar gastos, estudiar, compartir con la familia… Cada situación tiene cuatro encuadres del personaje de Legado de Hierro.</p>
-        <p>Al crear, cada tarjeta se convierte en una imagen real y se guarda automáticamente. Después, el estudio puede elegirla cuando encaje con una escena de tu guion.</p>
-        <div id="recipeControls">
-          <div class="studio-library-filters"><label>Contenido<select id="recipeCategory"><option value="">Todo Legado de Hierro</option><option value="trabajo">Trabajo y negocio</option><option value="dinero">Dinero y decisiones</option><option value="disciplina">Disciplina y aprendizaje</option><option value="familia">Familia y relaciones</option><option value="reflexion">Reflexión y momentos difíciles</option></select></label>
-          <label>Cuántas imágenes<select id="recipeBatchSize"><option value="1">1 imagen</option><option value="12" selected>12 imágenes</option><option value="24">24 imágenes</option><option value="48">48 imágenes</option><option value="240">Todas las pendientes</option></select></label></div>
-        </div>
-        <div class="studio-library-settings"><p id="recipeSettings"></p><button id="librarySettings">Cambiar modelo o formato</button></div>
-        <p id="recipeSummary"></p><button id="recipeGenerate" class="studio-primary">Crear imágenes</button>
-        <button id="recipeNew" hidden>Crear otras imágenes</button>
-        <h3 id="recipeHeading">Imágenes que vas a crear</h3>
-        <p id="recipeHint" class="studio-help">Las tarjetas muestran la escena y su encuadre. La imagen aparecerá aquí cuando se genere.</p>
-        <div id="recipePreview" class="studio-media-grid"></div>
-      </div>
-    </details>
-    <dialog id="libraryViewer" class="studio-dialog studio-card" aria-labelledby="libraryViewerTitle">
-      <div class="studio-dialog-head"><h2 id="libraryViewerTitle">Vista previa</h2><button id="libraryViewerClose" type="button">Cerrar</button></div>
-      <div id="libraryViewerContent"></div>
-    </dialog>
-    <dialog id="librarySettingsDialog" class="studio-dialog studio-card" aria-labelledby="librarySettingsTitle">
-      <div class="studio-dialog-head"><h2 id="librarySettingsTitle">Tus generadores y formatos</h2><button id="librarySettingsClose" type="button">Listo</button></div>
-      <p>Son los mismos ajustes que usas al producir tus videos. La biblioteca usa el modelo y formato de imagen que elijas aquí.</p>
-      <div id="librarySettingsContent"></div>
-    </dialog>
     <section class="studio-card" id="episodeTools" hidden>
       <h2>Tomas de este reel</h2><p id="scriptReview" class="studio-status"></p>
       <details><summary>Ver la revisión del guion</summary><div id="editorialPlan"></div>
@@ -267,7 +205,7 @@ section{margin-bottom:20px}
       <details id="scriptDraftBox" hidden><summary>Comparar con el borrador anterior a la mejora</summary><p id="scriptDraft" class="studio-status"></p></details>
       <details><summary>Editar el guion antes de narrarlo</summary><textarea id="scriptEdit" rows="10"></textarea><button id="scriptSave">Guardar esta versión del guion</button></details>
       <div id="sceneSettings"></div>
-      <div class="studio-row"><button id="buildScenePlan">Asignar videos del banco al guion</button><button id="generateMissingImages">Generar imágenes pendientes</button><button id="generateMissing">Generar videos pendientes</button></div>
+      <div class="studio-row"><button id="generateMissingImages">Generar imágenes pendientes</button><button id="generateMissing">Generar videos pendientes</button></div>
       <p>Primero genera las imágenes y revísalas. Cuando estén bien, pulsa «Generar videos pendientes». Cada paso conserva lo que ya tienes.</p>
       <div class="studio-row"><button id="audioRestoreES">Recuperar narración ES</button><button id="audioRestoreEN">Recuperar narración EN</button></div>
       <div id="scenePlan" class="studio-plan"></div>
@@ -286,39 +224,7 @@ section{margin-bottom:20px}
       </div>
     </section>
 
-    <section>
-      <div class="slbl">Personajes del canal</div>
-      <button class="sbtn" id="histBtn" hidden><span id="histLbl">Historial · 0 reels guardados</span><span id="ha">▼</span></button>
-      <div class="spanel" id="histPanel" hidden><div id="histGrid" style="padding:11px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div></div>
-
-      <button class="sbtn" id="bibliaBtn" style="margin-top:8px"><span id="bibliaLbl">Biblia de personajes</span><span id="ba">▼</span></button>
-      <div class="spanel" id="bibliaPanel">
-        <div style="padding:11px">
-          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">
-            El reparto del canal. El director elige a quién meter en cada guion según lo que cuente.
-            Los que tienen <b>✓</b> ya tienen sus vistas generadas y saldrán siempre con la misma cara;
-            los que no, saldrán descritos por texto hasta que se les generen.
-          </div>
-          <label class="genLbl" style="margin-bottom:10px">Modelo con el que se generan las vistas
-            <select id="selBibliaModel" class="genSel">
-              <option value="gemini-3-pro-image" selected>Nano Banana Pro (3 Pro) · máxima calidad — recomendado</option>
-              <option value="gemini-3.1-flash-image">Nano Banana 2 (3.1 Flash) · rápido</option>
-              <option value="gemini-2.5-flash-image">Nano Banana (2.5 Flash) · el más barato</option>
-            </select>
-          </label>
-          <div style="font-size:10.5px;color:var(--tx3);line-height:1.5;margin-bottom:10px">
-            Estas vistas se generan <b>una sola vez</b> y luego mandan la cara del personaje en todos los vídeos.
-            Vale la pena el modelo bueno aquí aunque para los reels uses el barato.
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-            <button class="cbtn" id="bBibliaTodas" style="border-color:#b8975a;color:#b8975a">⚡ Generar las vistas que faltan</button>
-            <button class="cbtn" id="bBibliaRecargar">↻ Recargar</button>
-          </div>
-          <div class="stxt" id="bibliaSt"></div>
-          <div id="bibliaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px"></div>
-        </div>
-      </div>
-    </section>
+    <section class="studio-card" style="padding:12px 14px"><strong>Cómo crear un video, en 4 pasos</strong><p style="margin:6px 0 0;line-height:1.6">1 · Elige modo, tema, duración y gancho, y escribe tu concepto.<br>2 · Pulsa Forjar Reel, revisa el guion y edítalo si quieres.<br>3 · Genera la voz, las imágenes y los videos de ESE video.<br>4 · Unifica y descarga el MP4 final. El material de cada video queda guardado en “Mis reels guardados”.</p></section>
 
     <section><div class="slbl">00 · Modo de Reel</div><div class="olist" id="modeSelector"></div></section>
 
@@ -667,7 +573,7 @@ section{margin-bottom:20px}
           </div>
           <div id="musicBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
             <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🎵 Música de fondo</div>
-            <label class="genLbl">Pista (se guarda en tu biblioteca para siempre)
+            <label class="genLbl">Pista de este video
               <select id="musicSel" class="genSel"><option value="">Sin música</option></select>
             </label>
             <button class="cbtn" id="bMusicPlay" style="border-color:#9ab47a;color:#9ab47a;margin-top:8px;width:100%">▶ Escuchar cómo quedará (narración + música)</button>
@@ -689,13 +595,6 @@ section{margin-bottom:20px}
               <input class="fi" id="musicPrompt" type="text" placeholder="Estilo propio en español, se convierte solo — Ej: piano triste que se vuelve esperanza" style="margin-top:7px;padding:9px 12px;font-size:12px">
               <button class="cbtn" id="bMusicGen" style="border-color:#9a8ac4;color:#9a8ac4;margin-top:8px;width:100%">🎼 Generar con mi descripción</button>
             </div>
-            <details style="margin-top:8px">
-              <summary style="font-size:10px;color:var(--tx3);cursor:pointer">O subir un archivo propio (MP3, máx 4MB)</summary>
-              <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
-                <input type="file" id="musicFile" accept="audio/*" style="font-size:11px;flex:1;min-width:150px">
-                <button class="cbtn" id="bMusicUp" style="border-color:#7a9ec4;color:#7a9ec4">⬆ Subir a la biblioteca</button>
-              </div>
-            </details>
             <label class="voxLbl" style="margin-top:12px;margin-bottom:2px">Volumen de la música <span class="voxV" id="mVolV" style="color:#7a9ec4">18%</span>
               <input type="range" id="mVol" class="voxR" min="0" max="50" step="1" value="18" style="accent-color:#7a9ec4">
               <span class="voxH">Muévela MIENTRAS suena para graduarla en vivo. El nivel que dejes aquí es el que se usa al unificar. La narración siempre va al 100%.</span>

@@ -20,7 +20,7 @@ Consulta [la guía de uso y actualización](docs/ACTUALIZACION-2026-09.md). La i
 1. Elige modo, duración y tema, o pulsa **Buscar ideas** y después **Generar este guion** en una propuesta. El público y la estructura se preparan automáticamente.
 2. El guion se escribe, revisa y mejora por etapas. Puedes abrir **Ver la revisión del guion** o editarlo si lo necesitas.
 3. Genera o importa la narración. Su duración medida determina el montaje.
-4. Pulsa **Elegir tomas de la biblioteca**, revisa las coincidencias y completa los huecos. También puedes generar imágenes y animarlas como antes.
+4. Genera las imágenes pendientes de ese video, revísalas, y genera sus videos. Sin biblioteca ni banco: cada toma se genera para ese video.
 5. Conserva o cambia la música, unifica y revisa el resultado antes de publicarlo.
 
 ## Arquitectura
