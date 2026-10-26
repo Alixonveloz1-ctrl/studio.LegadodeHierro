@@ -95,7 +95,7 @@ function reviewPrompt(j) {
     +'specificity: ejemplo comprensible y al menos una decisión realizable con tiempo o recursos limitados; en piezas largas, algo guardable como un cálculo, unos pasos o un antes y después. '
     +'respect: voz directa, oral y emocional de Legado de Hierro; corregir abstracciones académicas conservando el significado, sin volver el texto una clase de negocios. Firmeza sin despreciar empleo, oficio, pobreza, familia o público; no asumir su pasado. '
     +'integrity: no biografía, credenciales, estadísticas, citas, testimonios ni ganancias inventadas; relatos ilustrativos identificados. Comprobar coherencia con los hechos aportados, sin afirmar verificación externa. No garantizar viralidad ni ingresos. '
-    +'ending: resuelve la tensión y deja una acción útil hoy; si pregunta, que sea sobre una decisión real del espectador, en sus palabras; no pedir palabra clave, etiquetar, compartir por premio, prometer regalos o asesorías inexistentes. '
+    +'ending: resuelve la tensión y deja una acción útil hoy; puede incluir una llamada comercial clara (comentar una palabra, seguir, compartir, suscribirse o pedir una asesoría real) si el encargo la pide, siempre que no invente precio, cupos, testimonios ni resultados, y no prometa riqueza, viralidad ni estabilidad económica en un plazo. '
     +'\nENCARGO: '+j.config.prompt+'\nPLAN (intención; no prueba de cumplimiento): '+JSON.stringify(j.outline)
     +'\nPARTES DEL TEXTO A EVALUAR: '+JSON.stringify(j.parts.map((p,i)=>({section:i+1,text:p.text,fragments:evidenceFor(p.text,i+1)})));
 }

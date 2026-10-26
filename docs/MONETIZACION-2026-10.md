@@ -58,18 +58,45 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
    cortas, entregar utilidad antes del cierre, no guardarla para el final.
 5. **Cierre que se puede usar:** una acción útil hoy y, si hay pregunta, que sea
    sobre una decisión real del espectador, en sus palabras.
-6. **Identidad visual:** el mismo protagonista, vestuario y mundo del canal,
-   con continuidad, pero con acciones distintas en cada tramo.
+6. **Cierre comercial, cuando el encargo lo pida:** pedir comentar una palabra,
+   seguir, compartir, suscribirse o pedir información de una asesoría, comunidad
+   o producto real. La oferta debe existir y entregarse: qué es, para quién, qué
+   recibe y cómo pedirla. Sin esos datos del usuario, la herramienta no inventa
+   precio, cupos, testimonios ni resultados.
+7. **Sistema, no un video suelto:** Reels cortos para llegar a personas nuevas,
+   piezas largas para sostener la vista y generar vistas aptas, y cierre comercial
+   para convertir esa atención en ingresos reales.
+8. **Identidad visual:** continuidad dentro de cada video (mismo protagonista,
+   vestuario y mundo en ese video), pero con acciones distintas en cada tramo.
+   El protagonista puede cambiar de un video a otro: la biblia de personajes es
+   opcional, no obligatoria, y ya no incluye menores.
 
 ## Qué no debe hacer la herramienta
 
-- Pedir comentar una palabra clave, etiquetar o compartir para recibir un premio.
 - Prometer asesorías, regalos, enlaces o estabilidad económica en un plazo que
-  no existen.
+  no existen. La prohibición anterior de pedir una palabra clave o de ofrecer
+  una asesoría quedó quitada el 26 de octubre de 2026 por decisión del usuario:
+  lo que sigue prohibido es prometer algo que no existe o no se va a entregar.
 - Prometer riqueza, viralidad o monetización.
 - Inventar vivencias del autor, clientes, testimonios, estadísticas o resultados.
 - Convertir todos los temas en el mismo sermón sobre sueldo y quincena.
 - Copiar frases, personajes, cifras o la secuencia literal de otro video.
+- Obligar a usar siempre al mismo protagonista ni a la biblia completa de
+  personajes en todos los videos.
+
+## Cambio de cuenta de Google Cloud (pendiente, no hecho todavía)
+
+La herramienta no tiene cuentas ni proyectos escritos en el código: todo llega
+por variables de entorno en Vercel. Cuando se cambie a la cuenta nueva con
+créditos, hay que cambiar solo esas variables y reinstalar el ensamblador de
+Cloud Run en la cuenta nueva; no hace falta reescribir el código. Las variables
+son, por nombre: `GCP_PROJECT_ID`, `GCP_SERVICE_ACCOUNT`, `GCS_OUTPUT_BUCKET`,
+`CLOUD_RUN_UNIFY_URL` y `UNIFY_KEY`, más las que ya usaba la herramienta para
+modelos y sesión. Antes de cambiar, hay que decidir qué pasa con la biblioteca
+que vive en el bucket viejo: si no se copia, las tomas y personajes guardados
+allí no aparecen en el bucket nuevo. El protagonista y la compañera sí se pueden
+volver a sembrar, porque sus imágenes están en `public/biblia/` y en el código.
+No se cambia la cuenta en este paso; queda lista para cuando el usuario lo pida.
 
 ## Cómo medir si está funcionando
 
