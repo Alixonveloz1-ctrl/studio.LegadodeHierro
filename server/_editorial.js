@@ -89,13 +89,13 @@ function reviewPrompt(j) {
     +'Selecciona evidenceId de los fragmentos suministrados; no redactes ni copies citas. reason debe tener entre 8 y 700 caracteres; fix entre 10 y 700 cuando status sea revise. '
     +'Exactamente una comprobación por cada criterio: '+KEYS.join(', ')+'. No omitir ninguno. '
     +'Si falta algo, cita el pasaje donde debería estar y explica la ausencia; no inventes la cita. No exijas suspenso en una práctica guiada ni una lista en un relato. '
-    +'hook: las primeras dos frases entran en una situación específica y no abren una promesa falsa. '
+    +'hook: las primeras dos frases entran en una situación específica, entregan escena o utilidad y se entienden sin haber visto antes el canal; no abren una promesa falsa ni una lección genérica. '
     +'promise: se cumple lo ofrecido, incluido el número exacto de pasos del título o entrada; una afirmación general no sustituye una demostración. '
-    +'progression: cada parte añade algo distinto; no encadena sinónimos ni vuelve a empezar. '
-    +'specificity: ejemplo comprensible y al menos una decisión realizable con tiempo o recursos limitados. '
+    +'progression: cada parte añade algo distinto y un cambio de decisión, demostración o consecuencia; no encadena sinónimos, no vuelve a empezar ni repite la misma lección sobre sueldo o quincena sin un cambio visible. '
+    +'specificity: ejemplo comprensible y al menos una decisión realizable con tiempo o recursos limitados; en piezas largas, algo guardable como un cálculo, unos pasos o un antes y después. '
     +'respect: voz directa, oral y emocional de Legado de Hierro; corregir abstracciones académicas conservando el significado, sin volver el texto una clase de negocios. Firmeza sin despreciar empleo, oficio, pobreza, familia o público; no asumir su pasado. '
-    +'integrity: no biografía, credenciales, estadísticas, citas, testimonios ni ganancias inventadas; relatos ilustrativos identificados. Comprobar coherencia con los hechos aportados, sin afirmar verificación externa. '
-    +'ending: resuelve la tensión y deja una acción útil; no pedir palabra clave, prometer regalos o asesorías inexistentes. '
+    +'integrity: no biografía, credenciales, estadísticas, citas, testimonios ni ganancias inventadas; relatos ilustrativos identificados. Comprobar coherencia con los hechos aportados, sin afirmar verificación externa. No garantizar viralidad ni ingresos. '
+    +'ending: resuelve la tensión y deja una acción útil hoy; si pregunta, que sea sobre una decisión real del espectador, en sus palabras; no pedir palabra clave, etiquetar, compartir por premio, prometer regalos o asesorías inexistentes. '
     +'\nENCARGO: '+j.config.prompt+'\nPLAN (intención; no prueba de cumplimiento): '+JSON.stringify(j.outline)
     +'\nPARTES DEL TEXTO A EVALUAR: '+JSON.stringify(j.parts.map((p,i)=>({section:i+1,text:p.text,fragments:evidenceFor(p.text,i+1)})));
 }
