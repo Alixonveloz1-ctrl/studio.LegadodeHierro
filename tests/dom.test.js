@@ -71,6 +71,11 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     assert.ok(w.document.querySelector('#lh-step-musica').contains(w.document.querySelector('#musicBox')));
     assert.ok(w.document.querySelector('#lh-step-montaje').contains(w.document.querySelector('#unifyCard')));
     assert.ok(w.document.querySelector('#lh-step-extras').contains(w.document.querySelector('#postTema')));
+    const css=w.document.querySelector('style').textContent;
+    assert.match(css,/\.lh-steps\{display:grid;grid-template-columns:repeat\(4/);
+    assert.doesNotMatch(css,/\.lh-steps\{[^}]*overflow-x:auto/);
+    assert.match(css,/\.tgrid\{display:grid;grid-template-columns:repeat\(2/);
+    assert.match(css,/\.olist\{display:grid;grid-template-columns:repeat\(2/);
     w.lhShowStep('produccion');assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='produccion');
     w.document.querySelector('[data-lh-step="musica"]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='musica');
     w.document.querySelector('#lh-step-musica [data-lh-next]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='montaje');

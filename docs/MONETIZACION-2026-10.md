@@ -83,6 +83,16 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Usar una biblioteca, una biblia de personajes, un protagonista fijo o tomas
   de videos anteriores para un video nuevo.
 
+## Diseño moderno y ejecutivo, sin desplazamiento lateral
+
+Desde el 26 de octubre de 2026, por petición del usuario, el diseño dejó de
+verse antiguo: fondo claro neutro, tarjetas blancas con esquinas redondeadas
+y sombra suave, encabezado oscuro con dorado, y etiquetas sin el espaciado
+exagerado de antes. La barra de fases ya no se mueve hacia los lados: es una
+cuadrícula fija de 4 columnas. Los selectores también son cuadrículas fijas:
+temas en 2 columnas en el teléfono y 4 en pantalla grande, y modo, duración
+y gancho en 2 columnas fijas, sin listas que se desplacen a los lados.
+
 ## Pantalla por secciones: cada fase de producción en su sitio
 
 Desde el 26 de octubre de 2026, la aplicación ya no es una sola lista larga.
