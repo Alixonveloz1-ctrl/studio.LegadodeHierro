@@ -487,9 +487,10 @@ async function biblia(req, res) {
 
     if (accion === 'list') {
       let lista = await leerIndice(token, bucket);
-      // SIEMBRA. La biblia no nace vacia: trae el insignia mas los 31 del
+      // SIEMBRA. La biblia no nace vacia: trae el insignia mas los 28 del
       // reparto. Un formulario en blanco no sirve de nada — lo que da variedad
-      // es que el director tenga gente a la que llamar.
+      // es que el director tenga gente a la que llamar. La biblia es opcional:
+      // un video puede usarla o crear un protagonista nuevo para ese video.
       // El insignia entra con sus 4 imagenes DE SIEMPRE, sin regenerar: su cara
       // lleva un ano siendo la marca del canal.
       const antes = lista.length;

@@ -9,9 +9,13 @@
 // pareciera lo mismo: sin nadie mas en el cuadro no hay conflicto, no hay
 // dialogo y no hay historia — solo un senor pensando.
 //
-// Estos 31 son gente que de verdad aparece en la vida de alguien que intenta
-// salir adelante: su familia, su trabajo, sus clientes, sus espejos. El director
-// elige en cada guion quien encaja (o nadie, si el guion es de el solo).
+// Estos 28 son gente adulta que de verdad aparece en la vida de alguien que
+// intenta salir adelante: su familia, su trabajo, sus clientes, sus espejos.
+// El director elige en cada guion quien encaja (o nadie, si el guion es de el
+// solo, o un protagonista nuevo para ese video). La biblia es opcional, no
+// obligatoria: no todos los videos tienen que usar a estos personajes. Todos
+// tienen 25 anos o mas; no hay menores en el reparto, para no generar imagenes
+// de ninos ni adolescentes.
 //
 // COMO SE DESCRIBEN. El campo `fisico` va directo al generador de imagenes, asi
 // que tiene que ser concreto y repetible: edad, pelo, cara, complexion. Sin eso
@@ -31,23 +35,6 @@ const REPARTO = [
     vestuario: 'en casa, vestido camisero corto de punto rosa palo con botones y cordon a la cintura; fuera, jersey crema de cuello redondo con pantalon beige de vestir; collar fino con colgante redondo',
     habla: 'directa pero sin gritar; pregunta lo que nadie mas se atreve',
     encaja: 'cuando el guion habla del precio que paga la familia, de la duda, del apoyo o de la conversacion dificil en casa',
-  },
-  {
-    id: 'hijo-pequeno', nombre: 'El hijo pequeno', rol: 'Su hijo', edad: '7 anos',
-    // Hijo de ESTA pareja: padre moreno de ojos oscuros, madre rubia de ojos
-    // verdes. Salia con otra genetica distinta a la de sus padres y cantaba.
-    fisico: 'nino de 7 anos, hijo de padre moreno y madre rubia: cabello castano claro con reflejos dorados, corto y algo despeinado, ojos verde avellana grandes, cara redonda, piel clara calida, delgado',
-    vestuario: 'camiseta sencilla y pantalon corto; uniforme escolar en escenas de manana',
-    habla: 'pocas palabras, preguntas que dan en el blanco sin querer',
-    encaja: 'cuando el guion habla del para que, del tiempo que no vuelve, del ejemplo que se deja',
-  },
-  {
-    id: 'hija-adolescente', nombre: 'La hija adolescente', rol: 'Su hija', edad: '15 anos',
-    // Hija de la misma pareja: saca el pelo de la madre y la mirada del padre.
-    fisico: 'adolescente de 15 anos, hija de padre moreno y madre rubia: cabello rubio oscuro largo y ondulado recogido en cola alta, ojos verde grisaceo, cejas oscuras, rostro delgado de pomulos marcados, piel clara calida, mirada observadora',
-    vestuario: 'sudadera y jeans; mochila del colegio',
-    habla: 'ironica, corta, ve mas de lo que dice',
-    encaja: 'cuando el guion habla de lo que los hijos observan, del respeto que se gana o se pierde, del legado',
   },
   {
     id: 'padre-mayor', nombre: 'El padre', rol: 'Su padre', edad: '68 anos',
@@ -131,8 +118,8 @@ const REPARTO = [
     encaja: 'cuando el guion habla de confiar en alguien, de repartir, del conflicto entre dos que construyen lo mismo',
   },
   {
-    id: 'primer-empleado', nombre: 'El primer empleado', rol: 'Su primera contratacion', edad: '24 anos',
-    fisico: 'joven latino de 24 anos, cabello negro rizado corto, rostro juvenil, complexion delgada, actitud atenta',
+    id: 'primer-empleado', nombre: 'El primer empleado', rol: 'Su primera contratacion', edad: '25 anos',
+    fisico: 'joven latino de 25 anos, cabello negro rizado corto, rostro juvenil, complexion delgada, actitud atenta',
     vestuario: 'polo sencillo, pantalon de trabajo',
     habla: 'agradecido, pregunta todo, quiere hacerlo bien',
     encaja: 'cuando el guion habla de dar trabajo, de la responsabilidad sobre otro, de dejar de ser el que hace todo',
@@ -245,13 +232,6 @@ const REPARTO = [
     vestuario: 'blusa sencilla y delantal de trabajo o blazer, segun la escena',
     habla: 'practica, cero drama, resuelve',
     encaja: 'cuando el guion habla de que no hay excusas, de montar algo desde la cocina o el garaje, de crecer despacio y firme',
-  },
-  {
-    id: 'aprendiz', nombre: 'La joven que empieza', rol: 'A quien ahora ensena', edad: '20 anos',
-    fisico: 'joven latina de 20 anos, cabello negro largo recogido, rostro juvenil sin maquillaje, complexion delgada, mirada atenta',
-    vestuario: 'camiseta sencilla, mochila, libreta en la mano',
-    habla: 'escucha mas de lo que habla, apunta todo',
-    encaja: 'cuando el guion habla de ensenar lo aprendido, de cerrar el ciclo, de en quien te conviertes cuando ya llegaste',
   },
 ];
 
