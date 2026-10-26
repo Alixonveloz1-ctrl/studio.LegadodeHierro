@@ -17,11 +17,13 @@ No hay una fórmula que garantice viralidad o ingresos. La aplicación se centra
 
 Consulta [la guía de uso y actualización](docs/ACTUALIZACION-2026-09.md). La interfaz ofrece piezas de 30, 45, 60, 90 y 120 segundos y modos Profesor/Relato de 3, 5 y 8 minutos.
 
-1. Elige modo, duración y tema, o pulsa **Buscar ideas** y después **Generar este guion** en una propuesta. El público y la estructura se preparan automáticamente.
+La pantalla está organizada en secciones, una por fase, con una barra superior para saltar entre ellas: **Mis videos**, **Investigación**, **Tema y guion**, **Producción**, **Música**, **Montaje** y **Extras**. Ya no es una sola lista larga.
+
+1. En **Investigación**, pulsa **Buscar ideas** y después **Generar este guion** en una propuesta. En **Tema y guion**, elige modo, duración y tema, o escribe tu concepto y forja el guion. El público y la estructura se preparan automáticamente.
 2. El guion se escribe, revisa y mejora por etapas. Puedes abrir **Ver la revisión del guion** o editarlo si lo necesitas.
-3. Genera o importa la narración. Su duración medida determina el montaje.
-4. Genera las imágenes pendientes de ese video, revísalas, y genera sus videos. Sin biblioteca ni banco: cada toma se genera para ese video.
-5. Conserva o cambia la música, unifica y revisa el resultado antes de publicarlo.
+3. En **Producción**, genera o importa la narración. Su duración medida determina el montaje. Genera las imágenes pendientes de ese video, revísalas, y genera sus videos. Sin biblioteca ni banco: cada toma se genera para ese video.
+4. En **Música**, genera una música nueva para ese video y ajusta su volumen.
+5. En **Montaje**, unifica y revisa el resultado antes de publicarlo.
 
 ## Arquitectura
 

@@ -83,6 +83,15 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Usar una biblioteca, una biblia de personajes, un protagonista fijo o tomas
   de videos anteriores para un video nuevo.
 
+## Pantalla por secciones: cada fase de producción en su sitio
+
+Desde el 26 de octubre de 2026, la aplicación ya no es una sola lista larga.
+Arriba hay una barra con las fases, y solo se ve una a la vez, con botones
+de Anterior y Siguiente: Mis videos, Investigación, Tema y guion, Producción,
+Música, Montaje y Extras. Abrir un reel guardado lleva directo a Producción.
+La música ya tiene su propia sección, separada del montaje, y el post de
+Facebook quedó en Extras, fuera del flujo del video.
+
 ## Pantalla simplificada: sin biblioteca, sin biblia, sin banco
 
 Desde el 26 de octubre de 2026, la pantalla ya no muestra el panel de

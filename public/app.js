@@ -1854,6 +1854,7 @@ function restoreHistory(id,i){
   var ha=document.getElementById('ha');
   if(ha)ha.textContent='▼';
   renderOut(lastRes);
+  if(typeof lhShowStep==='function')lhShowStep('produccion');
   studioRestoreAssets(item);
 }
 

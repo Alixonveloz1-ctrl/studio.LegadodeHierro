@@ -62,6 +62,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .amain{max-width:860px;margin:0 auto;padding:18px 14px 80px}
 .slbl{font-size:9px;font-weight:700;letter-spacing:.2em;color:var(--tx3);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .slbl::after{content:'';flex:1;height:1px;background:var(--border)}
+.lh-steps{position:sticky;top:0;z-index:20;display:flex;gap:6px;overflow-x:auto;padding:10px 2px;margin-bottom:16px;background:var(--bg);border-bottom:1px solid var(--border)}
+.lh-nav{flex:0 0 auto;border:1.5px solid var(--border);border-radius:999px;background:#fff;color:var(--tx3);padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.lh-nav.lh-active{border-color:#b8975a;background:#f0e8d8;color:#b8975a}
+.lh-step{display:none}
+.lh-step.lh-active{display:block}
+.lh-step-title{font-size:20px;margin:0 0 4px;color:var(--tx)}
+.lh-step-desc{font-size:13px;line-height:1.6;color:var(--tx3);margin:0 0 16px}
+.lh-step-foot{display:flex;justify-content:space-between;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+.lh-prev,.lh-next{border:2px solid #b8975a;border-radius:10px;background:#fff;color:#b8975a;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.lh-next{background:#b8975a;color:#fff}
 section{margin-bottom:20px}
 .cbar{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:18px;box-shadow:0 1px 4px var(--sh)}
 .cbar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -196,22 +206,25 @@ section{margin-bottom:20px}
 
     <div id="studioStatus" class="studio-status" role="status" aria-live="polite" hidden></div>
     <button type="button" id="studioPending" class="studio-button" hidden>Reanudar trabajo</button>
-    <details class="studio-card" id="projectsPanel"><summary>Mis reels guardados</summary><p>Abre un reel para continuar su guion, sus tomas, su audio y su montaje.</p><button id="projectsLoad" type="button">Actualizar lista</button><div id="projectList" class="studio-grid"></div></details>
-    <section class="studio-card" id="episodeTools" hidden>
-      <h2>Tomas de este reel</h2><p id="scriptReview" class="studio-status"></p>
-      <details><summary>Ver la revisión del guion</summary><div id="editorialPlan"></div>
-      <div id="qualityReview" class="studio-review"></div>
-      <button id="scriptRecheck" type="button">Revisar el guion guardado</button></details>
-      <details id="scriptDraftBox" hidden><summary>Comparar con el borrador anterior a la mejora</summary><p id="scriptDraft" class="studio-status"></p></details>
-      <details><summary>Editar el guion antes de narrarlo</summary><textarea id="scriptEdit" rows="10"></textarea><button id="scriptSave">Guardar esta versión del guion</button></details>
-      <div id="sceneSettings"></div>
-      <div class="studio-row"><button id="generateMissingImages">Generar imágenes pendientes</button><button id="generateMissing">Generar videos pendientes</button></div>
-      <p>Primero genera las imágenes y revísalas. Cuando estén bien, pulsa «Generar videos pendientes». Cada paso conserva lo que ya tienes.</p>
-      <div class="studio-row"><button id="audioRestoreES">Recuperar narración ES</button><button id="audioRestoreEN">Recuperar narración EN</button></div>
-      <div id="scenePlan" class="studio-plan"></div>
-      <details id="sceneExtras"><summary>Miniatura del reel</summary></details>
-    </section>
-    <section>
+        <nav class="lh-steps" aria-label="Fases de producción">
+      <button type="button" class="lh-nav lh-active" data-lh-step="mis-videos">💾 Mis videos</button>
+      <button type="button" class="lh-nav" data-lh-step="investigacion">🔎 Investigación</button>
+      <button type="button" class="lh-nav" data-lh-step="tema">🎬 Tema y guion</button>
+      <button type="button" class="lh-nav" data-lh-step="produccion">🎙 Producción</button>
+      <button type="button" class="lh-nav" data-lh-step="musica">🎵 Música</button>
+      <button type="button" class="lh-nav" data-lh-step="montaje">🎞 Montaje</button>
+      <button type="button" class="lh-nav" data-lh-step="extras">📱 Extras</button>
+    </nav>
+    <div class="lh-step lh-active" id="lh-step-mis-videos" data-lh-step="mis-videos">
+      <h2 class="lh-step-title">💾 Mis videos</h2>
+      <p class="lh-step-desc">Tus reels guardados. Abre uno para seguir donde lo dejaste.</p>
+<details class="studio-card" id="projectsPanel"><summary>Mis reels guardados</summary><p>Abre un reel para continuar su guion, sus tomas, su audio y su montaje.</p><button id="projectsLoad" type="button">Actualizar lista</button><div id="projectList" class="studio-grid"></div></details>
+          <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
+    </div>
+    <div class="lh-step" id="lh-step-investigacion" data-lh-step="investigacion">
+      <h2 class="lh-step-title">🔎 Investigación</h2>
+      <p class="lh-step-desc">Busca qué está funcionando en el nicho y elige una idea para adaptarla a Legado de Hierro.</p>
+<section>
       <div class="slbl">🔎 Ideas para tu próximo video</div>
       <div style="background:#fff;border:1.5px solid #7a9ec444;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px var(--sh)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
@@ -224,9 +237,12 @@ section{margin-bottom:20px}
       </div>
     </section>
 
-    <section class="studio-card" style="padding:12px 14px"><strong>Cómo crear un video, en 4 pasos</strong><p style="margin:6px 0 0;line-height:1.6">1 · Elige modo, tema, duración y gancho, y escribe tu concepto.<br>2 · Pulsa Forjar Reel, revisa el guion y edítalo si quieres.<br>3 · Genera la voz, las imágenes y los videos de ESE video.<br>4 · Unifica y descarga el MP4 final. El material de cada video queda guardado en “Mis reels guardados”.</p></section>
-
-    <section><div class="slbl">00 · Modo de Reel</div><div class="olist" id="modeSelector"></div></section>
+          <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
+    </div>
+    <div class="lh-step" id="lh-step-tema" data-lh-step="tema">
+      <h2 class="lh-step-title">🎬 Tema y guion</h2>
+      <p class="lh-step-desc">Elige modo, tema, duración y gancho, escribe tu concepto y forja el guion. Aquí también ves el guion y su caption.</p>
+<section><div class="slbl">00 · Modo de Reel</div><div class="olist" id="modeSelector"></div></section>
 
     <section><div class="slbl">01 · Pilar Temático</div><div class="tgrid" id="themeGrid"></div></section>
 
@@ -257,72 +273,7 @@ section{margin-bottom:20px}
 
     <!-- POST FACEBOOK -->
     <div style="margin-top:20px">
-      <div class="slbl">📱 Post de Facebook</div>
-      <div style="background:#fff;border:1.5px solid #9ab47a44;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh)">
-        <div style="background:#eef4e8;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
-          <div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ab47a">🖼 Generador de Posts — Diseño Profesional</div>
-            <div style="font-size:11px;color:var(--tx3);margin-top:2px">Personaje IA + diseño editorial · Listo para publicar</div>
-          </div>
-          <button class="cbtn" id="bpost" style="border-color:#9ab47a;color:#9ab47a" onclick="genPost()">🖼 Generar Post</button>
-        </div>
-        <div style="padding:16px">
-          <div style="margin-bottom:12px">
-            <label style="font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:6px">Tema del Post <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-            <input class="fi" id="postTema" type="text" placeholder="Ej: disciplina financiera, mentalidad ganadora..." style="width:100%">
-          </div>
-          <div style="margin-bottom:12px">
-            <label class="genLbl">Estilo del post (los formatos que están virales)</label>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-              <button type="button" class="voxP postTpl" data-t="frase">💬 Frase dura</button>
-              <button type="button" class="voxP postTpl" data-t="cita">🖋 Cita elegante</button>
-              <button type="button" class="voxP postTpl" data-t="lista">📋 Lista de reglas</button>
-              <button type="button" class="voxP postTpl" data-t="comparacion">⚖ Comparación</button>
-            </div>
-          </div>
-          <div style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
-            <label class="genLbl">Modelo de imagen
-              <select id="selPostImgModel" class="genSel">
-                <option value="gemini-2.5-flash-image" selected>Nano Banana (2.5 Flash) · estable</option>
-                <option value="gemini-3.1-flash-image">Nano Banana 2 (3.1 Flash) · rápido</option>
-                <option value="gemini-3-pro-image">Nano Banana Pro (3 Pro) · máxima calidad</option>
-              </select>
-            </label>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-            <button class="oc" id="pfmt1" onclick="selPostFmt('cuadrado')" style="flex:1;min-width:80px;padding:8px;text-align:center">
-              <span style="font-size:16px">⬛</span><br><span class="os" style="font-size:10px">Cuadrado 1:1</span>
-            </button>
-            <button class="oc" id="pfmt2" onclick="selPostFmt('vertical')" style="flex:1;min-width:80px;padding:8px;text-align:center">
-              <span style="font-size:16px">📱</span><br><span class="os" style="font-size:10px">Vertical 4:5</span>
-            </button>
-          </div>
-          <div class="stxt" id="postSt" style="display:none"></div>
-          <div class="serr" id="postErr" style="display:none"></div>
-          <div id="postResult" style="display:none;margin-top:10px">
-            <canvas id="postCanvas" style="width:100%;border-radius:10px;box-shadow:0 3px 12px rgba(74,74,90,0.15);display:block"></canvas>
-            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-              <button onclick="downloadPost()" style="background:linear-gradient(135deg,#9ab47a,#b4cc9a);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">⬇ Descargar Post</button>
-              <button onclick="genPost()" style="background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:8px 14px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit">↻ Regenerar</button>
-            </div>
-            <div id="postCapBox" style="display:none;margin-top:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px;padding:12px">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase"># Caption + Hashtags del post</span>
-                <div style="display:flex;gap:6px">
-                  <button class="cbtn" id="bPostCapRegen" style="border-color:#9ab47a;color:#9ab47a">↻</button>
-                  <button class="cbtn" id="bPostCapCopy" style="border-color:#9ab47a;color:#9ab47a">Copiar</button>
-                </div>
-              </div>
-              <div class="stxt" id="postCapSt"></div>
-              <div id="postCapText" style="white-space:pre-wrap;font-size:13px;line-height:1.5;color:var(--tx);margin-bottom:10px"></div>
-              <div id="postCapTags" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#7a6a3a;background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="ow" id="ow">
+      <div class="slbl">📱 <div class="ow" id="ow">
       <div class="ohdr">
         <div><div class="otag" id="otag"></div><div class="oconcept" id="oconcept"></div></div>
         <button class="cbtn" id="cpall">Copiar Todo</button>
@@ -356,7 +307,27 @@ section{margin-bottom:20px}
         </div>
       </div>
 
-      <div class="scard" id="audioCard" style="border:1.5px solid #c4897a44">
+            <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
+    </div>
+    <div class="lh-step" id="lh-step-produccion" data-lh-step="produccion">
+      <h2 class="lh-step-title">🎙 Producción</h2>
+      <p class="lh-step-desc">Revisa el guion, genera la voz, las imágenes y los videos de este video, toma por toma.</p>
+<section class="studio-card" id="episodeTools" hidden>
+      <h2>Tomas de este reel</h2><p id="scriptReview" class="studio-status"></p>
+      <details><summary>Ver la revisión del guion</summary><div id="editorialPlan"></div>
+      <div id="qualityReview" class="studio-review"></div>
+      <button id="scriptRecheck" type="button">Revisar el guion guardado</button></details>
+      <details id="scriptDraftBox" hidden><summary>Comparar con el borrador anterior a la mejora</summary><p id="scriptDraft" class="studio-status"></p></details>
+      <details><summary>Editar el guion antes de narrarlo</summary><textarea id="scriptEdit" rows="10"></textarea><button id="scriptSave">Guardar esta versión del guion</button></details>
+      <div id="sceneSettings"></div>
+      <div class="studio-row"><button id="generateMissingImages">Generar imágenes pendientes</button><button id="generateMissing">Generar videos pendientes</button></div>
+      <p>Primero genera las imágenes y revísalas. Cuando estén bien, pulsa «Generar videos pendientes». Cada paso conserva lo que ya tienes.</p>
+      <div class="studio-row"><button id="audioRestoreES">Recuperar narración ES</button><button id="audioRestoreEN">Recuperar narración EN</button></div>
+      <div id="scenePlan" class="studio-plan"></div>
+      <details id="sceneExtras"><summary>Miniatura del reel</summary></details>
+    </section>
+    <section>
+      <div class="slbl">🔎 <div class="scard" id="audioCard" style="border:1.5px solid #c4897a44">
         <div class="shdr" style="background:#f8ede8">
           <div><div class="stitl" style="color:#c4897a">🎙 Narración — Audio</div><div class="ssub">Elige el motor de voz en los ajustes</div></div>
           <div class="sbtns">
@@ -552,26 +523,12 @@ section{margin-bottom:20px}
         </div>
       </div>
 
-      <div class="scard" id="unifyCard" style="border:1.5px solid #7a9ec444;margin-top:14px;display:none">
-        <div class="shdr" style="background:#e8f0f8">
-          <div><div class="stitl" style="color:#7a9ec4">🎞 Video Final — Unificación</div><div class="ssub" id="unifySub">Une los clips, ajusta la velocidad al audio y pega la narración</div></div>
-          <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button><button class="cbtn" id="resumeRender" hidden>Ver montaje iniciado</button><div id="unifyFeedback" style="flex-basis:100%"><div class="stxt" id="unifySt" role="status" aria-live="polite"></div><div class="serr" id="unifyErr" role="alert"></div></div>
-        </div>
-        <div class="sbody">
-          <div id="crVer" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;padding:9px 11px;border-radius:9px"></div>
-          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">Necesita: todos los videos de los clips generados + la narración del idioma elegido. El resultado es UN solo MP4 con la voz, la música de fondo y los <b>subtítulos ya quemados</b> — listo para publicar, sin pasar por CapCut.</div>
-          <div id="langBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
-            <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🌐 Idioma de este reel</div>
-            <div style="display:flex;gap:8px">
-              <button type="button" class="voxP unifyLang sel" data-l="es">🇪🇸 Español</button>
-              <button type="button" class="voxP unifyLang" data-l="en">🇺🇸 English</button>
-            </div>
-            <div style="font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:8px">
-              Los <b>mismos clips</b> sirven para los dos: solo cambian la voz y los subtítulos, así que el segundo reel no cuesta video.
-              El público de EE.UU. paga bastante más por mil vistas que el de LATAM.
-            </div>
-          </div>
-          <div id="musicBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
+            <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
+    </div>
+    <div class="lh-step" id="lh-step-musica" data-lh-step="musica">
+      <h2 class="lh-step-title">🎵 Música</h2>
+      <p class="lh-step-desc">Genera una música nueva para este video y ajusta su volumen. La música se une en el montaje.</p>
+<div id="musicBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
             <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🎵 Música de fondo</div>
             <label class="genLbl">Pista de este video
               <select id="musicSel" class="genSel"><option value="">Sin música</option></select>
@@ -603,13 +560,111 @@ section{margin-bottom:20px}
           </div>
 
 
+                <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
+    </div>
+    <div class="lh-step" id="lh-step-montaje" data-lh-step="montaje">
+      <h2 class="lh-step-title">🎞 Montaje</h2>
+      <p class="lh-step-desc">Une los clips, la narración y la música en un solo MP4 con subtítulos, listo para publicar.</p>
+<div class="scard" id="unifyCard" style="border:1.5px solid #7a9ec444;margin-top:14px;display:none">
+        <div class="shdr" style="background:#e8f0f8">
+          <div><div class="stitl" style="color:#7a9ec4">🎞 Video Final — Unificación</div><div class="ssub" id="unifySub">Une los clips, ajusta la velocidad al audio y pega la narración</div></div>
+          <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button><button class="cbtn" id="resumeRender" hidden>Ver montaje iniciado</button><div id="unifyFeedback" style="flex-basis:100%"><div class="stxt" id="unifySt" role="status" aria-live="polite"></div><div class="serr" id="unifyErr" role="alert"></div></div>
+        </div>
+        <div class="sbody">
+          <div id="crVer" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;padding:9px 11px;border-radius:9px"></div>
+          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">Necesita: todos los videos de los clips generados + la narración del idioma elegido. El resultado es UN solo MP4 con la voz, la música de fondo y los <b>subtítulos ya quemados</b> — listo para publicar, sin pasar por CapCut.</div>
+          <div id="langBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🌐 Idioma de este reel</div>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="voxP unifyLang sel" data-l="es">🇪🇸 Español</button>
+              <button type="button" class="voxP unifyLang" data-l="en">🇺🇸 English</button>
+            </div>
+            <div style="font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:8px">
+              Los <b>mismos clips</b> sirven para los dos: solo cambian la voz y los subtítulos, así que el segundo reel no cuesta video.
+              El público de EE.UU. paga bastante más por mil vistas que el de LATAM.
+            </div>
+          </div>
           <div id="unifyRes" style="display:none"></div>
         </div>
       </div>
 
       <button class="expbtn" id="expbtn" style="display:none">📦 Exportar todo (Guiones + Audio + Imágenes + Videos)</button>
 
-      <div class="oftr">
+            <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
+    </div>
+    <div class="lh-step" id="lh-step-extras" data-lh-step="extras">
+      <h2 class="lh-step-title">📱 Extras</h2>
+      <p class="lh-step-desc">Crea un post de Facebook aparte del video, cuando lo necesites.</p>
+<!-- POST FACEBOOK -->
+    <div style="margin-top:20px">
+      <div class="slbl">📱 Post de Facebook</div>
+      <div style="background:#fff;border:1.5px solid #9ab47a44;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh)">
+        <div style="background:#eef4e8;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ab47a">🖼 Generador de Posts — Diseño Profesional</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">Personaje IA + diseño editorial · Listo para publicar</div>
+          </div>
+          <button class="cbtn" id="bpost" style="border-color:#9ab47a;color:#9ab47a" onclick="genPost()">🖼 Generar Post</button>
+        </div>
+        <div style="padding:16px">
+          <div style="margin-bottom:12px">
+            <label style="font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;display:block;margin-bottom:6px">Tema del Post <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <input class="fi" id="postTema" type="text" placeholder="Ej: disciplina financiera, mentalidad ganadora..." style="width:100%">
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="genLbl">Estilo del post (los formatos que están virales)</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+              <button type="button" class="voxP postTpl" data-t="frase">💬 Frase dura</button>
+              <button type="button" class="voxP postTpl" data-t="cita">🖋 Cita elegante</button>
+              <button type="button" class="voxP postTpl" data-t="lista">📋 Lista de reglas</button>
+              <button type="button" class="voxP postTpl" data-t="comparacion">⚖ Comparación</button>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
+            <label class="genLbl">Modelo de imagen
+              <select id="selPostImgModel" class="genSel">
+                <option value="gemini-2.5-flash-image" selected>Nano Banana (2.5 Flash) · estable</option>
+                <option value="gemini-3.1-flash-image">Nano Banana 2 (3.1 Flash) · rápido</option>
+                <option value="gemini-3-pro-image">Nano Banana Pro (3 Pro) · máxima calidad</option>
+              </select>
+            </label>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="oc" id="pfmt1" onclick="selPostFmt('cuadrado')" style="flex:1;min-width:80px;padding:8px;text-align:center">
+              <span style="font-size:16px">⬛</span><br><span class="os" style="font-size:10px">Cuadrado 1:1</span>
+            </button>
+            <button class="oc" id="pfmt2" onclick="selPostFmt('vertical')" style="flex:1;min-width:80px;padding:8px;text-align:center">
+              <span style="font-size:16px">📱</span><br><span class="os" style="font-size:10px">Vertical 4:5</span>
+            </button>
+          </div>
+          <div class="stxt" id="postSt" style="display:none"></div>
+          <div class="serr" id="postErr" style="display:none"></div>
+          <div id="postResult" style="display:none;margin-top:10px">
+            <canvas id="postCanvas" style="width:100%;border-radius:10px;box-shadow:0 3px 12px rgba(74,74,90,0.15);display:block"></canvas>
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+              <button onclick="downloadPost()" style="background:linear-gradient(135deg,#9ab47a,#b4cc9a);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">⬇ Descargar Post</button>
+              <button onclick="genPost()" style="background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:8px 14px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit">↻ Regenerar</button>
+            </div>
+            <div id="postCapBox" style="display:none;margin-top:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px;padding:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase"># Caption + Hashtags del post</span>
+                <div style="display:flex;gap:6px">
+                  <button class="cbtn" id="bPostCapRegen" style="border-color:#9ab47a;color:#9ab47a">↻</button>
+                  <button class="cbtn" id="bPostCapCopy" style="border-color:#9ab47a;color:#9ab47a">Copiar</button>
+                </div>
+              </div>
+              <div class="stxt" id="postCapSt"></div>
+              <div id="postCapText" style="white-space:pre-wrap;font-size:13px;line-height:1.5;color:var(--tx);margin-bottom:10px"></div>
+              <div id="postCapTags" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#7a6a3a;background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+          <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
+    </div>
+<div class="oftr">
         <span class="fsig">⚔ Legado de Hierro · Ejecuta. Calla. Domina.</span>
         <button class="nbtn" onclick="reset()">+ Nuevo Reel</button>
       </div>

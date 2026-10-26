@@ -63,7 +63,18 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     const {w,errors}=a;
     for(const id of ['libraryPanel','bibliaPanel','bibliaBtn','buildScenePlan','libraryGrid','libraryViewer','librarySettingsDialog','bbanco','bancoPanel','selBibliaModel','libraryCreateTab','librarySavedTab'])assert.equal(w.document.getElementById(id),null,id+' debe estar eliminado');
     for(const id of ['modeSelector','themeGrid','durGrid','hookGrid','conc','gbtn','projectsPanel','episodeTools','genSettings','selImgModel','selImgFmt','selVidModel','selVidFmt','unifyCard'])assert.ok(w.document.getElementById(id),id+' debe seguir presente');
-    assert.ok(w.document.querySelector('.studio-card strong')&&w.document.body.textContent.includes('Cómo crear un video, en 4 pasos'));
+    assert.ok(w.document.querySelectorAll('.lh-step').length===7);
+    assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='mis-videos');
+    assert.ok(w.document.querySelector('#lh-step-investigacion').contains(w.document.querySelector('#bTrends')));
+    assert.ok(w.document.querySelector('#lh-step-tema').contains(w.document.querySelector('#modeSelector')));
+    assert.ok(w.document.querySelector('#lh-step-produccion').contains(w.document.querySelector('#episodeTools')));
+    assert.ok(w.document.querySelector('#lh-step-musica').contains(w.document.querySelector('#musicBox')));
+    assert.ok(w.document.querySelector('#lh-step-montaje').contains(w.document.querySelector('#unifyCard')));
+    assert.ok(w.document.querySelector('#lh-step-extras').contains(w.document.querySelector('#postTema')));
+    w.lhShowStep('produccion');assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='produccion');
+    w.document.querySelector('[data-lh-step="musica"]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='musica');
+    w.document.querySelector('#lh-step-musica [data-lh-next]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='montaje');
+    w.document.querySelector('#lh-step-montaje [data-lh-prev]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='musica');
     assert.deepEqual(errors,[]);
   }finally{a.close();}
 });
