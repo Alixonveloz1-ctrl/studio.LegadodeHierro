@@ -84,6 +84,17 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Obligar a usar siempre al mismo protagonista ni a la biblia completa de
   personajes en todos los videos.
 
+## Continuidad real, no repetición
+
+Cada toma debe ser una escena distinta que haga avanzar la historia, con los
+mismos personajes, vestuario y mundo dentro de ese video, en cadena de causa
+y efecto. El director decide esa continuidad según el tema: un solo lugar se
+sostiene con acciones, ángulos y momentos distintos, y varios lugares solo
+cuando la historia los pide. Reutilizar una toma vieja solo vale si es la
+misma acción y el mismo personaje en la misma historia, nunca para rellenar
+un video nuevo. La música, además, se genera nueva para cada video, no se
+reutiliza.
+
 ## Cambio de cuenta de Google Cloud (pendiente, no hecho todavía)
 
 La herramienta no tiene cuentas ni proyectos escritos en el código: todo llega
@@ -92,10 +103,12 @@ créditos, hay que cambiar solo esas variables y reinstalar el ensamblador de
 Cloud Run en la cuenta nueva; no hace falta reescribir el código. Las variables
 son, por nombre: `GCP_PROJECT_ID`, `GCP_SERVICE_ACCOUNT`, `GCS_OUTPUT_BUCKET`,
 `CLOUD_RUN_UNIFY_URL` y `UNIFY_KEY`, más las que ya usaba la herramienta para
-modelos y sesión. Antes de cambiar, hay que decidir qué pasa con la biblioteca
-que vive en el bucket viejo: si no se copia, las tomas y personajes guardados
-allí no aparecen en el bucket nuevo. El protagonista y la compañera sí se pueden
-volver a sembrar, porque sus imágenes están en `public/biblia/` y en el código.
+modelos y sesión. Copiar todo el bucket viejo ya NO se recomienda: el
+contenido viejo es repetitivo y copiarlo entero perpetuaría esa repetición.
+El bucket nuevo puede empezar limpio; el protagonista y la compañera se
+vuelven a sembrar, porque sus imágenes están en `public/biblia/` y en el
+código. Solo se copia, si el usuario lo señala, un archivo concreto que sí
+valga (por ejemplo, un libro o una referencia única), no toda la biblioteca.
 No se cambia la cuenta en este paso; queda lista para cuando el usuario lo pida.
 
 ## Cómo medir si está funcionando

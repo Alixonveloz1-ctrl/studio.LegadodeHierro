@@ -91,7 +91,7 @@ function reviewPrompt(j) {
     +'Si falta algo, cita el pasaje donde debería estar y explica la ausencia; no inventes la cita. No exijas suspenso en una práctica guiada ni una lista en un relato. '
     +'hook: las primeras dos frases entran en una situación específica, entregan escena o utilidad y se entienden sin haber visto antes el canal; no abren una promesa falsa ni una lección genérica. '
     +'promise: se cumple lo ofrecido, incluido el número exacto de pasos del título o entrada; una afirmación general no sustituye una demostración. '
-    +'progression: cada parte añade algo distinto y un cambio de decisión, demostración o consecuencia; no encadena sinónimos, no vuelve a empezar ni repite la misma lección sobre sueldo o quincena sin un cambio visible. '
+    +'progression: cada parte añade algo distinto y un cambio de decisión, demostración o consecuencia; no encadena sinónimos, no vuelve a empezar ni repite la misma lección sobre sueldo o quincena sin un cambio visible; en lo visual, cada escena es distinta y avanza la historia con los mismos personajes dentro del video, no la misma toma repetida. '
     +'specificity: ejemplo comprensible y al menos una decisión realizable con tiempo o recursos limitados; en piezas largas, algo guardable como un cálculo, unos pasos o un antes y después. '
     +'respect: voz directa, oral y emocional de Legado de Hierro; corregir abstracciones académicas conservando el significado, sin volver el texto una clase de negocios. Firmeza sin despreciar empleo, oficio, pobreza, familia o público; no asumir su pasado. '
     +'integrity: no biografía, credenciales, estadísticas, citas, testimonios ni ganancias inventadas; relatos ilustrativos identificados. Comprobar coherencia con los hechos aportados, sin afirmar verificación externa. No garantizar viralidad ni ingresos. '
@@ -122,10 +122,10 @@ async function responseFor(j,key,deps) {
     const count=c.sceneCount,professor=c.mode==='profesor',a=scriptText(j);
     const p=c.prompt+'\n\nETAPA ACTUAL: SOLO PLAN VISUAL del guion definitivo. No cambiar ni volver a escribir narración. '
       +'Devuelve JSON {"set":"set único si es profesor", "scenes":["descripción visual"]}, exactamente '+count+' scenes. '
-      +(professor?'Las primeras cinco son tomas del protagonista en el MISMO set y vestuario; las últimas tres ilustran ejemplos del guion con otras personas, fuera del set. '
+      +(professor?'Las primeras cinco son tomas del protagonista en el MISMO set y vestuario, pero cada una con acción, ángulo o momento distinto, nunca la misma toma repetida; las últimas tres ilustran ejemplos del guion con otras personas, fuera del set. '
         :'El prompt k corresponde al fragmento k de FRAGMENTOS VISUALES; si cae en medio de una oración interpreta su contexto sin inventar otra acción. ')
-      +'Dirección visual: cada escena aporta un cambio visible de acción o encuadre con continuidad de lugar, luz, vestuario y personajes. No repitas descripciones idénticas en escenas consecutivas. '+
-      'Conserva obligatoriamente las marcas [CON: id] exactas del reparto en cada escena con secundarios; sin esa marca no se cargan sus imágenes de referencia. '+core.ADULT_RULE+' Prioriza acciones, manos y objetos que se puedan reutilizar, con continuidad explícita. Nunca inventes un cambio de país o época. '
+      +'Dirección visual: cada escena es distinta y hace avanzar la historia, con un cambio visible de acción, objeto, lugar, hora o consecuencia, y con continuidad real de personajes, vestuario y mundo dentro de este video. Cada cambio de lugar, hora u objeto debe tener motivo en la historia, en cadena de causa y efecto, no como escenas sueltas. No repitas descripciones idénticas en escenas consecutivas. Tono serio y formal, sin gestos exagerados. '+
+      'Conserva obligatoriamente las marcas [CON: id] exactas del reparto en cada escena con secundarios; sin esa marca no se cargan sus imágenes de referencia. '+core.ADULT_RULE+' Prioriza acciones concretas que muestren una consecuencia, no acciones genéricas reutilizables. Nunca inventes un cambio de país o época. '
       +'\nGUION DEFINITIVO: '+a+'\nFRAGMENTOS VISUALES: '+JSON.stringify(core.segments(a,count));
     return parseVisuals((await deps.text(p,{maxTokens:6500,json:true,stage:key})).text,count,professor);
   }
