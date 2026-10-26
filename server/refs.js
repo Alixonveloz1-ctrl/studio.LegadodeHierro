@@ -110,8 +110,6 @@ async function fetchFromIbb(url) {
 // Va dentro de este archivo y no en uno nuevo a proposito: Vercel limita el
 // numero de funciones en el plan gratuito y ya hay 13.
 
-const { REPARTO } = require('./_personajes');
-
 const INDICE = 'personajes/index.json';
 
 async function leerIndice(token, bucket) {
@@ -167,20 +165,9 @@ function sanearFicha(p) {
   };
 }
 
-// Las 4 imagenes de marca del protagonista. Llevan un ano siendo la cara del canal:
-// son el ancla, no un punto de partida que se pueda reemplazar.
-const BASE_INSIGNIA = ['refs/personaje-1', 'refs/personaje-2', 'refs/personaje-3', 'refs/personaje-4'];
-
-// ANCLAS QUE VIENEN CON EL PROYECTO. Igual que el insignia tiene sus 4 imagenes
-// de marca, hay personajes cuyo aspecto ya esta decidido y no se negocia. Viven en
-// public/biblia/ y se copian al bucket la primera vez que hacen falta.
-//
-// La companera esta aqui porque describirla por texto NO funcionaba: "rubia guapa"
-// da una mujer rubia cualquiera, no ESTA mujer. Con la cara delante, el generador
-// deja de inventar.
-const ANCLAS_DEL_PROYECTO = {
-  companera: ['biblia/companera-1.jpg', 'biblia/companera-2.jpg', 'biblia/companera-3.jpg'],
-};
+// Sin anclas fijas de proyecto desde 2026-10-26: no hay protagonista fijo
+// ni companera fija. Cada video define sus personajes importantes y, si
+// hace falta, sube su propia foto ancla para ese video.
 
 // De donde se baja un ancla que no este todavia en el bucket.
 function origenDelAncla(objeto) {
@@ -487,84 +474,14 @@ async function biblia(req, res) {
 
     if (accion === 'list') {
       let lista = await leerIndice(token, bucket);
-      // SIEMBRA. La biblia no nace vacia: trae el insignia mas los 28 del
-      // reparto. Un formulario en blanco no sirve de nada — lo que da variedad
-      // es que el director tenga gente a la que llamar. La biblia es opcional:
-      // un video puede usarla o crear un protagonista nuevo para ese video.
-      // El insignia entra con sus 4 imagenes DE SIEMPRE, sin regenerar: su cara
-      // lleva un ano siendo la marca del canal.
-      const antes = lista.length;
-      if (!lista.some(x => x.id === 'insignia')) {
-        lista.unshift(sanearFicha({
-          id: 'insignia', nombre: 'El hombre de Legado de Hierro', rol: 'Protagonista del canal',
-          edad: '35 anos',
-          fisico: 'hombre de 35 anos, cabello negro corto peinado hacia atras, barba corta oscura bien cuidada, mandibula marcada, ojos oscuros intensos, mirada seria',
-          vestuario: 'traje oscuro de tres piezas en escenas de poder; camiseta simple en escenas humildes',
-          habla: 'directo, crudo, sin adornos',
-          encaja: 'es el protagonista por defecto y aparece en practicamente todos los reels',
-          fijo: true,
-          base: BASE_INSIGNIA.slice(),
-        }));
-      }
-      // REPARACION de las fichas que ya estan en el bucket. El insignia nacio con
-      // sus 4 imagenes de marca dentro de refs, y guardar la primera vista nueva
-      // las borro. Aqui se le devuelve el ancla, y si alguna imagen de marca sigue
-      // colgada en refs se mueve a base en vez de contarse como vista generada.
-      let reparado = 0;
-      for (const p of lista) {
-        const sueltas = (p.refs || []).filter(o => o && o.indexOf('refs/') === 0);
-        if (sueltas.length) {
-          p.base = (p.base || []).concat(sueltas.filter(o => (p.base || []).indexOf(o) < 0));
-          p.refs = (p.refs || []).map(o => (o && o.indexOf('refs/') === 0 ? null : o));
-          reparado++;
-        }
-        // El insignia lleva SIEMPRE sus cuatro. Recuperar solo la que quedo suelta
-        // no basta: las otras tres tambien las borro el fallo.
-        if (p.fijo) {
-          const faltan = BASE_INSIGNIA.filter(o => (p.base || []).indexOf(o) < 0);
-          if (faltan.length) { p.base = (p.base || []).concat(faltan).sort(); reparado++; }
-        }
-      }
-      // Los del reparto se anaden si faltan.
-      for (const base of REPARTO) {
-        if (lista.some(x => x.id === base.id)) continue;
-        lista.push(sanearFicha(base));
-      }
-      // Y los que YA estaban se resincronizan con la descripcion del codigo.
-      // Antes solo se anadian los que faltaban: cambiar una descripcion en
-      // _personajes.js no servia de nada, porque la ficha vieja seguia guardada en
-      // el bucket y era esa la que se le mandaba al generador. Se cambio a la
-      // companera a rubia y siguio saliendo morena por esto exactamente.
-      // Las vistas ya generadas y el ancla NO se tocan.
-      for (const base of REPARTO) {
-        const p = lista.find(x => x.id === base.id);
-        if (!p) continue;
-        const campos = ['nombre', 'rol', 'edad', 'fisico', 'vestuario', 'habla', 'encaja'];
-        let cambio = false;
-        for (const c of campos) {
-          const nuevo = sanearFicha(base)[c];
-          if (p[c] !== nuevo) { p[c] = nuevo; cambio = true; }
-        }
-        if (cambio) reparado++;
-      }
-      // Los personajes que traen ancla de fabrica la reciben si no tienen ninguna.
-      // Va DESPUES de sembrar: si no, los que acaban de entrar en la lista se
-      // quedaban sin sus fotos hasta la siguiente vez que se abriera la biblia.
-      // Si el dueno subio las suyas (base propia), esas mandan y no se tocan.
-      for (const p of lista) {
-        if (!(p.base || []).length && ANCLAS_DEL_PROYECTO[p.id]) {
-          p.base = ANCLAS_DEL_PROYECTO[p.id].slice(); reparado++;
-        }
-      }
-      // Las vistas pasaron de 4 a 3: la cuarta que hubiera guardada sobra.
-      for (const p of lista) {
-        if ((p.refs || []).length > VISTAS.length) { p.refs = p.refs.slice(0, VISTAS.length); reparado++; }
-      }
-      if (lista.length !== antes || reparado) {
-        await escribirIndice(token, bucket, lista);
-        if (lista.length !== antes) console.log('[refs] biblia sembrada: ' + (lista.length - antes) + ' personajes nuevos, ' + lista.length + ' en total');
-        if (reparado) console.log('[refs] ancla restaurada en ' + reparado + ' ficha(s)');
-      }
+      // BIBLIA ELIMINADA 2026-10-26 por decision del usuario: no hay
+      // personajes fijos ni siembra de reparto. Cada video es
+      // independiente: el director define sus personajes importantes
+      // en esa historia y genera sus referencias solo para ese video.
+      // En un bucket nuevo la lista nace vacia; no se siembra insignia,
+      // companera ni reparto, y no se resincroniza nada de videos
+      // anteriores. Solo se devuelven las fichas creadas explicitamente
+      // para el trabajo en curso, si las hay.
       return res.json({
         success: true, personajes: lista,
         conVistas: lista.filter(p => (p.refs || []).filter(Boolean).length).length,
@@ -694,7 +611,6 @@ async function biblia(req, res) {
       if (!f.id) return res.status(400).json({ error: 'El personaje necesita un nombre' });
       const lista = await leerIndice(token, bucket);
       const antes = lista.find(x => x.id === f.id);
-      if (antes && antes.fijo && !f.fijo) f.fijo = true; // el insignia no deja de serlo
 
       // Las vistas nuevas llegan en base64 y se guardan como objetos del bucket.
       const nuevas = Array.isArray(body.vistas) ? body.vistas : [];
@@ -716,7 +632,7 @@ async function biblia(req, res) {
       f.refs = refs.slice(0, N_VISTAS);
       // El ancla no se toca NUNCA al guardar. Este era el fallo grave: las fotos
       // reales del insignia vivian en refs y la primera vista nueva las borraba.
-      f.base = (antes && antes.base && antes.base.length) ? antes.base.slice() : (f.fijo ? BASE_INSIGNIA.slice() : []);
+      f.base = (antes && antes.base && antes.base.length) ? antes.base.slice() : [];
       if (!f.refs.filter(Boolean).length) return res.status(400).json({ error: 'Genera al menos una vista antes de guardar' });
 
       const idx = lista.findIndex(x => x.id === f.id);
@@ -763,14 +679,13 @@ async function biblia(req, res) {
       return res.json({ success: true, personaje: lista[idx] });
     }
 
-    // Quitar las fotos propias y volver a lo que trajera el proyecto (o a nada).
+    // Quitar las fotos propias de un personaje de este video.
     if (accion === 'quitar-ancla') {
       const id = limpiarId(body.id);
       const lista = await leerIndice(token, bucket);
       const p = lista.find(x => x.id === id);
       if (!p) return res.status(404).json({ error: 'No existe ese personaje' });
-      if (p.fijo) return res.status(400).json({ error: 'El insignia no puede quedarse sin ancla' });
-      p.base = (ANCLAS_DEL_PROYECTO[id] || []).slice();
+      p.base = [];
       p.refs = [];
       const idx = lista.findIndex(x => x.id === id);
       lista[idx] = sanearFicha(p);
@@ -783,7 +698,6 @@ async function biblia(req, res) {
       const lista = await leerIndice(token, bucket);
       const p = lista.find(x => x.id === id);
       if (!p) return res.status(404).json({ error: 'No existe ese personaje' });
-      if (p.fijo) return res.status(400).json({ error: 'El personaje insignia del canal no se puede borrar' });
       await escribirIndice(token, bucket, lista.filter(x => x.id !== id));
       console.log('[refs] personaje borrado: ' + id);
       return res.json({ success: true });

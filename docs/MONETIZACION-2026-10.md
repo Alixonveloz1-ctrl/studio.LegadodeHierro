@@ -84,16 +84,27 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Obligar a usar siempre al mismo protagonista ni a la biblia completa de
   personajes en todos los videos.
 
+## Sin biblioteca, sin personajes fijos: cada video es una historia completa
+
+Eliminada el 26 de octubre de 2026 por decisión del usuario: no hay biblioteca
+que generar, ni biblia de personajes, ni protagonista fijo. Cada video es una
+historia completa e independiente. El director decide, en ese video, quiénes
+son los personajes importantes, con descripción física completa, y genera sus
+referencias solo para ese video, solo para los personajes importantes. Los
+escenarios no vienen de una biblioteca ni de un set guardado: se escriben
+directamente en el prompt de cada escena, para no gastar material en una
+biblioteca que no se va a usar.
+
 ## Continuidad real, no repetición
 
 Cada toma debe ser una escena distinta que haga avanzar la historia, con los
 mismos personajes, vestuario y mundo dentro de ese video, en cadena de causa
 y efecto. El director decide esa continuidad según el tema: un solo lugar se
 sostiene con acciones, ángulos y momentos distintos, y varios lugares solo
-cuando la historia los pide. Reutilizar una toma vieja solo vale si es la
-misma acción y el mismo personaje en la misma historia, nunca para rellenar
-un video nuevo. La música, además, se genera nueva para cada video, no se
-reutiliza.
+cuando la historia los pide. No se reutilizan tomas, música, personajes ni
+escenarios de videos anteriores para rellenar un video nuevo; cada video se
+genera completo, con su propio material. La música, además, se genera nueva
+para cada video, no se reutiliza.
 
 ## Cambio de cuenta de Google Cloud (pendiente, no hecho todavía)
 
@@ -104,11 +115,11 @@ Cloud Run en la cuenta nueva; no hace falta reescribir el código. Las variables
 son, por nombre: `GCP_PROJECT_ID`, `GCP_SERVICE_ACCOUNT`, `GCS_OUTPUT_BUCKET`,
 `CLOUD_RUN_UNIFY_URL` y `UNIFY_KEY`, más las que ya usaba la herramienta para
 modelos y sesión. Copiar todo el bucket viejo ya NO se recomienda: el
-contenido viejo es repetitivo y copiarlo entero perpetuaría esa repetición.
-El bucket nuevo puede empezar limpio; el protagonista y la compañera se
-vuelven a sembrar, porque sus imágenes están en `public/biblia/` y en el
-código. Solo se copia, si el usuario lo señala, un archivo concreto que sí
-valga (por ejemplo, un libro o una referencia única), no toda la biblioteca.
+contenido viejo es repetitivo y copiarlo entero perpetuaría esa repetición,
+y la biblioteca quedó eliminada. El bucket nuevo empieza limpio, sin biblia
+ni personajes fijos; cada video genera sus propias referencias para sus
+personajes importantes. Solo se copia, si el usuario lo señala, un archivo
+concreto que sí valga (por ejemplo, un libro), no toda la biblioteca.
 No se cambia la cuenta en este paso; queda lista para cuando el usuario lo pida.
 
 ## Cómo medir si está funcionando
