@@ -103,6 +103,24 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
       assert.equal(active.dataset.lhStep,name);
       assert.equal(w.document.defaultView.getComputedStyle(active).display,'block',name+' debe ser visible al activarla');
     }
+    // Producción no puede vivir dentro de un .slbl: ese contenedor es flex con
+    // mayúsculas heredadas y apretaba Tomas y Narración en columnas diminutas.
+    for(const id of ['episodeTools','audioCard','imgCard']){
+      const el=w.document.getElementById(id);
+      assert.ok(el,id+' debe existir');
+      assert.equal(el.closest('.slbl'),null,id+' no debe estar dentro de un .slbl');
+    }
+    // El selector de voz debe verse siempre, no dentro de un panel plegado.
+    const vEngine=w.document.getElementById('vEngine');
+    assert.ok(vEngine,'el selector de motor de voz debe existir');
+    assert.equal(vEngine.closest('details'),null,'el selector de voz no debe estar dentro de un details plegado');
+    assert.deepEqual([...vEngine.options].map(o=>o.value),['eleven','chirp','gemini']);
+    // En el teléfono, las tomas van en una sola columna a ancho completo.
+    const studioCss=fs.readFileSync(path.join(root,'public/studio.css'),'utf8');
+    assert.ok(/@media\(max-width:520px\)\{[^}]*\.studio-plan\{grid-template-columns:minmax\(0,1fr\)/.test(studioCss),'el plan debe ser de una columna en el teléfono');
+    // La lista de Inicio se limpia sola una vez, sin borrar nada (Ver todos restaura).
+    const studioJs=fs.readFileSync(path.join(root,'public/studio.js'),'utf8');
+    assert.ok(studioJs.includes('lh_recent_auto_cleared_v1'),'la lista reciente debe limpiarse sola una vez al actualizar');
     assert.equal(w.document.querySelector('#lh-step-inicio').textContent.includes('Posts de Facebook, independientes'),false,'Inicio no debe duplicar el generador de posts');
     assert.deepEqual(errors,[]);
   }finally{a.close();}

@@ -214,7 +214,7 @@ section{margin-bottom:20px}
 .voxChk input{accent-color:#c4897a;width:15px;height:15px}
 .voxP{background:none;border:1.5px solid var(--border);border-radius:7px;color:var(--tx3);padding:5px 9px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit}
 .voxP:active{border-color:#c4897a;color:#c4897a}
-#voxPanel summary::-webkit-details-marker{display:none}
+
 </style>
 <link rel="stylesheet" href="/studio.css?v=20260914o">
 </head>
@@ -421,17 +421,17 @@ section{margin-bottom:20px}
       <details id="sceneExtras"><summary>Miniatura del reel</summary></details>
     </section>
     <section>
-      <div class="slbl">🔎 <div class="scard" id="audioCard" style="border:1.5px solid #c4897a44">
+      <div class="scard" id="audioCard" style="border:1.5px solid #c4897a44">
         <div class="shdr" style="background:var(--warm)">
-          <div><div class="stitl" style="color:#c4897a">🎙 Narración — Audio</div><div class="ssub">Elige el motor de voz en los ajustes</div></div>
+          <div><div class="stitl" style="color:#c4897a">🎙 Narración — Audio</div><div class="ssub">Elige el motor abajo: ElevenLabs, Chirp o Gemini</div></div>
           <div class="sbtns">
             <button class="cbtn" id="baes" style="border-color:#d9a441;color:#d9a441">🎙 Audio ES</button>
             <button class="cbtn" id="baen" style="border-color:#c4897a;color:#c4897a">🎙 Audio EN</button>
           </div>
         </div>
         <div class="sbody">
-          <details id="voxPanel" style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            <summary style="padding:9px 11px;cursor:pointer;font-size:11px;font-weight:700;color:var(--tx3);letter-spacing:.04em;background:#faf8f6;list-style:none">⚙ AJUSTES DE VOZ</summary>
+          <div id="voxPanel" style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="padding:9px 11px;font-size:11px;font-weight:700;color:var(--tx);letter-spacing:.04em;background:#1f1f23">⚙ MOTOR DE VOZ — SE VE SIEMPRE, NO HAY QUE ABRIR NADA</div>
             <div style="padding:12px 11px 4px">
               <label class="genLbl" style="margin-bottom:4px">Motor de voz
                 <select id="vEngine" class="genSel">
@@ -535,9 +535,9 @@ section{margin-bottom:20px}
               </div>
               </div>
             </div>
-          </details>
-          <div style="margin-bottom:12px;border:1px dashed var(--border);border-radius:10px;padding:10px 11px;background:#fcfaf8">
-            <div class="genLbl" style="margin-bottom:6px">⬆ O sube el audio ya generado (sin gastar API)</div>
+          </div>
+          <div style="margin-bottom:12px;border:1px dashed var(--border);border-radius:10px;padding:10px 11px;background:#1f1f23">
+            <div class="genLbl" style="margin-bottom:6px">⬆ O sube el audio ya generado (sin gastar API) — solo si lo prefieres así</div>
             <span class="voxH" style="display:block;margin-bottom:9px">Copia el guion, genéralo en la web de ElevenLabs con la voz del canal, descárgalo y súbelo aquí. El resto del montaje —imágenes, videos, música y unificación— sigue funcionando igual. MP3, M4A o WAV, máximo 20 MB.</span>
             <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:7px">
               <button type="button" class="voxP" id="bCopyES">📋 Copiar guion ES</button>
@@ -616,7 +616,7 @@ section{margin-bottom:20px}
           <div class="igrid" id="igrid"></div>
         </div>
       </div>
-    </div>
+    </section>
     </div>
     <div class="lh-step" id="lh-step-musica" data-lh-step="musica">
       <h2 class="lh-step-title">Música</h2>

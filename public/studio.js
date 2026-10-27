@@ -306,7 +306,9 @@ async function studioOpenProjects(){
 }
 function studioUnifyWorkspace(){
   var tools=studioEl('episodeTools'),legacy=studioEl('imgCard');
-  var audio=studioEl('audioCard');audio.parentNode.insertBefore(tools,audio);
+  var audio=studioEl('audioCard');var audioSection=audio.closest?audio.closest('section'):audio.parentNode;
+  if(audioSection&&audioSection.parentNode)audioSection.parentNode.insertBefore(tools,audioSection);
+  else audio.parentNode.insertBefore(tools,audio);
   studioEl('sceneSettings').appendChild(studioEl('genSettings'));
   ['bthumb','thumbBox','ist','ie'].forEach(function(id){studioEl('sceneExtras').appendChild(studioEl(id));});
   legacy.hidden=true;
@@ -940,6 +942,10 @@ function lhPaintRecentProjects(){
   try{recs=getHistory().map(function(r){return {title:r.topic||'',fecha:r.fecha||'',dur:r.d,estado:r.estado||'borrador',local:r,cloud:null};});}catch(e){}
   try{(STUDIO_PROJECT_ROWS||[]).forEach(function(row){if(!recs.some(function(x){return x.cloud&&x.cloud.id===row.id;}))recs.push({title:row.topic||row.title||'',fecha:row.updatedAt||row.createdAt||'',dur:row.d||'',estado:row.estado||'guardado',local:null,cloud:row});});}catch(e){}
   var clearedAt=null;try{clearedAt=localStorage.getItem('lh_recent_cleared_at');}catch(e){}
+  // Limpieza automática una sola vez al abrir la versión corregida: en Inicio
+  // solo aparecen videos nuevos desde ahora, sin borrar nada de la nube ni del
+  // teléfono. "Ver todos" restaura la lista completa cuando se quiera.
+  try{if(!localStorage.getItem('lh_recent_auto_cleared_v1')){clearedAt=new Date().toISOString();localStorage.setItem('lh_recent_cleared_at',clearedAt);localStorage.setItem('lh_recent_auto_cleared_v1','1');}}catch(e){}
   if(clearedAt)recs=recs.filter(function(r){return r.fecha&&new Date(r.fecha)>new Date(clearedAt);});
   recs.sort(function(a,b){return new Date(b.fecha||0)-new Date(a.fecha||0);});
   recs=recs.slice(0,6);
