@@ -121,6 +121,21 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     // La lista de Inicio se limpia sola una vez, sin borrar nada (Ver todos restaura).
     const studioJs=fs.readFileSync(path.join(root,'public/studio.js'),'utf8');
     assert.ok(studioJs.includes('lh_recent_auto_cleared_v1'),'la lista reciente debe limpiarse sola una vez al actualizar');
+    // Sin reutilizar de otros videos, sin Recuperar narración manual, solo
+    // 9:16 y 16:9 en imagen, sin Veo 2, y restauración automática al reabrir.
+    assert.equal(w.document.getElementById('audioRestoreES'),null,'no debe haber botón Recuperar narración ES');
+    assert.equal(w.document.getElementById('audioRestoreEN'),null,'no debe haber botón Recuperar narración EN');
+    assert.ok(studioJs.includes('await studioRecoverAudio(lang)'),'al restaurar un proyecto, la narración debe volver sola');
+    assert.ok(studioJs.includes('extra.music'),'la música debe guardarse por video');
+    assert.ok(studioJs.includes('p.music&&p.music.object'),'al restaurar, debe volver la música de ese video');
+    assert.deepEqual([...w.document.getElementById('selImgFmt').options].map(o=>o.value),['9:16','16:9'],'el formato de imagen solo debe ofrecer 9:16 y 16:9');
+    assert.equal([...w.document.getElementById('selVidModel').options].some(o=>o.value==='veo-2.0-generate-001'),false,'Veo 2 debe estar eliminado de los modelos de video');
+    assert.equal(w.document.querySelector('.lh-bottom button[data-lh-step="mis-videos"]').textContent.includes('Mis videos'),true,'la pestaña inferior debe decir Mis videos, no Biblioteca');
+    // Inicio se pinta al arrancar, no solo al tocar su botón, y Ver todos no
+    // borra la marca de limpieza: solo muestra los viejos en esa vista.
+    assert.ok(studioJs.includes("activeStep.dataset.lhStep==='inicio'"),'Inicio debe pintarse al abrir la app');
+    assert.ok(studioJs.includes('LH_RECENT_SHOW_ALL=true'),'Ver todos debe ser solo una vista temporal');
+    assert.equal(studioJs.includes("removeItem('lh_recent_cleared_at')"),false,'Ver todos no debe borrar la marca de limpieza');
     assert.equal(w.document.querySelector('#lh-step-inicio').textContent.includes('Posts de Facebook, independientes'),false,'Inicio no debe duplicar el generador de posts');
     assert.deepEqual(errors,[]);
   }finally{a.close();}
@@ -233,11 +248,11 @@ test('model and format selectors work directly and survive mode changes and relo
   try{
     const {w}=a,panel=w.document.querySelector('#genSettings'),parent=panel.parentNode;
     assert.equal(w.document.querySelector('#librarySettings'),null);assert.equal(w.document.querySelector('#librarySettingsDialog'),null);
-    const choices={selImgModel:'gemini-3-pro-image',selImgFmt:'3:4',selVidModel:'veo-3.1-generate-001',selVidFmt:'16:9'};
+    const choices={selImgModel:'gemini-3-pro-image',selImgFmt:'16:9',selVidModel:'veo-3.1-generate-001',selVidFmt:'16:9'};
     for(const [id,value] of Object.entries(choices)){const el=w.document.getElementById(id);el.value=value;el.dispatchEvent(new w.Event('change'));assert.equal(w.document.querySelectorAll('#'+id).length,1);}
-    assert.equal(w.imgModel,choices.selImgModel);assert.equal(w.imgFmt,'3:4');assert.equal(w.vidModel,choices.selVidModel);assert.equal(w.vidFmt,'16:9');
+    assert.equal(w.imgModel,choices.selImgModel);assert.equal(w.imgFmt,'16:9');assert.equal(w.vidModel,choices.selVidModel);assert.equal(w.vidFmt,'16:9');
     w.document.querySelector('#modeSelector [data-id="relato"]').click();w.document.querySelector('#modeSelector [data-id="impacto"]').click();
-    assert.equal(w.imgModel,choices.selImgModel);assert.equal(w.imgFmt,'3:4');
+    assert.equal(w.imgModel,choices.selImgModel);assert.equal(w.imgFmt,'16:9');
     const storage=Object.fromEntries(Object.keys(w.localStorage).map(k=>[k,w.localStorage.getItem(k)]));second=await app(storage);
     for(const [id,value] of Object.entries(choices))assert.equal(second.w.document.getElementById(id).value,value,'reload preserves '+id);
     assert.equal(panel.parentNode,parent);
@@ -345,19 +360,18 @@ test('secondary reference failures stop image generation and a later attempt fet
   }finally{a.close();}
 });
 
-test('manual shot picker includes every available video without an automatic match or format match',async()=>{
+test('shot cards never offer material from other videos, only generation for this video',async()=>{
   const a=await app();try{
     const {w,assets}=a;w.lastRes=episode(w);
     assets.push(...Array.from({length:32},(_,i)=>({id:'manual-'+i,kind:'video',title:'Video '+i,description:'Adulto trabajando en oficina',aspect:i%2?'16:9':'9:16'})));
-    assets.push({id:'excluded',kind:'video',description:'Un niño en la sala'}, {id:'still',kind:'image',description:'Adulto trabajando'}, {id:'archived',kind:'video',archived:true,description:'Adulto trabajando'});
     w.STUDIO.assets=assets;w.STUDIO.plan=[{scene:0,start:0,duration:8,description:'Otra escena sin coincidencias',aspect:'9:16',assetId:'',alternatives:[]}];
     w.studioPaintPlan();
-    const picker=w.document.querySelector('[aria-label="Material de la toma 1"]');
-    assert.equal(picker.options.length,33);assert.equal(picker.value,'');
-    assert.ok(Array.from(picker.options).some(o=>o.value==='manual-31'));
-    picker.value='manual-31';picker.dispatchEvent(new w.Event('change'));
-    assert.equal(w.STUDIO.plan[0].assetId,'manual-31');assert.equal(w.STUDIO.plan[0].reason,'Selección manual');
-    await tick();await tick();assert.ok(w.document.querySelector('[data-shot="0"] video'));
+    assert.equal(w.document.querySelector('[aria-label="Material de la toma 1"]'),null,'no debe haber selector de material de otros videos');
+    const card=w.document.querySelector('[data-shot="0"]');
+    assert.ok(card.textContent.includes('Generar imagen'),'la toma debe ofrecer generar su propio material');
+    assert.equal(card.textContent.includes('Cambiar esta toma'),false,'no debe haber panel para cambiar a material de otros videos');
+    assert.equal(card.textContent.includes('Elegir entre'),false);
+    assert.equal(w.STUDIO.plan[0].assetId,'','sin generar, la toma sigue sin material asignado');
   }finally{a.close();}
 });
 

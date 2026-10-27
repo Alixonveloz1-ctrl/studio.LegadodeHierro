@@ -216,7 +216,7 @@ section{margin-bottom:20px}
 .voxP:active{border-color:#c4897a;color:#c4897a}
 
 </style>
-<link rel="stylesheet" href="/studio.css?v=20260914o">
+<link rel="stylesheet" href="/studio.css?v=20261026c">
 </head>
 <body>
 
@@ -300,7 +300,7 @@ section{margin-bottom:20px}
         </div>
       </div>
       <h2 class="lh-step-title" style="font-size:18px">Mis proyectos recientes</h2>
-      <p class="lh-step-desc">Tus reels guardados, los más recientes primero. Toca uno para continuar donde lo dejaste.</p>
+      <p class="lh-step-desc">Solo los videos nuevos desde ahora. Para retomar un video viejo, ábrelo en Mis videos.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <button type="button" class="cbtn" id="lhRecentClear">🗑 Limpiar lista</button>
         <button type="button" class="cbtn" id="lhRecentShowAll">Ver todos</button>
@@ -416,7 +416,6 @@ section{margin-bottom:20px}
       <div id="sceneSettings"></div>
       <div class="studio-row"><button id="generateMissingImages">Generar imágenes pendientes</button><button id="generateMissing">Generar videos pendientes</button></div>
       <p>Primero genera las imágenes y revísalas. Cuando estén bien, pulsa «Generar videos pendientes». Cada paso conserva lo que ya tienes.</p>
-      <div class="studio-row"><button id="audioRestoreES">Recuperar narración ES</button><button id="audioRestoreEN">Recuperar narración EN</button></div>
       <div id="scenePlan" class="studio-plan"></div>
       <details id="sceneExtras"><summary>Miniatura del reel</summary></details>
     </section>
@@ -586,12 +585,7 @@ section{margin-bottom:20px}
               <label class="genLbl">Formato de imagen
                 <select id="selImgFmt" class="genSel">
                   <option value="9:16" selected>9:16 Vertical (Reel)</option>
-                  <option value="4:5">4:5 Retrato</option>
-                  <option value="1:1">1:1 Cuadrado</option>
                   <option value="16:9">16:9 Horizontal</option>
-                  <option value="3:4">3:4 Retrato</option>
-                  <option value="2:3">2:3 Retrato</option>
-                  <option value="21:9">21:9 Cine</option>
                 </select>
               </label>
               <label class="genLbl">Modelo de video
@@ -599,7 +593,6 @@ section{margin-bottom:20px}
                   <option value="veo-3.1-lite-generate-001" selected>Veo 3.1 Lite · bajo costo</option>
                   <option value="veo-3.1-fast-generate-001">Veo 3.1 Fast · rápido</option>
                   <option value="veo-3.1-generate-001">Veo 3.1 · máxima calidad</option>
-                  <option value="veo-2.0-generate-001">Veo 2 · económico (sin audio)</option>
                 </select>
               </label>
               <label class="genLbl">Formato de video
@@ -759,7 +752,7 @@ section{margin-bottom:20px}
   </div>
   <nav class="lh-bottom" aria-label="Navegación principal">
     <button type="button" data-lh-step="inicio">🏠<br>Inicio</button>
-    <button type="button" data-lh-step="mis-videos">📁<br>Biblioteca</button>
+    <button type="button" data-lh-step="mis-videos">📁<br>Mis videos</button>
     <button type="button" class="lh-bottom-plus" data-lh-step="tema">+</button>
     <button type="button" data-lh-step="produccion">🎬<br>Proyectos</button>
     <button type="button" data-lh-step="extras">📱<br>Posts</button>
@@ -767,8 +760,8 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/studio-core.js?v=20260914o"></script>
-<script src="/app.js?v=20260914o"></script>
-<script src="/studio.js?v=20260914o"></script>
+<script src="/studio-core.js?v=20261026c"></script>
+<script src="/app.js?v=20261026c"></script>
+<script src="/studio.js?v=20261026c"></script>
 </body>
 </html>
