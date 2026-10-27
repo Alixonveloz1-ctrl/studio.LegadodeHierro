@@ -136,6 +136,28 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     assert.ok(studioJs.includes("activeStep.dataset.lhStep==='inicio'"),'Inicio debe pintarse al abrir la app');
     assert.ok(studioJs.includes('LH_RECENT_SHOW_ALL=true'),'Ver todos debe ser solo una vista temporal');
     assert.equal(studioJs.includes("removeItem('lh_recent_cleared_at')"),false,'Ver todos no debe borrar la marca de limpieza');
+    // Inicio: Voces va a la narración e Imágenes va a las tomas, no al inicio
+    // de una Producción gigante; en el teléfono las tarjetas van en fila con
+    // desplazamiento, como en la referencia, para que En producción se vea.
+    const quickCards=[...w.document.querySelectorAll('.lh-qcard')];
+    const byName={};quickCards.forEach(c=>{const s=c.querySelector('strong');if(s)byName[s.textContent]=c;});
+    assert.equal(byName['Voces'].dataset.lhAnchor,'audioCard','Voces debe saltar a la narración');
+    assert.equal(byName['Imágenes'].dataset.lhAnchor,'episodeTools','Imágenes debe saltar a las tomas');
+    assert.ok(/\.lh-quick\{[^}]*overflow-x:auto/.test(fs.readFileSync(path.join(root,'public/index.html'),'utf8')),'las tarjetas de Inicio deben desplazarse en horizontal en el teléfono');
+    // Montaje oscuro y con lista real, sin tarjeta clara ni párrafos viejos.
+    const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
+    assert.equal(html.includes('background:#e8f0f8'),false,'Montaje no debe tener cabecera clara');
+    assert.equal(html.includes('background:#eaf2ee'),false,'Imágenes no debe tener cabecera clara');
+    assert.ok(w.document.getElementById('unifyCheckMusic'),'Montaje debe mostrar qué música entra');
+    assert.ok(w.document.getElementById('lhMusicVideo'),'Música debe decir para qué video es');
+    w.lastRes=episode(w);w.STUDIO.plan=[];w.updUnifyCard();
+    assert.match(w.document.getElementById('unifyCheckMusic').textContent,/sin música/i,'sin música elegida, Montaje debe decirlo en claro');
+    assert.match(w.document.getElementById('unifyCheckClips').textContent,/faltan/,'sin clips, Montaje debe decir que faltan');
+    // El aviso de error se puede cerrar y el 403 viejo se explica en claro.
+    w.studioMessage('Prueba de aviso',true);
+    const closeBtn=w.document.querySelector('#studioStatus button');assert.ok(closeBtn,'el aviso debe tener botón para cerrarlo');
+    closeBtn.click();assert.equal(w.document.getElementById('studioStatus').hidden,true,'al cerrar el aviso debe desaparecer');
+    assert.ok(studioJs.includes('ya no hay acceso a su almacenamiento anterior'),'el 403 viejo debe explicarse en claro, no con un código');
     assert.equal(w.document.querySelector('#lh-step-inicio').textContent.includes('Posts de Facebook, independientes'),false,'Inicio no debe duplicar el generador de posts');
     assert.deepEqual(errors,[]);
   }finally{a.close();}

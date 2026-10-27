@@ -1,7 +1,7 @@
 // Personal production studio: saved work, automatic script direction and reusable shots.
 var STUDIO={assets:[],plan:[],imageRefs:{},imageSaves:{},audioJobs:{},uploadedAudio:{},videoOps:{},versions:{},saveQueue:Promise.resolve(),busy:false};
 function studioEl(id){return document.getElementById(id);}
-function studioMessage(message,error){var el=studioEl('studioStatus');if(el){el.hidden=!message;el.textContent=message;el.className='studio-status'+(error?' studio-error':'');}}
+function studioMessage(message,error){var el=studioEl('studioStatus');if(el){el.hidden=!message;el.textContent=message||'';el.className='studio-status'+(error?' studio-error':'');if(message){var close=document.createElement('button');close.type='button';close.textContent=' ✕ Cerrar aviso';close.style.cssText='display:block;margin-top:8px;background:none;border:0;color:#f0c75e;font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:0';close.onclick=function(){studioMessage('',false);};el.appendChild(close);}}}
 async function studioAPI(action,data,endpoint){
   var r=await fetch(endpoint||'/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout((endpoint==='/api/studio-job'||endpoint==='/api/trends')?310000:57000),body:JSON.stringify(Object.assign({action:action},data||{}))});
   var d=await r.json().catch(function(){return {};});
@@ -293,7 +293,10 @@ async function studioRestoreAssets(item){
       try{await studioRecoverAudio(lang);}catch(e){}
     }
     if(owner===lastRes)updUnifyCard();
-  }catch(e){studioMessage('No se pudieron restaurar los materiales: '+e.message,true);}
+  }catch(e){
+    var is403=e&&(e.status===403||/403/.test(e.message||''));
+    studioMessage(is403?'Este video viejo no puede traer su material: ya no hay acceso a su almacenamiento anterior. Empieza un proyecto nuevo; nada se borró.':'No se pudieron restaurar los materiales: '+e.message,true);
+  }
 }
 var STUDIO_PROJECT_ROWS=[];
 function studioPaintProjects(){
@@ -900,12 +903,22 @@ async function studioGuard(fn){
   try{await fn();}catch(e){var lp=studioEl('libraryPanel');if(lp&&lp.open)studioLibraryMessage(e.message,true);else studioMessage(e.message,true);}finally{STUDIO.busy=false;}
 }
 var LH_STEPS=['inicio','mis-videos','investigacion','tema','produccion','musica','montaje','extras'];
-function lhShowStep(step){
+function lhShowStep(step,anchorId){
   if(LH_STEPS.indexOf(step)<0)return;
   document.querySelectorAll('.lh-step').forEach(function(el){el.classList.toggle('lh-active',el.dataset.lhStep===step);});
   document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.classList.toggle('lh-active',b.dataset.lhStep===step);b.setAttribute('aria-pressed',String(b.dataset.lhStep===step));});
   if(step==='inicio'){lhPaintCurrentProject();lhPaintRecentProjects();lhPaintConnections();}
+  if(step==='musica')lhPaintMusicVideo();
+  if(step==='montaje'&&typeof updUnifyCard==='function')updUnifyCard();
   try{window.scrollTo(0,0);}catch(e){}
+  // Las tarjetas de Inicio ya no caen al inicio de Producción: Voces va a la
+  // narración y Imágenes va a las tomas de este video.
+  if(anchorId){try{var target=document.getElementById(anchorId);if(target&&target.scrollIntoView)target.scrollIntoView({block:'start'});}catch(e){}}
+}
+function lhPaintMusicVideo(){
+  var el=studioEl('lhMusicVideo');if(!el)return;
+  if(!lastRes||!lastRes.topic){el.textContent='Aún no hay un video en producción. Crea uno en Tema y guion; la música que elijas aquí se guarda para ese video y se une sola en Montaje.';return;}
+  el.textContent='Video: '+(lastRes.topic||'')+'. La música que elijas aquí se guarda solo para este video y se une sola en Montaje, con el volumen que dejes en el control.';
 }
 function lhPaintCurrentProject(){
   var title=studioEl('lhCurrentTitle');if(!title)return;
@@ -938,7 +951,7 @@ function lhPaintCurrentProject(){
   if(chips)chips.innerHTML=steps.map(function(s){return '<span class="lh-chip'+(s.done?' done':'')+'">'+s.label+' · '+(s.done?'Listo':'Pendiente')+'</span>';}).join('');
 }
 function studioSteps(){
-  document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.onclick=function(){lhShowStep(b.dataset.lhStep);};});
+  document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.onclick=function(){lhShowStep(b.dataset.lhStep,b.dataset.lhAnchor||null);};});
   var rc=studioEl('lhRecentClear');if(rc)rc.onclick=function(){LH_RECENT_SHOW_ALL=false;try{localStorage.setItem('lh_recent_cleared_at',new Date().toISOString());}catch(e){}lhPaintRecentProjects();};
   var ra=studioEl('lhRecentShowAll');if(ra)ra.onclick=function(){LH_RECENT_SHOW_ALL=true;lhPaintRecentProjects();};
   // Al abrir la app, Inicio ya viene activo en el HTML, así que antes la

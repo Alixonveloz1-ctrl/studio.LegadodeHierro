@@ -4146,6 +4146,14 @@ function updUnifyCard(){
   var visual=STUDIO.plan.length?STUDIO.plan.every(studioShotVideo):totalClips()>0;
   sub.textContent=visual&&audio?'Listo para montar con videos y la narración completa.'
     :'Falta: '+(!visual?'seleccionar material visual ':'')+(!audio?' · narración '+unifyLang().toUpperCase():'');
+  // Lista real de Montaje: qué entra en el MP4 final, sin párrafos genéricos.
+  var clipsEl=document.getElementById('unifyCheckClips');if(clipsEl)clipsEl.textContent=visual?'🎬 Clips: listos, todos los videos de este video.':'🎬 Clips: faltan videos. Genera las tomas pendientes en Producción.';
+  var audioEl=document.getElementById('unifyCheckAudio');if(audioEl)audioEl.textContent=audio?('🎙 Narración '+unifyLang().toUpperCase()+': lista, es la que se une y la que marca los subtítulos.'):'🎙 Narración '+unifyLang().toUpperCase()+': falta. Genera el audio en Producción.';
+  var musicEl=document.getElementById('unifyCheckMusic');if(musicEl){
+    var m=null;try{m=typeof selectedMusic==='function'?selectedMusic():null;}catch(e){}
+    if(m){var sel=document.getElementById('musicSel');var name=sel&&sel.selectedIndex>=0?sel.options[sel.selectedIndex].textContent:'';musicEl.textContent='🎵 Música: '+(name||'elegida')+' al '+Math.round(m.volume*100)+'%. Se une sola en el montaje.';}
+    else musicEl.textContent='🎵 Música: sin música. El montaje saldrá solo con la narración, o elige una en Música.';
+  }
 }
 
 // Idioma con el que se va a unificar. Se recuerda entre sesiones.
@@ -4187,10 +4195,10 @@ async function comprobarCloudRun(){
     el.style.display='block';
   };
   if(d.estado==='al-dia'){
-    css('#9ab47a55','#f2f7ee','#5c7a45');
+    css('#9ab47a55','#1f1f23','#9cc4ab');
     el.innerHTML='✓ El montaje en Cloud Run está al día (versión '+escHtml(d.actual||'')+').';
   }else if(d.estado==='desactualizado'){
-    css('#c4a05a66','#fbf5e8','#8a6a1f');
+    css('#c4a05a66','#1f1f23','#f0c75e');
     el.innerHTML='⚠ <b>Al montaje le falta la última actualización.</b> '
       +(d.legacyAvailable?'Puedes seguir montando con imágenes o con clips por separado dentro de los límites anteriores. Para mezclarlos y recuperar montajes largos, actualiza Google Cloud.<br>':'')
       +'Tiene la versión '+escHtml(d.actual||'anterior a las versiones')+' y necesita la '+escHtml(d.esperada||'')+'.<br>'
@@ -4198,11 +4206,11 @@ async function comprobarCloudRun(){
       +'<code style="display:block;margin-top:5px;padding:6px 8px;background:#1f1f23;border:1px solid #e0d5bd;border-radius:6px;font-size:11px;word-break:break-all">curl -fsSL https://studio.legadodehierro.com/u.sh | bash</code>'
       +'Cuando aparezca <b>LISTO: montaje actualizado</b>, vuelve aquí y recarga la página.';
   }else if(d.estado==='sin-configurar'){
-    css('#c4a05a66','#fbf5e8','#8a6a1f');
+    css('#c4a05a66','#1f1f23','#f0c75e');
     el.textContent='⚠ El montaje aún no está configurado en Vercel (falta CLOUD_RUN_UNIFY_URL).';
   }else{
-    css('#c4707066','#fbeeee','#96403f');
-    el.textContent='⚠ El montaje no responde ahora mismo. Si acabas de desplegarlo, espera unos segundos y recarga.';
+    css('#c4707066','#1f1f23','#e8a49a');
+    el.textContent='⚠ El montaje no responde ahora mismo. Sin ese servicio no se puede unificar el MP4 final.';
   }
 }
 
@@ -4726,6 +4734,7 @@ function reset(){
   STUDIO.plan=[];STUDIO.audioJobs={};STUDIO.uploadedAudio={};STUDIO.videoOps={};
   document.getElementById('conc').value='';updCC();updGBtn();lastRes=null;
   audES=null;audEN=null;imgs=[];vids=[];vidState=[];vidErrMsg=[];thumbImg=null;finalVid=null;FINALES={es:null,en:null};sT='';rfAll();
+  try{if(typeof studioMessage==='function')studioMessage('',false);}catch(e){}
   window.scrollTo({top:0,behavior:'smooth'});
 }
 

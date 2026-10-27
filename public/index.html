@@ -74,13 +74,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lh-next{background:#d9a441;color:#fff}
 
 .lh-logo{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#d9a441,#f0c75e);color:#0a0a0a;font-family:'Playfair Display',serif;font-weight:700;font-size:20px;border-radius:10px}
-.lh-hero{background:linear-gradient(180deg,rgba(10,10,10,0.15) 0%,rgba(10,10,10,0.85) 100%),linear-gradient(135deg,#0f172a 0%,#7c2d12 55%,#d97706 100%);border:1px solid #26262b;border-radius:20px;padding:20px;margin-bottom:18px}
+.lh-hero{background:#17171a;border:1px solid #d9a44155;border-radius:20px;padding:20px;margin-bottom:18px}
 .lh-hero-tag{font-size:11px;font-weight:700;letter-spacing:.12em;color:#f0c75e;text-transform:uppercase;margin-bottom:8px}
 .lh-hero-title{font-size:24px;font-weight:700;line-height:1.25;color:#fff;margin-bottom:8px}
 .lh-hero-sub{font-size:14px;line-height:1.6;color:#c9c2b4;margin-bottom:16px}
 .lh-hero-btn{background:linear-gradient(135deg,#d9a441,#f0c75e);color:#0a0a0a;border:0;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.lh-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
-@media(min-width:600px){.lh-quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lh-quick{display:flex;gap:10px;margin-bottom:18px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
+.lh-quick .lh-qcard{flex:0 0 118px;scroll-snap-align:start}
+@media(min-width:600px){.lh-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}.lh-quick .lh-qcard{flex:none}}
 .lh-qcard{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;cursor:pointer;font-family:inherit;color:var(--tx)}
 .lh-qicon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 8px;border-radius:50%;border:2px solid;font-size:24px}
 .lh-qcard strong{display:block;font-size:13px;margin-bottom:2px}
@@ -216,7 +217,7 @@ section{margin-bottom:20px}
 .voxP:active{border-color:#c4897a;color:#c4897a}
 
 </style>
-<link rel="stylesheet" href="/studio.css?v=20261026c">
+<link rel="stylesheet" href="/studio.css?v=20261026d">
 </head>
 <body>
 
@@ -275,14 +276,14 @@ section{margin-bottom:20px}
       <div class="lh-hero">
         <div class="lh-hero-tag">Producción inteligente</div>
         <div class="lh-hero-title">De la idea al video en minutos</div>
-        <p class="lh-hero-sub">Guiones, voces, imágenes, música y montaje, todo en un solo lugar.</p>
+        <p class="lh-hero-sub">Ideas que se convierten en historias. Con el poder de la IA. Guiones, voces, imágenes, música y montaje, todo en un solo lugar.</p>
         <button type="button" class="lh-hero-btn" onclick="reset();lhShowStep('tema')">+ Nuevo proyecto</button>
       </div>
       <div class="lh-quick">
         <button type="button" class="lh-qcard" data-lh-step="investigacion"><span class="lh-qicon" style="border-color:#f0c75e;color:#f0c75e">💡</span><strong>Ideas</strong><span>Tendencias y reels virales</span></button>
         <button type="button" class="lh-qcard" data-lh-step="tema"><span class="lh-qicon" style="border-color:#7a9ec4;color:#7a9ec4">📄</span><strong>Guiones</strong><span>Español e inglés</span></button>
-        <button type="button" class="lh-qcard" data-lh-step="produccion"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎙</span><strong>Voces</strong><span>ElevenLabs y Google</span></button>
-        <button type="button" class="lh-qcard" data-lh-step="produccion"><span class="lh-qicon" style="border-color:#9ab47a;color:#9ab47a">🖼</span><strong>Imágenes</strong><span>IA + referencias</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="produccion" data-lh-anchor="audioCard"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎙</span><strong>Voces</strong><span>ElevenLabs y Google</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="produccion" data-lh-anchor="episodeTools"><span class="lh-qicon" style="border-color:#9ab47a;color:#9ab47a">🖼</span><strong>Imágenes</strong><span>Tomas de este video</span></button>
         <button type="button" class="lh-qcard" data-lh-step="musica"><span class="lh-qicon" style="border-color:#c4897a;color:#c4897a">🎵</span><strong>Música</strong><span>IA original</span></button>
         <button type="button" class="lh-qcard" data-lh-step="montaje"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎞</span><strong>Montaje</strong><span>Automático</span></button>
       </div>
@@ -406,6 +407,12 @@ section{margin-bottom:20px}
     <div class="lh-step" id="lh-step-produccion" data-lh-step="produccion">
       <h2 class="lh-step-title">Producción</h2>
       <p class="lh-step-desc">Revisa el guion, genera la voz, las imágenes y los videos de este video, toma por toma.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button type="button" class="cbtn" data-lh-step="produccion" data-lh-anchor="episodeTools">🎬 Tomas</button>
+        <button type="button" class="cbtn" data-lh-step="produccion" data-lh-anchor="audioCard">🎙 Narración</button>
+        <button type="button" class="cbtn" data-lh-step="produccion" data-lh-anchor="imgCard">🖼 Imágenes</button>
+        <button type="button" class="cbtn" data-lh-step="musica">🎵 Música de este video</button>
+      </div>
 <section class="studio-card" id="episodeTools" hidden>
       <h2>Tomas de este reel</h2><p id="scriptReview" class="studio-status"></p>
       <details><summary>Ver la revisión del guion</summary><div id="editorialPlan"></div>
@@ -564,8 +571,8 @@ section{margin-bottom:20px}
       </div>
 
       <div class="scard" id="imgCard" style="border:1.5px solid #7a9b8a44;margin-top:14px">
-        <div class="shdr" style="background:#eaf2ee">
-          <div><div class="stitl" style="color:#7a9b8a">🖼 Gemini — Imágenes del Personaje</div><div class="ssub" id="imgCountLabel">5 imágenes · Personaje en acción acorde al guion</div></div>
+        <div class="shdr" style="background:#1f1f23">
+          <div><div class="stitl" style="color:#9cc4ab">🖼 Gemini — Imágenes del Personaje</div><div class="ssub" id="imgCountLabel">5 imágenes · Personaje en acción acorde al guion</div></div>
           <div class="sbtns">
             <button class="cbtn" id="bthumb" style="border-color:#d9a441;color:#d9a441">🌟 + Miniatura</button>
             <button class="cbtn" id="bimg" style="border-color:#7a9b8a;color:#7a9b8a">🖼 Generar</button>
@@ -614,6 +621,7 @@ section{margin-bottom:20px}
     <div class="lh-step" id="lh-step-musica" data-lh-step="musica">
       <h2 class="lh-step-title">Música</h2>
       <p class="lh-step-desc">Genera una música nueva para este video y ajusta su volumen. La música se une en el montaje.</p>
+      <div id="lhMusicVideo" style="font-size:13px;line-height:1.6;color:var(--tx2);background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px"></div>
 <div id="musicBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
             <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🎵 Música de fondo</div>
             <label class="genLbl">Pista de este video
@@ -649,13 +657,18 @@ section{margin-bottom:20px}
       <h2 class="lh-step-title">Montaje</h2>
       <p class="lh-step-desc">Une los clips, la narración y la música en un solo MP4 con subtítulos, listo para publicar.</p>
 <div class="scard" id="unifyCard" style="border:1.5px solid #7a9ec444;margin-top:14px;display:none">
-        <div class="shdr" style="background:#e8f0f8">
-          <div><div class="stitl" style="color:#7a9ec4">🎞 Video Final — Unificación</div><div class="ssub" id="unifySub">Une los clips, ajusta la velocidad al audio y pega la narración</div></div>
+        <div class="shdr" style="background:#1f1f23">
+          <div><div class="stitl" style="color:#f0c75e">🎞 Video Final — Unificación</div><div class="ssub" id="unifySub">Une los clips, ajusta la velocidad al audio y pega la narración</div></div>
           <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button><button class="cbtn" id="resumeRender" hidden>Ver montaje iniciado</button><div id="unifyFeedback" style="flex-basis:100%"><div class="stxt" id="unifySt" role="status" aria-live="polite"></div><div class="serr" id="unifyErr" role="alert"></div></div>
         </div>
         <div class="sbody">
           <div id="crVer" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;padding:9px 11px;border-radius:9px"></div>
-          <div style="font-size:11px;color:var(--tx3);line-height:1.5;margin-bottom:10px">Necesita: todos los videos de los clips generados + la narración del idioma elegido. El resultado es UN solo MP4 con la voz, la música de fondo y los <b>subtítulos ya quemados</b> — listo para publicar, sin pasar por CapCut.</div>
+          <div style="background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.7;color:var(--tx2)">
+            <div id="unifyCheckClips">🎬 Clips: revisando…</div>
+            <div id="unifyCheckAudio">🎙 Narración: revisando…</div>
+            <div id="unifyCheckMusic">🎵 Música: revisando…</div>
+            <div style="margin-top:8px"><button type="button" class="cbtn" data-lh-step="musica">🎵 Cambiar la música de este video</button></div>
+          </div>
           <div id="langBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
             <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🌐 Idioma de este reel</div>
             <div style="display:flex;gap:8px">
@@ -760,8 +773,8 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/studio-core.js?v=20261026c"></script>
-<script src="/app.js?v=20261026c"></script>
-<script src="/studio.js?v=20261026c"></script>
+<script src="/studio-core.js?v=20261026d"></script>
+<script src="/app.js?v=20261026d"></script>
+<script src="/studio.js?v=20261026d"></script>
 </body>
 </html>
