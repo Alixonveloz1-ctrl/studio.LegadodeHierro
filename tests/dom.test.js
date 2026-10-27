@@ -91,6 +91,19 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     assert.equal(w.document.getElementById('gcost'),null,'la barra de costos debe estar eliminada');
     w.document.querySelector('.lh-bottom button[data-lh-step="extras"]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='extras');
     assert.ok(w.document.querySelector('#lh-step-extras').contains(w.document.querySelector('#bpost')));
+    // Visibilidad real: ninguna pantalla puede estar anidada dentro de otra, si no, se ve en blanco.
+    for(const step of w.document.querySelectorAll('.lh-step')){
+      let parent=step.parentElement, nested=false;
+      while(parent){if(parent.classList&&parent.classList.contains('lh-step'))nested=true;parent=parent.parentElement;}
+      assert.equal(nested,false,step.dataset.lhStep+' no debe estar dentro de otra pantalla');
+    }
+    for(const name of ['inicio','mis-videos','investigacion','tema','produccion','musica','montaje','extras']){
+      w.lhShowStep(name);
+      const active=w.document.querySelector('.lh-step.lh-active');
+      assert.equal(active.dataset.lhStep,name);
+      assert.equal(w.document.defaultView.getComputedStyle(active).display,'block',name+' debe ser visible al activarla');
+    }
+    assert.equal(w.document.querySelector('#lh-step-inicio').textContent.includes('Posts de Facebook, independientes'),false,'Inicio no debe duplicar el generador de posts');
     assert.deepEqual(errors,[]);
   }finally{a.close();}
 });

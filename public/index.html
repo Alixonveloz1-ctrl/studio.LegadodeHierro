@@ -82,7 +82,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lh-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
 @media(min-width:600px){.lh-quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lh-qcard{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;cursor:pointer;font-family:inherit;color:var(--tx)}
-.lh-qicon{display:block;width:44px;height:44px;line-height:44px;margin:0 auto 8px;border-radius:50%;border:2px solid;font-size:20px}
+.lh-qicon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 8px;border-radius:50%;border:2px solid;font-size:24px}
 .lh-qcard strong{display:block;font-size:13px;margin-bottom:2px}
 .lh-qcard span{font-size:11px;color:var(--tx3);line-height:1.3}
 .lh-current{background:var(--warm);border:1px solid var(--border);border-radius:20px;padding:18px;margin-bottom:18px}
@@ -286,11 +286,6 @@ section{margin-bottom:20px}
         <button type="button" class="lh-qcard" data-lh-step="musica"><span class="lh-qicon" style="border-color:#c4897a;color:#c4897a">🎵</span><strong>Música</strong><span>IA original</span></button>
         <button type="button" class="lh-qcard" data-lh-step="montaje"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎞</span><strong>Montaje</strong><span>Automático</span></button>
       </div>
-      <div style="background:#17171a;border:1px solid #26262b;border-radius:16px;padding:16px;margin-bottom:18px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px">📱 Posts de Facebook, independientes del video</div>
-        <p style="font-size:13px;line-height:1.6;color:#d4d4d8;margin:0 0 12px">Genera un post sin estar haciendo un video. El tema es opcional.</p>
-        <button type="button" class="lh-hero-btn" data-lh-step="extras">🖼 Generar un post</button>
-      </div>
       <div class="lh-current">
         <span class="lh-current-badge">● En producción</span>
         <img class="lh-current-thumb" id="lhCurrentThumb" alt="" hidden>
@@ -306,6 +301,10 @@ section{margin-bottom:20px}
       </div>
       <h2 class="lh-step-title" style="font-size:18px">Mis proyectos recientes</h2>
       <p class="lh-step-desc">Tus reels guardados, los más recientes primero. Toca uno para continuar donde lo dejaste.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button type="button" class="cbtn" id="lhRecentClear">🗑 Limpiar lista</button>
+        <button type="button" class="cbtn" id="lhRecentShowAll">Ver todos</button>
+      </div>
       <div class="lh-recent" id="lhRecentGrid"></div>
       <h2 class="lh-step-title" style="font-size:18px;margin-top:22px">Conexiones</h2>
       <div class="lh-conn">
@@ -315,15 +314,14 @@ section{margin-bottom:20px}
         <div class="lh-conn-card"><strong>Montaje (Cloud Run)</strong><span id="lhConnMontage">Comprobando…</span></div>
         <div class="lh-conn-card"><strong>Facebook</strong><span id="lhConnFacebook">Publicación manual, sin API</span></div>
       </div>
-      <p class="lh-step-desc" style="font-size:12px">El estado se comprueba en el servidor al abrir Inicio: solo indica si cada variable está configurada, nunca muestra claves ni llama a un proveedor de pago para comprobarlo.</p>
     </div>
     <div class="lh-step" id="lh-step-mis-videos" data-lh-step="mis-videos">
-      <h2 class="lh-step-title">💾 Mis videos</h2>
+      <h2 class="lh-step-title">Mis videos</h2>
       <p class="lh-step-desc">Tus reels guardados. Abre uno para seguir donde lo dejaste.</p>
 <details class="studio-card" id="projectsPanel"><summary>Mis reels guardados</summary><p>Abre un reel para continuar su guion, sus tomas, su audio y su montaje.</p><button id="projectsLoad" type="button">Actualizar lista</button><div id="projectList" class="studio-grid"></div></details>
     </div>
     <div class="lh-step" id="lh-step-investigacion" data-lh-step="investigacion">
-      <h2 class="lh-step-title">🔎 Investigación</h2>
+      <h2 class="lh-step-title">Investigación</h2>
       <p class="lh-step-desc">Busca qué está funcionando en el nicho y elige una idea para adaptarla a Legado de Hierro.</p>
 <section>
       <div class="slbl">🔎 Ideas para tu próximo video</div>
@@ -339,7 +337,7 @@ section{margin-bottom:20px}
     </section>
     </div>
     <div class="lh-step" id="lh-step-tema" data-lh-step="tema">
-      <h2 class="lh-step-title">🎬 Tema y guion</h2>
+      <h2 class="lh-step-title">Tema y guion</h2>
       <p class="lh-step-desc">Elige modo, tema, duración y gancho, escribe tu concepto y forja el guion. Aquí también ves el guion y su caption.</p>
 <section><div class="slbl">00 · Modo de Reel</div><div class="olist" id="modeSelector"></div></section>
 
@@ -404,8 +402,9 @@ section{margin-bottom:20px}
         </div>
       </div>
     </div>
+    </div>
     <div class="lh-step" id="lh-step-produccion" data-lh-step="produccion">
-      <h2 class="lh-step-title">🎙 Producción</h2>
+      <h2 class="lh-step-title">Producción</h2>
       <p class="lh-step-desc">Revisa el guion, genera la voz, las imágenes y los videos de este video, toma por toma.</p>
 <section class="studio-card" id="episodeTools" hidden>
       <h2>Tomas de este reel</h2><p id="scriptReview" class="studio-status"></p>
@@ -618,8 +617,9 @@ section{margin-bottom:20px}
         </div>
       </div>
     </div>
+    </div>
     <div class="lh-step" id="lh-step-musica" data-lh-step="musica">
-      <h2 class="lh-step-title">🎵 Música</h2>
+      <h2 class="lh-step-title">Música</h2>
       <p class="lh-step-desc">Genera una música nueva para este video y ajusta su volumen. La música se une en el montaje.</p>
 <div id="musicBox" style="margin-bottom:12px;padding:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px">
             <div style="font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--tx3);text-transform:uppercase;margin-bottom:8px">🎵 Música de fondo</div>
@@ -653,7 +653,7 @@ section{margin-bottom:20px}
           </div>
     </div>
     <div class="lh-step" id="lh-step-montaje" data-lh-step="montaje">
-      <h2 class="lh-step-title">🎞 Montaje</h2>
+      <h2 class="lh-step-title">Montaje</h2>
       <p class="lh-step-desc">Une los clips, la narración y la música en un solo MP4 con subtítulos, listo para publicar.</p>
 <div class="scard" id="unifyCard" style="border:1.5px solid #7a9ec444;margin-top:14px;display:none">
         <div class="shdr" style="background:#e8f0f8">
@@ -681,7 +681,7 @@ section{margin-bottom:20px}
       <button class="expbtn" id="expbtn" style="display:none">📦 Exportar todo (Guiones + Audio + Imágenes + Videos)</button>
     </div>
     <div class="lh-step" id="lh-step-extras" data-lh-step="extras">
-      <h2 class="lh-step-title">📱 Posts de Facebook</h2>
+      <h2 class="lh-step-title">Posts de Facebook</h2>
       <p class="lh-step-desc">Genera un post independiente, sin necesidad de estar haciendo un video.</p>
 <!-- POST FACEBOOK -->
     <div style="margin-top:20px">

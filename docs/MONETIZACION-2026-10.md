@@ -83,6 +83,24 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Usar una biblioteca, una biblia de personajes, un protagonista fijo o tomas
   de videos anteriores para un video nuevo.
 
+## Corrección de la pantalla en blanco, 26 de octubre de 2026
+
+Causa real encontrada y corregida: al reorganizar en secciones, la pantalla
+de Tema quedó sin su cierre, así que Producción, Música, Montaje y Posts
+quedaron anidadas dentro de Tema y nunca se veían, aunque el botón se
+iluminara: al activar Posts, su ancestro Tema estaba oculto y tapaba todo
+el contenido. Ahora las 8 pantallas son hijas directas de la página y cada
+una se muestra de verdad al activarla, comprobado con una prueba que revisa
+que ninguna pantalla esté dentro de otra y que la activa tenga display
+block. Además: se quitó el cuadro de Posts de Inicio (la pestaña Posts es
+la única entrada, y ya funciona), se quitaron las explicaciones meta de
+Inicio, se quitó el cuadro de búsqueda de Google que aparecía debajo de
+las ideas, el plan de un video nuevo ya no carga videos del banco anterior
+ni llama a select-videos: se crea vacío y solo se llenan con las imágenes
+y videos que se generen para ese video, y en Mis proyectos recientes hay
+un botón Limpiar lista que deja la lista solo con videos nuevos desde ese
+momento, sin borrar nada de la nube (Ver todos la vuelve a mostrar).
+
 ## Corrección tras revisión del usuario, 26 de octubre de 2026
 
 El usuario rechazó el marrón anterior: la paleta pasó a negro neutro

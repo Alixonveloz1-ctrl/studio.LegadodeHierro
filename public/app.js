@@ -5234,13 +5234,6 @@ function pintarTrends(){
   });
   if(!esModoLargo())html+='<button type="button" class="studio-button" id="bTrendBatch">Generar los '+TREND_IDEAS.length+' guiones</button>';
   box.innerHTML=html;box.style.display='block';
-  // Google supplies this search attribution. Isolate it from the app and its key.
-  if(TREND_RESEARCH&&TREND_RESEARCH.searchEntryPoint){
-    var frame=document.createElement('iframe');frame.title='Búsqueda de Google';
-    frame.setAttribute('sandbox','allow-popups allow-popups-to-escape-sandbox');frame.referrerPolicy='no-referrer';
-    frame.className='studio-search-credit';
-    frame.srcdoc='<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src https: data:"><base target="_blank">'+String(TREND_RESEARCH.searchEntryPoint).slice(0,60000);box.appendChild(frame);
-  }
   TREND_IDEAS.forEach(function(it,i){document.getElementById('bTrendOne-'+i).onclick=function(){genTrendOne(i);};});
   var batch=document.getElementById('bTrendBatch');if(batch)batch.onclick=function(){if(!TREND_BUSY)generateBatch(TREND_IDEAS.map(trendJob));};
   var clear=document.getElementById('bTrendClear');if(clear)clear.onclick=function(){limpiarTrends();};

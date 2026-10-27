@@ -334,20 +334,20 @@ async function studioUseLibrary(){
   }catch(e){studioMessage('El guion está guardado. No se pudo asignar la biblioteca: '+e.message,true);}
 }
 async function studioAutoAssign(){
-  try{await studioBuildPlan();}catch(e){studioMessage('Guion guardado. No se pudo cargar la biblioteca: '+e.message,true);}
+  try{await studioBuildPlan();}catch(e){studioMessage('Guion guardado. No se pudo preparar el plan nuevo: '+e.message,true);}
 }
 async function studioBuildPlan(){
   if(!lastRes)throw new Error('Genera o restaura un guion primero.');
   if(LH.hasMinors(lastRes.a)||LH.hasMinors(lastRes.c))throw new Error('Este guion guardado contiene personas fuera del reparto adulto. Hay que corregirlo antes de asignar material.');
-  var owner=lastRes;STUDIO.assets=await studioLoadAll('assets');if(owner!==lastRes)return;
+  // Plan nuevo, sin material antiguo: cada video genera sus propias imágenes y videos.
+  // No se carga el banco anterior ni se llama a select-videos, para que aquí solo
+  // aparezcan las tomas nuevas que se generen para este video.
+  var owner=lastRes;
   var audio=unifyLang()==='en'?audEN:audES,duration=audio&&audio.dur||Number(lastRes.dO&&lastRes.dO.id)||60;
-  var scenes=LH.scenePlan(lastRes,duration,vidFmt).map(function(s){return Object.assign(s,{videoOnly:true});});
-  studioMessage('Comprobando qué videos cuentan esta historia y mantienen la continuidad…');
-  var chosen=await studioAPI('select-videos',{story:owner.a,scenes:scenes});if(owner!==lastRes)return;
-  if(!Array.isArray(chosen.plan)||chosen.plan.length!==scenes.length)throw new Error('No se pudo completar la selección de videos.');
-  STUDIO.plan=chosen.plan;studioPaintPlan();await studioPersistAssets();updUnifyCard();
-  var gaps=STUDIO.plan.filter(function(p){return !studioShotVideo(p);}).length;
-  studioMessage(gaps?'Plan preparado: '+gaps+' tomas no encontraron un video compatible. Puedes buscar otro clip; no se generó contenido nuevo.':STUDIO.plan.length+' tomas elegidas. Revisa la secuencia antes de montar; no se generó contenido nuevo.');
+  var scenes=LH.scenePlan(lastRes,duration,vidFmt).map(function(s){return Object.assign(s,{videoOnly:true,assetId:'',reason:'Genera la imagen y el video de esta escena.'});});
+  if(owner!==lastRes)return;
+  STUDIO.plan=scenes;studioPaintPlan();await studioPersistAssets();updUnifyCard();
+  studioMessage('Plan nuevo listo: genera las imágenes y videos de este video, sin material antiguo.');
 }
 function studioShotVideo(p){return !!STUDIO.assets.find(function(a){return a.id===p.assetId&&a.kind==='video';});}
 function studioPaintPlan(){
@@ -925,6 +925,8 @@ function lhPaintCurrentProject(){
 }
 function studioSteps(){
   document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.onclick=function(){lhShowStep(b.dataset.lhStep);};});
+  var rc=studioEl('lhRecentClear');if(rc)rc.onclick=function(){try{localStorage.setItem('lh_recent_cleared_at',new Date().toISOString());}catch(e){}lhPaintRecentProjects();};
+  var ra=studioEl('lhRecentShowAll');if(ra)ra.onclick=function(){try{localStorage.removeItem('lh_recent_cleared_at');}catch(e){}lhPaintRecentProjects();};
   if(!document.querySelector('.lh-step.lh-active'))lhShowStep('mis-videos');
 }
 
@@ -937,9 +939,11 @@ function lhPaintRecentProjects(){
   var recs=[];
   try{recs=getHistory().map(function(r){return {title:r.topic||'',fecha:r.fecha||'',dur:r.d,estado:r.estado||'borrador',local:r,cloud:null};});}catch(e){}
   try{(STUDIO_PROJECT_ROWS||[]).forEach(function(row){if(!recs.some(function(x){return x.cloud&&x.cloud.id===row.id;}))recs.push({title:row.topic||row.title||'',fecha:row.updatedAt||row.createdAt||'',dur:row.d||'',estado:row.estado||'guardado',local:null,cloud:row});});}catch(e){}
+  var clearedAt=null;try{clearedAt=localStorage.getItem('lh_recent_cleared_at');}catch(e){}
+  if(clearedAt)recs=recs.filter(function(r){return r.fecha&&new Date(r.fecha)>new Date(clearedAt);});
   recs.sort(function(a,b){return new Date(b.fecha||0)-new Date(a.fecha||0);});
   recs=recs.slice(0,6);
-  if(!recs.length){grid.innerHTML='<p style="font-size:13px;color:var(--tx3);line-height:1.6">Aún no hay proyectos guardados. Empieza con Nuevo proyecto y aquí aparecerán los más recientes.</p>';return;}
+  if(!recs.length){grid.innerHTML='<p style="font-size:13px;color:var(--tx3);line-height:1.6">Aquí aparecerán solo los videos nuevos que generes desde ahora. Empieza con Nuevo proyecto.</p>';return;}
   grid.innerHTML='';
   recs.forEach(function(r){
     var card=document.createElement('button');card.type='button';card.className='lh-recent-card';
@@ -970,9 +974,7 @@ function lhPaintRecentProjects(){
   });
 }
 function lhSetConn(id,text,ok){
-  var el=studioEl(id);if(!el)return;
-  el.textContent=text;
-  el.style.color=ok?'#9cc4ab':(ok===false?'#c4897a':'var(--tx3)');
+  try{var el=studioEl(id);if(!el)return;el.textContent=text;el.style.color=ok?'#9cc4ab':(ok===false?'#c4897a':'var(--tx3)');}catch(e){}
 }
 async function lhPaintConnections(){
   var fb=studioEl('lhConnFacebook');if(fb)fb.textContent='Publicación manual, sin API';
