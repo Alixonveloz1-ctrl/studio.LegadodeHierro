@@ -4142,6 +4142,11 @@ function updUnifyCard(){
   var recover=document.getElementById('resumeRender');if(recover)recover.hidden=!(lastRes&&lastRes.renders&&lastRes.renders[unifyLang()]);
   if(!musicLoaded)loadMusicList();
   var sub=document.getElementById('unifySub');if(!sub)return;
+  // Montaje nunca debe quedar en negro y vacío: sin proyecto, se muestra la
+  // guía para crearlo y el botón de unificar queda desactivado, no escondido.
+  var empty=document.getElementById('unifyEmpty');var hasProject=!!(lastRes&&lastRes.topic);
+  if(empty)empty.style.display=hasProject?'none':'block';
+  var bun=document.getElementById('bunify');if(bun)bun.disabled=!hasProject;
   var audio=unifyLang()==='en'?audEN:audES;
   var visual=STUDIO.plan.length?STUDIO.plan.every(studioShotVideo):totalClips()>0;
   sub.textContent=visual&&audio?'Listo para montar con videos y la narración completa.'

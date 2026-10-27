@@ -143,7 +143,8 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     const byName={};quickCards.forEach(c=>{const s=c.querySelector('strong');if(s)byName[s.textContent]=c;});
     assert.equal(byName['Voces'].dataset.lhAnchor,'audioCard','Voces debe saltar a la narración');
     assert.equal(byName['Imágenes'].dataset.lhAnchor,'episodeTools','Imágenes debe saltar a las tomas');
-    assert.ok(/\.lh-quick\{[^}]*overflow-x:auto/.test(fs.readFileSync(path.join(root,'public/index.html'),'utf8')),'las tarjetas de Inicio deben desplazarse en horizontal en el teléfono');
+    assert.ok(/\.lh-quick\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/.test(fs.readFileSync(path.join(root,'public/index.html'),'utf8')),'las tarjetas de Inicio deben ser cuadrícula de 2 columnas en el teléfono, sin tira horizontal');
+    assert.equal(/\.lh-quick\{[^}]*overflow-x:auto/.test(fs.readFileSync(path.join(root,'public/index.html'),'utf8')),false,'las tarjetas de Inicio no deben desplazarse hacia los lados');
     // Montaje oscuro y con lista real, sin tarjeta clara ni párrafos viejos.
     const html=fs.readFileSync(path.join(root,'public/index.html'),'utf8');
     assert.equal(html.includes('background:#e8f0f8'),false,'Montaje no debe tener cabecera clara');
@@ -153,6 +154,14 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     w.lastRes=episode(w);w.STUDIO.plan=[];w.updUnifyCard();
     assert.match(w.document.getElementById('unifyCheckMusic').textContent,/sin música/i,'sin música elegida, Montaje debe decirlo en claro');
     assert.match(w.document.getElementById('unifyCheckClips').textContent,/faltan/,'sin clips, Montaje debe decir que faltan');
+    // Montaje nunca queda en negro y vacío: sin proyecto muestra la guía y el
+    // botón de unificar queda desactivado, no escondido.
+    assert.equal(w.document.getElementById('unifyCard').style.display,'','la tarjeta de Montaje no debe estar oculta por defecto');
+    w.lastRes=null;w.updUnifyCard();
+    assert.equal(w.document.getElementById('unifyEmpty').style.display,'block','sin proyecto, Montaje debe mostrar la guía');
+    assert.equal(w.document.getElementById('bunify').disabled,true,'sin proyecto, Unificar debe estar desactivado');
+    w.lastRes=episode(w);w.updUnifyCard();
+    assert.equal(w.document.getElementById('unifyEmpty').style.display,'none','con proyecto, la guía de Montaje debe ocultarse');
     // El aviso de error se puede cerrar y el 403 viejo se explica en claro.
     w.studioMessage('Prueba de aviso',true);
     const closeBtn=w.document.querySelector('#studioStatus button');assert.ok(closeBtn,'el aviso debe tener botón para cerrarlo');

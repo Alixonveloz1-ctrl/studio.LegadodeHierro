@@ -79,9 +79,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lh-hero-title{font-size:24px;font-weight:700;line-height:1.25;color:#fff;margin-bottom:8px}
 .lh-hero-sub{font-size:14px;line-height:1.6;color:#c9c2b4;margin-bottom:16px}
 .lh-hero-btn{background:linear-gradient(135deg,#d9a441,#f0c75e);color:#0a0a0a;border:0;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.lh-quick{display:flex;gap:10px;margin-bottom:18px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
-.lh-quick .lh-qcard{flex:0 0 118px;scroll-snap-align:start}
-@media(min-width:600px){.lh-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}.lh-quick .lh-qcard{flex:none}}
+.lh-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
+@media(min-width:600px){.lh-quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lh-qcard{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;cursor:pointer;font-family:inherit;color:var(--tx)}
 .lh-qicon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 8px;border-radius:50%;border:2px solid;font-size:24px}
 .lh-qcard strong{display:block;font-size:13px;margin-bottom:2px}
@@ -217,7 +216,7 @@ section{margin-bottom:20px}
 .voxP:active{border-color:#c4897a;color:#c4897a}
 
 </style>
-<link rel="stylesheet" href="/studio.css?v=20261026d">
+<link rel="stylesheet" href="/studio.css?v=20261026e">
 </head>
 <body>
 
@@ -656,13 +655,17 @@ section{margin-bottom:20px}
     <div class="lh-step" id="lh-step-montaje" data-lh-step="montaje">
       <h2 class="lh-step-title">Montaje</h2>
       <p class="lh-step-desc">Une los clips, la narración y la música en un solo MP4 con subtítulos, listo para publicar.</p>
-<div class="scard" id="unifyCard" style="border:1.5px solid #7a9ec444;margin-top:14px;display:none">
+<div class="scard" id="unifyCard" style="border:1.5px solid #7a9ec444;margin-top:14px">
         <div class="shdr" style="background:#1f1f23">
           <div><div class="stitl" style="color:#f0c75e">🎞 Video Final — Unificación</div><div class="ssub" id="unifySub">Une los clips, ajusta la velocidad al audio y pega la narración</div></div>
           <button class="cbtn" id="bunify" style="border-color:#7a9ec4;color:#7a9ec4">🎞 Unificar video + audio</button><button class="cbtn" id="resumeRender" hidden>Ver montaje iniciado</button><div id="unifyFeedback" style="flex-basis:100%"><div class="stxt" id="unifySt" role="status" aria-live="polite"></div><div class="serr" id="unifyErr" role="alert"></div></div>
         </div>
         <div class="sbody">
           <div id="crVer" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;padding:9px 11px;border-radius:9px"></div>
+          <div id="unifyEmpty" style="background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;font-size:13px;line-height:1.7;color:var(--tx2)">
+            Aún no hay un video en producción. Crea primero el guion y vuelve aquí: en esta pantalla se unen los clips, la narración y la música en un solo MP4.
+            <div style="margin-top:10px"><button type="button" class="lh-hero-btn" onclick="reset();lhShowStep('tema')">+ Nuevo proyecto</button></div>
+          </div>
           <div style="background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.7;color:var(--tx2)">
             <div id="unifyCheckClips">🎬 Clips: revisando…</div>
             <div id="unifyCheckAudio">🎙 Narración: revisando…</div>
@@ -773,8 +776,8 @@ section{margin-bottom:20px}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="/studio-core.js?v=20261026d"></script>
-<script src="/app.js?v=20261026d"></script>
-<script src="/studio.js?v=20261026d"></script>
+<script src="/studio-core.js?v=20261026e"></script>
+<script src="/app.js?v=20261026e"></script>
+<script src="/studio.js?v=20261026e"></script>
 </body>
 </html>
