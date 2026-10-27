@@ -68,6 +68,11 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     assert.ok(w.document.querySelector('#lh-step-inicio').contains(w.document.querySelector('.lh-hero')));
     assert.ok(w.document.querySelectorAll('.lh-quick .lh-qcard').length===6);
     assert.ok(w.document.querySelector('#lhCurrentTitle'));
+    assert.ok(w.document.querySelector('#lhRecentGrid'));
+    assert.ok(w.document.querySelector('#lhConnGoogle'));
+    assert.ok(w.document.querySelector('#lhConnEleven'));
+    assert.ok(w.document.querySelector('.lh-bottom button[data-lh-step="mis-videos"]'));
+    assert.ok(w.document.querySelector('.lh-bottom button[data-lh-step="produccion"]'));
     assert.ok(w.document.querySelector('.lh-sidebar'));assert.ok(w.document.querySelector('.lh-bottom'));
     assert.ok(w.document.querySelector('#lh-step-investigacion').contains(w.document.querySelector('#bTrends')));
     assert.ok(w.document.querySelector('#lh-step-tema').contains(w.document.querySelector('#modeSelector')));

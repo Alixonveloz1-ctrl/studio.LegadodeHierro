@@ -890,7 +890,7 @@ function lhShowStep(step){
   if(LH_STEPS.indexOf(step)<0)return;
   document.querySelectorAll('.lh-step').forEach(function(el){el.classList.toggle('lh-active',el.dataset.lhStep===step);});
   document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.classList.toggle('lh-active',b.dataset.lhStep===step);b.setAttribute('aria-pressed',String(b.dataset.lhStep===step));});
-  if(step==='inicio')lhPaintCurrentProject();
+  if(step==='inicio'){lhPaintCurrentProject();lhPaintRecentProjects();lhPaintConnections();}
   try{window.scrollTo(0,0);}catch(e){}
 }
 function lhPaintCurrentProject(){
@@ -898,6 +898,20 @@ function lhPaintCurrentProject(){
   var bar=studioEl('lhCurrentBar'),txt=studioEl('lhCurrentProgressText'),chips=studioEl('lhCurrentChips');
   if(!lastRes||!lastRes.topic){title.textContent='Aún no hay un proyecto en producción';if(bar)bar.style.width='0%';if(txt)txt.textContent='0/7 pasos';if(chips)chips.innerHTML='';return;}
   title.textContent=lastRes.topic;
+  var thumb=studioEl('lhCurrentThumb');
+  if(thumb){
+    var src='';
+    if(typeof imgs!=='undefined'&&imgs[0])src=imgs[0];
+    else if(typeof vids!=='undefined'&&vids[0])src=vids[0];
+    else if(typeof thumbImg!=='undefined'&&thumbImg)src=thumbImg;
+    if(src){thumb.src=src;thumb.hidden=false;}else{thumb.hidden=true;thumb.removeAttribute('src');}
+  }
+  var upd=studioEl('lhCurrentUpdated');
+  if(upd){
+    var d=lastRes.updatedAt||lastRes.fecha||'';
+    if(d){var dt=new Date(d);if(!isNaN(dt)){upd.textContent='Última actualización: '+dt.toLocaleDateString('es',{day:'numeric',month:'short',year:'numeric'})+' · '+dt.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});upd.hidden=false;}else{upd.hidden=true;}}
+    else{upd.hidden=true;}
+  }
   var hasAudio=(typeof audES!=='undefined'&&audES)||(typeof audEN!=='undefined'&&audEN);
   var hasImages=(typeof imgs!=='undefined'&&imgs.some(function(a){return !!a;}));
   var hasMusic=false;try{hasMusic=!!(typeof selectedMusic==='function'&&selectedMusic())||!!localStorage.getItem('lh_music_sel');}catch(e){}
@@ -914,6 +928,70 @@ function studioSteps(){
   document.querySelectorAll('[data-lh-next]').forEach(function(b){b.onclick=function(){var cur=document.querySelector('.lh-step.lh-active');var i=LH_STEPS.indexOf(cur&&cur.dataset.lhStep);if(i>=0&&i<LH_STEPS.length-1)lhShowStep(LH_STEPS[i+1]);};});
   document.querySelectorAll('[data-lh-prev]').forEach(function(b){b.onclick=function(){var cur=document.querySelector('.lh-step.lh-active');var i=LH_STEPS.indexOf(cur&&cur.dataset.lhStep);if(i>0)lhShowStep(LH_STEPS[i-1]);};});
   if(!document.querySelector('.lh-step.lh-active'))lhShowStep('mis-videos');
+}
+
+function lhFormatSecs(s){
+  var n=parseInt(s,10);if(!Number.isFinite(n)||n<=0)return '';
+  return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
+}
+function lhPaintRecentProjects(){
+  var grid=studioEl('lhRecentGrid');if(!grid)return;
+  var recs=[];
+  try{recs=getHistory().map(function(r){return {title:r.topic||'',fecha:r.fecha||'',dur:r.d,estado:r.estado||'borrador',local:r,cloud:null};});}catch(e){}
+  try{(STUDIO_PROJECT_ROWS||[]).forEach(function(row){if(!recs.some(function(x){return x.cloud&&x.cloud.id===row.id;}))recs.push({title:row.topic||row.title||'',fecha:row.updatedAt||row.createdAt||'',dur:row.d||'',estado:row.estado||'guardado',local:null,cloud:row});});}catch(e){}
+  recs.sort(function(a,b){return new Date(b.fecha||0)-new Date(a.fecha||0);});
+  recs=recs.slice(0,6);
+  if(!recs.length){grid.innerHTML='<p style="font-size:13px;color:var(--tx3);line-height:1.6">Aún no hay proyectos guardados. Empieza con Nuevo proyecto y aquí aparecerán los más recientes.</p>';return;}
+  grid.innerHTML='';
+  recs.forEach(function(r){
+    var card=document.createElement('button');card.type='button';card.className='lh-recent-card';
+    var dur=lhFormatSecs(r.dur);
+    var st=r.estado==='publicado'?'Publicado':(r.estado==='guardado'?'Guardado':'En borrador');
+    var fecha='';try{var dt=new Date(r.fecha);if(!isNaN(dt))fecha=dt.toLocaleDateString('es',{day:'numeric',month:'short',year:'numeric'});}catch(e){}
+    card.innerHTML='<div class="lh-recent-head">🎬</div><strong></strong><span></span>';
+    card.querySelector('strong').textContent=r.title||'Proyecto sin título';
+    card.querySelector('span').textContent=[st,dur,fecha].filter(Boolean).join(' · ');
+    card.onclick=function(){
+      if(r.cloud){
+        // Misma apertura que la lista completa de Mis videos.
+        (async function(){
+          try{
+            var d=await studioAPI('project-get',{id:r.cloud.id});
+            if(!d.project)throw new Error('No se encontró el proyecto.');
+            lastRes=d.project;lastRes.uid=r.cloud.id;STUDIO.versions[r.cloud.id]=d.project.version;
+            applySelection(lastRes.modo,lastRes.tO&&lastRes.tO.id,lastRes.dO&&lastRes.dO.id,lastRes.hO&&lastRes.hO.id);
+            resetReelAssets();studioRestoreEditorial(lastRes.editorial);studioEl('conc').value=lastRes.topic||'';renderOut(lastRes);lhShowStep('produccion');await studioRestoreAssets();
+          }catch(e){studioMessage&&studioMessage(e.message||'No se pudo abrir el proyecto.',true);}
+        })();
+      } else if(r.local){
+        var h=getHistory();var idx=h.findIndex(function(x){return x.id===r.local.id;});
+        if(idx>=0&&typeof restoreHistory==='function')restoreHistory(r.local.id,idx);
+      }
+    };
+    grid.appendChild(card);
+  });
+}
+function lhSetConn(id,text,ok){
+  var el=studioEl(id);if(!el)return;
+  el.textContent=text;
+  el.style.color=ok?'#9cc4ab':(ok===false?'#c4897a':'var(--tx3)');
+}
+async function lhPaintConnections(){
+  var fb=studioEl('lhConnFacebook');if(fb)fb.textContent='Publicación manual, sin API';
+  try{
+    var res=await fetch('/api/status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    var d=await res.json();
+    if(!res.ok)throw new Error(d.error||'Error '+res.status);
+    lhSetConn('lhConnGoogle',d.googleCloud?'● Configurado':'● No configurado',!!d.googleCloud);
+    lhSetConn('lhConnImageVideo',d.imageVideo?'● Disponible con Google Cloud':'● Falta configuración de Google Cloud',!!d.imageVideo);
+    lhSetConn('lhConnEleven',d.elevenLabs?'● Configurado':'● No configurado',!!d.elevenLabs);
+    lhSetConn('lhConnMontage',d.montage?'● Configurado':'● No configurado',!!d.montage);
+  }catch(e){
+    lhSetConn('lhConnGoogle','No verificado',null);
+    lhSetConn('lhConnImageVideo','No verificado',null);
+    lhSetConn('lhConnEleven','No verificado',null);
+    lhSetConn('lhConnMontage','No verificado',null);
+  }
 }
 function studioInit(){
   studioSteps();studioUnifyWorkspace();studioModelPickers();

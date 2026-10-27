@@ -99,6 +99,10 @@
       "destination": "/api/index?endpoint=studio-job"
     },
     {
+      "source": "/api/status",
+      "destination": "/api/index?endpoint=status"
+    },
+    {
       "source": "/api/trends",
       "destination": "/api/index?endpoint=trends"
     },

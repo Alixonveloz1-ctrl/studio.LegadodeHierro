@@ -59,7 +59,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .bdot{width:5px;height:5px;background:var(--sage);border-radius:50%}
 .btxt{font-size:9px;font-weight:600;color:var(--sage);letter-spacing:.06em}
 .xbtn{background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--tx3);padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit}
-.amain{max-width:860px;margin:0 auto;padding:18px 14px 110px}
+.amain{max-width:860px;margin:0 auto;padding:18px 14px 120px}
 .slbl{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--tx2);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .slbl::after{content:'';flex:1;height:1px;background:var(--border)}
 .lh-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0;margin-bottom:20px}
@@ -79,7 +79,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lh-hero-title{font-size:24px;font-weight:700;line-height:1.25;color:#fff;margin-bottom:8px}
 .lh-hero-sub{font-size:14px;line-height:1.6;color:#c9c2b4;margin-bottom:16px}
 .lh-hero-btn{background:linear-gradient(135deg,#b8975a,#d4b47a);color:#12100d;border:0;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.lh-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.lh-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
+@media(min-width:600px){.lh-quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lh-qcard{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;cursor:pointer;font-family:inherit;color:var(--tx)}
 .lh-qicon{display:block;width:44px;height:44px;line-height:44px;margin:0 auto 8px;border-radius:50%;border:2px solid;font-size:20px}
 .lh-qcard strong{display:block;font-size:13px;margin-bottom:2px}
@@ -97,6 +98,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lh-conn-card strong{display:block;font-size:13px;margin-bottom:2px}
 .lh-conn-card span{font-size:11px;color:#9cc4ab}
 .lh-sidebar{display:none}
+
+.lh-current-thumb{width:100%;height:180px;object-fit:cover;border-radius:14px;margin-bottom:12px;background:#23201b}
+.lh-recent{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:18px}
+@media(min-width:600px){.lh-recent{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:900px){.lh-recent{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lh-recent-card{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px;cursor:pointer;text-align:left;font-family:inherit;color:var(--tx);min-height:120px}
+.lh-recent-card strong{display:block;font-size:15px;line-height:1.4;margin-bottom:6px}
+.lh-recent-card span{font-size:12px;color:var(--tx3);line-height:1.5}
+.lh-recent-head{height:64px;border-radius:10px;background:linear-gradient(135deg,#2a241a,#1b1916);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:10px}
+html,body{overflow-x:hidden}
+@media(max-width:520px){.fi,.cinput,.genSel{font-size:16px}}
+.lh-conn{grid-template-columns:1fr}
+@media(min-width:600px){.lh-conn{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:900px){.lh-conn{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
 .lh-bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#141210;border-top:1px solid var(--border);padding:8px 6px calc(8px + env(safe-area-inset-bottom));justify-content:space-around;align-items:center}
 .lh-bottom button{background:none;border:0;color:var(--tx3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:6px 4px;min-width:0;text-align:center}
 .lh-bottom button.lh-active{color:#d4b47a}
@@ -280,7 +296,9 @@ section{margin-bottom:20px}
       </div>
       <div class="lh-current">
         <span class="lh-current-badge">● En producción</span>
+        <img class="lh-current-thumb" id="lhCurrentThumb" alt="" hidden>
         <div class="lh-current-title" id="lhCurrentTitle">Aún no hay un proyecto en producción</div>
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:10px" id="lhCurrentUpdated" hidden></div>
         <div class="lh-progress"><div class="lh-progress-bar" id="lhCurrentBar" style="width:0%"></div></div>
         <div style="font-size:12px;color:var(--tx3)" id="lhCurrentProgressText">0/7 pasos</div>
         <div class="lh-chips" id="lhCurrentChips"></div>
@@ -290,14 +308,18 @@ section{margin-bottom:20px}
         </div>
       </div>
       <h2 class="lh-step-title" style="font-size:18px">Mis proyectos recientes</h2>
-      <p class="lh-step-desc">Abre la lista completa para continuar un reel guardado.</p>
-      <button type="button" class="lh-hero-btn" data-lh-step="mis-videos">Ver todos mis videos →</button>
+      <p class="lh-step-desc">Tus reels guardados, los más recientes primero. Toca uno para continuar donde lo dejaste.</p>
+      <div class="lh-recent" id="lhRecentGrid"></div>
+      <button type="button" class="lh-hero-btn" data-lh-step="mis-videos">Ver la biblioteca completa →</button>
       <h2 class="lh-step-title" style="font-size:18px;margin-top:22px">Conexiones</h2>
       <div class="lh-conn">
-        <div class="lh-conn-card"><strong>ElevenLabs</strong><span>● Voz · En la herramienta</span></div>
-        <div class="lh-conn-card"><strong>Google Cloud</strong><span>● Generación · En la herramienta</span></div>
-        <div class="lh-conn-card"><strong>Facebook</strong><span>● Publicación · En la herramienta</span></div>
+        <div class="lh-conn-card"><strong>ElevenLabs</strong><span id="lhConnEleven">Comprobando…</span></div>
+        <div class="lh-conn-card"><strong>Google Cloud</strong><span id="lhConnGoogle">Comprobando…</span></div>
+        <div class="lh-conn-card"><strong>Imágenes y videos</strong><span id="lhConnImageVideo">Comprobando…</span></div>
+        <div class="lh-conn-card"><strong>Montaje (Cloud Run)</strong><span id="lhConnMontage">Comprobando…</span></div>
+        <div class="lh-conn-card"><strong>Facebook</strong><span id="lhConnFacebook">Publicación manual, sin API</span></div>
       </div>
+      <p class="lh-step-desc" style="font-size:12px">El estado se comprueba en el servidor al abrir Inicio: solo indica si cada variable está configurada, nunca muestra claves ni llama a un proveedor de pago para comprobarlo.</p>
       <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
     <div class="lh-step" id="lh-step-mis-videos" data-lh-step="mis-videos">
@@ -756,9 +778,9 @@ section{margin-bottom:20px}
   </div>
   <nav class="lh-bottom" aria-label="Navegación principal">
     <button type="button" data-lh-step="inicio">🏠<br>Inicio</button>
-    <button type="button" data-lh-step="investigacion">🔎<br>Investigación</button>
+    <button type="button" data-lh-step="mis-videos">📁<br>Biblioteca</button>
     <button type="button" class="lh-bottom-plus" data-lh-step="tema">+</button>
-    <button type="button" data-lh-step="mis-videos">💾<br>Proyectos</button>
+    <button type="button" data-lh-step="produccion">🎬<br>Proyectos</button>
     <button type="button" data-lh-step="extras">···<br>Más</button>
   </nav>
 </div>

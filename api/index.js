@@ -10,6 +10,7 @@ const handlers = {
   refs: () => require('../server/refs'),
   studio: () => require('../server/studio'),
   'studio-job': () => require('../server/studio-job'),
+  status: () => require('../server/status'),
   trends: () => require('../server/trends'),
   unify: () => require('../server/unify'),
   'unify-status': () => require('../server/unify-status'),

@@ -83,6 +83,31 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Usar una biblioteca, una biblia de personajes, un protagonista fijo o tomas
   de videos anteriores para un video nuevo.
 
+## Rediseño completo móvil, segunda fase (26 de octubre de 2026)
+
+Auditoría: la generación (Gemini para texto, Nano Banana para imágenes, Veo
+para video, Lyria para música, ElevenLabs/Google para voz) y el montaje en
+Cloud Run no se tocaron; solo cambió el frontend, salvo un endpoint nuevo
+de solo lectura, `/api/status`, que indica si cada variable está
+configurada en Vercel, sin devolver valores ni llamar a proveedores de pago.
+En móvil, Inicio usa una cuadrícula de 2 columnas para los 6 accesos rápidos
+(3 en tableta, 6 en escritorio), muestra el proyecto actual con miniatura
+cuando ya hay una imagen o video en la sesión y última actualización cuando
+existe, y una lista real de proyectos recientes (historial local y reels de
+la nube ya cargados) con su estado real (En borrador, Guardado o Publicado)
+y su duración cuando está guardada, sin inventar "Completado" ni fotos.
+La barra inferior es Inicio, Biblioteca, + Nuevo proyecto, Proyectos y Más:
+Biblioteca es la lista completa de reels guardados (no el banco de material
+eliminado), y Proyectos lleva al proyecto en producción, para no duplicar
+dos botones a la misma lista. Las conexiones se comprueban al abrir Inicio
+con `/api/status`: Google Cloud, imágenes/videos, ElevenLabs y montaje
+muestran Configurado o No configurado según la variable; Facebook se
+informa siempre como publicación manual, porque la herramienta no publica
+por API. No se inventaron ajustes ni perfil: el encabezado solo conserva
+la acción personal que ya existía (Salir). Los formularios usan texto de
+16 px en móvil para que el teclado no haga zoom, y el contenido tiene
+espacio inferior para la barra con área segura de iPhone.
+
 ## Diseño oscuro de producción, como en las imágenes de referencia
 
 Desde el 26 de octubre de 2026, por petición del usuario con dos imágenes de
