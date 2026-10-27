@@ -83,6 +83,23 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Usar una biblioteca, una biblia de personajes, un protagonista fijo o tomas
   de videos anteriores para un video nuevo.
 
+## Diseño oscuro de producción, como en las imágenes de referencia
+
+Desde el 26 de octubre de 2026, por petición del usuario con dos imágenes de
+referencia (celular y computadora), la aplicación es oscura y ejecutiva:
+fondo casi negro, tarjetas oscuras con borde sutil, dorado para los acentos,
+encabezado con el logo LH y “LEGADO DE HIERRO · STUDIO”. En el celular hay
+una barra inferior fija con Inicio, Investigación, el botón central dorado
+para un proyecto nuevo, Proyectos y Más; en la computadora, una barra lateral
+con todas las fases y una tarjeta con el lema. La pantalla de Inicio muestra
+el hero “De la idea al video en minutos”, 6 accesos rápidos (Ideas, Guiones,
+Voces, Imágenes, Música, Montaje), el proyecto actual con su avance en 7
+pasos (idea, guion, voz, imágenes, música, montaje, exportar), un botón para
+ver todos los videos, y las herramientas que usa (ElevenLabs, Google Cloud y
+Facebook, sin afirmar un estado de conexión en vivo que la pantalla no
+verifica). No se reintrodujo ninguna biblioteca: la barra inferior no tiene
+Biblioteca, y Proyectos es la lista de reels guardados.
+
 ## Diseño moderno y ejecutivo, sin desplazamiento lateral
 
 Desde el 26 de octubre de 2026, por petición del usuario, el diseño dejó de

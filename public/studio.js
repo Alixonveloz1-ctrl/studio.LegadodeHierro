@@ -416,7 +416,7 @@ function studioRenderEpisode(res){
   var notes=[n+' palabras · '+Math.round(n/rate)+' s estimados; el montaje usará el audio medido.'];
   if(n/rate<seconds*.75||n/rate>seconds*1.3)notes.push('Revisa la duración: el texto se aleja del objetivo.');
   if(/comenta\s+["“']?(yo puedo|si|am[eé]n)|asesor[ií]as?\s+(completamente\s+)?gratis/i.test(res.a))notes.push('Revisa el cierre: ofrece utilidad dentro del video y evita recompensas por comentar.');
-  studioEl('scriptReview').textContent=notes.join('\n');studioEl('scriptEdit').value=res.a;
+  studioEl('scriptReview').textContent=notes.join('\n');lhPaintCurrentProject();studioEl('scriptEdit').value=res.a;
   studioPaintQuality(res);
   if(!STUDIO.plan.length)STUDIO.plan=LH.scenePlan(res,seconds,vidFmt).map(function(s){return Object.assign(s,{assetId:'',reason:'Pendiente de asignar video'});});
   studioPaintPlan();
@@ -885,15 +885,32 @@ async function studioGuard(fn){
   if(STUDIO.busy)return;STUDIO.busy=true;
   try{await fn();}catch(e){var lp=studioEl('libraryPanel');if(lp&&lp.open)studioLibraryMessage(e.message,true);else studioMessage(e.message,true);}finally{STUDIO.busy=false;}
 }
-var LH_STEPS=['mis-videos','investigacion','tema','produccion','musica','montaje','extras'];
+var LH_STEPS=['inicio','mis-videos','investigacion','tema','produccion','musica','montaje','extras'];
 function lhShowStep(step){
   if(LH_STEPS.indexOf(step)<0)return;
   document.querySelectorAll('.lh-step').forEach(function(el){el.classList.toggle('lh-active',el.dataset.lhStep===step);});
-  document.querySelectorAll('.lh-nav').forEach(function(b){b.classList.toggle('lh-active',b.dataset.lhStep===step);b.setAttribute('aria-pressed',String(b.dataset.lhStep===step));});
+  document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.classList.toggle('lh-active',b.dataset.lhStep===step);b.setAttribute('aria-pressed',String(b.dataset.lhStep===step));});
+  if(step==='inicio')lhPaintCurrentProject();
   try{window.scrollTo(0,0);}catch(e){}
 }
+function lhPaintCurrentProject(){
+  var title=studioEl('lhCurrentTitle');if(!title)return;
+  var bar=studioEl('lhCurrentBar'),txt=studioEl('lhCurrentProgressText'),chips=studioEl('lhCurrentChips');
+  if(!lastRes||!lastRes.topic){title.textContent='Aún no hay un proyecto en producción';if(bar)bar.style.width='0%';if(txt)txt.textContent='0/7 pasos';if(chips)chips.innerHTML='';return;}
+  title.textContent=lastRes.topic;
+  var hasAudio=(typeof audES!=='undefined'&&audES)||(typeof audEN!=='undefined'&&audEN);
+  var hasImages=(typeof imgs!=='undefined'&&imgs.some(function(a){return !!a;}));
+  var hasMusic=false;try{hasMusic=!!(typeof selectedMusic==='function'&&selectedMusic())||!!localStorage.getItem('lh_music_sel');}catch(e){}
+  var hasMontage=(typeof FINALES!=='undefined'&&(FINALES.es||FINALES.en));
+  var hasExport=(typeof finalVid!=='undefined'&&!!finalVid);
+  var steps=[{label:'Idea',done:!!lastRes.topic},{label:'Guion',done:!!lastRes.a},{label:'Voz',done:!!hasAudio},{label:'Imágenes',done:!!hasImages},{label:'Música',done:hasMusic},{label:'Montaje',done:!!hasMontage},{label:'Exportar',done:!!hasExport}];
+  var done=steps.filter(function(s){return s.done;}).length;
+  if(bar)bar.style.width=Math.round(done/steps.length*100)+'%';
+  if(txt)txt.textContent=done+'/'+steps.length+' pasos';
+  if(chips)chips.innerHTML=steps.map(function(s){return '<span class="lh-chip'+(s.done?' done':'')+'">'+s.label+' · '+(s.done?'Listo':'Pendiente')+'</span>';}).join('');
+}
 function studioSteps(){
-  document.querySelectorAll('.lh-nav').forEach(function(b){b.onclick=function(){lhShowStep(b.dataset.lhStep);};});
+  document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.onclick=function(){lhShowStep(b.dataset.lhStep);};});
   document.querySelectorAll('[data-lh-next]').forEach(function(b){b.onclick=function(){var cur=document.querySelector('.lh-step.lh-active');var i=LH_STEPS.indexOf(cur&&cur.dataset.lhStep);if(i>=0&&i<LH_STEPS.length-1)lhShowStep(LH_STEPS[i+1]);};});
   document.querySelectorAll('[data-lh-prev]').forEach(function(b){b.onclick=function(){var cur=document.querySelector('.lh-step.lh-active');var i=LH_STEPS.indexOf(cur&&cur.dataset.lhStep);if(i>0)lhShowStep(LH_STEPS[i-1]);};});
   if(!document.querySelector('.lh-step.lh-active'))lhShowStep('mis-videos');

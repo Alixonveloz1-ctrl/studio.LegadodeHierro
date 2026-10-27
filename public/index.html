@@ -11,22 +11,22 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --gold:#b8975a;--gold-l:#d4b47a;--gold-p:#f0e8d8;
-  --sage:#7a9b8a;--sage-p:#eaf2ee;
-  --rose:#c4897a;--rose-p:#f8ede8;
-  --sky:#7a9ec4;--sky-p:#e8f0f8;
-  --lav:#9a8ac4;--lav-p:#f0eef8;
-  --grn:#9ab47a;--grn-p:#eef4e8;
-  --cream:#f4f3f0;--warm:#f8f6f3;--sand:#e8e0d0;
-  --border:#e7e2d9;--sh:rgba(28,26,23,0.08);
-  --tx:#191919;--tx2:#4a4a4a;--tx3:#8a8a8a;
+  --gold:#b8975a;--gold-l:#d4b47a;--gold-p:#2a241a;
+  --sage:#7a9b8a;--sage-p:#1e2a22;
+  --rose:#c4897a;--rose-p:#2a1e1a;
+  --sky:#7a9ec4;--sky-p:#1e242e;
+  --lav:#9a8ac4;--lav-p:#241f2e;
+  --grn:#9ab47a;--grn-p:#22281c;
+  --cream:#12100d;--warm:#1b1916;--sand:#2e2a24;
+  --border:#2e2a24;--sh:rgba(0,0,0,0.35);
+  --tx:#f5f2ea;--tx2:#c9c2b4;--tx3:#8a8378;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:var(--cream);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}
 .pg{display:none;min-height:100vh}
 .pg.on{display:block}
 #pg-login{display:none;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#f5f0e8,#ede8f5,#e8f0f5);min-height:100vh}
 #pg-login.on{display:flex}
-.lcard{max-width:400px;width:100%;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(74,74,90,0.12);overflow:hidden}
+.lcard{max-width:400px;width:100%;background:var(--warm);border-radius:20px;box-shadow:0 20px 60px rgba(74,74,90,0.12);overflow:hidden}
 .lhdr{background:linear-gradient(135deg,var(--gold),var(--gold-l));padding:28px;text-align:center}
 .lhdr-icon{font-size:36px;margin-bottom:8px}
 .lhdr-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:3px}
@@ -35,13 +35,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lbody{padding:24px}
 .ltabs{display:flex;gap:3px;margin-bottom:18px;background:var(--warm);border-radius:10px;padding:3px}
 .ltab{flex:1;padding:8px;border:none;background:none;border-radius:8px;font-size:13px;font-weight:500;color:var(--tx3);cursor:pointer;font-family:inherit;transition:all .15s}
-.ltab.on{background:#fff;color:var(--tx);box-shadow:0 1px 4px var(--sh)}
+.ltab.on{background:var(--warm);color:var(--tx);box-shadow:0 1px 4px var(--sh)}
 .fg{margin-bottom:12px}
 .fl{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:5px;display:block}
-.fi{width:100%;background:#fff;border:1px solid var(--border);border-radius:12px;color:var(--tx);padding:11px 14px;font-size:14px;font-family:inherit;outline:none;-webkit-appearance:none}
+.fi{width:100%;background:var(--warm);border:1px solid var(--border);border-radius:12px;color:var(--tx);padding:11px 14px;font-size:14px;font-family:inherit;outline:none;-webkit-appearance:none}
 .fi:focus{border-color:var(--gold)}
 .fi::placeholder{color:var(--tx3)}
-.genSel{width:100%;margin-top:4px;background:#fff;border:1.5px solid var(--border);border-radius:8px;color:var(--tx);padding:8px 10px;font-size:12px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none}
+.genSel{width:100%;margin-top:4px;background:var(--warm);border:1.5px solid var(--border);border-radius:8px;color:var(--tx);padding:8px 10px;font-size:12px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none}
 .genSel:focus{border-color:var(--sage)}
 .genLbl{font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;display:block}
 .lbtn{width:100%;background:linear-gradient(135deg,var(--gold),var(--gold-l));color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px;-webkit-appearance:none}
@@ -50,7 +50,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lok{background:var(--sage-p);border:1px solid #a8c4b4;border-radius:8px;padding:9px 12px;font-size:12px;color:#2a6a4a;margin-top:9px;display:none}
 .lhelp{background:var(--warm);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:11px;color:var(--tx3);line-height:1.7}
 .lft{text-align:center;font-size:10px;color:var(--tx3);padding:12px;border-top:1px solid var(--border)}
-.ahdr{background:#1c1a17;border-bottom:1px solid #1c1a17;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,0.18)}
+.ahdr{background:#0f0e0c;border-bottom:1px solid #2e2a24;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,0.18)}
 .ahdr-l .eye{font-size:10px;font-weight:600;letter-spacing:.08em;color:#c9b896;text-transform:uppercase;margin-bottom:2px}
 .ahdr-l .ttl{font-family:'Playfair Display',serif;font-size:clamp(17px,3vw,22px);font-weight:700;color:#fff}
 .ahdr-l .ttl em{color:var(--gold);font-style:italic}
@@ -59,42 +59,82 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .bdot{width:5px;height:5px;background:var(--sage);border-radius:50%}
 .btxt{font-size:9px;font-weight:600;color:var(--sage);letter-spacing:.06em}
 .xbtn{background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--tx3);padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit}
-.amain{max-width:860px;margin:0 auto;padding:18px 14px 80px}
+.amain{max-width:860px;margin:0 auto;padding:18px 14px 110px}
 .slbl{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--tx2);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .slbl::after{content:'';flex:1;height:1px;background:var(--border)}
 .lh-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0;margin-bottom:20px}
-.lh-nav{border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--tx2);padding:10px 6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.3;text-align:center;min-width:0}
+.lh-nav{border:1px solid var(--border);border-radius:12px;background:var(--warm);color:var(--tx2);padding:10px 6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.3;text-align:center;min-width:0}
 .lh-nav.lh-active{border-color:#1c1a17;background:#1c1a17;color:#d4b47a}
 .lh-step{display:none}
 .lh-step.lh-active{display:block}
 .lh-step-title{font-size:24px;font-weight:700;letter-spacing:-0.01em;margin:0 0 6px;color:var(--tx)}
 .lh-step-desc{font-size:14px;line-height:1.6;color:var(--tx2);margin:0 0 18px}
 .lh-step-foot{display:flex;justify-content:space-between;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
-.lh-prev,.lh-next{border:2px solid #b8975a;border-radius:10px;background:#fff;color:#b8975a;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.lh-prev,.lh-next{border:2px solid #b8975a;border-radius:10px;background:var(--warm);color:#b8975a;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
 .lh-next{background:#b8975a;color:#fff}
+
+.lh-logo{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#b8975a,#d4b47a);color:#12100d;font-family:'Playfair Display',serif;font-weight:700;font-size:20px;border-radius:10px}
+.lh-hero{background:linear-gradient(135deg,#2a241a,#1b1916);border:1px solid #b8975a55;border-radius:20px;padding:20px;margin-bottom:18px}
+.lh-hero-tag{font-size:11px;font-weight:700;letter-spacing:.12em;color:#d4b47a;text-transform:uppercase;margin-bottom:8px}
+.lh-hero-title{font-size:24px;font-weight:700;line-height:1.25;color:#fff;margin-bottom:8px}
+.lh-hero-sub{font-size:14px;line-height:1.6;color:#c9c2b4;margin-bottom:16px}
+.lh-hero-btn{background:linear-gradient(135deg,#b8975a,#d4b47a);color:#12100d;border:0;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.lh-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.lh-qcard{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;cursor:pointer;font-family:inherit;color:var(--tx)}
+.lh-qicon{display:block;width:44px;height:44px;line-height:44px;margin:0 auto 8px;border-radius:50%;border:2px solid;font-size:20px}
+.lh-qcard strong{display:block;font-size:13px;margin-bottom:2px}
+.lh-qcard span{font-size:11px;color:var(--tx3);line-height:1.3}
+.lh-current{background:var(--warm);border:1px solid var(--border);border-radius:20px;padding:18px;margin-bottom:18px}
+.lh-current-badge{display:inline-block;background:#2a241a;color:#d4b47a;border:1px solid #b8975a55;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;margin-bottom:10px}
+.lh-current-title{font-size:20px;font-weight:700;line-height:1.3;margin-bottom:12px}
+.lh-progress{height:8px;background:#2e2a24;border-radius:999px;overflow:hidden;margin-bottom:6px}
+.lh-progress-bar{height:100%;background:linear-gradient(90deg,#b8975a,#d4b47a);border-radius:999px}
+.lh-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.lh-chip{border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:11px;color:var(--tx2)}
+.lh-chip.done{border-color:#7a9b8a;color:#9cc4ab}
+.lh-conn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.lh-conn-card{background:var(--warm);border:1px solid var(--border);border-radius:14px;padding:12px}
+.lh-conn-card strong{display:block;font-size:13px;margin-bottom:2px}
+.lh-conn-card span{font-size:11px;color:#9cc4ab}
+.lh-sidebar{display:none}
+.lh-bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#141210;border-top:1px solid var(--border);padding:8px 6px calc(8px + env(safe-area-inset-bottom));justify-content:space-around;align-items:center}
+.lh-bottom button{background:none;border:0;color:var(--tx3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:6px 4px;min-width:0;text-align:center}
+.lh-bottom button.lh-active{color:#d4b47a}
+.lh-bottom-plus{width:52px;height:52px;border-radius:50%!important;background:linear-gradient(135deg,#b8975a,#d4b47a)!important;color:#12100d!important;font-size:26px!important;line-height:1}
+@media(min-width:900px){
+  .lh-layout{display:flex;gap:24px;align-items:flex-start}
+  .lh-sidebar{display:block;position:sticky;top:76px;width:240px;flex-shrink:0;background:#141210;border:1px solid var(--border);border-radius:20px;padding:16px}
+  .lh-sidebar button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--tx2);padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border-radius:12px}
+  .lh-sidebar button.lh-active{background:#2a241a;color:#d4b47a}
+  .lh-sidebar-promo{margin-top:18px;background:#2a241a;border-radius:14px;padding:16px;font-size:12px;line-height:1.6;color:#c9c2b4;text-align:center}
+  .amain{flex:1;max-width:1100px;margin:0}
+  .lh-bottom{display:none}
+  .lh-quick{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
 section{margin-bottom:20px}
-.cbar{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:18px;box-shadow:0 1px 4px var(--sh)}
+.cbar{background:var(--warm);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:18px;box-shadow:0 1px 4px var(--sh)}
 .cbar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .cbar-lbl{font-size:11px;color:var(--tx3)}
 .cbar-val{font-size:13px;font-weight:600;color:var(--tx)}
 .api-pills{display:flex;gap:6px;flex-wrap:wrap}
 .api-pill{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px}
-.sbtn{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 16px;font-family:inherit;font-size:12px;font-weight:500;color:var(--tx2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px var(--sh)}
-.spanel{background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow-x:auto;display:none;box-shadow:0 4px 12px var(--sh)}
+.sbtn{width:100%;background:var(--warm);border:1.5px solid var(--border);border-radius:12px;padding:11px 16px;font-family:inherit;font-size:12px;font-weight:500;color:var(--tx2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px var(--sh)}
+.spanel{background:var(--warm);border:1.5px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow-x:auto;display:none;box-shadow:0 4px 12px var(--sh)}
 .spanel.on{display:block}
 .sgrid{display:grid;grid-template-columns:repeat(7,minmax(168px,1fr));min-width:1176px}
 .scol{padding:11px;border-right:1px solid var(--border)}.scol:last-child{border-right:none}
 .sday{font-size:9px;font-weight:700;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;margin-bottom:2px}
 .sslots{font-size:9px;color:var(--tx3);margin-bottom:6px}
 .sitem{padding:7px 8px;margin-bottom:5px;background:var(--warm);border:1.5px solid transparent;border-radius:8px;cursor:pointer;transition:all .15s}
-.sitem:hover{background:#fff;box-shadow:0 2px 8px var(--sh)}
+.sitem:hover{background:var(--warm);box-shadow:0 2px 8px var(--sh)}
 .sitop{display:flex;justify-content:space-between;margin-bottom:2px}
 .sconcept{font-size:10px;color:var(--tx2);line-height:1.35}
 .shook{font-size:9px;font-weight:600}
 .suse{font-size:9px;color:var(--gold);font-weight:600;margin-top:3px}
 .tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media(min-width:760px){.tgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.tc{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px;text-align:left;cursor:pointer;box-shadow:0 2px 8px var(--sh);font-family:inherit;width:100%}
+.tc{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px;text-align:left;cursor:pointer;box-shadow:0 2px 8px var(--sh);font-family:inherit;width:100%}
 .tc.sel{border-width:2px}
 .ticon{font-size:18px;margin-bottom:4px}
 .tname{font-size:11px;font-weight:600;color:var(--tx);margin-bottom:2px}
@@ -102,11 +142,11 @@ section{margin-bottom:20px}
 .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
 @media(max-width:500px){.twocol{grid-template-columns:1fr}}
 .olist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.oc{background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;box-shadow:0 2px 8px var(--sh);font-family:inherit;text-align:left;width:100%}
+.oc{background:var(--warm);border:1px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;box-shadow:0 2px 8px var(--sh);font-family:inherit;text-align:left;width:100%}
 .oc.sel{border-width:2px}
 .om{font-size:12px;font-weight:600;color:var(--tx)}
 .os{font-size:10px;color:var(--tx3)}
-.cinput{width:100%;background:#fff;border:1px solid var(--border);border-radius:14px;color:var(--tx);padding:12px 14px;font-size:14px;font-family:inherit;line-height:1.7;resize:vertical;outline:none;min-height:90px;box-shadow:0 1px 4px var(--sh)}
+.cinput{width:100%;background:var(--warm);border:1px solid var(--border);border-radius:14px;color:var(--tx);padding:12px 14px;font-size:14px;font-family:inherit;line-height:1.7;resize:vertical;outline:none;min-height:90px;box-shadow:0 1px 4px var(--sh)}
 .cinput::placeholder{color:var(--tx3)}
 .cc{font-size:10px;color:var(--tx3);margin-top:4px;text-align:right}
 .grow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -118,15 +158,15 @@ section{margin-bottom:20px}
 .ebox{margin-top:12px;background:var(--rose-p);border:1.5px solid var(--rose);border-radius:12px;padding:12px 14px;display:none}
 .etitle{font-size:12px;font-weight:600;color:var(--rose);margin-bottom:5px}
 .ow{margin-top:32px;display:none}
-.ohdr{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;box-shadow:0 2px 8px var(--sh)}
+.ohdr{background:var(--warm);border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;box-shadow:0 2px 8px var(--sh)}
 .otag{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px}
 .oconcept{font-size:13px;color:var(--tx2);font-style:italic;max-width:460px;line-height:1.4}
 .cbtn{background:var(--warm);border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:inherit}
 .cbtn.done{background:var(--sage-p);border-color:#a8c4b4;color:var(--sage)}
 .tabrow{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
-.tabbtn{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:500;color:var(--tx3);cursor:pointer;font-family:inherit}
+.tabbtn{background:var(--warm);border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:500;color:var(--tx3);cursor:pointer;font-family:inherit}
 .tabbtn.on{border-width:2px;font-weight:600}
-.blk{background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh)}
+.blk{background:var(--warm);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh)}
 .bhdr{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
 .bttl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 .bbody{padding:18px;max-height:480px;overflow-y:auto;line-height:1.9;font-size:14px}
@@ -134,7 +174,7 @@ section{margin-bottom:20px}
 .blbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:6px;margin-bottom:3px}
 .bprim{font-size:15px;font-weight:700}
 .bmono{font-family:'Courier New',monospace;font-size:11px;color:var(--tx2)}
-.scard{background:#fff;border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 4px 16px var(--sh);margin-top:14px}
+.scard{background:var(--warm);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 4px 16px var(--sh);margin-top:14px}
 .shdr{padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:7px}
 .stitl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 .ssub{font-size:11px;color:var(--tx3);margin-top:2px}
@@ -149,7 +189,7 @@ section{margin-bottom:20px}
 .expbtn{background:linear-gradient(135deg,var(--lav),#b8a8e4);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:14px}
 .oftr{margin-top:22px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .fsig{font-size:10px;color:var(--tx3);letter-spacing:.1em}
-.nbtn{background:#fff;border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.nbtn{background:var(--warm);border:1.5px solid var(--border);border-radius:8px;color:var(--tx2);padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
 .voxLbl{display:block;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:11px}
 .voxV{float:right;font-weight:700;color:#c4897a;font-variant-numeric:tabular-nums}
 .voxR{width:100%;margin:5px 0 2px;accent-color:#c4897a;height:20px}
@@ -187,15 +227,30 @@ section{margin-bottom:20px}
 <!-- APP -->
 <div id="pg-app" class="pg">
   <header class="ahdr">
-    <div class="ahdr-l">
-      <div class="eye">Sistema de Producción · Facebook Reels</div>
-      <div class="ttl">Legado <em>de</em> Hierro</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="lh-logo">LH</div>
+      <div class="ahdr-l">
+        <div class="ttl">LEGADO DE HIERRO</div>
+        <div class="eye">S T U D I O</div>
+      </div>
     </div>
     <div class="ahdr-r">
-      <div class="badge"><div class="bdot"></div><span class="btxt">Estudio personal</span></div>
+      <div class="badge"><div class="bdot"></div><span class="btxt">Studio de IA</span></div>
       <button class="xbtn" onclick="logout()">Salir</button>
     </div>
   </header>
+  <div class="lh-layout">
+  <aside class="lh-sidebar" aria-label="Navegación principal">
+    <button type="button" data-lh-step="inicio">🏠 Inicio</button>
+    <button type="button" data-lh-step="mis-videos">💾 Mis videos</button>
+    <button type="button" data-lh-step="investigacion">🔎 Investigación</button>
+    <button type="button" data-lh-step="tema">🎬 Tema y guion</button>
+    <button type="button" data-lh-step="produccion">🎙 Producción</button>
+    <button type="button" data-lh-step="musica">🎵 Música</button>
+    <button type="button" data-lh-step="montaje">🎞 Montaje</button>
+    <button type="button" data-lh-step="extras">··· Extras</button>
+    <div class="lh-sidebar-promo">GRANDES HISTORIAS TAMBIÉN SE CONSTRUYEN CON IA<br><br><span style="color:#d4b47a;font-family:'Playfair Display',serif;font-size:22px">LH</span></div>
+  </aside>
 
   <main class="amain">
     <div class="cbar">
@@ -208,16 +263,44 @@ section{margin-bottom:20px}
 
     <div id="studioStatus" class="studio-status" role="status" aria-live="polite" hidden></div>
     <button type="button" id="studioPending" class="studio-button" hidden>Reanudar trabajo</button>
-        <nav class="lh-steps" aria-label="Fases de producción">
-      <button type="button" class="lh-nav lh-active" data-lh-step="mis-videos">💾 Mis videos</button>
-      <button type="button" class="lh-nav" data-lh-step="investigacion">🔎 Investigación</button>
-      <button type="button" class="lh-nav" data-lh-step="tema">🎬 Tema y guion</button>
-      <button type="button" class="lh-nav" data-lh-step="produccion">🎙 Producción</button>
-      <button type="button" class="lh-nav" data-lh-step="musica">🎵 Música</button>
-      <button type="button" class="lh-nav" data-lh-step="montaje">🎞 Montaje</button>
-      <button type="button" class="lh-nav" data-lh-step="extras">📱 Extras</button>
-    </nav>
-    <div class="lh-step lh-active" id="lh-step-mis-videos" data-lh-step="mis-videos">
+    <div class="lh-step lh-active" id="lh-step-inicio" data-lh-step="inicio">
+      <div class="lh-hero">
+        <div class="lh-hero-tag">Producción inteligente</div>
+        <div class="lh-hero-title">De la idea al video en minutos</div>
+        <p class="lh-hero-sub">Guiones, voces, imágenes, música y montaje, todo en un solo lugar.</p>
+        <button type="button" class="lh-hero-btn" onclick="reset();lhShowStep('tema')">+ Nuevo proyecto</button>
+      </div>
+      <div class="lh-quick">
+        <button type="button" class="lh-qcard" data-lh-step="investigacion"><span class="lh-qicon" style="border-color:#d4b47a;color:#d4b47a">💡</span><strong>Ideas</strong><span>Tendencias y reels virales</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="tema"><span class="lh-qicon" style="border-color:#7a9ec4;color:#7a9ec4">📄</span><strong>Guiones</strong><span>Español e inglés</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="produccion"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎙</span><strong>Voces</strong><span>ElevenLabs y Google</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="produccion"><span class="lh-qicon" style="border-color:#9ab47a;color:#9ab47a">🖼</span><strong>Imágenes</strong><span>IA + referencias</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="musica"><span class="lh-qicon" style="border-color:#c4897a;color:#c4897a">🎵</span><strong>Música</strong><span>IA original</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="montaje"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎞</span><strong>Montaje</strong><span>Automático</span></button>
+      </div>
+      <div class="lh-current">
+        <span class="lh-current-badge">● En producción</span>
+        <div class="lh-current-title" id="lhCurrentTitle">Aún no hay un proyecto en producción</div>
+        <div class="lh-progress"><div class="lh-progress-bar" id="lhCurrentBar" style="width:0%"></div></div>
+        <div style="font-size:12px;color:var(--tx3)" id="lhCurrentProgressText">0/7 pasos</div>
+        <div class="lh-chips" id="lhCurrentChips"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" class="cbtn" data-lh-step="montaje">👁 Vista previa</button>
+          <button type="button" class="lh-hero-btn" data-lh-step="produccion">✎ Editar</button>
+        </div>
+      </div>
+      <h2 class="lh-step-title" style="font-size:18px">Mis proyectos recientes</h2>
+      <p class="lh-step-desc">Abre la lista completa para continuar un reel guardado.</p>
+      <button type="button" class="lh-hero-btn" data-lh-step="mis-videos">Ver todos mis videos →</button>
+      <h2 class="lh-step-title" style="font-size:18px;margin-top:22px">Conexiones</h2>
+      <div class="lh-conn">
+        <div class="lh-conn-card"><strong>ElevenLabs</strong><span>● Voz · En la herramienta</span></div>
+        <div class="lh-conn-card"><strong>Google Cloud</strong><span>● Generación · En la herramienta</span></div>
+        <div class="lh-conn-card"><strong>Facebook</strong><span>● Publicación · En la herramienta</span></div>
+      </div>
+      <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
+    </div>
+    <div class="lh-step" id="lh-step-mis-videos" data-lh-step="mis-videos">
       <h2 class="lh-step-title">💾 Mis videos</h2>
       <p class="lh-step-desc">Tus reels guardados. Abre uno para seguir donde lo dejaste.</p>
 <details class="studio-card" id="projectsPanel"><summary>Mis reels guardados</summary><p>Abre un reel para continuar su guion, sus tomas, su audio y su montaje.</p><button id="projectsLoad" type="button">Actualizar lista</button><div id="projectList" class="studio-grid"></div></details>
@@ -228,7 +311,7 @@ section{margin-bottom:20px}
       <p class="lh-step-desc">Busca qué está funcionando en el nicho y elige una idea para adaptarla a Legado de Hierro.</p>
 <section>
       <div class="slbl">🔎 Ideas para tu próximo video</div>
-      <div style="background:#fff;border:1.5px solid #7a9ec444;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px var(--sh)">
+      <div style="background:var(--warm);border:1.5px solid #7a9ec444;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px var(--sh)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
           <div style="font-size:11px;color:var(--tx3);line-height:1.5;flex:1;min-width:200px">Busca videos del nicho y prepara ideas con su apertura, desarrollo y cierre adaptados a Legado de Hierro. Elige una y genera el guion.</div>
           <button class="cbtn" id="bTrends" style="border-color:#7a9ec4;color:#7a9ec4">🔎 Buscar ideas</button>
@@ -261,7 +344,7 @@ section{margin-bottom:20px}
 
     <div class="grow">
       <button class="gbtn" id="gbtn" disabled>⚔ Forjar Reel</button>
-      <button id="gbtn5" style="background:#fff;border:2px solid var(--gold);color:var(--gold);border-radius:12px;padding:12px 20px;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;gap:8px">⚔ Generar 5</button>
+      <button id="gbtn5" style="background:var(--warm);border:2px solid var(--gold);color:var(--gold);border-radius:12px;padding:12px 20px;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;gap:8px">⚔ Generar 5</button>
       <span class="gnote" id="gnote" style="display:none">Generando guiones ES + EN y prompts...</span>
     </div>
     <div id="gnote5" style="font-size:10px;color:var(--tx3);margin-top:6px">Generar 5: forja 5 guiones TODOS DIFERENTES — conceptos, pilares, ganchos, duraciones y modos distintos (si escribiste un concepto, ese será el guion 1). Luego eliges cuáles llevar a imágenes, audio y ZIP.</div>
@@ -273,9 +356,7 @@ section{margin-bottom:20px}
       <div id="batchGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px"></div>
     </section>
 
-    <!-- POST FACEBOOK -->
-    <div style="margin-top:20px">
-      <div class="slbl">📱 <div class="ow" id="ow">
+    <div class="ow" id="ow">
       <div class="ohdr">
         <div><div class="otag" id="otag"></div><div class="oconcept" id="oconcept"></div></div>
         <button class="cbtn" id="cpall">Copiar Todo</button>
@@ -284,7 +365,7 @@ section{margin-bottom:20px}
       <div id="tabcontent"></div>
 
       <div class="scard" id="capCard" style="border:1.5px solid #b8975a44;margin-top:14px;display:none">
-        <div class="shdr" style="background:#f0e8d8">
+        <div class="shdr" style="background:var(--gold-p)">
           <div><div class="stitl" style="color:#b8975a"># Caption + Hashtags — Facebook</div><div class="ssub">Listo para copiar y pegar</div></div>
           <div class="sbtns">
             <button class="cbtn" id="bcap" style="border-color:#b8975a;color:#b8975a">↻ Regenerar</button>
@@ -330,7 +411,7 @@ section{margin-bottom:20px}
     </section>
     <section>
       <div class="slbl">🔎 <div class="scard" id="audioCard" style="border:1.5px solid #c4897a44">
-        <div class="shdr" style="background:#f8ede8">
+        <div class="shdr" style="background:var(--warm)">
           <div><div class="stitl" style="color:#c4897a">🎙 Narración — Audio</div><div class="ssub">Elige el motor de voz en los ajustes</div></div>
           <div class="sbtns">
             <button class="cbtn" id="baes" style="border-color:#b8975a;color:#b8975a">🎙 Audio ES</button>
@@ -536,7 +617,7 @@ section{margin-bottom:20px}
               <select id="musicSel" class="genSel"><option value="">Sin música</option></select>
             </label>
             <button class="cbtn" id="bMusicPlay" style="border-color:#9ab47a;color:#9ab47a;margin-top:8px;width:100%">▶ Escuchar cómo quedará (narración + música)</button>
-            <div style="margin-top:10px;padding:10px;background:#fff;border:1px solid var(--border);border-radius:8px">
+            <div style="margin-top:10px;padding:10px;background:var(--warm);border:1px solid var(--border);border-radius:8px">
               <label class="genLbl">🎼 Generar una NUEVA con IA (Lyria 3 Pro de Google · pista larga, se corta donde termina la voz)</label>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">
                 <button type="button" class="voxP musicPre" data-p="epica">⚔ Épica de batalla</button>
@@ -600,8 +681,8 @@ section{margin-bottom:20px}
 <!-- POST FACEBOOK -->
     <div style="margin-top:20px">
       <div class="slbl">📱 Post de Facebook</div>
-      <div style="background:#fff;border:1.5px solid #9ab47a44;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh)">
-        <div style="background:#eef4e8;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
+      <div style="background:var(--warm);border:1.5px solid #9ab47a44;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--sh)">
+        <div style="background:var(--warm);padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
           <div>
             <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ab47a">🖼 Generador de Posts — Diseño Profesional</div>
             <div style="font-size:11px;color:var(--tx3);margin-top:2px">Personaje IA + diseño editorial · Listo para publicar</div>
@@ -657,7 +738,7 @@ section{margin-bottom:20px}
               </div>
               <div class="stxt" id="postCapSt"></div>
               <div id="postCapText" style="white-space:pre-wrap;font-size:13px;line-height:1.5;color:var(--tx);margin-bottom:10px"></div>
-              <div id="postCapTags" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#7a6a3a;background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px"></div>
+              <div id="postCapTags" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#7a6a3a;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:9px"></div>
             </div>
           </div>
         </div>
@@ -672,6 +753,14 @@ section{margin-bottom:20px}
       </div>
     </div>
   </main>
+  </div>
+  <nav class="lh-bottom" aria-label="Navegación principal">
+    <button type="button" data-lh-step="inicio">🏠<br>Inicio</button>
+    <button type="button" data-lh-step="investigacion">🔎<br>Investigación</button>
+    <button type="button" class="lh-bottom-plus" data-lh-step="tema">+</button>
+    <button type="button" data-lh-step="mis-videos">💾<br>Proyectos</button>
+    <button type="button" data-lh-step="extras">···<br>Más</button>
+  </nav>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>

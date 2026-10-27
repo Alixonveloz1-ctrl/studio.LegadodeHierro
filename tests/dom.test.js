@@ -63,8 +63,12 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     const {w,errors}=a;
     for(const id of ['libraryPanel','bibliaPanel','bibliaBtn','buildScenePlan','libraryGrid','libraryViewer','librarySettingsDialog','bbanco','bancoPanel','selBibliaModel','libraryCreateTab','librarySavedTab'])assert.equal(w.document.getElementById(id),null,id+' debe estar eliminado');
     for(const id of ['modeSelector','themeGrid','durGrid','hookGrid','conc','gbtn','projectsPanel','episodeTools','genSettings','selImgModel','selImgFmt','selVidModel','selVidFmt','unifyCard'])assert.ok(w.document.getElementById(id),id+' debe seguir presente');
-    assert.ok(w.document.querySelectorAll('.lh-step').length===7);
-    assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='mis-videos');
+    assert.ok(w.document.querySelectorAll('.lh-step').length===8);
+    assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='inicio');
+    assert.ok(w.document.querySelector('#lh-step-inicio').contains(w.document.querySelector('.lh-hero')));
+    assert.ok(w.document.querySelectorAll('.lh-quick .lh-qcard').length===6);
+    assert.ok(w.document.querySelector('#lhCurrentTitle'));
+    assert.ok(w.document.querySelector('.lh-sidebar'));assert.ok(w.document.querySelector('.lh-bottom'));
     assert.ok(w.document.querySelector('#lh-step-investigacion').contains(w.document.querySelector('#bTrends')));
     assert.ok(w.document.querySelector('#lh-step-tema').contains(w.document.querySelector('#modeSelector')));
     assert.ok(w.document.querySelector('#lh-step-produccion').contains(w.document.querySelector('#episodeTools')));
@@ -72,8 +76,8 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     assert.ok(w.document.querySelector('#lh-step-montaje').contains(w.document.querySelector('#unifyCard')));
     assert.ok(w.document.querySelector('#lh-step-extras').contains(w.document.querySelector('#postTema')));
     const css=w.document.querySelector('style').textContent;
-    assert.match(css,/\.lh-steps\{display:grid;grid-template-columns:repeat\(4/);
-    assert.doesNotMatch(css,/\.lh-steps\{[^}]*overflow-x:auto/);
+    assert.match(css,/\.lh-bottom\{display:flex/);
+    assert.match(css,/\.lh-sidebar\{display:none/);
     assert.match(css,/\.tgrid\{display:grid;grid-template-columns:repeat\(2/);
     assert.match(css,/\.olist\{display:grid;grid-template-columns:repeat\(2/);
     w.lhShowStep('produccion');assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='produccion');
