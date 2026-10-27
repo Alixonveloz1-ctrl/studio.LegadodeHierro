@@ -87,8 +87,10 @@ test('simplified UI shows no library, biblia or bank controls, and the main vide
     assert.match(css,/\.olist\{display:grid;grid-template-columns:repeat\(2/);
     w.lhShowStep('produccion');assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='produccion');
     w.document.querySelector('[data-lh-step="musica"]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='musica');
-    w.document.querySelector('#lh-step-musica [data-lh-next]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='montaje');
-    w.document.querySelector('#lh-step-montaje [data-lh-prev]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='musica');
+    assert.equal(w.document.querySelectorAll('.lh-step-foot').length,0,'no debe haber botones Anterior/Siguiente duplicando la navegación');
+    assert.equal(w.document.getElementById('gcost'),null,'la barra de costos debe estar eliminada');
+    w.document.querySelector('.lh-bottom button[data-lh-step="extras"]').click();assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='extras');
+    assert.ok(w.document.querySelector('#lh-step-extras').contains(w.document.querySelector('#bpost')));
     assert.deepEqual(errors,[]);
   }finally{a.close();}
 });

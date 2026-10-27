@@ -83,6 +83,26 @@ directamente y no se debe dar por cerrado un ranking con una sola vista.
 - Usar una biblioteca, una biblia de personajes, un protagonista fijo o tomas
   de videos anteriores para un video nuevo.
 
+## Corrección tras revisión del usuario, 26 de octubre de 2026
+
+El usuario rechazó el marrón anterior: la paleta pasó a negro neutro
+(#0a0a0a), superficies gris oscuro neutro (#17171a), bordes gris acero
+(#26262b) y dorado limpio (#d9a441 / #f0c75e), sin tonos marrones en fondo,
+tarjetas ni seleccionados; el hero usa un degradado cinematográfico de
+atardecer, no un cuadro marrón. Se eliminó la triple navegación: ya no hay
+botones Anterior/Siguiente en ninguna fase, ni botón duplicado de
+biblioteca en Inicio; la navegación es solo las tarjetas de Inicio y la
+barra inferior. Se eliminó la barra de sesión con costos ("0 guiones ·
+coste real...") y sus píldoras, a petición del usuario, que revisa su
+facturación en Google Cloud; `updCost` ahora no hace nada si el elemento
+no existe. El botón inferior "Más" pasó a ser "Posts" directamente, y
+Extras pasó a llamarse "Posts de Facebook", con acceso también desde
+Inicio, porque generar un post es independiente de hacer un video y no
+depende de un proyecto en curso. Investigación ya no muestra cada idea
+completa: cada tarjeta muestra solo título y formato, con el texto
+plegado en "Ver idea", y tiene un botón "Limpiar ideas" que borra las
+ideas guardadas en el teléfono.
+
 ## Rediseño completo móvil, segunda fase (26 de octubre de 2026)
 
 Auditoría: la generación (Gemini para texto, Nano Banana para imágenes, Veo

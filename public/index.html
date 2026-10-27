@@ -5,21 +5,21 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Legado de Hierro">
-<meta name="theme-color" content="#b8975a">
+<meta name="theme-color" content="#d9a441">
 <title>Legado de Hierro</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --gold:#b8975a;--gold-l:#d4b47a;--gold-p:#2a241a;
+  --gold:#d9a441;--gold-l:#f0c75e;--gold-p:#1f1f23;
   --sage:#7a9b8a;--sage-p:#1e2a22;
   --rose:#c4897a;--rose-p:#2a1e1a;
   --sky:#7a9ec4;--sky-p:#1e242e;
   --lav:#9a8ac4;--lav-p:#241f2e;
   --grn:#9ab47a;--grn-p:#22281c;
-  --cream:#12100d;--warm:#1b1916;--sand:#2e2a24;
-  --border:#2e2a24;--sh:rgba(0,0,0,0.35);
-  --tx:#f5f2ea;--tx2:#c9c2b4;--tx3:#8a8378;
+  --cream:#0a0a0a;--warm:#17171a;--sand:#26262b;
+  --border:#26262b;--sh:rgba(0,0,0,0.35);
+  --tx:#fafafa;--tx2:#d4d4d8;--tx3:#a1a1aa;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:var(--cream);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}
 .pg{display:none;min-height:100vh}
@@ -50,7 +50,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lok{background:var(--sage-p);border:1px solid #a8c4b4;border-radius:8px;padding:9px 12px;font-size:12px;color:#2a6a4a;margin-top:9px;display:none}
 .lhelp{background:var(--warm);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:11px;color:var(--tx3);line-height:1.7}
 .lft{text-align:center;font-size:10px;color:var(--tx3);padding:12px;border-top:1px solid var(--border)}
-.ahdr{background:#0f0e0c;border-bottom:1px solid #2e2a24;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,0.18)}
+.ahdr{background:#0a0a0a;border-bottom:1px solid #26262b;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,0.18)}
 .ahdr-l .eye{font-size:10px;font-weight:600;letter-spacing:.08em;color:#c9b896;text-transform:uppercase;margin-bottom:2px}
 .ahdr-l .ttl{font-family:'Playfair Display',serif;font-size:clamp(17px,3vw,22px);font-weight:700;color:#fff}
 .ahdr-l .ttl em{color:var(--gold);font-style:italic}
@@ -64,21 +64,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .slbl::after{content:'';flex:1;height:1px;background:var(--border)}
 .lh-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0;margin-bottom:20px}
 .lh-nav{border:1px solid var(--border);border-radius:12px;background:var(--warm);color:var(--tx2);padding:10px 6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.3;text-align:center;min-width:0}
-.lh-nav.lh-active{border-color:#1c1a17;background:#1c1a17;color:#d4b47a}
+.lh-nav.lh-active{border-color:#1c1a17;background:#1c1a17;color:#f0c75e}
 .lh-step{display:none}
 .lh-step.lh-active{display:block}
 .lh-step-title{font-size:24px;font-weight:700;letter-spacing:-0.01em;margin:0 0 6px;color:var(--tx)}
 .lh-step-desc{font-size:14px;line-height:1.6;color:var(--tx2);margin:0 0 18px}
 .lh-step-foot{display:flex;justify-content:space-between;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
-.lh-prev,.lh-next{border:2px solid #b8975a;border-radius:10px;background:var(--warm);color:#b8975a;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-.lh-next{background:#b8975a;color:#fff}
+.lh-prev,.lh-next{border:2px solid #d9a441;border-radius:10px;background:var(--warm);color:#d9a441;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.lh-next{background:#d9a441;color:#fff}
 
-.lh-logo{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#b8975a,#d4b47a);color:#12100d;font-family:'Playfair Display',serif;font-weight:700;font-size:20px;border-radius:10px}
-.lh-hero{background:linear-gradient(135deg,#2a241a,#1b1916);border:1px solid #b8975a55;border-radius:20px;padding:20px;margin-bottom:18px}
-.lh-hero-tag{font-size:11px;font-weight:700;letter-spacing:.12em;color:#d4b47a;text-transform:uppercase;margin-bottom:8px}
+.lh-logo{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#d9a441,#f0c75e);color:#0a0a0a;font-family:'Playfair Display',serif;font-weight:700;font-size:20px;border-radius:10px}
+.lh-hero{background:linear-gradient(180deg,rgba(10,10,10,0.15) 0%,rgba(10,10,10,0.85) 100%),linear-gradient(135deg,#0f172a 0%,#7c2d12 55%,#d97706 100%);border:1px solid #26262b;border-radius:20px;padding:20px;margin-bottom:18px}
+.lh-hero-tag{font-size:11px;font-weight:700;letter-spacing:.12em;color:#f0c75e;text-transform:uppercase;margin-bottom:8px}
 .lh-hero-title{font-size:24px;font-weight:700;line-height:1.25;color:#fff;margin-bottom:8px}
 .lh-hero-sub{font-size:14px;line-height:1.6;color:#c9c2b4;margin-bottom:16px}
-.lh-hero-btn{background:linear-gradient(135deg,#b8975a,#d4b47a);color:#12100d;border:0;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.lh-hero-btn{background:linear-gradient(135deg,#d9a441,#f0c75e);color:#0a0a0a;border:0;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 .lh-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
 @media(min-width:600px){.lh-quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lh-qcard{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;cursor:pointer;font-family:inherit;color:var(--tx)}
@@ -86,10 +86,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lh-qcard strong{display:block;font-size:13px;margin-bottom:2px}
 .lh-qcard span{font-size:11px;color:var(--tx3);line-height:1.3}
 .lh-current{background:var(--warm);border:1px solid var(--border);border-radius:20px;padding:18px;margin-bottom:18px}
-.lh-current-badge{display:inline-block;background:#2a241a;color:#d4b47a;border:1px solid #b8975a55;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;margin-bottom:10px}
+.lh-current-badge{display:inline-block;background:#1f1f23;color:#f0c75e;border:1px solid #d9a44155;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;margin-bottom:10px}
 .lh-current-title{font-size:20px;font-weight:700;line-height:1.3;margin-bottom:12px}
-.lh-progress{height:8px;background:#2e2a24;border-radius:999px;overflow:hidden;margin-bottom:6px}
-.lh-progress-bar{height:100%;background:linear-gradient(90deg,#b8975a,#d4b47a);border-radius:999px}
+.lh-progress{height:8px;background:#26262b;border-radius:999px;overflow:hidden;margin-bottom:6px}
+.lh-progress-bar{height:100%;background:linear-gradient(90deg,#d9a441,#f0c75e);border-radius:999px}
 .lh-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .lh-chip{border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:11px;color:var(--tx2)}
 .lh-chip.done{border-color:#7a9b8a;color:#9cc4ab}
@@ -99,30 +99,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lh-conn-card span{font-size:11px;color:#9cc4ab}
 .lh-sidebar{display:none}
 
-.lh-current-thumb{width:100%;height:180px;object-fit:cover;border-radius:14px;margin-bottom:12px;background:#23201b}
+.lh-current-thumb{width:100%;height:180px;object-fit:cover;border-radius:14px;margin-bottom:12px;background:#17171a}
 .lh-recent{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:18px}
 @media(min-width:600px){.lh-recent{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(min-width:900px){.lh-recent{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lh-recent-card{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px;cursor:pointer;text-align:left;font-family:inherit;color:var(--tx);min-height:120px}
 .lh-recent-card strong{display:block;font-size:15px;line-height:1.4;margin-bottom:6px}
 .lh-recent-card span{font-size:12px;color:var(--tx3);line-height:1.5}
-.lh-recent-head{height:64px;border-radius:10px;background:linear-gradient(135deg,#2a241a,#1b1916);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:10px}
+.lh-recent-head{height:64px;border-radius:10px;background:linear-gradient(135deg,#0f172a,#7c2d12);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:10px}
 html,body{overflow-x:hidden}
 @media(max-width:520px){.fi,.cinput,.genSel{font-size:16px}}
 .lh-conn{grid-template-columns:1fr}
 @media(min-width:600px){.lh-conn{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(min-width:900px){.lh-conn{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
-.lh-bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#141210;border-top:1px solid var(--border);padding:8px 6px calc(8px + env(safe-area-inset-bottom));justify-content:space-around;align-items:center}
+.lh-bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#0a0a0a;border-top:1px solid var(--border);padding:8px 6px calc(8px + env(safe-area-inset-bottom));justify-content:space-around;align-items:center}
 .lh-bottom button{background:none;border:0;color:var(--tx3);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:6px 4px;min-width:0;text-align:center}
-.lh-bottom button.lh-active{color:#d4b47a}
-.lh-bottom-plus{width:52px;height:52px;border-radius:50%!important;background:linear-gradient(135deg,#b8975a,#d4b47a)!important;color:#12100d!important;font-size:26px!important;line-height:1}
+.lh-bottom button.lh-active{color:#f0c75e}
+.lh-bottom-plus{width:52px;height:52px;border-radius:50%!important;background:linear-gradient(135deg,#d9a441,#f0c75e)!important;color:#0a0a0a!important;font-size:26px!important;line-height:1}
 @media(min-width:900px){
   .lh-layout{display:flex;gap:24px;align-items:flex-start}
-  .lh-sidebar{display:block;position:sticky;top:76px;width:240px;flex-shrink:0;background:#141210;border:1px solid var(--border);border-radius:20px;padding:16px}
+  .lh-sidebar{display:block;position:sticky;top:76px;width:240px;flex-shrink:0;background:#0a0a0a;border:1px solid var(--border);border-radius:20px;padding:16px}
   .lh-sidebar button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--tx2);padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border-radius:12px}
-  .lh-sidebar button.lh-active{background:#2a241a;color:#d4b47a}
-  .lh-sidebar-promo{margin-top:18px;background:#2a241a;border-radius:14px;padding:16px;font-size:12px;line-height:1.6;color:#c9c2b4;text-align:center}
+  .lh-sidebar button.lh-active{background:#1f1f23;color:#f0c75e}
+  .lh-sidebar-promo{margin-top:18px;background:#1f1f23;border-radius:14px;padding:16px;font-size:12px;line-height:1.6;color:#c9c2b4;text-align:center}
   .amain{flex:1;max-width:1100px;margin:0}
   .lh-bottom{display:none}
   .lh-quick{grid-template-columns:repeat(6,minmax(0,1fr))}
@@ -234,7 +234,7 @@ section{margin-bottom:20px}
         <button class="lbtn" id="lbtn" onclick="doLogin()">⚔ Entrar</button>
         <div class="lerr" id="le"></div>
       </div>
-      <div class="lhelp">Una sola contraseña protege tus créditos. Se verifica en el servidor (la variable <strong style="color:#b8975a">APP_KEY</strong> de Vercel), no en el navegador. Escríbela una vez y queda guardada en este dispositivo.</div>
+      <div class="lhelp">Una sola contraseña protege tus créditos. Se verifica en el servidor (la variable <strong style="color:#d9a441">APP_KEY</strong> de Vercel), no en el navegador. Escríbela una vez y queda guardada en este dispositivo.</div>
     </div>
     <div class="lft">legadodehierro.com · Ejecuta. Calla. Domina.</div>
   </div>
@@ -264,19 +264,11 @@ section{margin-bottom:20px}
     <button type="button" data-lh-step="produccion">🎙 Producción</button>
     <button type="button" data-lh-step="musica">🎵 Música</button>
     <button type="button" data-lh-step="montaje">🎞 Montaje</button>
-    <button type="button" data-lh-step="extras">··· Extras</button>
-    <div class="lh-sidebar-promo">GRANDES HISTORIAS TAMBIÉN SE CONSTRUYEN CON IA<br><br><span style="color:#d4b47a;font-family:'Playfair Display',serif;font-size:22px">LH</span></div>
+    <button type="button" data-lh-step="extras">📱 Posts</button>
+    <div class="lh-sidebar-promo">GRANDES HISTORIAS TAMBIÉN SE CONSTRUYEN CON IA<br><br><span style="color:#f0c75e;font-family:'Playfair Display',serif;font-size:22px">LH</span></div>
   </aside>
 
   <main class="amain">
-    <div class="cbar">
-      <div class="cbar-top">
-        <span class="cbar-lbl">Sesión actual</span>
-        <span class="cbar-val" id="gcost">0 guiones · coste real según consumo en los proveedores</span>
-      </div>
-      <div class="api-pills" id="apipills"></div>
-    </div>
-
     <div id="studioStatus" class="studio-status" role="status" aria-live="polite" hidden></div>
     <button type="button" id="studioPending" class="studio-button" hidden>Reanudar trabajo</button>
     <div class="lh-step lh-active" id="lh-step-inicio" data-lh-step="inicio">
@@ -287,12 +279,17 @@ section{margin-bottom:20px}
         <button type="button" class="lh-hero-btn" onclick="reset();lhShowStep('tema')">+ Nuevo proyecto</button>
       </div>
       <div class="lh-quick">
-        <button type="button" class="lh-qcard" data-lh-step="investigacion"><span class="lh-qicon" style="border-color:#d4b47a;color:#d4b47a">💡</span><strong>Ideas</strong><span>Tendencias y reels virales</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="investigacion"><span class="lh-qicon" style="border-color:#f0c75e;color:#f0c75e">💡</span><strong>Ideas</strong><span>Tendencias y reels virales</span></button>
         <button type="button" class="lh-qcard" data-lh-step="tema"><span class="lh-qicon" style="border-color:#7a9ec4;color:#7a9ec4">📄</span><strong>Guiones</strong><span>Español e inglés</span></button>
         <button type="button" class="lh-qcard" data-lh-step="produccion"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎙</span><strong>Voces</strong><span>ElevenLabs y Google</span></button>
         <button type="button" class="lh-qcard" data-lh-step="produccion"><span class="lh-qicon" style="border-color:#9ab47a;color:#9ab47a">🖼</span><strong>Imágenes</strong><span>IA + referencias</span></button>
         <button type="button" class="lh-qcard" data-lh-step="musica"><span class="lh-qicon" style="border-color:#c4897a;color:#c4897a">🎵</span><strong>Música</strong><span>IA original</span></button>
         <button type="button" class="lh-qcard" data-lh-step="montaje"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎞</span><strong>Montaje</strong><span>Automático</span></button>
+      </div>
+      <div style="background:#17171a;border:1px solid #26262b;border-radius:16px;padding:16px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px">📱 Posts de Facebook, independientes del video</div>
+        <p style="font-size:13px;line-height:1.6;color:#d4d4d8;margin:0 0 12px">Genera un post sin estar haciendo un video. El tema es opcional.</p>
+        <button type="button" class="lh-hero-btn" data-lh-step="extras">🖼 Generar un post</button>
       </div>
       <div class="lh-current">
         <span class="lh-current-badge">● En producción</span>
@@ -310,7 +307,6 @@ section{margin-bottom:20px}
       <h2 class="lh-step-title" style="font-size:18px">Mis proyectos recientes</h2>
       <p class="lh-step-desc">Tus reels guardados, los más recientes primero. Toca uno para continuar donde lo dejaste.</p>
       <div class="lh-recent" id="lhRecentGrid"></div>
-      <button type="button" class="lh-hero-btn" data-lh-step="mis-videos">Ver la biblioteca completa →</button>
       <h2 class="lh-step-title" style="font-size:18px;margin-top:22px">Conexiones</h2>
       <div class="lh-conn">
         <div class="lh-conn-card"><strong>ElevenLabs</strong><span id="lhConnEleven">Comprobando…</span></div>
@@ -320,13 +316,11 @@ section{margin-bottom:20px}
         <div class="lh-conn-card"><strong>Facebook</strong><span id="lhConnFacebook">Publicación manual, sin API</span></div>
       </div>
       <p class="lh-step-desc" style="font-size:12px">El estado se comprueba en el servidor al abrir Inicio: solo indica si cada variable está configurada, nunca muestra claves ni llama a un proveedor de pago para comprobarlo.</p>
-      <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
     <div class="lh-step" id="lh-step-mis-videos" data-lh-step="mis-videos">
       <h2 class="lh-step-title">💾 Mis videos</h2>
       <p class="lh-step-desc">Tus reels guardados. Abre uno para seguir donde lo dejaste.</p>
 <details class="studio-card" id="projectsPanel"><summary>Mis reels guardados</summary><p>Abre un reel para continuar su guion, sus tomas, su audio y su montaje.</p><button id="projectsLoad" type="button">Actualizar lista</button><div id="projectList" class="studio-grid"></div></details>
-          <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
     <div class="lh-step" id="lh-step-investigacion" data-lh-step="investigacion">
       <h2 class="lh-step-title">🔎 Investigación</h2>
@@ -343,8 +337,6 @@ section{margin-bottom:20px}
         <div id="trendBox" style="display:none;margin-top:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px;padding:14px"></div>
       </div>
     </section>
-
-          <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
     <div class="lh-step" id="lh-step-tema" data-lh-step="tema">
       <h2 class="lh-step-title">🎬 Tema y guion</h2>
@@ -386,12 +378,12 @@ section{margin-bottom:20px}
       <div class="tabrow" id="tabrow"></div>
       <div id="tabcontent"></div>
 
-      <div class="scard" id="capCard" style="border:1.5px solid #b8975a44;margin-top:14px;display:none">
+      <div class="scard" id="capCard" style="border:1.5px solid #d9a44144;margin-top:14px;display:none">
         <div class="shdr" style="background:var(--gold-p)">
-          <div><div class="stitl" style="color:#b8975a"># Caption + Hashtags — Facebook</div><div class="ssub">Listo para copiar y pegar</div></div>
+          <div><div class="stitl" style="color:#d9a441"># Caption + Hashtags — Facebook</div><div class="ssub">Listo para copiar y pegar</div></div>
           <div class="sbtns">
-            <button class="cbtn" id="bcap" style="border-color:#b8975a;color:#b8975a">↻ Regenerar</button>
-            <button class="cbtn" id="bcapcopy" style="border-color:#b8975a;color:#b8975a">Copiar</button>
+            <button class="cbtn" id="bcap" style="border-color:#d9a441;color:#d9a441">↻ Regenerar</button>
+            <button class="cbtn" id="bcapcopy" style="border-color:#d9a441;color:#d9a441">Copiar</button>
           </div>
         </div>
         <div class="sbody">
@@ -401,18 +393,16 @@ section{margin-bottom:20px}
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Caption</div>
             <div id="capText" style="white-space:pre-wrap;font-size:14px;line-height:1.5;color:var(--tx);margin-bottom:14px"></div>
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Hashtags</div>
-            <div id="capTags" style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#7a6a3a;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+            <div id="capTags" style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#d9a441;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
             <div id="capBoxEN" style="display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
               <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">🇺🇸 Caption (English)</div>
               <div id="capTextEN" style="white-space:pre-wrap;font-size:14px;line-height:1.5;color:var(--tx);margin-bottom:14px"></div>
               <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">Hashtags (English)</div>
-              <div id="capTagsEN" style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#7a6a3a;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+              <div id="capTagsEN" style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:#d9a441;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
             </div>
           </div>
         </div>
       </div>
-
-            <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
     <div class="lh-step" id="lh-step-produccion" data-lh-step="produccion">
       <h2 class="lh-step-title">🎙 Producción</h2>
@@ -436,7 +426,7 @@ section{margin-bottom:20px}
         <div class="shdr" style="background:var(--warm)">
           <div><div class="stitl" style="color:#c4897a">🎙 Narración — Audio</div><div class="ssub">Elige el motor de voz en los ajustes</div></div>
           <div class="sbtns">
-            <button class="cbtn" id="baes" style="border-color:#b8975a;color:#b8975a">🎙 Audio ES</button>
+            <button class="cbtn" id="baes" style="border-color:#d9a441;color:#d9a441">🎙 Audio ES</button>
             <button class="cbtn" id="baen" style="border-color:#c4897a;color:#c4897a">🎙 Audio EN</button>
           </div>
         </div>
@@ -563,9 +553,9 @@ section{margin-bottom:20px}
           <div class="stxt" id="ast"></div>
           <div class="serr" id="ae"></div>
           <div class="ares" id="rES">
-            <div class="arlbl" style="color:#b8975a">Audio en Español</div>
+            <div class="arlbl" style="color:#d9a441">Audio en Español</div>
             <audio id="pES" controls style="width:100%;border-radius:8px;margin-bottom:8px"></audio>
-            <a id="dES" download="legado-es.wav" style="display:inline-block;background:linear-gradient(135deg,#b8975a,#d4b47a);color:#fff;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none">⬇ Descargar ES</a>
+            <a id="dES" download="legado-es.wav" style="display:inline-block;background:linear-gradient(135deg,#d9a441,#f0c75e);color:#fff;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none">⬇ Descargar ES</a>
           </div>
           <div class="ares" id="rEN" style="margin-top:12px">
             <div class="arlbl" style="color:#c4897a">Audio en Inglés</div>
@@ -579,7 +569,7 @@ section{margin-bottom:20px}
         <div class="shdr" style="background:#eaf2ee">
           <div><div class="stitl" style="color:#7a9b8a">🖼 Gemini — Imágenes del Personaje</div><div class="ssub" id="imgCountLabel">5 imágenes · Personaje en acción acorde al guion</div></div>
           <div class="sbtns">
-            <button class="cbtn" id="bthumb" style="border-color:#b8975a;color:#b8975a">🌟 + Miniatura</button>
+            <button class="cbtn" id="bthumb" style="border-color:#d9a441;color:#d9a441">🌟 + Miniatura</button>
             <button class="cbtn" id="bimg" style="border-color:#7a9b8a;color:#7a9b8a">🖼 Generar</button>
           </div>
         </div>
@@ -627,8 +617,6 @@ section{margin-bottom:20px}
           <div class="igrid" id="igrid"></div>
         </div>
       </div>
-
-            <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
     <div class="lh-step" id="lh-step-musica" data-lh-step="musica">
       <h2 class="lh-step-title">🎵 Música</h2>
@@ -663,9 +651,6 @@ section{margin-bottom:20px}
             </label>
             <div class="stxt" id="musicSt" style="margin-top:6px"></div>
           </div>
-
-
-                <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
     <div class="lh-step" id="lh-step-montaje" data-lh-step="montaje">
       <h2 class="lh-step-title">🎞 Montaje</h2>
@@ -694,12 +679,10 @@ section{margin-bottom:20px}
       </div>
 
       <button class="expbtn" id="expbtn" style="display:none">📦 Exportar todo (Guiones + Audio + Imágenes + Videos)</button>
-
-            <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
     <div class="lh-step" id="lh-step-extras" data-lh-step="extras">
-      <h2 class="lh-step-title">📱 Extras</h2>
-      <p class="lh-step-desc">Crea un post de Facebook aparte del video, cuando lo necesites.</p>
+      <h2 class="lh-step-title">📱 Posts de Facebook</h2>
+      <p class="lh-step-desc">Genera un post independiente, sin necesidad de estar haciendo un video.</p>
 <!-- POST FACEBOOK -->
     <div style="margin-top:20px">
       <div class="slbl">📱 Post de Facebook</div>
@@ -760,14 +743,12 @@ section{margin-bottom:20px}
               </div>
               <div class="stxt" id="postCapSt"></div>
               <div id="postCapText" style="white-space:pre-wrap;font-size:13px;line-height:1.5;color:var(--tx);margin-bottom:10px"></div>
-              <div id="postCapTags" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#7a6a3a;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:9px"></div>
+              <div id="postCapTags" style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:#d9a441;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:9px"></div>
             </div>
           </div>
         </div>
       </div>
     </div>
-
-          <div class="lh-step-foot"><button type="button" class="lh-prev" data-lh-prev>← Anterior</button><button type="button" class="lh-next" data-lh-next>Siguiente →</button></div>
     </div>
 <div class="oftr">
         <span class="fsig">⚔ Legado de Hierro · Ejecuta. Calla. Domina.</span>
@@ -781,7 +762,7 @@ section{margin-bottom:20px}
     <button type="button" data-lh-step="mis-videos">📁<br>Biblioteca</button>
     <button type="button" class="lh-bottom-plus" data-lh-step="tema">+</button>
     <button type="button" data-lh-step="produccion">🎬<br>Proyectos</button>
-    <button type="button" data-lh-step="extras">···<br>Más</button>
+    <button type="button" data-lh-step="extras">📱<br>Posts</button>
   </nav>
 </div>
 

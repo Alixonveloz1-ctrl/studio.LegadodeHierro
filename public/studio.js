@@ -925,8 +925,6 @@ function lhPaintCurrentProject(){
 }
 function studioSteps(){
   document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.onclick=function(){lhShowStep(b.dataset.lhStep);};});
-  document.querySelectorAll('[data-lh-next]').forEach(function(b){b.onclick=function(){var cur=document.querySelector('.lh-step.lh-active');var i=LH_STEPS.indexOf(cur&&cur.dataset.lhStep);if(i>=0&&i<LH_STEPS.length-1)lhShowStep(LH_STEPS[i+1]);};});
-  document.querySelectorAll('[data-lh-prev]').forEach(function(b){b.onclick=function(){var cur=document.querySelector('.lh-step.lh-active');var i=LH_STEPS.indexOf(cur&&cur.dataset.lhStep);if(i>0)lhShowStep(LH_STEPS[i-1]);};});
   if(!document.querySelector('.lh-step.lh-active'))lhShowStep('mis-videos');
 }
 
