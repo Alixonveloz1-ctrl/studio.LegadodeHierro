@@ -79,6 +79,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:
 .lh-hero-title{font-size:24px;font-weight:700;line-height:1.25;color:#fff;margin-bottom:8px}
 .lh-hero-sub{font-size:14px;line-height:1.6;color:#c9c2b4;margin-bottom:16px}
 .lh-hero-btn{background:linear-gradient(135deg,#d9a441,#f0c75e);color:#0a0a0a;border:0;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.lh-continue{margin-top:20px}
+.lh-continue .lh-hero-btn{width:100%;padding:15px;font-size:15px}
 .lh-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
 @media(min-width:600px){.lh-quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .lh-qcard{background:var(--warm);border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;cursor:pointer;font-family:inherit;color:var(--tx)}
@@ -335,6 +337,7 @@ section{margin-bottom:20px}
         <div id="trendBox" style="display:none;margin-top:12px;background:var(--warm);border:1px solid var(--border);border-radius:10px;padding:14px"></div>
       </div>
     </section>
+      <div class="lh-continue"><button type="button" class="lh-hero-btn" data-lh-step="tema">Continuar a Tema y guion →</button></div>
     </div>
     <div class="lh-step" id="lh-step-tema" data-lh-step="tema">
       <h2 class="lh-step-title">Tema y guion</h2>
@@ -402,6 +405,7 @@ section{margin-bottom:20px}
         </div>
       </div>
     </div>
+      <div class="lh-continue"><button type="button" class="lh-hero-btn" data-lh-step="produccion">Continuar a Producción →</button></div>
     </div>
     <div class="lh-step" id="lh-step-produccion" data-lh-step="produccion">
       <h2 class="lh-step-title">Producción</h2>
@@ -616,6 +620,7 @@ section{margin-bottom:20px}
         </div>
       </div>
     </section>
+      <div class="lh-continue"><button type="button" class="lh-hero-btn" data-lh-step="musica">Continuar a Música →</button></div>
     </div>
     <div class="lh-step" id="lh-step-musica" data-lh-step="musica">
       <h2 class="lh-step-title">Música</h2>
@@ -651,6 +656,7 @@ section{margin-bottom:20px}
             </label>
             <div class="stxt" id="musicSt" style="margin-top:6px"></div>
           </div>
+      <div class="lh-continue"><button type="button" class="lh-hero-btn" data-lh-step="montaje">Continuar a Montaje →</button></div>
     </div>
     <div class="lh-step" id="lh-step-montaje" data-lh-step="montaje">
       <h2 class="lh-step-title">Montaje</h2>
