@@ -101,7 +101,9 @@ module.exports = async function handler(req, res) {
     // con los de otros proyectos que comparten el mismo bucket, y en el banco no
     // habia forma de distinguirlos. Desde aqui, todo lo de este canal vive bajo
     // legado-videos/ y el banco puede filtrar por esa carpeta.
-    const destino = GCS_OUTPUT_BUCKET.replace(/\/+$/, '') + '/legado-videos/';
+    let baseBucket = GCS_OUTPUT_BUCKET.replace(/\/+$/, '');
+    if (!/^gs:\/\//i.test(baseBucket)) baseBucket = 'gs://' + baseBucket;
+    const destino = baseBucket + '/legado-videos/';
 
     const parameters = {
       aspectRatio: aspectRatio,
