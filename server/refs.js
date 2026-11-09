@@ -252,11 +252,11 @@ const VISTAS = [
 // Se describe una sola vez, aqui, y va en TODAS las peticiones de la biblia.
 const ESTILO_CANAL =
   'STYLE — this is fixed for the whole channel and must be identical in every image:\n'
-  + '- 2D American comic book / graphic novel illustration. Digitally inked and coloured.\n'
+  + '- Premium 2D illustration leaning from graphic novel toward painterly realism (gradual style step 1). Softly and digitally painted.\n'
   + '- Semi-realistic proportions and anatomy. Adult faces are realistic, not stylised or cartoonish; '
   + 'no manga eyes, no caricature, no chibi.\n'
-  + '- Clean bold ink outlines of varying weight: heavier on the silhouette, finer inside the face.\n'
-  + '- Cel-shading: flat colour areas with hard-edged shadows, plus soft gradients on skin and fabric. '
+  + '- Fine, soft ink lines only: thin, light and understated, never bold heavy black outlines.\n'
+  + '- Smooth painterly shading: soft-edged shadows and smooth gradients on skin and fabric, natural volume and texture, only a hint of cel-shading left. '
   + 'Subtle cross-hatching in the deepest shadows.\n'
   + '- Warm muted palette, cinematic contrast, one clear light direction.\n'
   + '- Detailed hair drawn in defined strands, detailed irises, visible eyelashes and eyebrows.\n'
@@ -275,7 +275,7 @@ function clausulaAspecto(edad) {
     return 'The character looks healthy, well-groomed and natural, like a real kid, never stylised as an adult.';
   }
   return 'The character is good-looking and well-groomed: clean features, healthy skin, tidy hair, '
-    + 'an attractive comic-book lead. Attractive but believable and age-appropriate, never a caricature.';
+    + 'an attractive illustrated lead. Attractive but believable and age-appropriate, never a caricature.';
 }
 
 function promptDeVista(f, vista, conReferencia) {

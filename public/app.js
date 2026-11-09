@@ -4131,7 +4131,7 @@ function buildVideoMotionPrompt(idx){
   // Fuera la marca [CON: id]: es una instruccion nuestra para elegir referencias,
   // no algo que el generador de video deba leer (acabaria dibujando el texto).
   base=String(base).replace(/\[CON:\s*[a-z0-9-]+\s*\]/gi,'').replace(/^\s+/,'');
-  return 'Animate the supplied image as one continuous 2D graphic-novel shot. The supplied image is the source of truth for the people, pose, props, framing and lighting. Preserve each adult character’s identity and clothing. '
+  return 'Animate the supplied image as one continuous premium 2D illustrated shot with a soft painterly finish. The supplied image is the source of truth for the people, pose, props, framing and lighting. Preserve each adult character’s identity and clothing. '
     +'SCENE CONTEXT: '+base+'\n'
     +'Choose ONE small, physically plausible movement already supported by the visible pose. Keep the starting grip and contact points stable. A person holding a cup makes a small natural movement with that same hand; a resting hand remains resting. Do not combine successive actions or add gestures, props or people. '
     +'Preserve the anatomy of every visible person: two arms connected to their respective shoulders, two hands connected to their wrists, five fingers per hand. Keep hidden limbs hidden and silhouettes distinct. '
