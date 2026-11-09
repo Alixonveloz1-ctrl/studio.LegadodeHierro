@@ -168,7 +168,16 @@ export default async function handler(req) {
     const videos = opData.response && opData.response.videos ? opData.response.videos : [];
     const raiFiltered = opData.response && opData.response.raiMediaFilteredCount ? opData.response.raiMediaFilteredCount : 0;
 
+    if (opData.error) {
+      console.error('[video-status] error de la operacion de Veo:', JSON.stringify(opData.error));
+      return new Response(JSON.stringify({
+        done: true,
+        error: 'Veo devolvio un error: ' + (opData.error.message || JSON.stringify(opData.error)),
+      }), { status: 200, headers: corsHeaders });
+    }
+
     if (videos.length === 0) {
+      console.error('[video-status] operacion sin videos; respuesta:', JSON.stringify(opData.response || {}).slice(0, 800));
       if (raiFiltered > 0) {
         return new Response(JSON.stringify({
           done: true,
