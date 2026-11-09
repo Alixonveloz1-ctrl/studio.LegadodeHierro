@@ -398,10 +398,12 @@ function buildSP(mode,editorialOptions){
     +'El protagonista visual del canal es una ilustración, no una afirmación de que el autor vivió las historias. '
     +(story?'HISTORIA: un conflicto, una decisión y consecuencias observables. Situación ilustrativa salvo hechos aportados por el autor. Mantén continuidad espacial y de vestuario. '
       :mode==='profesor'?'CLASE: problema, demostración, pasos con cómo hacerlos, ejemplo hipotético, errores y una acción final. '
+      :mode==='finanzas'?'LIBERTAD FINANCIERA: un solo problema de dinero con dolor concreto (deuda, sueldo que no alcanza, gasto que se escapa), UNA mini-historia de una persona común con nombre, oficio y sueldo aproximado, un método con NOMBRE PROPIO en pasos cortos y la CUENTA en voz alta con cifras de ejemplo hipotéticas que el espectador repita con su sueldo. Sin sermón: primero el método y su cuenta. '
       :'UNA IDEA: un conflicto reconocible, un ejemplo concreto y una decisión útil. ')
     +'Habla al espectador en presente, futuro o imperativo; no inventes su pasado. '
     +'La primera frase entra en el tema sin saludos. Cierra cumpliendo la promesa y con Legado de Hierro. '
-    +'Sin porcentajes, testimonios, cifras de ingresos ni beneficios financieros inventados. '
+    +(mode==='finanzas'?'Las cifras son ejemplos hipotéticos con cuentas que el espectador puede repetir con su propio sueldo; nunca estadísticas, testimonios ni resultados garantizados. '
+      :'Sin porcentajes, testimonios, cifras de ingresos ni beneficios financieros inventados. ')
     +'El pilar y el concepto mandan. Si no van de dinero, no los conviertas en un sermón de negocios.';
 }
 var SP=buildSP();
@@ -636,6 +638,7 @@ function buildAll(){
      {id:'historia',label:'📖 Modo Historia',sub:'Narrativa con continuidad'},
      {id:'impacto',label:'⚡ Modo Impacto',sub:'Golpe de 30 segundos'},
      {id:'profesor',label:'🎓 Modo Profesor',sub:'Enseña un método'},
+     {id:'finanzas',label:'💰 Libertad financiera',sub:'Dinero, método y cuentas'},
      {id:'relato',label:'🎞 Modo Relato',sub:'Historia larga'}].forEach(function(m){
       var b=document.createElement('button');b.className='oc'+(sMode===m.id?' sel':'');b.dataset.id=m.id;
       b.innerHTML='<span class="om">'+m.label+'</span><span class="os">'+m.sub+'</span>';
@@ -1732,7 +1735,7 @@ async function generate(){
   document.getElementById('ow').style.display='none';
   document.getElementById('gbtn').innerHTML='<span class="spin"></span> Forjando...';
   document.getElementById('gnote').style.display='inline';
-  document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Escribiendo una historia con continuidad...':sMode==='profesor'?'Escribiendo la clase, el set y el montaje... (puede tardar)':sMode==='relato'?'Escribiendo el relato largo y sus escenas en orden... (puede tardar)':'Escribiendo guion y escenas...';
+  document.getElementById('gnote').textContent=sMode==='impacto'?'Generando golpe de impacto 30s...':sMode==='historia'?'Escribiendo una historia con continuidad...':sMode==='profesor'?'Escribiendo la clase, el set y el montaje... (puede tardar)':sMode==='finanzas'?'Escribiendo el guion de libertad financiera: historia, método y cuentas...':sMode==='relato'?'Escribiendo el relato largo y sus escenas en orden... (puede tardar)':'Escribiendo guion y escenas...';
   try{
     var mode=sMode,built=buildEpisodeMsg(topic,sT,sH,mode,sD);
     var p=await fetchEpisode(built.msg,mode,built.dO,built);
@@ -1986,7 +1989,7 @@ var HIST_KEY='lh_hist';
 // 5-6 KB, asi que 300 caben de sobra en los ~5 MB de localStorage; y si algun dia
 // no cupieran, guardarHist() recorta en vez de reventar.
 var HIST_MAX=300;
-var MODE_LABELS={reel:'🎬 Reel',historia:'📖 Historia',impacto:'⚡ Impacto',profesor:'🎓 Profesor',relato:'🎞 Relato'};
+var MODE_LABELS={reel:'🎬 Reel',historia:'📖 Historia',impacto:'⚡ Impacto',profesor:'🎓 Profesor',relato:'🎞 Relato',finanzas:'💰 Libertad financiera'};
 
 function getHistory(){
   try{var h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');if(!Array.isArray(h))return [];var changed=false;h.forEach(function(r){if(!r.id||/^r[0-9]+$/.test(r.id)){r.id='r'+nextUid();changed=true;}});if(changed)localStorage.setItem(HIST_KEY,JSON.stringify(h));return h;}

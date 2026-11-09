@@ -271,3 +271,15 @@ test('automatic character: the project lock runs once, waits while fresh, retrie
   assert.deepEqual(core.vistasQueFaltan({refs:[]},3),[0,1,2]);
   assert.deepEqual(core.vistasQueFaltan({refs:['a','b','c']},3),[]);
 });
+
+test('nuevo bloque Libertad financiera: familia, estructura con método y cuenta, y referencia propia',()=>{
+  assert.equal(core.familyFor('finanzas'),'finanzas');
+  assert.equal(core.familyFor('profesor'),'metodo'); // los modos de siempre no cambian
+  assert.equal(core.familyFor('reel'),'identidad');
+  const ed=core.editorial({family:'finanzas',audience:'finanzas',seconds:90});
+  assert.match(ed,/Libertad financiera: método con nombre y cuenta/);
+  assert.match(ed,/NOMBRE PROPIO/);
+  assert.match(ed,/CUENTA en voz alta/);
+  const ref=core.referenceFor({family:'finanzas'});
+  assert.equal(ref.id,'finanzas-15-negocios');
+});

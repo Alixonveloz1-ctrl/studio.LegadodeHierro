@@ -16,8 +16,9 @@ function studioOptions(mode,seconds,topic,theme){
   topic=topic===undefined?(studioEl('conc').value||''):topic;
   var idea=typeof TREND_IDEAS!=='undefined'?TREND_IDEAS.find(function(it){return LH.norm(it.concept)===LH.norm(topic);}):null;
   var family=LH.familyFor(mode),research=idea?LH.researchBrief(idea):null;
-  if(research&&mode!=='profesor'&&mode!=='relato'&&mode!=='historia')family=research.family;
+  if(research&&mode!=='profesor'&&mode!=='relato'&&mode!=='historia'&&mode!=='finanzas')family=research.family;
   var audience=research?research.audience:LH.audienceFor(topic,theme||sT);
+  if(mode==='finanzas'){family='finanzas';audience='finanzas';}
   return {audience:audience,family:family,platform:'facebook',seconds:Number(seconds||sD),
     referenceId:family==='identidad'&&/reto|ano|dias/.test(LH.norm(topic))?'lh-reto':'auto',research:research,referenceVideo:idea&&idea.videoUrl||'',referenceAnalysis:idea&&idea.analysis||null};
 }
