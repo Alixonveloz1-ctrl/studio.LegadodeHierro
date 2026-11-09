@@ -70,7 +70,7 @@ async function generarEleven(text, vIn, options) {
   // Modelo elegido en el panel de voz (VOX.eleven.model, viaja en la config
   // del trabajo de audio). Se valida contra la lista permitida; cualquier
   // valor desconocido cae al modelo de siempre.
-  const MODEL_ID = ELEVEN_MODELS.includes(v.model) ? v.model : 'eleven_multilingual_v2';
+  const MODEL_ID = ELEVEN_MODELS.includes(v.model) ? v.model : 'eleven_v4';
   // Eleven v4 SOLO acepta stability y similarity_boost en voice_settings:
   // enviarle style o speed hace que la API rechace la peticion.
   const VOICE_SETTINGS = MODEL_ID === 'eleven_v4'

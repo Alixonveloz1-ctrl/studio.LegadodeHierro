@@ -2568,6 +2568,13 @@ function wireVox(){
   };
   var RANGO_E={stability:[0,1],similarity_boost:[0,1],style:[0,1],speed:[0.7,1.2]};
   try{
+    if(!localStorage.getItem('lh_v4_v1')){
+      var rawV=localStorage.getItem('lh_vox');
+      if(rawV){var oV=JSON.parse(rawV);if(oV&&oV.eleven&&oV.eleven.model==='eleven_multilingual_v2'){oV.eleven.model='eleven_v4';localStorage.setItem('lh_vox',JSON.stringify(oV));}}
+      localStorage.setItem('lh_v4_v1','1');
+    }
+  }catch(e){}
+  try{
     var saved=localStorage.getItem('lh_vox');
     if(saved){
       var o=JSON.parse(saved);
@@ -3266,7 +3273,7 @@ var VOCES=[
 //    en el servidor en una instruccion hablada delante del guion.
 var VOX={
   engine:'eleven',
-  eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true,model:'eleven_multilingual_v2'},
+  eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true,model:'eleven_v4'},
   gemini:{voz:'Algenib',tono:'canal',velocidad:'0.90',intensidad:'media',model:'gemini-2.5-flash-tts',extra:''},
   chirp:{voz:'Algenib',velocidad:0.9},
 };
