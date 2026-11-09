@@ -6,6 +6,8 @@
 // Devuelve { parts: [mp3 en base64], alignments: [...] }. Los alignments traen
 // tiempos por caracter, que dan subtitulos exactos (Gemini-TTS no los da).
 
+const core = require('../public/studio-core');
+
 function clamp(v, lo, hi, def) {
   const n = Number(v);
   if (!isFinite(n)) return def;
@@ -84,6 +86,15 @@ async function generarEleven(text, vIn, options) {
         use_speaker_boost: v.use_speaker_boost === false ? false : true,
       };
 
+  // Refuerzo del acento latino SOLO por el texto (la voz no se toca): en el
+  // camino en español se limpian los giros de España del texto que se ENVÍA
+  // (el guion guardado y los subtítulos no cambian) y se fuerza el idioma.
+  // language_code 'es' está documentado en multilingual_v2, v3 y flash_v2_5;
+  // en eleven_v4 NO se envía: no está documentado y no se arriesga el audio
+  // que hoy funciona. El camino en inglés (lang 'en') queda intacto.
+  const ES_ESPANOL = !options.lang || options.lang === 'es';
+  const CON_IDIOMA = ES_ESPANOL && MODEL_ID !== 'eleven_v4';
+
   async function generatePart(partText, prevText, nextText) {
     const url = 'https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID + '/with-timestamps';
     const body = {
@@ -91,6 +102,7 @@ async function generarEleven(text, vIn, options) {
       model_id: MODEL_ID,
       voice_settings: VOICE_SETTINGS,
     };
+    if (CON_IDIOMA) body.language_code = 'es';
     if (prevText) body.previous_text = prevText;
     if (nextText) body.next_text = nextText;
 
@@ -119,12 +131,15 @@ async function generarEleven(text, vIn, options) {
     return await r.json();
   }
 
-  const parts = splitByDuration(text);
+  const textoParaEnviar = ES_ESPANOL ? core.limpiarParaAudioLatino(text) : text;
+  const previoParaEnviar = ES_ESPANOL ? core.limpiarParaAudioLatino(options.previousText || '') : (options.previousText || '');
+  const siguienteParaEnviar = ES_ESPANOL ? core.limpiarParaAudioLatino(options.nextText || '') : (options.nextText || '');
+  const parts = splitByDuration(textoParaEnviar);
   const audioParts = [];
   const alignParts = [];
   for (let i = 0; i < parts.length; i++) {
-    const prevText = i > 0 ? parts[i - 1] : (options.previousText || '');
-    const nextText = i < parts.length - 1 ? parts[i + 1] : (options.nextText || '');
+    const prevText = i > 0 ? parts[i - 1] : previoParaEnviar;
+    const nextText = i < parts.length - 1 ? parts[i + 1] : siguienteParaEnviar;
     const data = await generatePart(parts[i], prevText, nextText);
     audioParts.push(data.audio_base64);
     alignParts.push(data.alignment || null);

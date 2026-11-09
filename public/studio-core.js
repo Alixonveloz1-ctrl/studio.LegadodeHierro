@@ -105,6 +105,13 @@
     +' TÍTULOS E IDEAS: una frase directa de 4 a 10 palabras, que podría decirse en voz alta. Evita nominalizaciones como “La transición de ser el ejecutor total”, “Recuperar la autonomía profesional” o “Priorizar la velocidad direccional”. Ejemplos de TONO, no temas para repetir: “Tu palabra también cuenta cuando estás cansado”, “No necesitas que todos entiendan tu camino”.'
     +' Las referencias externas aportan recursos narrativos, nunca sustituyen la voz del canal. Si una idea guardada tiene un título académico, conserva su conflicto y reescribe su expresión en esta voz antes de narrarla. No leas etiquetas, categorías ni explicaciones de estructura.';
   var CHANNEL_BASIS='BASE PROPIA DOCUMENTADA (auditorías del 13 de septiembre y del 26 de octubre de 2026): los Reels de identidad y decisión personal “Prepárate para quedarte…” y el reto de un año tuvieron alcance registrado. Se observaron aperturas y fragmentos, no transcripciones completas: tensión personal, apelación directa y decisión comprensible. Usa esos recursos, sin copiar frases. Si se ofrece una asesoría, debe ser real y entregable, con lo que recibe y cómo pedirla, sin inventar precio, cupos ni resultados. En la revisión de octubre de 2026, el reel del 13 de abril, con el hombre señalando el reloj, fue el de mayor alcance público en la cuadrícula revisada; los videos que llegaron a personas que no seguían la página y que sostuvieron la vista fueron los que mejor funcionaron, mientras que los videos cortos y repetidos de agosto a octubre quedaron muy por debajo. También hubo prácticas largas con ingresos; no imponer una historia o una clase de negocios a todos los modos. Esto es evidencia histórica, no una garantía de retención o ingresos para un guion nuevo.';
+  // Regla fija de redacción: la audiencia es México, Colombia y el público
+  // latino en Estados Unidos. Sin esto, el modelo de texto a veces escribe
+  // con giros de España y la voz (que NO se cambia: es la del canal) los lee
+  // y el acento se inclina a España. Se inyecta en el servidor, en el
+  // contexto por donde pasan todos los encargos de guion (_editorial) y en
+  // el encargo de narración del flujo clásico (_jobs): una sola definición.
+  var LATIN_SPANISH_RULE='ESPAÑOL NEUTRO LATINOAMERICANO (regla fija): todo el texto que se lee en voz alta se escribe en español neutro latinoamericano, el de México, Colombia y el público latino en Estados Unidos. Prohibido «vosotros» y todas sus formas (habláis, tenéis, vuestro, os). Prohibidos los giros y el vocabulario de España: nada de «vale» como muletilla, «tío» o «tía» como muletilla, «ordenador», «móvil» por el teléfono, «coger» por tomar, «conducir» por manejar, «aparcar» ni «echar de menos». Se dice «ustedes», «celular», «computadora», «tomar», «manejar», «estacionar» y «extrañar».';
   function editorial(options) {
     var o = options || {};
     return ADULT_RULE+'\n'+BRAND_VOICE+'\n'+CHANNEL_BASIS+'\nDIRECCIÓN EDITORIAL DE LEGADO DE HIERRO\nPÚBLICO: ' + (AUDIENCES[o.audience] || AUDIENCES.constructor)
@@ -414,6 +421,73 @@
     for (var i = 0; i < total; i++) if (!refs[i]) out.push(i);
     return out;
   }
-  return {BRAND_VOICE:BRAND_VOICE,CHANNEL_BASIS:CHANNEL_BASIS,ADULT_RULE:ADULT_RULE,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,limpiarIdReparto:limpiarIdReparto,promptDeReparto:promptDeReparto,repartoDesdeTexto:repartoDesdeTexto,personajeAutoAccion:personajeAutoAccion,vistasQueFaltan:vistasQueFaltan,
+  // ===== LIMPIEZA LATINA SOLO PARA EL AUDIO =====
+  // Red de seguridad del acento: se aplica SOLO al texto que se ENVÍA a
+  // ElevenLabs (la voz del canal no se cambia nunca). El guion que el dueño
+  // lee y los subtítulos NO pasan por aquí. Reemplazos conservadores de
+  // palabra completa: nunca se reescribe gramática (un «vosotros» que se
+  // cuele queda intacto; lo previene LATIN_SPANISH_RULE al escribir) y
+  // «coche» NO se toca: en México, la audiencia mayor del canal, es la
+  // palabra normal junto a «carro».
+  var LETRA_AUDIO = 'A-Za-zÁÉÍÓÚÜÑáéíóúüñ';
+  function capitalizarComo(m, r) {
+    return /^[A-ZÁÉÍÓÚÜÑ]/.test(m) ? r.charAt(0).toUpperCase() + r.slice(1) : r;
+  }
+  function sustituirPalabrasAudio(texto, formas) {
+    var re = new RegExp('(?<![' + LETRA_AUDIO + '])(' + Object.keys(formas).join('|') + ')(?![' + LETRA_AUDIO + '])', 'gi');
+    return texto.replace(re, function(m) {
+      var r = formas[m.toLowerCase()];
+      return r ? capitalizarComo(m, r) : m;
+    });
+  }
+  function limpiarParaAudioLatino(texto) {
+    var t = String(texto == null ? '' : texto);
+    if (!t) return t;
+    // «echar de menos» y sus formas comunes -> extrañar (frase completa).
+    var echar = { echar: 'extrañar', echo: 'extraño', echas: 'extrañas', echa: 'extraña', echamos: 'extrañamos', echan: 'extrañan', echaba: 'extrañaba', echaban: 'extrañaban', echó: 'extrañó' };
+    t = t.replace(new RegExp('(?<![' + LETRA_AUDIO + '])(echar|echo|echas|echa|echamos|echan|echaba|echaban|echó) de menos(?![' + LETRA_AUDIO + '])', 'gi'),
+      function(m, verbo) { return capitalizarComo(m, echar[verbo.toLowerCase()] || 'extrañar'); });
+    // «teléfono móvil» -> «teléfono celular» (antes que la regla de «móvil»).
+    t = t.replace(/tel[eé]fono m[oó]vil/gi, function(m) { return capitalizarComo(m, 'teléfono celular'); });
+    // «móvil» suelto tras artículo/posesivo = el teléfono -> celular. Guarda:
+    // «el móvil del crimen/del delito» es el motivo, no un teléfono.
+    t = t.replace(new RegExp('(?<![' + LETRA_AUDIO + '])(el|un|mi|tu|su|este|ese) m[oó]vil(?![' + LETRA_AUDIO + '])(?!\\s+del(?![' + LETRA_AUDIO + ']))', 'gi'),
+      function(m, art) { return art + ' celular'; });
+    // «ordenador» es masculino y «computadora» femenina: si lleva artículo
+    // o demostrativo delante, se cambia la pareja entera para no leer
+    // «el computadora». El resto de casos cae en el cambio de palabra suelta.
+    var parejaOrdenador = { el: 'la', un: 'una', del: 'de la', al: 'a la', este: 'esta', ese: 'esa', los: 'las', unos: 'unas', estos: 'estas', esos: 'esas' };
+    t = t.replace(new RegExp('(?<![' + LETRA_AUDIO + '])(el|un|del|al|este|ese) ordenador(?![' + LETRA_AUDIO + '])', 'gi'),
+      function(m, art) { return capitalizarComo(m, (parejaOrdenador[art.toLowerCase()] || art) + ' computadora'); });
+    t = t.replace(new RegExp('(?<![' + LETRA_AUDIO + '])(los|unos|estos|esos) ordenadores(?![' + LETRA_AUDIO + '])', 'gi'),
+      function(m, art) { return capitalizarComo(m, (parejaOrdenador[art.toLowerCase()] || art) + ' computadoras'); });
+    // Vocabulario de España -> equivalente latino, palabra completa.
+    t = sustituirPalabrasAudio(t, {
+      ordenadores: 'computadoras', ordenador: 'computadora',
+      cogieron: 'tomaron', cogiendo: 'tomando', cogió: 'tomó', coger: 'tomar', coges: 'tomas', cogen: 'toman', coge: 'toma',
+      aparcamientos: 'estacionamientos', aparcamiento: 'estacionamiento', aparcando: 'estacionando', aparcar: 'estacionar', aparcas: 'estacionas', aparcan: 'estacionan', aparca: 'estaciona', aparcó: 'estacionó'
+    });
+    // «conducir» -> «manejar», EXCEPTO cuando significa «llevar a»
+    // («eso conduce a un error»): ahí manejar rompería el sentido.
+    t = t.replace(new RegExp('(?<![' + LETRA_AUDIO + '])(condujeron|conduciendo|condujo|conducir|conduces|conducen|conduce)(?![' + LETRA_AUDIO + '])(?!\\s+a(?![' + LETRA_AUDIO + ']))', 'gi'),
+      function(m, verbo) {
+        var formas = { condujeron: 'manejaron', conduciendo: 'manejando', condujo: 'manejó', conducir: 'manejar', conduces: 'manejas', conducen: 'manejan', conduce: 'maneja' };
+        return capitalizarComo(m, formas[verbo.toLowerCase()] || m);
+      });
+    // «vale» SOLO como muletilla: al inicio de frase seguido de coma, o
+    // entre comas. «Vale la pena» es el verbo valer y NO se toca.
+    t = t.replace(/(^|[.!?…]\s+)Vale,\s+/g, '$1');
+    t = t.replace(/,\s*vale\s*,/gi, ',');
+    // «tío»/«tía» SOLO como vocativo de relleno: al inicio de frase con
+    // coma, o tras coma antes de otra coma, de un cierre o del final.
+    // «mi tío», «tío Juan» y demás usos reales quedan intactos.
+    t = t.replace(/(^|[.!?…]\s+)T[ií][oa],\s+/g, '$1');
+    t = t.replace(/,\s*(?:t[ií]o|t[ií]a)(?=\s*,)/gi, '');
+    t = t.replace(/,\s*(?:t[ií]o|t[ií]a)(?=\s*[.!?…;:])/gi, '');
+    t = t.replace(/,\s*(?:t[ií]o|t[ií]a)\s*$/g, '');
+    // Limpieza leve de los huecos que dejan las muletillas retiradas.
+    return t.replace(/\s+([,.!?;:…])/g, '$1').replace(/ {2,}/g, ' ');
+  }
+  return {BRAND_VOICE:BRAND_VOICE,CHANNEL_BASIS:CHANNEL_BASIS,ADULT_RULE:ADULT_RULE,LATIN_SPANISH_RULE:LATIN_SPANISH_RULE,limpiarParaAudioLatino:limpiarParaAudioLatino,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,limpiarIdReparto:limpiarIdReparto,promptDeReparto:promptDeReparto,repartoDesdeTexto:repartoDesdeTexto,personajeAutoAccion:personajeAutoAccion,vistasQueFaltan:vistasQueFaltan,
     continuity:continuity,scenePlan:scenePlan,selectPlan:selectPlan,familyFor:familyFor,formatFor:formatFor,feedback:feedback,validateMetric:validateMetric,recipes:recipes,segments:segments};
 });

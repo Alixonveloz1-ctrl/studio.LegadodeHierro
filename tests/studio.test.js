@@ -69,6 +69,18 @@ test('expired generation response never turns a partial story into a completed j
   assert.equal(j.result.c.length,10);assert.ok(j.result.a.length>1000);
   const before=calls;await advanceJob(store,j.id,{text});assert.equal(calls,before);
 });
+test('latin accent: every narration-stage prompt of the classic script job carries the writing rule',async()=>{
+  const store=new MemoryStore(),config={type:'script',prompt:'Escribe una historia ilustrativa con una decisión concreta.',seconds:480,mode:'relato'};
+  let j=await createJob(store,config,'story-request-latino'),calls=0;const prompts=[];
+  const outline={sections:Array.from({length:j.total},(_,i)=>({title:'Parte '+i,beat:'Una decisión nueva y su consecuencia '+i})),scenes:Array.from({length:10},(_,i)=>'Escena cronológica en la oficina con luz sobria '+i)};
+  const text=async(p)=>{prompts.push(p);calls++;if(calls===1)return {text:JSON.stringify(outline)};return {text:('Contenido concreto '.repeat(100)).trim()};};
+  j=await advanceJob(store,j.id,{text});
+  j=await advanceJob(store,j.id,{text});
+  assert.equal(j.completed,1);
+  assert.match(prompts[1],/ESPAÑOL NEUTRO LATINOAMERICANO/,'la parte de narración lleva la regla fija');
+  assert.match(prompts[1],/vosotros/);
+});
+
 test('overlapping advances claim one lease and invoke the paid provider once',async()=>{
   const store=new MemoryStore();let j=await createJob(store,{type:'english',text:'One short complete fragment to translate.'},'english-request-001');
   let calls=0,release;const wait=new Promise(r=>{release=r;});
@@ -174,6 +186,77 @@ test('automatic character: the extraction reply is parsed and validated, seconda
   assert.equal(core.repartoDesdeTexto('```json\n'+bueno+'\n```',['companera']).protagonista.nombre,'Marco','tolera vallas de código');
   const prompt=core.promptDeReparto({tema:'Ahorrar',guion:'Un hombre decide...',escenas:['Un hombre en su taller'],conIds:['companera']});
   assert.match(prompt,/define a sus personajes/);assert.match(prompt,/companera/);assert.match(prompt,/25 años o más/);
+});
+
+test('latin accent: the writing rule exists once and bans the Spain forms',()=>{
+  assert.match(core.LATIN_SPANISH_RULE,/NEUTRO LATINOAMERICANO/);
+  assert.match(core.LATIN_SPANISH_RULE,/vosotros/);
+  assert.match(core.LATIN_SPANISH_RULE,/ustedes/);
+  assert.match(core.LATIN_SPANISH_RULE,/extrañar/);
+});
+
+test('latin accent: the audio-only cleanup swaps Spain vocabulary for Latin equivalents',()=>{
+  const L=core.limpiarParaAudioLatino;
+  assert.equal(L('Enciende el ordenador y revisa tu teléfono móvil.'),'Enciende la computadora y revisa tu teléfono celular.');
+  assert.equal(L('Los ordenadores de la oficina y su móvil.'),'Las computadoras de la oficina y su celular.');
+  assert.equal(L('Coge el libro y coge fuerzas.'),'Toma el libro y toma fuerzas.');
+  assert.equal(L('Aparca junto al aparcamiento.'),'Estaciona junto al estacionamiento.');
+  assert.equal(L('Te echo de menos cada día.'),'Te extraño cada día.');
+  assert.equal(L('Aprende a echar de menos a tu familia.'),'Aprende a extrañar a tu familia.');
+  assert.equal(L('Conducir el auto con calma.'),'Manejar el auto con calma.');
+  assert.equal(L('El ordenador llegó ayer.'),'La computadora llegó ayer.');
+});
+
+test('latin accent: look-alikes and real meanings are NOT touched',()=>{
+  const L=core.limpiarParaAudioLatino;
+  assert.equal(L('Esto vale la pena, vale la pena intentarlo.'),'Esto vale la pena, vale la pena intentarlo.','«vale la pena» es el verbo valer, no muletilla');
+  assert.equal(L('Eso conduce a un error grave.'),'Eso conduce a un error grave.','conducir = llevar a no se cambia');
+  assert.equal(L('La policía encontró el móvil del crimen.'),'La policía encontró el móvil del crimen.','el móvil del crimen es el motivo');
+  assert.equal(L('No puedo cogerte el recado.'),'No puedo cogerte el recado.','las formas pegadas no son palabra completa');
+  assert.equal(L('Mi tío vive en Bogotá y mi tía en Cali.'),'Mi tío vive en Bogotá y mi tía en Cali.','tío/tía reales no son muletilla');
+  assert.equal(L('Tío Juan llegó temprano.'),'Tío Juan llegó temprano.');
+  assert.equal(L('Vosotros tenéis que decidir hoy.'),'Vosotros tenéis que decidir hoy.','la limpieza no inventa gramática: vosotros queda intacto');
+});
+
+test('latin accent: filler vale and vocative tío come out, sentence stays whole',()=>{
+  const L=core.limpiarParaAudioLatino;
+  assert.equal(L('Vale, escucha esto con calma.'),'escucha esto con calma.');
+  assert.equal(L('Hazlo hoy, vale, sin pensarlo tanto.'),'Hazlo hoy, sin pensarlo tanto.');
+  assert.equal(L('Escucha, tío, esto importa de verdad.'),'Escucha, esto importa de verdad.');
+  assert.equal(L('Ven aquí, tío.'),'Ven aquí.');
+  assert.equal(L('Tío, mira esto una vez más.'),'mira esto una vez más.');
+});
+
+test('latin accent: an already-Latin text comes out intact, including coche',()=>{
+  const L=core.limpiarParaAudioLatino;
+  const ok='Toma tu celular, maneja con calma hasta tu casa y estaciona el coche frente a la puerta. Tu computadora está sobre la mesa y tu familia te extraña.';
+  assert.equal(L(ok),ok);
+});
+
+test('latin accent: ElevenLabs request cleans the text and forces es except on v4 and the English path',async()=>{
+  process.env.ELEVENLABS_API_KEY='test-key';
+  const {generateAudioChunk}=require('../server/_voice');
+  const seen=[];
+  const realFetch=global.fetch;
+  global.fetch=async(url,opts)=>{seen.push(JSON.parse(opts.body));return {ok:true,json:async()=>({audio_base64:'AAAA',alignment:null})};};
+  try{
+    const es=await generateAudioChunk('Vale, coge tu ordenador y escucha.','eleven',{model:'eleven_multilingual_v2'},'es',{});
+    assert.equal(es.engine,'eleven');
+    assert.equal(seen[0].text,'toma tu computadora y escucha.');
+    assert.equal(seen[0].language_code,'es','multilingual v2 lleva language_code es');
+    seen.length=0;
+    await generateAudioChunk('Coge tu ordenador y escucha.','eleven',{model:'eleven_v3'},'es',{});
+    assert.equal(seen[0].language_code,'es','v3 lleva language_code es');
+    seen.length=0;
+    await generateAudioChunk('Coge tu ordenador y escucha.','eleven',{model:'eleven_v4'},'es',{});
+    assert.equal(seen[0].text,'Toma tu computadora y escucha.','v4 también limpia el texto');
+    assert.equal(seen[0].language_code,undefined,'v4 NO lleva language_code: no está documentado');
+    assert.deepEqual(Object.keys(seen[0].voice_settings).sort(),['similarity_boost','stability'],'v4 mantiene solo sus dos ajustes');
+    seen.length=0;
+    await generateAudioChunk('Coge tu ordenador y escucha.','eleven',{model:'eleven_multilingual_v2'},'en',{});
+    assert.equal(seen[0].text,'Coge tu ordenador y escucha.','el camino en inglés no se limpia ni se fuerza');
+    assert.equal(seen[0].language_code,undefined);
+  } finally { global.fetch=realFetch; }
 });
 
 test('automatic character: the project lock runs once, waits while fresh, retries when stale, never loops on failure',()=>{

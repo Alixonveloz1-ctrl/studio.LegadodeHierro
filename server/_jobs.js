@@ -97,7 +97,7 @@ async function advanceJob(store,id,deps) {
     } else if (c.type === 'script') {
       const target = Math.round(Number(c.seconds)*2.35/job.total);
       if (!part) {
-        const p = c.prompt+'\n\nENCARGO DE ESTA ETAPA: SOLO el texto hablado de la parte '+(i+1)+' de '+job.total+'. NO BLOQUES, NO PROMPTS, NO TÍTULOS. '
+        const p = c.prompt+'\n\n'+core.LATIN_SPANISH_RULE+'\n\nENCARGO DE ESTA ETAPA: SOLO el texto hablado de la parte '+(i+1)+' de '+job.total+'. NO BLOQUES, NO PROMPTS, NO TÍTULOS. '
           +'Entre '+Math.floor(target*0.85)+' y '+Math.ceil(target*1.15)+' palabras. No resumir ni añadir relleno. '
           +(i === 0?'Empieza directamente con el gancho. ': 'Continúa exactamente donde quedó la narración; no saludes ni repitas la introducción. ')
           +(i === job.total-1?'Resuelve el conflicto y termina con Legado de Hierro.':'No cierres el video ni digas Legado de Hierro todavía. ')

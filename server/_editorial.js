@@ -5,7 +5,7 @@ const {failure} = require('./_store');
 const KEYS = Object.keys(core.CRITERIA);
 // Saved jobs may still carry the legacy all-in-one output instructions.
 function stageContext(prompt) {
-  return core.ADULT_RULE+'\n'+core.BRAND_VOICE+'\n'+core.CHANNEL_BASIS+'\n'+String(prompt).split('\n').filter(line=>!/^\s*FORMATO: texto plano\./.test(line) && !(/^\s*- /.test(line)&&core.hasMinors(line)))
+  return core.ADULT_RULE+'\n'+core.BRAND_VOICE+'\n'+core.CHANNEL_BASIS+'\n'+core.LATIN_SPANISH_RULE+'\n'+String(prompt).split('\n').filter(line=>!/^\s*FORMATO: texto plano\./.test(line) && !(/^\s*- /.test(line)&&core.hasMinors(line)))
     .map(line=>line.replace(/(DURACIÓN orientativa: \d+ segundos\.) Entre \d+ y \d+ palabras;/, '$1'))
     .join('\n');
 }

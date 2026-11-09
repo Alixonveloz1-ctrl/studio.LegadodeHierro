@@ -113,7 +113,7 @@ async function generateAudioChunk(text, engine, voice, lang, options) {
   options = options || {};
   const signal = options.signal || AbortSignal.timeout(40000);
   if (!text || text.trim().split(/\s+/).length > 80 || Buffer.byteLength(text,'utf8') > 3200) throw failure('La narración debe enviarse por tramos de hasta 80 palabras.',400);
-  if (engine === 'eleven') return {...await generarEleven(text,voice,{...options,signal}),engine};
+  if (engine === 'eleven') return {...await generarEleven(text,voice,{...options,signal,lang}),engine};
   const access = await token(signal);
   if (engine === 'chirp') return {...await generarChirp(text,voice,lang,access,signal),engine};
   if (engine !== 'gemini') throw failure('Motor de voz desconocido.',400);
