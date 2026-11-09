@@ -346,6 +346,74 @@
         description:r[2] + '. ' + shot + ', en ' + r[1] + ', luz cinematográfica sobria. El protagonista insignia del canal viste ropa cotidiana apropiada para la acción. Una sola acción, sin texto ni logotipos. No lluvia ni fantasía.'};
     }); });
   }
-  return {BRAND_VOICE:BRAND_VOICE,CHANNEL_BASIS:CHANNEL_BASIS,ADULT_RULE:ADULT_RULE,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,
+  // ===== PERSONAJE AUTOMÁTICO DE CADA VIDEO =====
+  // El guion NO trae la descripción del protagonista en un campo propio: vive
+  // como prosa dentro de los prompts de escena. Por eso, UNA sola vez por
+  // video, una llamada de texto (lo barato) la extrae a nombre + físico +
+  // vestuario, y con eso la app crea sola la ficha y sus vistas. Estas tres
+  // funciones son puras: construyen el encargo, validan la respuesta y
+  // deciden si toca crear. Nada de red aquí.
+  function limpiarIdReparto(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+  }
+  function promptDeReparto(d) {
+    var datos = d || {};
+    var conIds = (datos.conIds || []).filter(Boolean);
+    return ADULT_RULE + '\n'
+      + 'Lee el guion y las descripciones de escenas de ESTE video y define a sus personajes SOLO con lo que el propio guion muestra o describe. No inventes rasgos que el guion contradiga; si el guion no fija un detalle, elige uno concreto y coherente con la historia y el vestuario que las escenas repiten.\n'
+      + 'Devuelve SOLO JSON válido, sin markdown ni explicación: {"protagonista":{"nombre":"nombre propio o «Protagonista»","fisico":"descripción física completa: edad (25 años o más), rostro, pelo, complexión, rasgos que lo distinguen","vestuario":"la ropa que lleva en la mayoría de las escenas"},'
+      + '"secundarios":[{"id":"el identificador EXACTO de su marca [CON: id]","nombre":"...","fisico":"...","vestuario":"..."}]}\n'
+      + 'El físico debe tener al menos 40 caracteres útiles: es la descripción con la que se dibujará al personaje en todas las escenas.\n'
+      + (conIds.length
+        ? 'Las escenas marcan secundarios con estos identificadores: ' + conIds.join(', ') + '. Incluye en "secundarios" SOLO esos, con su id exacto, si de verdad aparecen como personas en el guion. Si alguno no aparece, no lo incluyas.\n'
+        : 'Este guion no marca secundarios con [CON: id]: devuelve "secundarios" como lista vacía.\n')
+      + '\nTEMA: ' + String(datos.tema || '') + '\n'
+      + (datos.set ? 'ESCENARIO PRINCIPAL: ' + String(datos.set) + '\n' : '')
+      + '\nGUION (narración):\n' + String(datos.guion || '').slice(0, 9000)
+      + '\n\nDESCRIPCIONES DE ESCENAS:\n' + (datos.escenas || []).map(function(s, i) { return (i + 1) + '. ' + s; }).join('\n').slice(0, 9000);
+  }
+  function repartoDesdeTexto(texto, conIds) {
+    var d;
+    try { d = JSON.parse(String(texto || '').trim().replace(/^```(?:json)?\s*|\s*```$/g, '')); }
+    catch (e) { return null; }
+    if (!d || typeof d !== 'object') return null;
+    var limpio = function(v, n) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n); };
+    var ficha = function(x) {
+      if (!x || typeof x !== 'object') return null;
+      var fisico = limpio(x.fisico, 400);
+      if (fisico.length < 20 || hasMinors(fisico)) return null;
+      return { nombre: limpio(x.nombre, 40) || 'Protagonista', fisico: fisico, vestuario: limpio(x.vestuario, 300) };
+    };
+    var protagonista = ficha(d.protagonista);
+    if (!protagonista) return null;
+    var permitidos = (conIds || []).map(limpiarIdReparto).filter(Boolean);
+    var secundarios = [];
+    if (permitidos.length && Array.isArray(d.secundarios)) {
+      for (var i = 0; i < d.secundarios.length && secundarios.length < 2; i++) {
+        var s = d.secundarios[i], id = limpiarIdReparto(s && s.id);
+        if (!id || permitidos.indexOf(id) < 0 || secundarios.some(function(y) { return y.id === id; })) continue;
+        var f = ficha(s);
+        if (f) secundarios.push({ id: id, nombre: f.nombre, fisico: f.fisico, vestuario: f.vestuario });
+      }
+    }
+    return { protagonista: protagonista, secundarios: secundarios };
+  }
+  // El candado anti-repetición vive en el proyecto (personajeAuto). 'creando'
+  // reciente = otra corrida puede estar en ello: esperar. 'creando' viejo
+  // (más de 10 minutos) = corrida interrumpida: se puede reintentar solo.
+  // 'fallo' NO se reintenta solo al entrar: el panel lo muestra y ofrece el
+  // botón de reintentar, para no quemar llamadas en bucle.
+  function personajeAutoAccion(estado, ahora) {
+    if (!estado || !estado.estado || estado.estado === 'pendiente') return 'crear';
+    if (estado.estado === 'creando') return (ahora - (Number(estado.en) || 0) > 600000) ? 'crear' : 'esperar';
+    return 'nada';
+  }
+  function vistasQueFaltan(p, total) {
+    var refs = (p && p.refs) || [], out = [];
+    for (var i = 0; i < total; i++) if (!refs[i]) out.push(i);
+    return out;
+  }
+  return {BRAND_VOICE:BRAND_VOICE,CHANNEL_BASIS:CHANNEL_BASIS,ADULT_RULE:ADULT_RULE,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,limpiarIdReparto:limpiarIdReparto,promptDeReparto:promptDeReparto,repartoDesdeTexto:repartoDesdeTexto,personajeAutoAccion:personajeAutoAccion,vistasQueFaltan:vistasQueFaltan,
     continuity:continuity,scenePlan:scenePlan,selectPlan:selectPlan,familyFor:familyFor,formatFor:formatFor,feedback:feedback,validateMetric:validateMetric,recipes:recipes,segments:segments};
 });

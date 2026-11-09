@@ -162,3 +162,29 @@ test('consecutive video references form one hold, while later reuse remains sepa
   assert.throws(()=>videoSpeed(8,30),/otro plano/);
   assert.deepEqual(core.mergeContinuousShots(shots).map(s=>s.duration),[12,6,6]);
 });
+
+test('automatic character: the extraction reply is parsed and validated, secondaries only from [CON:] ids',()=>{
+  const bueno=JSON.stringify({protagonista:{nombre:'Marco',fisico:'hombre de 40 años, cabello negro corto, barba recortada, complexión fuerte, mirada seria',vestuario:'camisa oscura'},secundarios:[{id:'companera',nombre:'Lucía',fisico:'mujer de 35 años, cabello castaño largo, rostro amable, complexión media',vestuario:'blusa clara'},{id:'inventado',nombre:'X',fisico:'hombre de 30 años, alto, delgado, pelo corto y gafas redondas',vestuario:'traje'}]});
+  const r=core.repartoDesdeTexto(bueno,['companera']);
+  assert.equal(r.protagonista.nombre,'Marco');assert.match(r.protagonista.fisico,/barba recortada/);
+  assert.deepEqual(r.secundarios.map(s=>s.id),['companera'],'solo entran los ids que el guion marcó con [CON:]');
+  assert.equal(core.repartoDesdeTexto(bueno,[]).secundarios.length,0,'sin marcas [CON:] no hay secundarios');
+  assert.equal(core.repartoDesdeTexto('no es json',[]),null);
+  assert.equal(core.repartoDesdeTexto(JSON.stringify({protagonista:{nombre:'M',fisico:'corto'},secundarios:[]}),[]),null,'un físico vacío o inútil no crea ficha');
+  assert.equal(core.repartoDesdeTexto('```json\n'+bueno+'\n```',['companera']).protagonista.nombre,'Marco','tolera vallas de código');
+  const prompt=core.promptDeReparto({tema:'Ahorrar',guion:'Un hombre decide...',escenas:['Un hombre en su taller'],conIds:['companera']});
+  assert.match(prompt,/define a sus personajes/);assert.match(prompt,/companera/);assert.match(prompt,/25 años o más/);
+});
+
+test('automatic character: the project lock runs once, waits while fresh, retries when stale, never loops on failure',()=>{
+  const now=Date.now();
+  assert.equal(core.personajeAutoAccion(null,now),'crear');
+  assert.equal(core.personajeAutoAccion({estado:'pendiente',en:now},now),'crear');
+  assert.equal(core.personajeAutoAccion({estado:'creando',en:now},now),'esperar');
+  assert.equal(core.personajeAutoAccion({estado:'creando',en:now-600001},now),'crear','una corrida interrumpida hace más de 10 minutos se puede retomar');
+  assert.equal(core.personajeAutoAccion({estado:'fallo',en:now-9999999},now),'nada','el fallo no se reintenta solo en bucle');
+  assert.equal(core.personajeAutoAccion({estado:'listo',en:now},now),'nada');
+  assert.deepEqual(core.vistasQueFaltan({refs:['a',null,'c']},3),[1]);
+  assert.deepEqual(core.vistasQueFaltan({refs:[]},3),[0,1,2]);
+  assert.deepEqual(core.vistasQueFaltan({refs:['a','b','c']},3),[]);
+});

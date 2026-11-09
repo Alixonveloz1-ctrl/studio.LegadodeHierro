@@ -105,7 +105,7 @@ async function studioEnglish(text){
   return out.text;
 }
 function studioProjectSnapshot(res){
-  var p={};['uid','topic','a','f','c','cRaw','set','montaje','nTomas','nEjemplos','modo','tO','dO','hO','sem','editorial','editorialPlan','quality','draftA','studioRequestId','personajeId'].forEach(function(k){if(res[k]!==undefined)p[k]=res[k];});
+  var p={};['uid','topic','a','f','c','cRaw','set','montaje','nTomas','nEjemplos','modo','tO','dO','hO','sem','editorial','editorialPlan','quality','draftA','studioRequestId','personajeId','personajeAuto'].forEach(function(k){if(res[k]!==undefined)p[k]=res[k];});
   return p;
 }
 function studioSaveProject(res,extra){
@@ -941,7 +941,10 @@ function lhShowStep(step,anchorId){
   if(step==='inicio'){lhPaintCurrentProject();lhPaintRecentProjects();lhPaintConnections();}
   // El panel «Personaje de este video» se repinta al entrar: muestra el
   // personaje del video abierto AHORA, no el que hubiera al cargar la pagina.
-  if(step==='produccion'&&typeof pintarBiblia==='function')pintarBiblia();
+  // Y si el video tiene guion pero aún no tiene personaje, aquí se dispara su
+  // creación AUTOMÁTICA desde el guion (una sola vez por video; el candado
+  // viaja en el proyecto como personajeAuto).
+  if(step==='produccion'&&typeof pintarBiblia==='function'){pintarBiblia();if(typeof asegurarPersonajeAutomatico==='function')asegurarPersonajeAutomatico();}
   if(step==='musica')lhPaintMusicVideo();
   if(step==='montaje'&&typeof updUnifyCard==='function')updUnifyCard();
   try{window.scrollTo(0,0);}catch(e){}

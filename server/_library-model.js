@@ -48,13 +48,13 @@ async function generate(store,recipe,settings,object){
   // id en settings.characterId; sin el o sin vistas se falla claro, nunca se
   // sustituye por el personaje de otro video.
   const characterId=String(settings.characterId||'').trim();
-  if(!characterId)throw failure('Este lote no dice qué personaje de su video debe salir. Abre el video, crea su personaje en el panel «Personaje de este video» (en Producción) y vuelve a generar el lote.',409);
+  if(!characterId)throw failure('Este lote no dice qué personaje de su video debe salir. Abre el video en Producción: su personaje se crea solo desde el guion, y con él el lote podrá generarse.',409);
   const idx=await store.read('personajes/index.json').catch(()=>null);
   const lista=idx&&Array.isArray(idx.data)?idx.data:[];
   const ficha=lista.find(p=>p&&p.id===characterId);
   const vistas=ficha&&Array.isArray(ficha.refs)?ficha.refs.filter(Boolean):[];
   for(const name of vistas){const info=await store.info(name);if(info)refs.push({fileData:{mimeType:info.contentType||'image/png',fileUri:'gs://'+bucket+'/'+name}});}
-  if(refs.length<2)throw failure('El personaje de este video no tiene sus vistas guardadas. Créalo o regenera sus vistas en el panel «Personaje de este video» (en Producción) antes de generar el lote.',409);
+  if(refs.length<2)throw failure('El personaje de este video aún no tiene sus vistas guardadas: se crean solas desde su guion al entrar en Producción (panel «Personaje de este video»). Espera a que estén listas y vuelve a generar el lote.',409);
   const parts=[{text:core.IMAGE_STYLE+'Formato '+settings.aspect+'. '+recipe.description},...refs];
   if(settings.anchorObject){const anchor=await store.info(settings.anchorObject);if(anchor)parts.push({text:'La última imagen fija el lugar, iluminación y vestuario. Conserva esos detalles y cambia solo el encuadre a '+recipe.shot+'.'}, {fileData:{mimeType:anchor.contentType||'image/png',fileUri:'gs://'+bucket+'/'+settings.anchorObject}});}
   const response=await modelCall(settings.model,parts,

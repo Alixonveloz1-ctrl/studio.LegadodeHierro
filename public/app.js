@@ -859,44 +859,107 @@ function nVistas(p){
 }
 
 // El panel pinta SOLO el personaje del video en curso. Sin video abierto
-// avisa; con video pero sin personaje, ofrece crearlo desde la descripción.
+// avisa; con video pero sin personaje, muestra el estado de la creación
+// AUTOMÁTICA (se crea solo desde el guion): nunca el formulario como camino.
 function pintarBiblia(){
   var g=document.getElementById('bibliaGrid');if(!g)return;
   var lbl=document.getElementById('bibliaLbl');
-  var p=(typeof lastRes!=='undefined'&&lastRes)?personajeDelVideo():null;
-  if(lbl)lbl.textContent=!(typeof lastRes!=='undefined'&&lastRes)
+  var hayVideo=(typeof lastRes!=='undefined'&&!!lastRes);
+  var p=hayVideo?personajeDelVideo():null;
+  var est=hayVideo?(lastRes.personajeAuto||null):null;
+  if(lbl)lbl.textContent=!hayVideo
     ? 'Abre o crea un video para definir el personaje de ese video.'
     : (p?('Este video usa a «'+p.nombre+'», creado solo para él.')
-        :'Este video todavía no tiene su personaje.');
+        : (est&&est.estado==='creando'?'Creando el personaje de este video automáticamente, desde su guion…'
+          : est&&est.estado==='fallo'?'No se pudo crear el personaje de este video.'
+          : 'El personaje de este video se crea solo desde su guion.'));
   g.innerHTML='';
-  if(!(typeof lastRes!=='undefined'&&lastRes)){
-    g.innerHTML='<div style="font-size:11px;color:var(--tx3);line-height:1.5">Cuando abras un video, aquí aparecerá su personaje: podrás ver sus vistas y regenerarlas.</div>';
+  if(!hayVideo){
+    g.innerHTML='<div style="font-size:11px;color:var(--tx3);line-height:1.5">Cuando abras un video, aquí aparecerá su personaje: se crea solo desde su guion, y podrás ver sus vistas y regenerarlas.</div>';
     return;
   }
-  if(!p){ pintarFormularioPersonaje(g); return; }
+  if(!p){ pintarEstadoPersonaje(g); return; }
   pintarTarjetaBiblia(g,p);
 }
 
-// El formulario para crear el personaje DE ESTE VIDEO desde su descripción.
-// Si el guion ya lo describe, el dueño copia esa descripción aquí; si no, la
-// escribe. Al crear se generan sus 3 vistas con las funciones de siempre.
+// El panel SIN ficha: solo estados de la creación automática. Sin guion →
+// se creará al tenerlo. Creando → aviso. Fallo → error claro + Reintentar
+// (y el ajuste manual como opción secundaria). Nunca un formulario vacío
+// esperando que el dueño describa lo que el guion ya sabe.
+function pintarEstadoPersonaje(g){
+  var est=(typeof lastRes!=='undefined'&&lastRes&&lastRes.personajeAuto)||null;
+  var el=document.createElement('div');
+  el.style.cssText='background:#1f1f23;border:1.5px dashed var(--border);border-radius:10px;padding:10px';
+  if(est&&est.estado==='creando'){
+    el.innerHTML='<div style="font-size:11px;color:var(--tx);line-height:1.5">⏳ El personaje de este video se está creando SOLO, desde su guion: primero su descripción y después sus vistas. No tienes que hacer nada. Cuando esté listo aparecerá aquí, y si alguna vista no te gusta podrás regenerarla.</div>';
+  }else if(est&&est.estado==='fallo'){
+    el.innerHTML='<div style="font-size:11px;color:var(--tx);line-height:1.5;margin-bottom:8px">'
+      +'No se pudo crear el personaje automáticamente'+(est.error?(': '+escHtml(est.error)):'')+'. Dale a «Reintentar»: vuelve a leer el guion y lo crea solo. El ajuste a mano queda como opción, por si quieres cambiar la descripción.</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      +'<button type="button" id="bPersonajeReintentar" style="flex:1;border:1.5px solid #d9a441;background:var(--warm);border-radius:8px;padding:8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--tx)">Reintentar</button>'
+      +'<button type="button" id="bPersonajeAjustar" style="flex:1;border:1px solid var(--border);background:#1f1f23;border-radius:8px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">Ajustar descripción</button></div>';
+  }else if(!String((lastRes&&lastRes.a)||'').trim()){
+    el.innerHTML='<div style="font-size:11px;color:var(--tx);line-height:1.5">Cuando este video tenga su guion, su personaje se creará SOLO desde ese guion: aquí aparecerán sus vistas para verlas o regenerarlas. No tienes que describir nada.</div>';
+  }else{
+    el.innerHTML='<div style="font-size:11px;color:var(--tx);line-height:1.5">El personaje de este video se crea SOLO desde su guion: en un momento aparecerán aquí sus vistas. No tienes que describir nada.</div>';
+  }
+  g.appendChild(el);
+  var br=document.getElementById('bPersonajeReintentar');
+  if(br)br.addEventListener('click',function(){ reintentarPersonajeAutomatico(); });
+  var ba=document.getElementById('bPersonajeAjustar');
+  if(ba)ba.addEventListener('click',function(){ mostrarAjustePersonaje(); });
+}
+
+// Muestra el formulario de ajuste: SOLO como opción secundaria y discreta,
+// cuando el dueño quiere cambiar la descripción que salió del guion.
+function mostrarAjustePersonaje(){
+  var g=document.getElementById('bibliaGrid');if(!g)return;
+  g.innerHTML='';
+  pintarFormularioPersonaje(g);
+}
+
+// El formulario de AJUSTE MANUAL (opcional, nunca el camino principal): el
+// personaje se crea solo desde el guion; esto solo sirve si el dueño quiere
+// cambiar su descripción. Con ficha existente se precarga y al guardar se
+// regeneran sus vistas con la descripción nueva; sin ficha, crea una.
 function pintarFormularioPersonaje(g){
+  var actual=(typeof lastRes!=='undefined'&&lastRes)?personajeDelVideo():null;
   var el=document.createElement('div');
   el.style.cssText='background:#1f1f23;border:1.5px dashed var(--border);border-radius:10px;padding:10px';
   el.innerHTML='<div style="font-size:11px;color:var(--tx);line-height:1.5;margin-bottom:8px">'
-    +'Este video todavía no tiene su personaje. Descríbelo tal como lo define el guion de este video y se crearán sus vistas de referencia. Ese personaje se usará SOLO en este video.</div>'
+    +'Ajuste manual (opcional): normalmente el personaje se crea SOLO desde el guion de este video. '
+    +(actual?'Si cambias su descripción aquí, sus vistas se regeneran con la nueva.':'Si lo creas a mano con esta descripción, se usará solo en este video.')
+    +'</div>'
     +'<label class="genLbl" style="margin-bottom:6px">Nombre del personaje'
-    +'<input type="text" id="personajeNombre" class="genSel" value="Protagonista" maxlength="40"></label>'
+    +'<input type="text" id="personajeNombre" class="genSel" maxlength="40"></label>'
     +'<label class="genLbl" style="margin-bottom:6px">Cómo es físicamente (edad, rostro, pelo, complexión)'
     +'<textarea id="personajeFisico" rows="3" class="genSel" placeholder="Ej.: hombre de 38 años, cabello negro corto, barba recortada, complexión fuerte, mirada seria"></textarea></label>'
     +'<label class="genLbl" style="margin-bottom:8px">Vestuario habitual en este video (opcional)'
     +'<input type="text" id="personajeVestuario" class="genSel" maxlength="120" placeholder="Ej.: camisa oscura y pantalón negro"></label>'
-    +'<button type="button" id="bCrearPersonaje" style="width:100%;border:1.5px solid #d9a441;background:var(--warm);border-radius:8px;padding:8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--tx)">Crear personaje de este video</button>';
+    +'<button type="button" id="bCrearPersonaje" style="width:100%;border:1.5px solid #d9a441;background:var(--warm);border-radius:8px;padding:8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--tx)">'
+    +(actual?'Guardar y regenerar las vistas':'Crear personaje con esta descripción')+'</button>'
+    +'<button type="button" id="bPersonajeVolver" style="width:100%;margin-top:6px;border:1px solid var(--border);background:#1f1f23;border-radius:8px;padding:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">Volver</button>';
   g.appendChild(el);
+  var inN=document.getElementById('personajeNombre'),inF=document.getElementById('personajeFisico'),inV=document.getElementById('personajeVestuario');
+  if(inN)inN.value=actual?String(actual.nombre||''):'Protagonista';
+  if(inF)inF.value=actual?String(actual.fisico||''):'';
+  if(inV)inV.value=actual?String(actual.vestuario||''):'';
   var b=document.getElementById('bCrearPersonaje');
   if(b)b.addEventListener('click',function(){ crearPersonajeDelVideo(); });
+  var bv=document.getElementById('bPersonajeVolver');
+  if(bv)bv.addEventListener('click',function(){ pintarBiblia(); });
 }
 
+// Id estable y único por video: la ficha queda atada a ESTE proyecto.
+function idPersonajeDelVideo(uid){
+  var id='video-'+String(uid||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,33);
+  if(id==='video-'||id==='video')id='video-'+Date.now();
+  return id;
+}
+
+// El guardado del AJUSTE MANUAL (opción secundaria): con ficha, regenera sus
+// vistas con la descripción nueva conservando su id y su ancla; sin ficha,
+// crea una con esta descripción. El camino normal es el automático.
 async function crearPersonajeDelVideo(){
   if(!lastRes)return;
   var st=document.getElementById('bibliaSt');
@@ -907,26 +970,156 @@ async function crearPersonajeDelVideo(){
     if(st){st.style.display='block';st.textContent='Describe primero cómo es físicamente el personaje (edad, rostro, pelo, complexión). Sin esa descripción no se puede crear.';}
     return;
   }
-  // Id estable y único por video: la ficha queda atada a ESTE proyecto.
-  var id='video-'+String(lastRes.uid||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,33);
-  if(id==='video-'||id==='video')id='video-'+Date.now();
-  var p={id:id,nombre:nombre,rol:'Protagonista de este video',edad:'',fisico:fisico,vestuario:vestuario,habla:'',encaja:'',video:String(lastRes.uid||'')};
+  var actual=personajeDelVideo();
+  var p=actual
+    ? Object.assign({},actual,{nombre:nombre,fisico:fisico,vestuario:vestuario})
+    : {id:idPersonajeDelVideo(lastRes.uid),nombre:nombre,rol:'Protagonista de este video',edad:'',fisico:fisico,vestuario:vestuario,habla:'',encaja:'',video:String(lastRes.uid||'')};
   var btn=document.getElementById('bCrearPersonaje');
-  if(btn){btn.disabled=true;btn.textContent='Creando el personaje…';}
-  if(st){st.style.display='block';st.textContent='Creando el personaje de este video…';}
-  var res=await generarVistasDe(p,null,function(n,tot,i,aviso){
+  if(btn){btn.disabled=true;btn.textContent=actual?'Regenerando las vistas…':'Creando el personaje…';}
+  if(st){st.style.display='block';st.textContent=actual?'Regenerando las vistas con la descripción nueva…':'Creando el personaje de este video…';}
+  var res=await generarVistasDe(p,actual?TODAS_LAS_VISTAS():null,function(n,tot,i,aviso){
     if(st)st.textContent='Creando el personaje: vista '+n+' de '+tot+(aviso?(' — '+aviso):'…');
   });
   if(res&&res.ok){
     lastRes.personajeId=p.id;
+    lastRes.personajeAuto={estado:'listo',en:Date.now(),error:''};
     try{saveHistory(lastRes);}catch(e){}
     try{await studioSaveProject(lastRes);}catch(e){}
-    if(st)st.textContent='Personaje creado: «'+nombre+'». Ya puedes generar las imágenes de este video.';
+    if(st)st.textContent='Personaje listo: «'+nombre+'». Ya puedes generar las imágenes de este video.';
     pintarBiblia();
   }else{
-    if(st)st.textContent='No se pudo crear el personaje: '+(((res&&res.fallos)||[]).slice(0,2).join(' · ')||'error desconocido')+'. Revisa la descripción e inténtalo de nuevo.';
-    if(btn){btn.disabled=false;btn.textContent='Crear personaje de este video';}
+    if(st)st.textContent='No se pudo: '+(((res&&res.fallos)||[]).slice(0,2).join(' · ')||'error desconocido')+'. Revisa la descripción e inténtalo de nuevo.';
+    if(btn){btn.disabled=false;btn.textContent=actual?'Guardar y regenerar las vistas':'Crear personaje con esta descripción';}
   }
+}
+
+// ============ CREACIÓN AUTOMÁTICA DEL PERSONAJE ============
+// El diseño del dueño: la app analiza el tema, crea el guion y crea SOLA los
+// personajes de ese video. Al entrar a Producción con guion listo y sin
+// ficha, UNA llamada de texto (lo barato) extrae del propio guion nombre +
+// físico + vestuario del protagonista y de los secundarios que las escenas
+// marcan con [CON: id]; con eso se crea la ficha y se generan sus vistas,
+// sin que el dueño llene nada. El candado va en el proyecto (personajeAuto)
+// para correr UNA sola vez por video y no en cada apertura.
+var PERSONAJE_AUTO_CORRIENDO={};
+
+function idsConDelGuion(){
+  var ids=[],re=/\[CON:\s*([a-z0-9-]+)\s*\]/gi,m;
+  var textos=(lastRes&&Array.isArray(lastRes.c)?lastRes.c:[]).join('\n');
+  while((m=re.exec(textos))!==null){ if(ids.indexOf(m[1])<0)ids.push(m[1]); }
+  return ids;
+}
+
+async function extraerRepartoDelGuion(){
+  if(!lastRes)return null;
+  var conIds=idsConDelGuion();
+  var prompt=LH.promptDeReparto({tema:lastRes.topic||'',guion:lastRes.a||'',
+    escenas:Array.isArray(lastRes.c)?lastRes.c:[],set:lastRes.set||'',conIds:conIds});
+  var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+    signal:AbortSignal.timeout(60000),
+    body:JSON.stringify({prompt:prompt,sinBloques:true})});
+  var d=await r.json().catch(function(){return{};});
+  if(!r.ok||!d.text)throw new Error((d&&d.error)||'No se pudo leer el guion para crear el personaje.');
+  return LH.repartoDesdeTexto(d.text,conIds);
+}
+
+function guardarEstadoPersonajeAuto(uid){
+  if(typeof lastRes==='undefined'||!lastRes||String(lastRes.uid)!==uid)return;
+  try{saveHistory(lastRes);}catch(e){}
+  try{var pr=studioSaveProject(lastRes);if(pr&&pr.catch)pr.catch(function(){});}catch(e){}
+}
+
+// Punto de disparo: lo llama lhShowStep al entrar a Producción. Si ya hay
+// ficha, solo asegura el enlace con el proyecto (y completa las vistas si
+// una corrida anterior quedó interrumpida a media tanda). Sin guion, nada.
+function asegurarPersonajeAutomatico(){
+  if(typeof lastRes==='undefined'||!lastRes||!lastRes.uid)return;
+  var uid=String(lastRes.uid);
+  var p=personajeDelVideo();
+  if(p){
+    if(lastRes.personajeId!==p.id){ lastRes.personajeId=p.id; guardarEstadoPersonajeAuto(uid); }
+    var est=lastRes.personajeAuto;
+    if(est&&est.estado==='creando'&&LH.personajeAutoAccion(est,Date.now())==='crear'
+       &&LH.vistasQueFaltan(p,N_VISTAS).length&&!PERSONAJE_AUTO_CORRIENDO[uid]){
+      PERSONAJE_AUTO_CORRIENDO[uid]=true;
+      lastRes.personajeAuto={estado:'creando',en:Date.now(),error:''};
+      guardarEstadoPersonajeAuto(uid);
+      (async function(){
+        try{
+          var faltan=LH.vistasQueFaltan(p,N_VISTAS);
+          var r=await generarVistasDe(p,faltan,function(){});
+          if(typeof lastRes!=='undefined'&&lastRes&&String(lastRes.uid)===uid){
+            lastRes.personajeAuto=(r&&r.ok)?{estado:'listo',en:Date.now(),error:''}
+              :{estado:'fallo',en:Date.now(),error:((r&&r.fallos)||[]).slice(0,2).join(' · ')||'no se pudieron completar las vistas'};
+            guardarEstadoPersonajeAuto(uid);
+          }
+        }catch(e){}
+        delete PERSONAJE_AUTO_CORRIENDO[uid];
+        pintarBiblia();
+      })();
+    }
+    return;
+  }
+  if(!String(lastRes.a||'').trim())return; // sin guion todavía no hay de dónde crearlo
+  if(PERSONAJE_AUTO_CORRIENDO[uid])return;
+  if(LH.personajeAutoAccion(lastRes.personajeAuto,Date.now())!=='crear')return;
+  PERSONAJE_AUTO_CORRIENDO[uid]=true;
+  lastRes.personajeAuto={estado:'creando',en:Date.now(),error:''};
+  guardarEstadoPersonajeAuto(uid);
+  pintarBiblia();
+  (async function(){
+    try{ await crearPersonajeAutomatico(uid); }
+    catch(e){}
+    delete PERSONAJE_AUTO_CORRIENDO[uid];
+  })();
+}
+
+async function crearPersonajeAutomatico(uid){
+  var dueno=function(){return (typeof lastRes!=='undefined'&&lastRes&&String(lastRes.uid)===uid)?lastRes:null;};
+  var st=document.getElementById('bibliaSt');
+  try{
+    var reparto=await extraerRepartoDelGuion();
+    if(!dueno())return;
+    if(!reparto)throw new Error('el guion no dejó una descripción clara del protagonista');
+    var p={id:idPersonajeDelVideo(uid),nombre:reparto.protagonista.nombre,
+      rol:'Protagonista de este video',edad:'',fisico:reparto.protagonista.fisico,
+      vestuario:reparto.protagonista.vestuario,habla:'',encaja:'',video:uid};
+    if(st){st.style.display='block';st.textContent='Creando el personaje de este video solo, desde su guion…';}
+    var res=await generarVistasDe(p,null,function(n,tot,i,aviso){
+      var s2=document.getElementById('bibliaSt');
+      if(s2)s2.textContent='Creando el personaje de este video: vista '+n+' de '+tot+(aviso?(' — '+aviso):'…');
+    });
+    if(!res||!res.ok)throw new Error(((res&&res.fallos)||[]).slice(0,2).join(' · ')||'no se pudo generar ninguna vista');
+    // Los secundarios que el guion marca con [CON: id] también nacen solos:
+    // ficha y vistas de ESTE video, para que sus escenas salgan con su cara.
+    for(var k=0;k<reparto.secundarios.length;k++){
+      var s=reparto.secundarios[k];
+      if(personajePorId(s.id))continue;
+      var f={id:s.id,nombre:s.nombre,rol:'Personaje de este video',edad:'',fisico:s.fisico,vestuario:s.vestuario,habla:'',encaja:'',video:uid};
+      try{ await generarVistasDe(f,null,function(){}); }catch(e){}
+    }
+    var lr=dueno();if(!lr)return;
+    lr.personajeId=p.id;
+    lr.personajeAuto={estado:'listo',en:Date.now(),error:''};
+    guardarEstadoPersonajeAuto(uid);
+    var s3=document.getElementById('bibliaSt');
+    if(s3){s3.style.display='block';s3.textContent='Personaje creado solo desde el guion: «'+p.nombre+'». Ya puedes generar las imágenes de este video.';}
+    pintarBiblia();
+  }catch(e){
+    if(!dueno())return;
+    lastRes.personajeAuto={estado:'fallo',en:Date.now(),error:String((e&&e.message)||'error desconocido')};
+    guardarEstadoPersonajeAuto(uid);
+    pintarBiblia();
+  }
+}
+
+// El botón «Reintentar» del estado de fallo: limpia el candado y vuelve a
+// disparar la creación automática.
+function reintentarPersonajeAutomatico(){
+  if(typeof lastRes==='undefined'||!lastRes)return;
+  lastRes.personajeAuto={estado:'pendiente',en:Date.now(),error:''};
+  guardarEstadoPersonajeAuto(String(lastRes.uid||''));
+  asegurarPersonajeAutomatico();
 }
 
 function pintarTarjetaBiblia(g,p){
@@ -954,6 +1147,12 @@ function pintarTarjetaBiblia(g,p){
       +'padding:5px;font-size:9.5px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">'
       +(nAncla(p)?'📎 '+nAncla(p)+' foto(s) de referencia'+(anclaPropia(p)?' tuyas':'')
                  :'📎 Usar mis propias fotos')+'</button>'
+      // Ajuste opcional y discreto: el personaje ya se creó solo desde el
+      // guion; esto solo aparece por si el dueño quiere cambiar su descripción.
+      +'<button type="button" class="bibliaAjustar" '
+      +'style="width:100%;margin-top:4px;border:none;background:transparent;border-radius:7px;'
+      +'padding:4px;font-size:9.5px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3);text-decoration:underline">'
+      +'Ajustar descripción</button>'
       +'<div class="bibliaVistas" style="display:none;margin-top:8px"></div>';
     g.appendChild(el);
   }
@@ -962,6 +1161,9 @@ function pintarTarjetaBiblia(g,p){
   });
   Array.prototype.forEach.call(g.querySelectorAll('.bibliaSubir'),function(b){
     b.addEventListener('click',function(){ subirAncla(b.getAttribute('data-id')); });
+  });
+  Array.prototype.forEach.call(g.querySelectorAll('.bibliaAjustar'),function(b){
+    b.addEventListener('click',function(){ mostrarAjustePersonaje(); });
   });
 }
 
@@ -1274,7 +1476,7 @@ async function generarVistasFaltantes(){
   // nada de otros videos.
   var objetivo=(typeof lastRes!=='undefined'&&lastRes)?personajeDelVideo():null;
   if(typeof lastRes!=='undefined'&&lastRes&&!objetivo){
-    if(st){st.style.display='block';st.textContent='Este video todavía no tiene su personaje: créalo primero con el botón «Crear personaje de este video».';}
+    if(st){st.style.display='block';st.textContent='Este video todavía no tiene su personaje: se crea SOLO desde su guion al entrar a Producción. Si la creación falló, en el panel «Personaje de este video» tienes el botón «Reintentar».';}
     return;
   }
   var universo=objetivo?[objetivo]:BIBLIA;
@@ -3090,12 +3292,12 @@ async function loadRefs(){
   var p=(typeof personajeDelVideo==='function')?personajeDelVideo():null;
   if(!p){
     loadedRefsCount=0;
-    throw new Error('Este video todavía no tiene su personaje: créalo en el panel «Personaje de este video» (en Producción, justo antes de las tomas). Sin personaje propio no se generan imágenes, para no repetir el de otros videos.');
+    throw new Error('Este video todavía no tiene su personaje: se crea SOLO desde su guion al entrar en Producción. Abre el paso Producción y espera a que aparezca en el panel «Personaje de este video»; si la creación falló, ahí mismo puedes reintentar. Sin personaje propio no se generan imágenes, para no repetir el de otros videos.');
   }
   var refs=await vistasDelPersonaje(p);
   loadedRefsCount=refs.length;
   if(refs.length<MIN_REFS){
-    throw new Error('El personaje de este video («'+p.nombre+'») aún no tiene sus vistas: genéralas en el panel «Personaje de este video» (en Producción) y vuelve a intentar.');
+    throw new Error('El personaje de este video («'+p.nombre+'») aún no tiene sus vistas listas: se crean solas desde su guion (panel «Personaje de este video», en Producción). Espera a que terminen y vuelve a intentar.');
   }
   return refs;
 }

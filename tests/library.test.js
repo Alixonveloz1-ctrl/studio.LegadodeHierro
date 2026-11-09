@@ -103,7 +103,7 @@ test('library image generation sends the views of the character of THIS video an
 });
 test('library image generation fails clearly without a per-video character or without its views',async()=>{
   const s=new Store();const recipe=require('../public/studio-core').recipes()[0],object=lib.imageObject(recipe.id,'9:16');
-  await assert.rejects(models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16'},object),e=>e.status===409&&/Personaje de este video/.test(e.message));
+  await assert.rejects(models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16'},object),e=>e.status===409&&/se crea solo desde el guion/.test(e.message));
   await s.put('personajes/index.json',[{id:'video-test-2',nombre:'Sin vistas',refs:[null,null,null]}]);
   await assert.rejects(models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16',characterId:'video-test-2'},object),e=>e.status===409&&/vistas/.test(e.message));
 });

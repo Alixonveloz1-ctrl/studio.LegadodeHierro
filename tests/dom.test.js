@@ -8,7 +8,7 @@ const root=path.join(__dirname,'..');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 async function ready(check){for(let i=0;i<30;i++){await tick();if(check())return;}throw new Error('UI operation did not settle');}
 async function app(initialStorage={}){
-  const errors=[],calls=[],projects=new Map(),assets=[];
+  const errors=[],calls=[],projects=new Map(),assets=[],bibliaFixture=[];
   const vc=new VirtualConsole();vc.on('jsdomError',e=>{if(!/Not implemented.*(?:HTMLMediaElement|navigation)/i.test(e.message))errors.push(e.message);});
   const dom=new JSDOM(fs.readFileSync(path.join(root,'public/index.html'),'utf8'),{url:'https://studio.example.test',runScripts:'outside-only',virtualConsole:vc});
   const w=dom.window;
@@ -32,14 +32,23 @@ async function app(initialStorage={}){
       else if(b.action==='discover')d={items:Array.from({length:20},(_,i)=>({object:'legado-videos/old'+i+'.mp4',kind:'video',title:'Clip '+i,url:'https://media.example.test/old'+i}))};
       else d={items:[]};
     }else if(input==='/api/music')d={tracks:[]};
-    else if(input==='/api/generate')d={text:'CAPTION:\nUn paso concreto.\nHASHTAGS:\n#Disciplina\nYOUTUBE:\nUn paso concreto'};
+    else if(input==='/api/generate')d=/define a sus personajes/.test(b.prompt||'')
+      ?{text:JSON.stringify({protagonista:{nombre:'Marco Prueba',fisico:'hombre de 40 años, cabello negro corto, barba recortada, complexión fuerte, mirada seria y manos de obrero',vestuario:'camisa oscura y pantalón negro'},secundarios:[]})}
+      :{text:'CAPTION:\nUn paso concreto.\nHASHTAGS:\n#Disciplina\nYOUTUBE:\nUn paso concreto'};
+    else if(input==='/api/refs'&&b.action){
+      if(b.action==='list')d={success:true,personajes:bibliaFixture};
+      else if(b.action==='generar')d={success:true,id:b.personaje&&b.personaje.id,vista:b.vista,vistas:[{i:b.vista,b64:'aGVsbG8='}],conReferencia:0,conAncla:0,total:3};
+      else if(b.action==='guardar'){const f={...(b.personaje||{})};const prev=bibliaFixture.find(x=>x.id===f.id);const refs=prev&&Array.isArray(prev.refs)?prev.refs.slice():[];for(const v of (b.vistas||[]))refs[v.i]='personajes/'+f.id+'/vista-'+(v.i+1)+'.png';f.refs=refs;f.base=prev&&prev.base?prev.base:[];if(prev)bibliaFixture.splice(bibliaFixture.indexOf(prev),1,f);else bibliaFixture.push(f);d={success:true,personaje:f,noGuardadas:[]};}
+      else if(b.action==='imagenes'){const f=bibliaFixture.find(x=>x.id===b.id);d={success:true,id:b.id,refs:f?(f.refs||[]).filter(Boolean).map(()=>'aGVsbG8='):[],indices:[0,1,2],total:3,anclas:[],nAncla:0,anclaPropia:false};}
+      else d={refs:[],personajes:[]};
+    }
     else if(input==='/api/unify-status')d={done:true,videoUrl:'https://media.example.test/final.mp4',duracion:480,avisos:[]};
     else d={refs:[],personajes:[]};
     return new Response(JSON.stringify(d),{status:200,headers:{'Content-Type':'application/json'}});
   };
   for(const name of ['studio-core.js','app.js','studio.js'])w.eval(fs.readFileSync(path.join(root,'public',name),'utf8'));
   await tick();
-  return {w,errors,calls,projects,assets,close:()=>dom.window.close()};
+  return {w,errors,calls,projects,assets,biblia:bibliaFixture,close:()=>dom.window.close()};
 }
 function episode(w,id='project-001'){
   return {uid:id,topic:'Empezar con una prueba',a:'Imagina que hoy decides ofrecer un servicio pequeño. Habla con una persona y escucha qué problema necesita resolver antes de gastar.',f:'',c:Array(10).fill('Calcular presupuesto en oficina con calculadora'),modo:'relato',tO:w.THEMES[0],dO:w.DURS_LARGAS[1],hO:w.HOOKS[0],editorial:{family:'metodo',platform:'facebook',audience:'constructor'},caption:'Texto guardado',tags:'#Disciplina'};
@@ -48,9 +57,13 @@ function episode(w,id='project-001'){
 test('cloud project opens with captions, stable ID, saved scene plan and recoverable final render',async()=>{
   const a=await app();try{
     const {w,projects,calls,errors}=a,p=episode(w);p.renders={es:{jobId:'job-111111111111111111111111'}};projects.set(p.uid,p);
+    w.PAUSA_VISTAS=0; // la creación automática del personaje corre al abrir: sin pausas en la prueba
     await w.studioOpenProjects();w.document.querySelector('#projectList button').click();await ready(()=>!w.STUDIO.busy);
     assert.equal(w.lastRes.uid,p.uid);assert.equal(w.lastCaption,'Texto guardado');assert.equal(w.document.querySelector('#scriptEdit').value,p.a);
-    assert.equal(calls.filter(c=>c.input==='/api/generate').length,0,'restoring captions must not regenerate paid text');
+    // Restaurar NO regenera los textos de publicación (eso sí sería pagar dos
+    // veces lo mismo). La llamada de extracción del personaje es otra cosa:
+    // es la creación automática del personaje de este video, una sola vez.
+    assert.equal(calls.filter(c=>c.input==='/api/generate'&&/textos de publicación/.test((c.b&&c.b.prompt)||'')).length,0,'restoring captions must not regenerate paid text');
     w.document.querySelector('#resumeRender').click();await ready(()=>!w.STUDIO.busy);
     assert.equal(w.FINALES.es.jobId,p.renders.es.jobId);assert.equal(w.document.querySelector('#unifyRes video').src,'https://media.example.test/final.mp4');
     w.saveHistory(w.lastRes);w.saveHistory(w.lastRes);await w.STUDIO.saveQueue;
@@ -507,4 +520,51 @@ test('coverage redistributes available clip time and plans missing coverage befo
 });
 test('actual narration pace feeds the next script duration estimate',async()=>{
  const a=await app();try{const {w}=a;w.studioRememberSpeech({dur:80},Array(148).fill('palabra').join(' '));assert.equal(w.studioSpeechRate(),1.85);assert.equal(Math.round(60*w.studioSpeechRate()),111);}finally{a.close();}
+});
+
+test('character panel is automatic: it shows creation states and retry, never the manual form as the path',async()=>{
+  const a=await app();try{
+    const {w,errors}=a,p=episode(w);
+    w.lastRes=p;
+    w.pintarBiblia();
+    const grid=()=>w.document.getElementById('bibliaGrid');
+    assert.match(grid().textContent,/se crea SOLO desde su guion/,'sin ficha avisa que se crea solo');
+    assert.equal(w.document.getElementById('personajeFisico'),null,'el formulario NO es la pantalla principal');
+    p.personajeAuto={estado:'creando',en:Date.now(),error:''};w.pintarBiblia();
+    assert.match(grid().textContent,/se está creando SOLO/);
+    assert.equal(w.document.getElementById('personajeFisico'),null);
+    p.personajeAuto={estado:'fallo',en:Date.now(),error:'sin descripción clara'};w.pintarBiblia();
+    assert.match(grid().textContent,/No se pudo crear el personaje automáticamente/);
+    assert.match(grid().textContent,/sin descripción clara/,'el fallo se dice claro, con su motivo');
+    assert.ok(w.document.getElementById('bPersonajeReintentar'),'el fallo ofrece reintentar');
+    assert.ok(w.document.getElementById('bPersonajeAjustar'),'el ajuste manual existe solo como opción secundaria');
+    assert.equal(w.document.getElementById('personajeFisico'),null,'el formulario sigue sin ser la pantalla');
+    w.document.getElementById('bPersonajeAjustar').click();
+    assert.ok(w.document.getElementById('personajeFisico'),'el formulario aparece solo cuando el dueño lo pide');
+    assert.deepEqual(errors,[]);
+  }finally{a.close();}
+});
+
+test('entering production creates the video character automatically from its script, exactly once',async()=>{
+  const a=await app();try{
+    const {w,calls,biblia,errors}=a,p=episode(w);
+    w.PAUSA_VISTAS=0;
+    w.lastRes=p;
+    w.lhShowStep('produccion');
+    for(let i=0;i<240&&!(p.personajeAuto&&p.personajeAuto.estado==='listo');i++)await new Promise(r=>setTimeout(r,25));
+    assert.equal(p.personajeAuto&&p.personajeAuto.estado,'listo','la creación automática termina sola');
+    assert.ok(p.personajeId,'el proyecto queda enlazado a su personaje');
+    const f=biblia.find(x=>x.id===p.personajeId);
+    assert.ok(f,'la ficha queda guardada');assert.equal(f.video,p.uid,'la ficha es de ESTE video');
+    assert.match(f.fisico,/barba recortada/,'el físico sale de la extracción del guion');
+    assert.equal(f.refs.filter(Boolean).length,3,'se generan sus 3 vistas');
+    const extracciones=()=>calls.filter(c=>c.input==='/api/generate'&&/define a sus personajes/.test((c.b&&c.b.prompt)||'')).length;
+    assert.equal(extracciones(),1,'la llamada de texto corre una sola vez por video');
+    assert.match(w.document.getElementById('bibliaGrid').textContent,/Marco Prueba/,'el panel muestra el personaje creado');
+    assert.equal(w.document.getElementById('personajeFisico'),null,'sin formulario como camino');
+    w.lhShowStep('tema');w.lhShowStep('produccion');
+    await new Promise(r=>setTimeout(r,120));
+    assert.equal(extracciones(),1,'reentrar a Producción no vuelve a crear el personaje');
+    assert.deepEqual(errors,[]);
+  }finally{a.close();}
 });
