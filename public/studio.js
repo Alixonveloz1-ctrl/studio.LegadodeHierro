@@ -47,7 +47,7 @@ function studioPaintPending(){var el=studioEl('studioPending'),p=studioPending()
 async function studioRetryWait(ms){await new Promise(function(resolve){setTimeout(resolve,ms);});}
 async function studioRunJob(config,requestId,onProgress){
   var d=await studioAPI('create',{config:config,requestId:requestId},'/api/studio-job');
-  var retries=0;
+  var retries=0,busySince=0;
   while(d.status!=='done'){
     if(onProgress)onProgress(d);
     try{
@@ -60,7 +60,18 @@ async function studioRunJob(config,requestId,onProgress){
       if(onProgress)onProgress(Object.assign({},d,{stage:'Recuperando la etapa automáticamente · intento '+retries+' de 2'}));
       await studioRetryWait(wait);continue;
     }
-    if(d.busy)await new Promise(function(r){setTimeout(r,2500);});
+    if(d.busy){
+      // TOPE ANTI-CUELGUE: si el servidor lleva mas de ~2 minutos diciendo
+      // "ocupado" (un lease huerfano, una funcion muerta a mitad de etapa),
+      // se corta el bucle. El trabajo queda GUARDADO en el servidor y como
+      // pendiente reanudable: se retoma desde donde iba, sin perder nada y
+      // sin dejar la pantalla esperando para siempre.
+      if(!busySince)busySince=Date.now();
+      if(Date.now()-busySince>120000){
+        throw new Error('El servidor lleva más de 2 minutos ocupado con este trabajo y no avanza. Quedó guardado: vuelve a tocar el botón (o «Reanudar») para seguir desde donde iba.');
+      }
+      await new Promise(function(r){setTimeout(r,2500);});
+    }else busySince=0;
   }
   if(onProgress)onProgress(d);return d.result;
 }
@@ -94,7 +105,7 @@ async function studioEnglish(text){
   return out.text;
 }
 function studioProjectSnapshot(res){
-  var p={};['uid','topic','a','f','c','cRaw','set','montaje','nTomas','nEjemplos','modo','tO','dO','hO','sem','editorial','editorialPlan','quality','draftA','studioRequestId'].forEach(function(k){if(res[k]!==undefined)p[k]=res[k];});
+  var p={};['uid','topic','a','f','c','cRaw','set','montaje','nTomas','nEjemplos','modo','tO','dO','hO','sem','editorial','editorialPlan','quality','draftA','studioRequestId','personajeId'].forEach(function(k){if(res[k]!==undefined)p[k]=res[k];});
   return p;
 }
 function studioSaveProject(res,extra){
@@ -755,6 +766,17 @@ async function studioLibraryResume(){
   STUDIO.assets=await studioLoadAll('assets');await studioLibraryStatus();
   if(STUDIO_LIBRARY.job&&STUDIO_LIBRARY.job.status!=='done')return studioLibraryRun(STUDIO_LIBRARY.job);
 }
+// En el movil la pagina pasa a segundo plano y el bucle de avance se duerme;
+// al volver a primer plano se reanuda SOLO el trabajo de biblioteca que el
+// dueno ya habia arrancado (los trabajos de guion/audio tienen su boton de
+// reanudar y no se disparan solos).
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState!=='visible'||STUDIO_LIBRARY.running)return;
+  var pending=null;try{pending=JSON.parse(localStorage.getItem('lh_library_start')||'null');}catch(e){}
+  if(pending||(STUDIO_LIBRARY.job&&STUDIO_LIBRARY.job.status!=='done')){
+    studioLibraryResume().catch(function(){});
+  }
+});
 async function studioLibraryStop(){
   var job=STUDIO_LIBRARY.job;if(!job)return;
   var d=await studioAPI('library-stop',{id:job.id});await studioLibraryPaint(d.job);studioLibraryMessage(d.job.stage);
@@ -822,7 +844,12 @@ async function studioGenerateRecipe(){
   if(STUDIO_LIBRARY.job&&STUDIO_LIBRARY.job.status!=='done'){studioLibraryMessage('Hay un trabajo pendiente. Toca Continuar o Detener antes de crear otras imágenes.');return;}
   STUDIO.assets=await studioLoadAll('assets');STUDIO_LIBRARY.draft=true;await studioPaintRecipes();var recipes=studioRecipeBatch();if(!recipes.length)return;
   // Snapshot the existing selectors before any asynchronous preparation.
-  var config={type:'generate',recipeIds:recipes.map(function(r){return r.id;}),model:imgModel,aspect:imgFmt};
+  // characterId: el lote se genera con las vistas del personaje DE ESTE VIDEO
+  // (la ficha de la biblia vinculada al proyecto). loadRefs() de abajo actua
+  // de portero: si el video no tiene personaje con vistas, falla claro ANTES
+  // de crear el trabajo.
+  var personaje=(typeof personajeDelVideo==='function')?personajeDelVideo():null;
+  var config={type:'generate',recipeIds:recipes.map(function(r){return r.id;}),model:imgModel,aspect:imgFmt,characterId:personaje?personaje.id:''};
   if(!confirm('Crear '+recipes.length+' imágenes con '+studioModelLabel(config.model)+' en '+config.aspect+': $'+(recipes.length*imgCost()).toFixed(2)+' aprox., más la descripción automática. Se guardarán para reutilizarlas. ¿Comenzar?'))return;
   STUDIO_LIBRARY.preparing=true;
   try{studioLibraryControls();await studioPaintRecipes();studioLibraryMessage('Preparando el personaje para estas escenas…');await loadRefs();return await studioLibraryStart(config);}
@@ -899,7 +926,11 @@ async function studioGenerateBatch(kind){
 
 }
 async function studioGuard(fn){
-  if(STUDIO.busy)return;STUDIO.busy=true;
+  // Antes, con una tarea en curso, el toque se tragaba EN SILENCIO y el boton
+  // parecia muerto (asi murio el boton de audio la noche del cambio de
+  // cuenta). Ahora se avisa en pantalla.
+  if(STUDIO.busy){studioMessage('Hay una tarea en curso. Espera a que termine para iniciar otra.');return;}
+  STUDIO.busy=true;
   try{await fn();}catch(e){var lp=studioEl('libraryPanel');if(lp&&lp.open)studioLibraryMessage(e.message,true);else studioMessage(e.message,true);}finally{STUDIO.busy=false;}
 }
 var LH_STEPS=['inicio','mis-videos','investigacion','tema','produccion','musica','montaje','extras'];
@@ -908,6 +939,9 @@ function lhShowStep(step,anchorId){
   document.querySelectorAll('.lh-step').forEach(function(el){el.classList.toggle('lh-active',el.dataset.lhStep===step);});
   document.querySelectorAll('button[data-lh-step]').forEach(function(b){b.classList.toggle('lh-active',b.dataset.lhStep===step);b.setAttribute('aria-pressed',String(b.dataset.lhStep===step));});
   if(step==='inicio'){lhPaintCurrentProject();lhPaintRecentProjects();lhPaintConnections();}
+  // El panel «Personaje de este video» se repinta al entrar: muestra el
+  // personaje del video abierto AHORA, no el que hubiera al cargar la pagina.
+  if(step==='produccion'&&typeof pintarBiblia==='function')pintarBiblia();
   if(step==='musica')lhPaintMusicVideo();
   if(step==='montaje'&&typeof updUnifyCard==='function')updUnifyCard();
   try{window.scrollTo(0,0);}catch(e){}

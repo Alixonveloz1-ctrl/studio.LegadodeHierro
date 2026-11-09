@@ -1,26 +1,27 @@
-// api/refs.js — Referencias de imagen del personaje, servidas por el SERVIDOR.
+// api/refs.js — Referencias de imagen servidas por el SERVIDOR.
 //
-// INDEPENDENCIA DE TERCEROS: las referencias viven en TU bucket de Google
-// (carpeta refs/). La primera vez que falten alli, el servidor las descarga de
-// ibb.co UNA ultima vez y les saca COPIA PERMANENTE al bucket; desde entonces
-// siempre se leen del bucket y ibb.co deja de importar.
+// ACUERDO DEL DUEÑO (oct-2026, reafirmado nov-2026): NO existe personaje fijo
+// del canal. Cada video crea SU personaje en la biblia (personajes/<id>/...) y
+// las imágenes de reels salen de las vistas DE ESE VIDEO. El antiguo set fijo
+// «personaje» (4 fotos de reels viejos en ibb.co, sembradas en el bucket por
+// este mismo endpoint) quedó ELIMINADO: GET ?set=personaje responde 410 y ya
+// NADA descarga de ibb ni resiembra objetos refs/personaje-*.
 //
-// ?set=personaje -> las 4 referencias FIJAS del personaje (reels/miniatura)
-// (sin set)      -> las 3 referencias del generador de posts
+// GET (sin set) -> las 3 referencias de MARCA del generador de posts. Solo se
+// leen del bucket (refs/post-1..3) o de la caché en memoria: sin descargas de
+// terceros y sin escrituras. Es material de posts, fuera del flujo de videos.
+//
+// POST -> la biblia de personajes por video (acciones list/generar/guardar/
+// imagenes/ancla/quitar-ancla/borrar).
 
 const { createSign } = require('crypto');
 
+// Manifiesto del único set que sigue vivo por GET: el de posts.
 const SETS = {
   post: [
     'https://i.ibb.co/m5Cqfs5n/IMG-8206.jpg',
     'https://i.ibb.co/3m42CzNf/IMG-8162.jpg',
     'https://i.ibb.co/GvfhKnJ3/IMG-8117.jpg',
-  ],
-  personaje: [
-    'https://i.ibb.co/RGgryDhy/Cu-nto-tiempo-m-s-vas-a-imagen-5.png',
-    'https://i.ibb.co/fzZF6dsK/Prefiero-intentarlo-mil-v-imagen-7.png',
-    'https://i.ibb.co/chTyj7RC/La-diferencia-entre-traba-imagen-2.png',
-    'https://i.ibb.co/mFtmDw1N/Recorr-este-camino-solo-imagen-4.png',
   ],
 };
 
@@ -47,6 +48,7 @@ async function getGCPToken() {
   const jwt = sigInput + '.' + sig;
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
+    signal: AbortSignal.timeout(10000),
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + jwt,
   });
@@ -64,6 +66,7 @@ async function readFromBucket(token, bucket, object) {
   const r = await fetch('https://storage.googleapis.com/storage/v1/b/' + bucket +
     '/o/' + encodeURIComponent(object) + '?alt=media', {
     headers: { 'Authorization': 'Bearer ' + token },
+    signal: AbortSignal.timeout(20000),
   });
   if (!r.ok) return null;
   const buf = await r.arrayBuffer();
@@ -75,6 +78,7 @@ async function writeToBucket(token, bucket, object, b64, contentType) {
   const r = await fetch('https://storage.googleapis.com/upload/storage/v1/b/' + bucket +
     '/o?uploadType=media&name=' + encodeURIComponent(object), {
     method: 'POST',
+    signal: AbortSignal.timeout(30000),
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': contentType || 'image/png' },
     body: Buffer.from(b64, 'base64'),
   });
@@ -84,7 +88,7 @@ async function writeToBucket(token, bucket, object, b64, contentType) {
 async function fetchFromIbb(url) {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(15000) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const ct = r.headers.get('content-type') || '';
       if (ct.indexOf('image/') === -1) throw new Error('no es imagen');
@@ -148,6 +152,10 @@ function sanearFicha(p) {
     vestuario: txt(p.vestuario, 300),
     habla: txt(p.habla, 200),
     encaja: txt(p.encaja, 200),
+    // video = el uid del video al que pertenece esta ficha. La biblia ya no es
+    // un banco entre videos: cada ficha nace para UN video y el panel
+    // «Personaje de este video» encuentra la suya por este campo.
+    video: txt(p.video, 80),
     fijo: p.fijo === true,
     // refs = las vistas GENERADAS. Es una lista de 4 huecos: refs[0] es la vista 1,
     // refs[1] la vista 2... Un hueco vacio vale null y SE QUEDA como null. Antes se
@@ -170,10 +178,10 @@ function sanearFicha(p) {
 // hace falta, sube su propia foto ancla para ese video.
 
 // De donde se baja un ancla que no este todavia en el bucket.
+// SOLO quedan las fotos propias del proyecto servidas desde la web
+// (public/biblia/...). La rama refs/<set>-N -> ibb.co se elimino con el set
+// fijo: ningun objeto refs/* puede volver a entrar por esta puerta.
 function origenDelAncla(objeto) {
-  const m = String(objeto).match(/^refs\/([a-z]+)-(\d+)$/);
-  if (m && SETS[m[1]]) return SETS[m[1]][Number(m[2]) - 1] || null;
-  // Las del proyecto se sirven desde la propia web (public/biblia/...).
   const b = String(objeto).match(/^biblia\/[a-z0-9-]+\.(jpg|png)$/);
   if (b) {
     const base = (process.env.SITE_URL || 'https://studio.legadodehierro.com').replace(/\/+$/, '');
@@ -182,15 +190,14 @@ function origenDelAncla(objeto) {
   return null;
 }
 
-// Carga una imagen ancla. Si no esta en el bucket, se baja de su origen y se deja
-// copiada — el mismo camino que ya usa el generador de reels.
-//
-// ESTO NO ES UN EXTRA. Al cambiar de bucket, refs/personaje-N puede no existir
-// todavia alli, y entonces readFromBucket devolvia null en silencio: el generador
-// se quedaba SIN ninguna referencia y dibujaba a un desconocido. El sintoma era
-// exactamente el que se veia — "no toma las fotos reales" — pero por dentro no era
-// que las ignorara, es que nunca llegaban.
+// Carga una imagen ancla. Si no esta en el bucket, se baja de su origen y se
+// deja copiada. Los objetos refs/* se RECHAZAN siempre: eran el set fijo del
+// personaje viejo y ninguna ficha puede resucitar esa cara por esta via.
 async function cargarAncla(token, bucket, objeto) {
+  if (String(objeto).indexOf('refs/') === 0) {
+    console.warn('[refs] ancla rechazada (set fijo eliminado): ' + objeto);
+    return null;
+  }
   let b64 = await readFromBucket(token, bucket, objeto);
   if (b64) return b64;
   const url = origenDelAncla(objeto);
@@ -355,6 +362,7 @@ async function pedirImagen(token, projectId, modelo, parts) {
     '/publishers/google/models/' + modelo + ':generateContent';
   const r = await fetch(url, {
     method: 'POST',
+    signal: AbortSignal.timeout(55000),
     headers: {
       'Authorization': 'Bearer ' + token,
       'X-Goog-User-Project': projectId,
@@ -394,14 +402,25 @@ module.exports = async (req, res) => {
   // ---- POST: la biblia de personajes ----
   if (req.method === 'POST') return biblia(req, res);
 
-  let set = 'post';
+  // ---- GET: SOLO el set de marca de posts (sin set o ?set=post) ----
+  // El set fijo del personaje (?set=personaje) esta ELIMINADO: cada video usa
+  // el personaje de su propia biblia. Este GET ya no descarga nada de ibb ni
+  // escribe en el bucket: lee refs/post-1..3 del bucket o de la cache.
+  let setParam = null;
   try {
     const u = new URL(req.url, 'http://localhost');
-    if (u.searchParams.get('set') && SETS[u.searchParams.get('set')]) set = u.searchParams.get('set');
+    setParam = u.searchParams.get('set');
   } catch (e) {}
+  if (setParam && setParam !== 'post') {
+    return res.status(410).json({
+      error: 'El set fijo «' + setParam + '» ya no existe. Cada video genera sus imágenes con el personaje creado para ese video (panel «Personaje de este video», en Producción).',
+      refs: [],
+    });
+  }
+  const set = 'post';
   const URLS = SETS[set];
 
-  if (CACHE[set] && CACHE[set].length === URLS.length) {
+  if (CACHE[set] && CACHE[set].length) {
     return res.json({ refs: CACHE[set], set: set, source: 'memoria' });
   }
 
@@ -413,38 +432,22 @@ module.exports = async (req, res) => {
     }
 
     const results = [];
-    let fromBucket = 0, migrated = 0;
-    for (let i = 0; i < URLS.length; i++) {
-      const object = 'refs/' + set + '-' + (i + 1);
-      let b64 = null;
-      // 1) TU bucket: la fuente permanente, sin terceros.
-      if (token && bucket) {
-        b64 = await readFromBucket(token, bucket, object);
-        if (b64) fromBucket++;
+    if (token && bucket) {
+      for (let i = 0; i < URLS.length; i++) {
+        const b64 = await readFromBucket(token, bucket, 'refs/' + set + '-' + (i + 1));
+        if (b64) results.push(b64);
+        else console.warn('[refs] post #' + (i + 1) + ' no esta en el bucket (sin respaldo de terceros)');
       }
-      // 2) Si falta en el bucket: ibb.co una ultima vez + copia permanente al bucket.
-      if (!b64) {
-        const got = await fetchFromIbb(URLS[i]);
-        if (got) {
-          b64 = got.b64;
-          if (token && bucket) {
-            const okUp = await writeToBucket(token, bucket, object, got.b64, got.ct);
-            if (okUp) { migrated++; console.log('[refs] copia permanente guardada: ' + object); }
-          }
-        } else {
-          console.warn('[refs] ' + set + ' #' + (i + 1) + ' no se pudo obtener (ni bucket ni ibb)');
-        }
-      }
-      if (b64) results.push(b64);
     }
 
-    if (results.length === URLS.length) CACHE[set] = results;
-    if (migrated) console.log('[refs] migradas ' + migrated + ' referencias del set ' + set + ' al bucket');
+    // Cache PARCIAL: se guarda lo que haya (aunque falte alguna foto de marca)
+    // para no repetir la lectura en cada peticion. Solo si llego algo.
+    if (results.length) CACHE[set] = results;
     return res.json({
       refs: results,
       set: set,
       total: URLS.length,
-      source: fromBucket === URLS.length ? 'bucket' : (fromBucket > 0 ? 'mixto' : 'ibb'),
+      source: 'bucket',
     });
   } catch (e) {
     console.error('[refs] excepcion: ' + e.message);

@@ -65,19 +65,30 @@ async function generarEleven(text, vIn, options) {
   }
 
   const v = vIn || {};
-  const VOICE_SETTINGS = {
-    stability:        clamp(v.stability,        0,   1,   0.5),
-    similarity_boost: clamp(v.similarity_boost, 0,   1,   0.75),
-    style:            clamp(v.style,            0,   1,   0),
-    speed:            clamp(v.speed,            0.7, 1.2, 1),
-    use_speaker_boost: v.use_speaker_boost === false ? false : true,
-  };
+  // Modelo elegido en el panel de voz (VOX.eleven.model, viaja en la config
+  // del trabajo de audio). Se valida contra la lista permitida; cualquier
+  // valor desconocido cae al modelo de siempre.
+  const MODEL_ID = ELEVEN_MODELS.includes(v.model) ? v.model : 'eleven_multilingual_v2';
+  // Eleven v4 SOLO acepta stability y similarity_boost en voice_settings:
+  // enviarle style o speed hace que la API rechace la peticion.
+  const VOICE_SETTINGS = MODEL_ID === 'eleven_v4'
+    ? {
+        stability:        clamp(v.stability,        0, 1, 0.5),
+        similarity_boost: clamp(v.similarity_boost, 0, 1, 0.75),
+      }
+    : {
+        stability:        clamp(v.stability,        0,   1,   0.5),
+        similarity_boost: clamp(v.similarity_boost, 0,   1,   0.75),
+        style:            clamp(v.style,            0,   1,   0),
+        speed:            clamp(v.speed,            0.7, 1.2, 1),
+        use_speaker_boost: v.use_speaker_boost === false ? false : true,
+      };
 
   async function generatePart(partText, prevText, nextText) {
     const url = 'https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID + '/with-timestamps';
     const body = {
       text: partText,
-      model_id: 'eleven_multilingual_v2',
+      model_id: MODEL_ID,
       voice_settings: VOICE_SETTINGS,
     };
     if (prevText) body.previous_text = prevText;
@@ -121,4 +132,8 @@ async function generarEleven(text, vIn, options) {
   return { parts: audioParts, alignments: alignParts, format: 'mp3' };
 }
 
-module.exports = { generarEleven, splitByDuration };
+// Modelos de ElevenLabs que el panel de voz puede elegir. v4 existe desde
+// 2026-09-28 (eleven_v4). NO se incluye eleven_v4_turbo: alcance cerrado.
+const ELEVEN_MODELS = ['eleven_v4', 'eleven_v3', 'eleven_multilingual_v2', 'eleven_flash_v2_5'];
+
+module.exports = { generarEleven, splitByDuration, ELEVEN_MODELS };

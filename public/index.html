@@ -416,6 +416,24 @@ section{margin-bottom:20px}
         <button type="button" class="cbtn" data-lh-step="produccion" data-lh-anchor="imgCard">🖼 Imágenes</button>
         <button type="button" class="cbtn" data-lh-step="musica">🎵 Música de este video</button>
       </div>
+<section class="studio-card" id="personajeVideoCard">
+      <h2>Personaje de este video</h2>
+      <p class="studio-status">Cada video tiene SU personaje, creado solo para él: no se reutiliza el de otros videos. Aquí lo creas desde la descripción de su guion, ves sus vistas y puedes regenerarlas. Sin personaje con vistas no se generan imágenes de tomas.</p>
+      <p id="bibliaLbl" class="studio-status" style="font-weight:700"></p>
+      <label class="genLbl" style="margin-bottom:8px">Modelo para crear las vistas
+        <select id="selBibliaModel" class="genSel">
+          <option value="gemini-3-pro-image">Nano Banana Pro (3 Pro) · máxima calidad</option>
+          <option value="gemini-3.1-flash-image">Nano Banana 2 (3.1 Flash) · rápido</option>
+          <option value="gemini-2.5-flash-image">Nano Banana (2.5 Flash) · estable</option>
+        </select>
+      </label>
+      <div id="bibliaGrid"></div>
+      <p id="bibliaSt" class="studio-status" style="display:none"></p>
+      <div class="studio-row">
+        <button id="bBibliaTodas" type="button">Generar las vistas que faltan</button>
+        <button id="bBibliaRecargar" type="button">Recargar</button>
+      </div>
+    </section>
 <section class="studio-card" id="episodeTools" hidden>
       <h2>Tomas de este reel</h2><p id="scriptReview" class="studio-status"></p>
       <details><summary>Ver la revisión del guion</summary><div id="editorialPlan"></div>
@@ -452,6 +470,15 @@ section{margin-bottom:20px}
               <span class="voxH" style="display:block;margin:2px 0 12px">ElevenLabs es la voz de siempre. Los dos de Google gastan tu crédito de Google Cloud: <strong>Chirp 3 HD</strong> lee neutro y serio (lo más parecido a una locución real), <strong>Gemini</strong> actúa más pero tiende a sonar a anuncio.</span>
 
               <div id="voxEleven">
+                <label class="genLbl" style="margin-bottom:8px">Modelo de ElevenLabs
+                  <select id="vElevenModel" class="genSel">
+                    <option value="eleven_v4">V4 · el más nuevo</option>
+                    <option value="eleven_v3">V3 · expresivo</option>
+                    <option value="eleven_multilingual_v2" selected>V2 · el de siempre</option>
+                    <option value="eleven_flash_v2_5">Flash 2.5 · rápido y barato</option>
+                  </select>
+                  <span class="voxH" style="display:block;margin-top:2px">El V4 solo usa Estabilidad y Claridad: las perillas de Estilo y Velocidad no se le envían.</span>
+                </label>
                 <label class="voxLbl">Estabilidad <span class="voxV" id="vStabV">0.50</span>
                   <input type="range" id="vStab" class="voxR" min="0" max="1" step="0.05" value="0.5">
                   <span class="voxH">Bajo: más emoción y variación entre tomas. Alto: consistente pero monótono.</span>

@@ -793,17 +793,37 @@ function cierreDe(txt){
   return String(last||ult).trim().slice(0,110);
 }
 
-// ============ EL REPARTO ============
-// La biblia de personajes vive en el bucket y se carga una vez al entrar.
-// Hasta ahora el canal tenia UN personaje y el prompt prohibia expresamente
-// inventar otros, asi que todos los reels eran el mismo hombre solo. Sin nadie
-// mas en el cuadro no hay conflicto ni dialogo: solo un senor pensando. Esa es
-// una de las razones de que todo pareciera igual.
+// ============ EL PERSONAJE DE CADA VIDEO ============
+// La biblia vive en el bucket y se carga una vez al entrar. ACUERDO DEL DUEÑO:
+// no hay personaje fijo del canal; CADA VIDEO tiene el suyo, creado para ese
+// video desde la descripción de su guion. La ficha lleva el campo `video`
+// (el uid del proyecto) y el proyecto guarda `personajeId`. El panel
+// «Personaje de este video» (en Producción) pinta SOLO la ficha del video en
+// curso: verla, ver sus vistas y regenerarlas. Las fichas de otros videos
+// siguen en BIBLIA en memoria porque las marcas [CON: id] del guion las usan
+// como secundarios de ESTE video, pero no se pintan ni se reutilizan como
+// protagonista de otro video.
 var BIBLIA=[];
+
+// La ficha del personaje del video abierto ahora mismo: primero por el
+// personajeId guardado en el proyecto; si no, por el campo video de la ficha.
+function personajeDelVideo(){
+  if(typeof lastRes==='undefined'||!lastRes)return null;
+  if(lastRes.personajeId){
+    var p=personajePorId(lastRes.personajeId);
+    if(p)return p;
+  }
+  var uid=String(lastRes.uid||'');
+  if(uid)for(var i=0;i<BIBLIA.length;i++){
+    if(BIBLIA[i].video&&String(BIBLIA[i].video)===uid)return BIBLIA[i];
+  }
+  return null;
+}
 
 function cargarBiblia(){
   if(!document.getElementById('bibliaGrid'))return Promise.resolve([]);
   return fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+    signal:AbortSignal.timeout(20000),
     body:JSON.stringify({action:'list'})})
     .then(function(r){return r.json();})
     .then(function(d){
@@ -838,13 +858,79 @@ function nVistas(p){
   return ((p&&p.refs)||[]).filter(function(o){return !!o;}).length;
 }
 
+// El panel pinta SOLO el personaje del video en curso. Sin video abierto
+// avisa; con video pero sin personaje, ofrece crearlo desde la descripción.
 function pintarBiblia(){
   var g=document.getElementById('bibliaGrid');if(!g)return;
   var lbl=document.getElementById('bibliaLbl');
-  var conVistas=BIBLIA.filter(function(p){return nVistas(p);}).length;
-  if(lbl)lbl.textContent='Biblia de personajes · '+BIBLIA.length+' en el reparto, '+conVistas+' con vistas';
+  var p=(typeof lastRes!=='undefined'&&lastRes)?personajeDelVideo():null;
+  if(lbl)lbl.textContent=!(typeof lastRes!=='undefined'&&lastRes)
+    ? 'Abre o crea un video para definir el personaje de ese video.'
+    : (p?('Este video usa a «'+p.nombre+'», creado solo para él.')
+        :'Este video todavía no tiene su personaje.');
   g.innerHTML='';
-  BIBLIA.forEach(function(p){
+  if(!(typeof lastRes!=='undefined'&&lastRes)){
+    g.innerHTML='<div style="font-size:11px;color:var(--tx3);line-height:1.5">Cuando abras un video, aquí aparecerá su personaje: podrás ver sus vistas y regenerarlas.</div>';
+    return;
+  }
+  if(!p){ pintarFormularioPersonaje(g); return; }
+  pintarTarjetaBiblia(g,p);
+}
+
+// El formulario para crear el personaje DE ESTE VIDEO desde su descripción.
+// Si el guion ya lo describe, el dueño copia esa descripción aquí; si no, la
+// escribe. Al crear se generan sus 3 vistas con las funciones de siempre.
+function pintarFormularioPersonaje(g){
+  var el=document.createElement('div');
+  el.style.cssText='background:#1f1f23;border:1.5px dashed var(--border);border-radius:10px;padding:10px';
+  el.innerHTML='<div style="font-size:11px;color:var(--tx);line-height:1.5;margin-bottom:8px">'
+    +'Este video todavía no tiene su personaje. Descríbelo tal como lo define el guion de este video y se crearán sus vistas de referencia. Ese personaje se usará SOLO en este video.</div>'
+    +'<label class="genLbl" style="margin-bottom:6px">Nombre del personaje'
+    +'<input type="text" id="personajeNombre" class="genSel" value="Protagonista" maxlength="40"></label>'
+    +'<label class="genLbl" style="margin-bottom:6px">Cómo es físicamente (edad, rostro, pelo, complexión)'
+    +'<textarea id="personajeFisico" rows="3" class="genSel" placeholder="Ej.: hombre de 38 años, cabello negro corto, barba recortada, complexión fuerte, mirada seria"></textarea></label>'
+    +'<label class="genLbl" style="margin-bottom:8px">Vestuario habitual en este video (opcional)'
+    +'<input type="text" id="personajeVestuario" class="genSel" maxlength="120" placeholder="Ej.: camisa oscura y pantalón negro"></label>'
+    +'<button type="button" id="bCrearPersonaje" style="width:100%;border:1.5px solid #d9a441;background:var(--warm);border-radius:8px;padding:8px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--tx)">Crear personaje de este video</button>';
+  g.appendChild(el);
+  var b=document.getElementById('bCrearPersonaje');
+  if(b)b.addEventListener('click',function(){ crearPersonajeDelVideo(); });
+}
+
+async function crearPersonajeDelVideo(){
+  if(!lastRes)return;
+  var st=document.getElementById('bibliaSt');
+  var nombre=((document.getElementById('personajeNombre')||{}).value||'').trim()||'Protagonista';
+  var fisico=((document.getElementById('personajeFisico')||{}).value||'').trim();
+  var vestuario=((document.getElementById('personajeVestuario')||{}).value||'').trim();
+  if(fisico.length<10){
+    if(st){st.style.display='block';st.textContent='Describe primero cómo es físicamente el personaje (edad, rostro, pelo, complexión). Sin esa descripción no se puede crear.';}
+    return;
+  }
+  // Id estable y único por video: la ficha queda atada a ESTE proyecto.
+  var id='video-'+String(lastRes.uid||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,33);
+  if(id==='video-'||id==='video')id='video-'+Date.now();
+  var p={id:id,nombre:nombre,rol:'Protagonista de este video',edad:'',fisico:fisico,vestuario:vestuario,habla:'',encaja:'',video:String(lastRes.uid||'')};
+  var btn=document.getElementById('bCrearPersonaje');
+  if(btn){btn.disabled=true;btn.textContent='Creando el personaje…';}
+  if(st){st.style.display='block';st.textContent='Creando el personaje de este video…';}
+  var res=await generarVistasDe(p,null,function(n,tot,i,aviso){
+    if(st)st.textContent='Creando el personaje: vista '+n+' de '+tot+(aviso?(' — '+aviso):'…');
+  });
+  if(res&&res.ok){
+    lastRes.personajeId=p.id;
+    try{saveHistory(lastRes);}catch(e){}
+    try{await studioSaveProject(lastRes);}catch(e){}
+    if(st)st.textContent='Personaje creado: «'+nombre+'». Ya puedes generar las imágenes de este video.';
+    pintarBiblia();
+  }else{
+    if(st)st.textContent='No se pudo crear el personaje: '+(((res&&res.fallos)||[]).slice(0,2).join(' · ')||'error desconocido')+'. Revisa la descripción e inténtalo de nuevo.';
+    if(btn){btn.disabled=false;btn.textContent='Crear personaje de este video';}
+  }
+}
+
+function pintarTarjetaBiblia(g,p){
+  {
     var listo=nVistas(p)>0;
     var el=document.createElement('div');
     el.setAttribute('data-id',p.id);
@@ -860,9 +946,9 @@ function pintarBiblia(){
       +'style="width:100%;border:1px solid var(--border);background:var(--warm);border-radius:7px;'
       +'padding:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">'
       +(listo?'👁 Ver las vistas':'⚡ Generar sus '+N_VISTAS+' vistas')+'</button>'
-      // FOTOS TUYAS COMO ANCLA. Es lo que el insignia siempre tuvo: describir a
-      // alguien por texto da "una mujer rubia", no ESA mujer. Con las fotos
-      // delante el generador copia en vez de inventar.
+      // FOTOS TUYAS COMO ANCLA: describir a alguien por texto da "una mujer
+      // rubia", no ESA mujer. Con las fotos delante el generador copia en
+      // vez de inventar.
       +'<button type="button" class="bibliaSubir" data-id="'+escHtml(p.id)+'" '
       +'style="width:100%;margin-top:4px;border:1px dashed var(--border);background:#1f1f23;border-radius:7px;'
       +'padding:5px;font-size:9.5px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--tx3)">'
@@ -870,7 +956,7 @@ function pintarBiblia(){
                  :'📎 Usar mis propias fotos')+'</button>'
       +'<div class="bibliaVistas" style="display:none;margin-top:8px"></div>';
     g.appendChild(el);
-  });
+  }
   Array.prototype.forEach.call(g.querySelectorAll('.bibliaVer'),function(b){
     b.addEventListener('click',function(){ abrirVistas(b.getAttribute('data-id')); });
   });
@@ -925,6 +1011,7 @@ async function subirAncla(id){
       var b64s=[];
       for(var i=0;i<files.length;i++)b64s.push(await encogerImagen(files[i]));
       var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+        signal:AbortSignal.timeout(60000),
         body:JSON.stringify({action:'ancla',id:id,imagenes:b64s})});
       var d=await r.json();
       if(!r.ok||!d.success)throw new Error(d.error||'Error '+r.status);
@@ -972,6 +1059,7 @@ async function abrirVistas(id){
     caja.innerHTML='<div style="font-size:10px;color:var(--tx3)">Cargando...</div>';
     try{
       var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+        signal:AbortSignal.timeout(30000),
         body:JSON.stringify({action:'imagenes',id:id})});
       var d=await r.json();
       // Los indices dicen QUE vista es cada imagen. Sin ellos, si faltaba la 2 se
@@ -1120,6 +1208,7 @@ async function generarVistasDe(p,cuales,alProgreso){
       if(BIBLIA_PARAR){ ultimoError='parado a mano'; break; }
       try{
         var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+          signal:AbortSignal.timeout(75000),
           body:JSON.stringify({action:'generar',personaje:p,model:modeloBiblia(),vista:i,ignorar:pendientes})});
         // Si la funcion se pasa de tiempo, Vercel devuelve un 504 con HTML: al
         // intentar leerlo como JSON saltaba un "Unexpected token" que no decia
@@ -1131,6 +1220,7 @@ async function generarVistasDe(p,cuales,alProgreso){
         // Se guarda ENSEGUIDA: asi la siguiente vista ya la puede usar de
         // referencia, y si algo falla a media tanda no se pierde lo hecho.
         var g=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+          signal:AbortSignal.timeout(60000),
           body:JSON.stringify({action:'guardar',personaje:p,vistas:d.vistas})});
         var gd=await g.json().catch(function(){return {};});
         if(!g.ok)throw new Error(gd.error||'no se pudo guardar');
@@ -1179,17 +1269,26 @@ var BIBLIA_PARAR=false;
 async function generarVistasFaltantes(){
   var btn=document.getElementById('bBibliaTodas');
   var st=document.getElementById('bibliaSt');
+  // SOLO el personaje del video en curso: el panel es por video, no un banco
+  // entre videos. Sin video abierto o sin personaje, se avisa y no se genera
+  // nada de otros videos.
+  var objetivo=(typeof lastRes!=='undefined'&&lastRes)?personajeDelVideo():null;
+  if(typeof lastRes!=='undefined'&&lastRes&&!objetivo){
+    if(st){st.style.display='block';st.textContent='Este video todavía no tiene su personaje: créalo primero con el botón «Crear personaje de este video».';}
+    return;
+  }
+  var universo=objetivo?[objetivo]:BIBLIA;
   // Los que van INCOMPLETOS tambien entran, y de cada uno solo se pide lo que le
   // falta. Antes solo entraban los que no tenian NINGUNA, asi que un personaje al
   // que se le hubiera caido una vista se quedaba cojo para siempre y el boton
   // contestaba que ya estaba todo hecho.
   var faltan=[],pendientes=[],totalImgs=0;
-  BIBLIA.forEach(function(p){
+  universo.forEach(function(p){
     var hay={};((p.refs||[])).forEach(function(o,k){if(o)hay[k]=1;});
     var suyas=TODAS_LAS_VISTAS().filter(function(i){return !hay[i];});
     if(suyas.length){ faltan.push(p); pendientes.push(suyas); totalImgs+=suyas.length; }
   });
-  if(!faltan.length){ if(st){st.style.display='block';st.textContent='Todos los personajes ya tienen sus vistas.';} return; }
+  if(!faltan.length){ if(st){st.style.display='block';st.textContent=objetivo?'El personaje de este video ya tiene sus vistas.':'Todos los personajes ya tienen sus vistas.';} return; }
   var nImgs=totalImgs;
   var mins=Math.ceil(nImgs*(8+PAUSA_VISTAS/1000)/60);
   if(!confirm('Faltan '+nImgs+' vista(s) repartidas en '+faltan.length+' personaje(s).\n\n'
@@ -1338,7 +1437,7 @@ function buildEpisodeMsg(topic,tId,hId,mode,dId){
   var editorialOptions=typeof studioOptions==='function'?studioOptions(mode,seconds,topic,tId):{family:LH.familyFor(mode),seconds:seconds};
   var hook={dato:'Usa un hecho verificable aportado o una cuenta hipotética transparente; nunca inventes una estadística.',pregunta:'Pregunta sobre una decisión concreta.',afirmacion:'Contradicción específica y defendible, sin insultos ni generalizaciones.',historia:'Situación ilustrativa o vivencia aportada; no inventar una confesión autobiográfica.',pasos:'Promete y entrega el número exacto de pasos aplicables.'}[hId]||'';
   var visual='DIRECCIÓN VISUAL: ilustración de novela gráfica 2D, tinta limpia y cel-shading cinematográfico. Sin texto, logotipos, lluvia, fantasía, 3D ni fotorrealismo. '
-    +'Cuando aparezca el protagonista conserva el rostro de las referencias del canal (cabello negro, barba corta, 35 años); su vestuario responde a la escena. '
+    +'Cuando aparezca el protagonista, descríbelo siempre con el MISMO aspecto físico y vestuario dentro de este video (el que definas para este video); su rostro se fija después con las imágenes del personaje de este video. '
     +'Cada prompt describe UNA acción visible, lugar, encuadre, luz y quién aparece. Incluye detalles de manos, objetos y espacios. '
     +'Las escenas ilustran el SIGNIFICADO del tramo, nunca metáforas literales. Conserva el mismo lugar y vestuario entre momentos que lo exijan. '
     +'Puedes volver a una toma propia anterior: reutilizar no obliga a cambiar de entorno ni de personaje. No inventes material que no aparece en el guion. '
@@ -2275,8 +2374,14 @@ function wireVox(){
         if(VAL_G[k]&&VAL_G[k].indexOf(o.gemini[k])>-1)VOX.gemini[k]=o.gemini[k];
       }
       // Solo numeros validos y dentro de rango (ojo: Number(null) es 0).
+      // 'model' es la excepcion: es texto y se valida contra la lista de
+      // modelos de ElevenLabs que el servidor acepta.
       if(o.eleven)for(var k2 in o.eleven){
         if(!VOX.eleven.hasOwnProperty(k2))continue;
+        if(k2==='model'){
+          if(['eleven_v4','eleven_v3','eleven_multilingual_v2','eleven_flash_v2_5'].indexOf(o.eleven.model)>-1)VOX.eleven.model=o.eleven.model;
+          continue;
+        }
         if(typeof VOX.eleven[k2]==='boolean'){VOX.eleven[k2]=!!o.eleven[k2];continue;}
         var raw=o.eleven[k2];
         if(raw===null||raw===undefined||raw==='')continue;
@@ -2338,6 +2443,8 @@ function wireVox(){
     });
     var b=document.getElementById('vBoost');
     if(b)b.checked=!!VOX.eleven.use_speaker_boost;
+    var em=document.getElementById('vElevenModel');
+    if(em)em.value=VOX.eleven.model||'eleven_multilingual_v2';
   }
 
   // Los manejadores se conectan UNA sola vez: wireVox corre en cada guion generado
@@ -2365,6 +2472,8 @@ function wireVox(){
     });
     var bx=document.getElementById('vBoost');
     if(bx)bx.addEventListener('change',function(){VOX.eleven.use_speaker_boost=bx.checked;save();});
+    var emx=document.getElementById('vElevenModel');
+    if(emx)emx.addEventListener('change',function(){VOX.eleven.model=emx.value;save();});
     var cvz=document.getElementById('cVoz');
     if(cvz)cvz.addEventListener('change',function(){VOX.chirp.voz=cvz.value;save();});
     var cvl=document.getElementById('cVel');
@@ -2948,64 +3057,46 @@ var VOCES=[
 //    en el servidor en una instruccion hablada delante del guion.
 var VOX={
   engine:'eleven',
-  eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true},
+  eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true,model:'eleven_multilingual_v2'},
   gemini:{voz:'Algenib',tono:'canal',velocidad:'0.90',intensidad:'media',model:'gemini-2.5-flash-tts',extra:''},
   chirp:{voz:'Algenib',velocidad:0.9},
 };
-var loadedRefsCount=0; // cuantas de las 4 referencias del personaje cargaron en el ultimo intento
-
-async function fetchRefOnce(url){
-  var rr=await fetch(url);
-  if(!rr.ok)throw new Error('HTTP '+rr.status);
-  var rb=await rr.blob();
-  return await new Promise(function(res,rej){
-    var rd=new FileReader();
-    rd.onloadend=function(){res(rd.result.split(',')[1]);};
-    rd.onerror=function(){rej(new Error('FileReader error'));};
-    rd.readAsDataURL(rb);
-  });
-}
+var loadedRefsCount=0; // cuantas vistas del personaje de ESTE video cargaron en el ultimo intento
 
 // Minimo de referencias para permitir generar: con menos, el rostro del
-// personaje sale MAL y la imagen es plata perdida — mejor frenar y reintentar.
+// personaje sale MAL y la imagen es plata perdida — mejor frenar y avisar.
 var MIN_REFS=2;
 
+// Las vistas (base64) de un personaje de la biblia, con caché por id. Las usa
+// tanto el protagonista del video (loadRefs) como los secundarios [CON: id].
+async function vistasDelPersonaje(p){
+  if(REFS_PERSONAJE[p.id]&&REFS_PERSONAJE[p.id].length)return REFS_PERSONAJE[p.id];
+  var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+    signal:AbortSignal.timeout(30000),
+    body:JSON.stringify({action:'imagenes',id:p.id})});
+  var d=await r.json().catch(function(){return{};});
+  if(!r.ok)throw new Error((d&&d.error)||('No se pudieron cargar las vistas del personaje (HTTP '+r.status+')'));
+  var refs=(d&&Array.isArray(d.refs))?d.refs:[];
+  if(refs.length)REFS_PERSONAJE[p.id]=refs;
+  return refs;
+}
+
+// Referencias del PROTAGONISTA DEL VIDEO ACTUAL: las vistas de la ficha de la
+// biblia creada para este video. EL SET FIJO DEL CANAL YA NO EXISTE: si el
+// video no tiene personaje con vistas, esto FALLA con un mensaje claro y la
+// generación se detiene — nunca se cuelga y nunca sustituye en silencio al
+// personaje por el de otro video.
 async function loadRefs(){
-  // 4 referencias FIJAS del personaje -- siempre las mismas, para maxima consistencia.
-  // CAMINO 1 (principal): pedirlas al SERVIDOR (/api/refs?set=personaje), que las
-  // descarga y cachea alla — mucho mas confiable que bajarlas en el navegador
-  // del celular, donde ibb.co a veces falla y el personaje salia con otro rostro.
-  try{
-    var rr=await fetch('/api/refs?set=personaje');
-    if(rr.ok){
-      var dd=await rr.json().catch(function(){return{};});
-      if(dd.refs&&dd.refs.length>=MIN_REFS){
-        loadedRefsCount=dd.refs.length;
-        return dd.refs;
-      }
-    }
-  }catch(e){console.warn('Refs por servidor fallaron:',e.message);}
-  // CAMINO 2 (respaldo): descarga directa desde el navegador, como antes.
-  var REFS=[
-    'https://i.ibb.co/RGgryDhy/Cu-nto-tiempo-m-s-vas-a-imagen-5.png',
-    'https://i.ibb.co/fzZF6dsK/Prefiero-intentarlo-mil-v-imagen-7.png',
-    'https://i.ibb.co/chTyj7RC/La-diferencia-entre-traba-imagen-2.png',
-    'https://i.ibb.co/mFtmDw1N/Recorr-este-camino-solo-imagen-4.png'
-  ];
-  var refs=[];
-  for(var ri=0;ri<REFS.length;ri++){
-    var ok=false;
-    for(var attempt=0;attempt<2&&!ok;attempt++){
-      try{
-        var rb64=await fetchRefOnce(REFS[ri]);
-        refs.push(rb64);ok=true;
-      }catch(e){
-        console.warn('Ref '+ri+' intento '+(attempt+1)+' fallo:',e.message);
-        if(attempt===0)await new Promise(function(r){setTimeout(r,700);});
-      }
-    }
+  var p=(typeof personajeDelVideo==='function')?personajeDelVideo():null;
+  if(!p){
+    loadedRefsCount=0;
+    throw new Error('Este video todavía no tiene su personaje: créalo en el panel «Personaje de este video» (en Producción, justo antes de las tomas). Sin personaje propio no se generan imágenes, para no repetir el de otros videos.');
   }
+  var refs=await vistasDelPersonaje(p);
   loadedRefsCount=refs.length;
+  if(refs.length<MIN_REFS){
+    throw new Error('El personaje de este video («'+p.nombre+'») aún no tiene sus vistas: genéralas en el panel «Personaje de este video» (en Producción) y vuelve a intentar.');
+  }
   return refs;
 }
 
@@ -3035,6 +3126,7 @@ async function refsDeEscena(prompt){
     if(!REFS_PERSONAJE[p.id]){
       try{
         var r=await fetch('/api/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+          signal:AbortSignal.timeout(30000),
           body:JSON.stringify({action:'imagenes',id:p.id})});
         var d=await r.json();
         REFS_PERSONAJE[p.id]=(d&&Array.isArray(d.refs)&&d.refs.length)?d.refs:null;
@@ -3048,7 +3140,7 @@ async function refsDeEscena(prompt){
   // imagenes generadas, al menos el texto mantiene su aspecto estable.
   if(fichas.length){
     limpio+='\n\nOTRAS PERSONAS EN ESTA ESCENA (respeta su aspecto exactamente): '+fichas.join(' | ')
-      +'. El protagonista sigue siendo el hombre de las imagenes de referencia.';
+      +'. El protagonista sigue siendo la persona de las imagenes de referencia.';
   }
   return {prompt:limpio,refs:extra.length?extra:null,ids:ids};
 }
@@ -3190,6 +3282,7 @@ async function genOneImage(prompt,refs){
   try{
     ir=await fetch('/api/image',{
       method:'POST',headers:{'Content-Type':'application/json'},
+      signal:AbortSignal.timeout(70000),
       body:JSON.stringify({prompt:prompt,refImages:refsLigeras,model:imgModel,aspectRatio:imgFmt,catalog:{title:lastRes?lastRes.topic:'Imagen del canal',description:prompt.slice(-1600),sourceProject:lastRes?String(lastRes.uid):''}}),
     });
   }catch(e){
@@ -3209,7 +3302,7 @@ async function genOneImage(prompt,refs){
   }
   if(!ir.ok)throw new Error(id.error||'Error '+ir.status);
   if(id.imageUrl){
-    var savedImage=await fetch(id.imageUrl);if(!savedImage.ok)throw new Error('La imagen se guardó, pero no se pudo descargar. Está en la biblioteca.');
+    var savedImage=await fetch(id.imageUrl,{signal:AbortSignal.timeout(30000)});if(!savedImage.ok)throw new Error('La imagen se guardó, pero no se pudo descargar. Está en la biblioteca.');
     var imageBlob=await savedImage.blob();
     var source=await new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(reader.result);};reader.onerror=reject;reader.readAsDataURL(imageBlob);});
     if(id.asset){STUDIO.imageRefs[source]=id.asset;STUDIO.assets=STUDIO.assets.filter(function(a){return a.id!==id.asset.id;}).concat(id.asset);}
@@ -3497,17 +3590,27 @@ async function generateImagesForCurrent(){
   btn.textContent='...';btn.style.opacity='.6';btn.disabled=true;
   st.style.display='block';grid.innerHTML='';er.style.display='none';
   st.textContent='Cargando referencias del personaje...';
-  imgRefs=await loadRefs();
-  if(loadedRefsCount<MIN_REFS){
-    // FRENO DURO: sin referencias el rostro sale MAL. No se genera nada.
+  try{
+    imgRefs=await loadRefs();
+  }catch(eRefs){
+    // Sin personaje de este video (o sin sus vistas): freno duro con el
+    // mensaje accionable de loadRefs. Nada se genera y el boton se libera.
     st.style.display='none';
-    er.textContent='Las referencias del personaje NO cargaron ('+loadedRefsCount+'/4). Sin ellas el rostro sale equivocado, así que no se generó nada. Espera unos segundos y toca 🖼 Generar de nuevo.';
+    er.textContent=eRefs.message;
     er.style.display='block';
     btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
     return;
   }
-  if(loadedRefsCount<4){
-    st.textContent='Atención: solo '+loadedRefsCount+'/4 referencias del personaje cargaron. El rostro puede variar un poco en este lote.';
+  if(loadedRefsCount<MIN_REFS){
+    // FRENO DURO: sin referencias el rostro sale MAL. No se genera nada.
+    st.style.display='none';
+    er.textContent='Las referencias del personaje NO cargaron ('+loadedRefsCount+'/3). Sin ellas el rostro sale equivocado, así que no se generó nada. Espera unos segundos y toca 🖼 Generar de nuevo.';
+    er.style.display='block';
+    btn.textContent='🖼 Generar';btn.style.opacity='1';btn.disabled=false;
+    return;
+  }
+  if(loadedRefsCount<3){
+    st.textContent='Atención: solo '+loadedRefsCount+'/3 vistas del personaje cargaron. El rostro puede variar un poco en este lote.';
     await new Promise(function(r){setTimeout(r,1400);});
   }
   var totalImgs=Math.min(lastRes.c.length,totalImgsTarget);
@@ -3638,7 +3741,7 @@ async function generateThumbCurrent(){
       imgRefs=await loadRefs();
     }
     if(!imgRefs||imgRefs.length<MIN_REFS){
-      throw new Error('Las referencias del personaje no cargaron ('+(imgRefs?imgRefs.length:0)+'/4); sin ellas el rostro sale equivocado. Reintenta en unos segundos');
+      throw new Error('Las referencias del personaje no cargaron ('+(imgRefs?imgRefs.length:0)+'/3); sin ellas el rostro sale equivocado. Reintenta en unos segundos');
     }
     if(st)st.textContent='Generando miniatura de portada...';
     var src=await genOneImage(buildThumbPrompt(),imgRefs);
@@ -4898,9 +5001,13 @@ async function genPost(){
     var refs=[];
     async function cargarRefs(){
       if(refs.length)return refs;
-      st.textContent='Cargando referencias del personaje...';
-      var rr=await fetch('/api/refs?set=personaje').catch(function(){return null;});
+      st.textContent='Cargando referencias de marca...';
+      // Set de MARCA de posts (refs/post-*), ya NO el set fijo del personaje:
+      // aquel se elimino porque era el rostro de los videos. Si la marca no
+      // esta en el bucket, el post se genera SIN esa imagen y se avisa.
+      var rr=await fetch('/api/refs',{signal:AbortSignal.timeout(20000)}).catch(function(){return null;});
       if(rr&&rr.ok){var rd=await rr.json().catch(function(){return{};});refs=(rd&&rd.refs)?rd.refs:[];}
+      if(!refs.length)st.textContent='Aviso: las fotos de marca del canal no están en el almacenamiento, así que este post se genera sin la imagen del personaje de marca.';
       return refs;
     }
 

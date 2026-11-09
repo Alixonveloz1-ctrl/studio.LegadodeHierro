@@ -88,13 +88,24 @@ test('Gemini receives the actual GCS video with complete playback, not a filenam
   global.fetch=async(url,o)=>{request={url,body:JSON.parse(o.body)};return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(analysis({name:'a.mp4',generation:'3'}))}]}}]})};};
   try{const d=await models.analyze({bucket:'current-bucket'},{name:'legado-videos/sample_0.mp4',generation:'3'});const parts=request.body.contents[0].parts;assert.equal(parts[0].fileData.fileUri,'gs://current-bucket/legado-videos/sample_0.mp4');assert.equal(parts[0].fileData.mimeType,'video/mp4');assert.equal(parts[0].videoMetadata.fps,1);assert.equal(parts[0].videoMetadata.endOffset,undefined);assert.match(request.url,/gemini-3.1-flash-lite/);assert.equal(d.analysis.generation,'3');}finally{global.fetch=original;}
 });
-test('library image generation sends character and setting references and saves directly to its stable object',async()=>{
-  const s=new Store();s.add('refs/personaje-1');s.add('refs/personaje-2');const anchor='legado-studio/media/anchor.png';s.add(anchor);
+test('library image generation sends the views of the character of THIS video and saves directly to its stable object',async()=>{
+  // Sin set fijo: las referencias son las vistas de la ficha de la biblia del
+  // video del lote (personajes/<id>/vista-N.png), nunca refs/personaje-*.
+  const s=new Store();
+  await s.put('personajes/index.json',[{id:'video-test-1',nombre:'Protagonista',refs:['personajes/video-test-1/vista-1.png','personajes/video-test-1/vista-2.png',null]}]);
+  s.add('personajes/video-test-1/vista-1.png');s.add('personajes/video-test-1/vista-2.png');
+  const anchor='legado-studio/media/anchor.png';s.add(anchor);
   const original=global.fetch;let body;
   global.fetch=async(url,o)=>{body=JSON.parse(o.body);return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{inlineData:{mimeType:'image/png',data:Buffer.alloc(200).toString('base64')}}]}}]})};};
-  try{const recipe=require('../public/studio-core').recipes()[0],object=lib.imageObject(recipe.id,'9:16');const d=await models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16',anchorObject:anchor},object);
-    const parts=body.contents[0].parts;assert.match(parts[0].text,/Cinematic American 2D/);assert.ok(parts.some(p=>p.fileData?.fileUri==='gs://current-bucket/refs/personaje-1'));assert.equal(parts.at(-1).fileData.fileUri,'gs://current-bucket/'+anchor);assert.equal(body.generationConfig.imageConfig.aspectRatio,'9:16');assert.equal(d.recipeId,recipe.id);assert.ok(await s.info(object));
+  try{const recipe=require('../public/studio-core').recipes()[0],object=lib.imageObject(recipe.id,'9:16');const d=await models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16',characterId:'video-test-1',anchorObject:anchor},object);
+    const parts=body.contents[0].parts;assert.match(parts[0].text,/Cinematic American 2D/);assert.ok(parts.some(p=>p.fileData?.fileUri==='gs://current-bucket/personajes/video-test-1/vista-1.png'));assert.ok(parts.some(p=>p.fileData?.fileUri==='gs://current-bucket/personajes/video-test-1/vista-2.png'));assert.ok(!parts.some(p=>String(p.fileData?.fileUri||'').includes('refs/personaje')),'ninguna parte puede usar el set fijo');assert.equal(parts.at(-1).fileData.fileUri,'gs://current-bucket/'+anchor);assert.equal(body.generationConfig.imageConfig.aspectRatio,'9:16');assert.equal(d.recipeId,recipe.id);assert.equal(d.character,'video-test-1');assert.ok(await s.info(object));
   }finally{global.fetch=original;}
+});
+test('library image generation fails clearly without a per-video character or without its views',async()=>{
+  const s=new Store();const recipe=require('../public/studio-core').recipes()[0],object=lib.imageObject(recipe.id,'9:16');
+  await assert.rejects(models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16'},object),e=>e.status===409&&/Personaje de este video/.test(e.message));
+  await s.put('personajes/index.json',[{id:'video-test-2',nombre:'Sin vistas',refs:[null,null,null]}]);
+  await assert.rejects(models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16',characterId:'video-test-2'},object),e=>e.status===409&&/vistas/.test(e.message));
 });
 test('Storage copies are server-to-server, generation-pinned, resumable and retain the original metadata by default',async()=>{
   const {privateKey}=require('crypto').generateKeyPairSync('rsa',{modulusLength:2048});

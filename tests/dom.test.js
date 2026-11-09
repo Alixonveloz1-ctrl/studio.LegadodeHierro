@@ -58,10 +58,14 @@ test('cloud project opens with captions, stable ID, saved scene plan and recover
   }finally{a.close();}
 });
 
-test('simplified UI shows no library, biblia or bank controls, and the main video flow is present',async()=>{
+test('simplified UI shows no cross-video library or bank controls; the per-video character panel and the main video flow are present',async()=>{
   const a=await app();try{
     const {w,errors}=a;
-    for(const id of ['libraryPanel','bibliaPanel','bibliaBtn','buildScenePlan','libraryGrid','libraryViewer','librarySettingsDialog','bbanco','bancoPanel','selBibliaModel','libraryCreateTab','librarySavedTab'])assert.equal(w.document.getElementById(id),null,id+' debe estar eliminado');
+    // selBibliaModel volvio (nov-2026) pero SOLO dentro del panel «Personaje de
+    // este video»: la biblia ya no es un banco entre videos, es la ficha del
+    // personaje del video en curso, y el dueño debe VER sus vistas.
+    for(const id of ['libraryPanel','bibliaPanel','bibliaBtn','buildScenePlan','libraryGrid','libraryViewer','librarySettingsDialog','bbanco','bancoPanel','libraryCreateTab','librarySavedTab'])assert.equal(w.document.getElementById(id),null,id+' debe estar eliminado');
+    for(const id of ['personajeVideoCard','bibliaGrid','bibliaLbl','bibliaSt','bBibliaTodas','bBibliaRecargar','selBibliaModel','vElevenModel'])assert.ok(w.document.getElementById(id),id+' debe estar presente (panel del personaje de este video / selector de modelo ElevenLabs)');
     for(const id of ['modeSelector','themeGrid','durGrid','hookGrid','conc','gbtn','projectsPanel','episodeTools','genSettings','selImgModel','selImgFmt','selVidModel','selVidFmt','unifyCard'])assert.ok(w.document.getElementById(id),id+' debe seguir presente');
     assert.ok(w.document.querySelectorAll('.lh-step').length===8);
     assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='inicio');

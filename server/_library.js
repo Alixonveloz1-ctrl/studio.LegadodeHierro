@@ -72,6 +72,11 @@ async function start(store,c,requestId){
     const recipes=core.recipes(),ids=[...new Set(c.recipeIds)];
     if(!ids.length||ids.length>recipes.length||!ids.every(id=>recipes.some(r=>r.id===id)))throw failure('Elige un lote de tomas preparadas.',400);
     if(!['gemini-2.5-flash-image','gemini-3.1-flash-image','gemini-3-pro-image'].includes(c.model)||!['9:16','16:9','1:1','4:5','3:4','2:3','21:9'].includes(c.aspect))throw failure('Modelo o formato de imagen inválido.',400);
+    // characterId = la ficha de la biblia del video de este lote. Viaja en el
+    // trabajo para que _library-model lea las vistas DE ESE personaje; sin el,
+    // la generacion falla con un error claro (nada de personaje fijo).
+    if(c.characterId!==undefined&&!/^[a-z0-9][a-z0-9-]{0,39}$/.test(String(c.characterId)))throw failure('El personaje del lote no es válido.',400);
+    job.characterId=String(c.characterId||'');
     job.settings={model:c.model,aspect:c.aspect};job.recipeIds=ids;job.recipeResults={};job.queue=ids.map(recipeId=>({recipeId}));job.exhausted=true;job.total=ids.length;
   }
   await store.put(ACTIVE,job,existing?existing.generation:0);return publicJob(job);
@@ -97,11 +102,11 @@ async function generateItem(store,job,item,deps){
   const recipe=core.recipes().find(r=>r.id===item.recipeId),object=imageObject(recipe.id,job.settings.aspect),saved=await store.read(assets.PREFIX+assets.idFor(object)+'.json');
   const info=await store.info(object);
   if(info){
-    const base=saved?.data||await assets.register(store,{...recipe,kind:'image',recipeId:recipe.id,aspect:job.settings.aspect,character:'insignia',catalogSource:'prompt',collection:'Tomas reutilizables'},object);
+    const base=saved?.data||await assets.register(store,{...recipe,kind:'image',recipeId:recipe.id,aspect:job.settings.aspect,character:job.characterId||'',catalogSource:'prompt',collection:'Tomas reutilizables'},object);
     return catalog(store,{...info,name:object},base,deps);
   }
   const anchorObject=recipe.id.endsWith('-2')?'':imageObject(recipe.id.replace(/-\d+$/,'-2'),job.settings.aspect);
-  const meta=await deps.generate(store,recipe,{...job.settings,anchorObject},object);
+  const meta=await deps.generate(store,recipe,{...job.settings,characterId:job.characterId||'',anchorObject},object);
   const asset=await assets.register(store,meta,object);
   // Catalog in the next request: generating and describing never share a deadline.
   job.lastAsset=asset;job.stage='Imagen guardada; preparando su descripción automática';return {pending:true};

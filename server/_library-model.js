@@ -43,8 +43,18 @@ async function analyze(store,info){
 async function generate(store,recipe,settings,object){
   if(core.hasMinors(recipe))throw failure('Esta propuesta antigua queda excluida: la biblioteca nueva utiliza exclusivamente adultos.',422);
   const bucket=store.bucket||config().bucket,refs=[];
-  for(let i=1;i<=4;i++){const name='refs/personaje-'+i,info=await store.info(name);if(info)refs.push({fileData:{mimeType:info.contentType||'image/png',fileUri:'gs://'+bucket+'/'+name}});}
-  if(refs.length<2)throw failure('Faltan las imágenes de referencia del personaje en el almacenamiento. Abre la sección del personaje para recuperarlas antes de generar el lote.',409);
+  // SIN SET FIJO: las referencias son las VISTAS del personaje DE ESTE VIDEO
+  // (personajes/<id>/vista-N.png, guardadas en la biblia). El trabajo trae el
+  // id en settings.characterId; sin el o sin vistas se falla claro, nunca se
+  // sustituye por el personaje de otro video.
+  const characterId=String(settings.characterId||'').trim();
+  if(!characterId)throw failure('Este lote no dice qué personaje de su video debe salir. Abre el video, crea su personaje en el panel «Personaje de este video» (en Producción) y vuelve a generar el lote.',409);
+  const idx=await store.read('personajes/index.json').catch(()=>null);
+  const lista=idx&&Array.isArray(idx.data)?idx.data:[];
+  const ficha=lista.find(p=>p&&p.id===characterId);
+  const vistas=ficha&&Array.isArray(ficha.refs)?ficha.refs.filter(Boolean):[];
+  for(const name of vistas){const info=await store.info(name);if(info)refs.push({fileData:{mimeType:info.contentType||'image/png',fileUri:'gs://'+bucket+'/'+name}});}
+  if(refs.length<2)throw failure('El personaje de este video no tiene sus vistas guardadas. Créalo o regenera sus vistas en el panel «Personaje de este video» (en Producción) antes de generar el lote.',409);
   const parts=[{text:core.IMAGE_STYLE+'Formato '+settings.aspect+'. '+recipe.description},...refs];
   if(settings.anchorObject){const anchor=await store.info(settings.anchorObject);if(anchor)parts.push({text:'La última imagen fija el lugar, iluminación y vestuario. Conserva esos detalles y cambia solo el encuadre a '+recipe.shot+'.'}, {fileData:{mimeType:anchor.contentType||'image/png',fileUri:'gs://'+bucket+'/'+settings.anchorObject}});}
   const response=await modelCall(settings.model,parts,
@@ -54,6 +64,6 @@ async function generate(store,recipe,settings,object){
   const bytes=Buffer.from(image.inlineData.data,'base64');if(bytes.length<100)throw failure('La imagen llegó incompleta.',502);
   try{await store.bytes(object,bytes,image.inlineData.mimeType);}catch(e){if(e.status!==412)throw e;}
   return {kind:'image',title:recipe.title,description:recipe.description,action:recipe.action,location:recipe.location,shot:recipe.shot,aspect:settings.aspect,
-    recipeId:recipe.id,character:'insignia',collection:'Tomas reutilizables',catalogSource:'prompt'};
+    recipeId:recipe.id,character:characterId,collection:'Tomas reutilizables',catalogSource:'prompt'};
 }
 module.exports={MODEL,VERSION,MIME,mimeFor,parseCatalog,modelCall,analyze,generate};
