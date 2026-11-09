@@ -535,7 +535,7 @@ async function biblia(req, res) {
       const projectId = process.env.GCP_PROJECT_ID;
       if (!projectId) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
       const modelo = /^gemini-[0-9.]+(-flash|-pro)?-image/.test(String(body.model || ''))
-        ? String(body.model) : 'gemini-2.5-flash-image';
+        ? String(body.model) : 'gemini-3.1-flash-image';
 
       let i = Number(body.vista);
       if (!isFinite(i) || i < 0 || i >= VISTAS.length) {

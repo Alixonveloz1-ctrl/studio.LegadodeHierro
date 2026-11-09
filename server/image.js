@@ -6,8 +6,8 @@
 //   prompt      (obligatorio)
 //   refImages   (array base64, opcional — referencias del personaje)
 //   model       (opcional) uno de:
-//                 gemini-2.5-flash-image      (Nano Banana, estable — DEFECTO)
-//                 gemini-3.1-flash-image      (Nano Banana 2, rapido)
+//                 gemini-2.5-flash-image      (Nano Banana, estable)
+//                 gemini-3.1-flash-image      (Nano Banana 2, rapido — DEFECTO)
 //                 gemini-3-pro-image          (Nano Banana Pro, maxima calidad)
 //   aspectRatio (opcional) 1:1 | 2:3 | 3:2 | 3:4 | 4:3 | 4:5 | 5:4 | 9:16 | 16:9 | 21:9
 //                 El formato se controla con generationConfig.imageConfig.aspectRatio
@@ -91,8 +91,8 @@ module.exports = async (req, res) => {
   if(policy.hasMinors(userPrompt))return res.status(400).json({error:'Esta imagen debe representar exclusivamente adultos.'});
   userPrompt=policy.ADULT_RULE+'\n'+userPrompt;
 
-  let model = req.body && req.body.model ? String(req.body.model) : 'gemini-2.5-flash-image';
-  if (!ALLOWED_IMAGE_MODELS[model]) model = 'gemini-2.5-flash-image';
+  let model = req.body && req.body.model ? String(req.body.model) : 'gemini-3.1-flash-image';
+  if (!ALLOWED_IMAGE_MODELS[model]) model = 'gemini-3.1-flash-image';
   let aspectRatio = req.body && req.body.aspectRatio ? String(req.body.aspectRatio) : '9:16';
   if (!ALLOWED_RATIOS[aspectRatio]) aspectRatio = '9:16';
 

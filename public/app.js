@@ -499,7 +499,7 @@ var loading=false,lastRes=null,activeTab='a';
 var genCount=0,cost=0;
 var audES=null,audEN=null,imgs=[];
 // Modelo y formato elegibles (Gemini / Veo via Vertex AI)
-var imgModel='gemini-2.5-flash-image',imgFmt='9:16';
+var imgModel='gemini-3.1-flash-image',imgFmt='9:16';
 var vidModel='veo-3.1-lite-generate-001',vidFmt='9:16';
 // Costo estimado por imagen segun modelo (solo para el contador $ estimado)
 var IMG_COST={'gemini-2.5-flash-image':0.039,'gemini-3.1-flash-image':0.067,'gemini-3-pro-image':0.134};
@@ -548,6 +548,14 @@ function leerAjuste(k,sel,porDefecto){
 }
 
 function wireGenSettings(){
+  try{
+    if(!localStorage.getItem('lh_nb2_v1')){
+      ['imgModel','postImg'].forEach(function(k){
+        if(localStorage.getItem('lh_gen_'+k)==='gemini-2.5-flash-image') localStorage.setItem('lh_gen_'+k,'gemini-3.1-flash-image');
+      });
+      localStorage.setItem('lh_nb2_v1','1');
+    }
+  }catch(e){}
   var campos=[
     {k:'imgModel', sel:document.getElementById('selImgModel'),     get:function(){return imgModel;},     set:function(v){imgModel=v;}},
     {k:'imgFmt',   sel:document.getElementById('selImgFmt'),       get:function(){return imgFmt;},       set:function(v){imgFmt=v;}},
@@ -836,11 +844,10 @@ function cargarBiblia(){
 
 // El modelo con el que se generan las vistas. Se elige DENTRO de la biblia: antes
 // se tomaba en silencio del selector de otro panel y no habia forma de saber cual
-// se estaba usando. Por defecto el mejor: estas imagenes se generan una sola vez
-// y luego mandan la cara del personaje en todos los videos.
+// se estaba usando. Por defecto Nano Banana 2, como en todo el estudio.
 function modeloBiblia(){
   var s=document.getElementById('selBibliaModel');
-  return (s&&s.value)?s.value:'gemini-3-pro-image';
+  return (s&&s.value)?s.value:'gemini-3.1-flash-image';
 }
 
 // Cache de las vistas ya descargadas para verlas, por id de personaje.
@@ -5050,7 +5057,7 @@ function reset(){
 
 // POST FACEBOOK
 var postFmt='cuadrado';
-var postImgModel='gemini-2.5-flash-image';
+var postImgModel='gemini-3.1-flash-image';
 
 function selPostFmt(fmt){
   postFmt=fmt;
