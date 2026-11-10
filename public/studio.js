@@ -590,12 +590,13 @@ async function studioPrepareMontage(audio){
     for(var k=0;k<ids.length;k+=50)linked=linked.concat((await studioAPI('links',{ids:ids.slice(k,k+50)})).items);
     var map={};linked.forEach(function(a){map[a.id]=a;});
     var planned=plan.reduce(function(n,s){return n+s.duration;},0);
-    plan.forEach(function(s){var a=map[s.assetId];if(!a)throw new Error('Un material de este video ya no está disponible. Genera esa toma de nuevo.');if(a.kind!=='video')throw new Error('Hay imágenes pendientes de convertir a video. Pulsa «Generar videos pendientes».');shots.push({object:a.object,kind:a.kind,duration:s.duration/planned*audio.dur,assetId:a.id});});
+    plan.forEach(function(s){var a=map[s.assetId];if(!a)throw new Error('Un material de este video ya no está disponible. Genera esa toma de nuevo.');shots.push({object:a.object,kind:a.kind,duration:s.duration/planned*audio.dur,assetId:a.id});});
   }else{
     var scenes=LH.scenePlan(owner,audio.dur,imgFmt);
     for(var i=0;i<scenes.length;i++){
       var sc=scenes[i],v=vids[sc.scene],im=imgs[sc.scene];
       if(v&&v.remoteUrl){if(!v.object)await studioRegisterVideo(v,owner.c[sc.scene],sc.scene);shots.push({kind:'video',object:v.object,duration:sc.duration,assetId:v.assetId});}
+      else if(im&&im.src&&im.object){shots.push({kind:'image',object:im.object,duration:sc.duration,assetId:im.assetId});}
       else if(im&&im.src)throw new Error('Convierte la imagen de la escena '+(sc.scene+1)+' a video antes de montar.');
       else throw new Error('Falta material para la escena '+(sc.scene+1)+'. Genera esa escena.');
     }
@@ -616,7 +617,7 @@ async function studioMeasureClip(asset){
 async function studioFitMontageCoverage(shots,linked,seconds){
   var owner=lastRes,plan=STUDIO.plan,caps=[];
   studioMontageMessage('Comprobando que los videos cubran toda la narración…');
-  for(var i=0;i<shots.length;i++){var asset=linked.find(function(a){return a.object===shots[i].object;});if(!asset)throw new Error('No se encontró la duración del clip.');caps.push(Math.floor((await studioMeasureClip(asset))*2*30)/30);}
+  for(var i=0;i<shots.length;i++){var asset=linked.find(function(a){return a.object===shots[i].object;});if(!asset)throw new Error('No se encontró la duración del clip.');caps.push(shots[i].kind==='image'?shots[i].duration:Math.floor((await studioMeasureClip(asset))*2*30)/30);}
   if(owner!==lastRes||plan!==STUDIO.plan)throw new Error('El proyecto cambió durante la comprobación.');
   var total=caps.reduce(function(n,c){return n+c;},0);
   if(total+0.001<seconds){

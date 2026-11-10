@@ -382,10 +382,10 @@ test('eight shot cards show three assigned previews and five generation controls
   }finally{a.close();}
 });
 
-test('montage rejects pending images and completing a newly created scene animates it using the existing video flow',async()=>{
+test('montage uses a still image with camera motion when a shot has no video yet, and completing a newly created scene animates it using the existing video flow',async()=>{
   const a=await app();try{
     const {w,assets}=a;w.lastRes=episode(w);assets.push({id:'1'.repeat(32),kind:'image',aspect:'9:16',object:'legado-studio/media/image.png'});w.STUDIO.assets=assets;w.STUDIO.plan=[{scene:0,start:0,duration:60,assetId:assets[0].id}];
-    await assert.rejects(w.studioPrepareMontage({dur:60,audioObjects:['legado-studio/media/voice.wav']}),/pendientes de convertir a video/);
+    const stillPayload=await w.studioPrepareMontage({dur:60,audioObjects:['legado-studio/media/voice.wav']});assert.equal(stillPayload.shots.length,1);assert.equal(stillPayload.shots[0].kind,'image');assert.equal(stillPayload.shots[0].object,'legado-studio/media/image.png');
     let animations=0;w.studioAnimateShot=async i=>{animations++;assets.push({id:'2'.repeat(32),kind:'video',aspect:'9:16',object:'legado-videos/video.mp4'});w.STUDIO.plan[i].assetId='2'.repeat(32);};
     await w.studioGenerateMissing();assert.equal(animations,1);
     const payload=await w.studioPrepareMontage({dur:60,audioObjects:['legado-studio/media/voice.wav']});assert.ok(payload.shots.every(s=>s.kind==='video'));
