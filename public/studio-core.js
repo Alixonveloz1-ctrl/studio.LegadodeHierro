@@ -380,7 +380,7 @@
   var RASGOS_OJOS = ['ojos cafés oscuros', 'ojos verdes', 'ojos color miel', 'ojos negros', 'ojos cafés claros', 'ojos grises'];
   var RASGOS_MUJER = {
     rostro: ['rostro ovalado', 'rostro redondo y suave', 'rostro anguloso de mandíbula marcada', 'rostro en forma de corazón', 'rostro alargado y fino', 'rostro cuadrado de pómulos marcados'],
-    pelo: ['pelo negro liso hasta la cintura', 'pelo castaño oscuro ondulado hasta los hombros', 'pelo negro rizado y voluminoso', 'pelo castaño claro liso con flequillo', 'pelo negro recogido en una cola alta', 'pelo cobrizo oscuro con ondas suaves', 'pelo negro corto estilo bob', 'pelo castaño oscuro en una trenza'],
+    pelo: ['pelo negro liso hasta la cintura', 'pelo castaño oscuro ondulado hasta los hombros', 'pelo negro rizado y voluminoso', 'pelo castaño claro liso con flequillo', 'pelo negro recogido en una cola alta', 'pelo cobrizo oscuro con ondas suaves', 'pelo negro corto estilo bob', 'pelo castaño oscuro en una trenza', 'pelo rubio dorado largo y ondulado', 'pelo rubio claro liso hasta los hombros', 'pelo rubio miel con ondas suaves'],
     distintivo: ['un lunar junto a la boca', 'pecas en la nariz y las mejillas', 'hoyuelos al sonreír', 'cejas pobladas y muy marcadas', 'una cicatriz fina en una ceja', 'pómulos altos muy marcados', 'un leve espacio entre los dientes de adelante', 'una marca de nacimiento en la mejilla']
   };
   var RASGOS_HOMBRE = {
