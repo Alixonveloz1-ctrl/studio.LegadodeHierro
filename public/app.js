@@ -3144,7 +3144,12 @@ function tramoDeVoz(buf){
     if(e[i]>pico)pico=e[i];
   }
   if(!pico)return {ini:0,fin:buf.duration,tramos:null};
-  var umbral=pico*0.06; // 6% del pico: por encima de eso ya es voz, no ruido de fondo
+  var umbral=pico*0.12; // 12% del pico (antes 6%): con la voz de Gemini, que
+  // habla mas corrida y con pausas cortas, el 6% fundia frases enteras en un
+  // solo tramo y los subtitulos se desfasaban por rachas (medido el 2026-11-11
+  // sobre los audios reales de Felipe y Paula contra los tiempos reales por
+  // palabra: con 12% y pausa de 140 ms desaparecen las rachas desfasadas y el
+  // peor error baja de ~1,4 s a ~0,7 s).
   var a=0,b=n-1;
   while(a<n&&e[a]<umbral)a++;
   while(b>a&&e[b]<umbral)b--;
@@ -3161,7 +3166,8 @@ function tramoDeVoz(buf){
   // silencios entre parrafos, que no son texto, y el desfase se va acumulando
   // hasta que al final los subtitulos van por otro lado. Sabiendo donde calla,
   // el texto se reparte solo por el tiempo en el que de verdad habla.
-  var SILENCIO=Math.round(0.28/0.02);   // 280 ms callado ya cuenta como pausa
+  var SILENCIO=Math.round(0.14/0.02);   // 140 ms callado ya cuenta como pausa
+  // (antes 280 ms: las pausas cortas de la voz Gemini no cortaban el tramo)
   var tramos=[],dentro=false,desde=0,callado=0;
   for(var k=a;k<=b;k++){
     if(e[k]>=umbral){
