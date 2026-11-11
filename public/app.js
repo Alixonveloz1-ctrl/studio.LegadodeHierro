@@ -1024,7 +1024,8 @@ async function extraerRepartoDelGuion(){
   if(!lastRes)return null;
   var conIds=idsConDelGuion();
   var prompt=LH.promptDeReparto({tema:lastRes.topic||'',guion:lastRes.a||'',
-    escenas:Array.isArray(lastRes.c)?lastRes.c:[],set:lastRes.set||'',conIds:conIds});
+    escenas:Array.isArray(lastRes.c)?lastRes.c:[],set:lastRes.set||'',conIds:conIds,
+    semilla:String(lastRes.uid||'')});
   var r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
     signal:AbortSignal.timeout(60000),
     body:JSON.stringify({prompt:prompt,sinBloques:true})});

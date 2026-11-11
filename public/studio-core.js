@@ -369,11 +369,48 @@
     return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
   }
+  // ===== VARIEDAD DE CARAS ENTRE VIDEOS =====
+  // Sin memoria entre videos, el modelo de texto cae siempre en el mismo
+  // fisico generico (sobre todo en mujeres: pelo largo oscuro, ojos cafes)
+  // y el de imagen dibuja la misma cara en cada historia. Por eso la app
+  // ASIGNA los rasgos de cada video con una semilla propia del proyecto
+  // (estable en reintentos del mismo video, distinta entre videos) y el
+  // prompt de reparto los impone para todo lo que el guion no fije.
+  var RASGOS_PIEL = ['piel morena', 'piel canela', 'piel blanca', 'piel trigueña', 'piel morena oscura', 'piel oliva'];
+  var RASGOS_OJOS = ['ojos cafés oscuros', 'ojos verdes', 'ojos color miel', 'ojos negros', 'ojos cafés claros', 'ojos grises'];
+  var RASGOS_MUJER = {
+    rostro: ['rostro ovalado', 'rostro redondo y suave', 'rostro anguloso de mandíbula marcada', 'rostro en forma de corazón', 'rostro alargado y fino', 'rostro cuadrado de pómulos marcados'],
+    pelo: ['pelo negro liso hasta la cintura', 'pelo castaño oscuro ondulado hasta los hombros', 'pelo negro rizado y voluminoso', 'pelo castaño claro liso con flequillo', 'pelo negro recogido en una cola alta', 'pelo cobrizo oscuro con ondas suaves', 'pelo negro corto estilo bob', 'pelo castaño oscuro en una trenza'],
+    distintivo: ['un lunar junto a la boca', 'pecas en la nariz y las mejillas', 'hoyuelos al sonreír', 'cejas pobladas y muy marcadas', 'una cicatriz fina en una ceja', 'pómulos altos muy marcados', 'un leve espacio entre los dientes de adelante', 'una marca de nacimiento en la mejilla']
+  };
+  var RASGOS_HOMBRE = {
+    rostro: ['rostro cuadrado', 'rostro ovalado', 'rostro alargado', 'rostro redondo', 'rostro anguloso', 'rostro de mandíbula ancha'],
+    pelo: ['pelo negro corto peinado hacia atrás', 'pelo castaño oscuro corto y algo desordenado', 'pelo negro con entradas marcadas', 'media melena oscura suelta', 'pelo corto con canas en las sienes', 'pelo rizado oscuro corto', 'cabeza casi rapada', 'pelo liso oscuro con raya al lado'],
+    barba: ['barba recortada', 'sin barba, bien afeitado', 'barba de varios días', 'bigote marcado', 'barba completa y cuidada', 'solo perilla'],
+    distintivo: ['una cicatriz pequeña en la barbilla', 'un lunar en la mejilla', 'hoyuelos al sonreír', 'cejas muy pobladas', 'una marca tenue en la frente', 'pecas en la nariz']
+  };
+  function hashSemilla(s) {
+    var h = 2166136261, t = String(s || '');
+    for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function elegir(lista, h, salto) { return lista[(h >>> salto) % lista.length]; }
+  function rasgosVariados(semilla, sexo) {
+    var h = hashSemilla(semilla || 'sin-semilla');
+    if (sexo === 'hombre') {
+      var rh = RASGOS_HOMBRE;
+      return elegir(RASGOS_PIEL, h, 0) + ', ' + elegir(rh.rostro, h, 3) + ', ' + elegir(rh.pelo, h, 6) + ', ' + elegir(rh.barba, h, 9) + ', ' + elegir(RASGOS_OJOS, h, 12) + ' y ' + elegir(rh.distintivo, h, 15);
+    }
+    var rm = RASGOS_MUJER;
+    return elegir(RASGOS_PIEL, h, 1) + ', ' + elegir(rm.rostro, h, 4) + ', ' + elegir(rm.pelo, h, 7) + ', ' + elegir(RASGOS_OJOS, h, 10) + ' y ' + elegir(rm.distintivo, h, 13);
+  }
   function promptDeReparto(d) {
     var datos = d || {};
     var conIds = (datos.conIds || []).filter(Boolean);
+    var semilla = String(datos.semilla || '') || fingerprint(String(datos.guion || '') + '|' + String(datos.tema || ''));
     return ADULT_RULE + '\n'
       + 'Lee el guion y las descripciones de escenas de ESTE video y define a sus personajes SOLO con lo que el propio guion muestra o describe. No inventes rasgos que el guion contradiga; si el guion no fija un detalle, elige uno concreto y coherente con la historia y el vestuario que las escenas repiten.\n'
+      + 'VARIEDAD OBLIGATORIA DE ESTE VIDEO: cada video de este canal tiene un protagonista con una cara DISTINTA a la de los demás videos; está prohibido caer en el físico genérico de siempre (en una mujer, nada de «pelo largo oscuro y ojos cafés» a secas, salvo que el guion lo fije así). Para todo rasgo que el guion NO fije, usa EXACTAMENTE los rasgos asignados a este video según el sexo del protagonista. Si la protagonista es MUJER, sus rasgos asignados son: ' + rasgosVariados(semilla, 'mujer') + '. Si el protagonista es HOMBRE, sus rasgos asignados son: ' + rasgosVariados(semilla, 'hombre') + '. Si el guion fija un rasgo distinto, manda el del guion. Los secundarios también llevan rasgos propios, distintos entre sí y distintos del protagonista.\n'
       + 'Devuelve SOLO JSON válido, sin markdown ni explicación: {"protagonista":{"nombre":"nombre propio o «Protagonista»","fisico":"descripción física completa: edad (25 años o más), rostro, pelo, complexión, rasgos que lo distinguen","vestuario":"la ropa que lleva en la mayoría de las escenas"},'
       + '"secundarios":[{"id":"el identificador EXACTO de su marca [CON: id]","nombre":"...","fisico":"...","vestuario":"..."}]}\n'
       + 'El físico debe tener al menos 40 caracteres útiles: es la descripción con la que se dibujará al personaje en todas las escenas.\n'
@@ -493,6 +530,6 @@
     // Limpieza leve de los huecos que dejan las muletillas retiradas.
     return t.replace(/\s+([,.!?;:…])/g, '$1').replace(/ {2,}/g, ' ');
   }
-  return {BRAND_VOICE:BRAND_VOICE,CHANNEL_BASIS:CHANNEL_BASIS,ADULT_RULE:ADULT_RULE,LATIN_SPANISH_RULE:LATIN_SPANISH_RULE,limpiarParaAudioLatino:limpiarParaAudioLatino,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,limpiarIdReparto:limpiarIdReparto,promptDeReparto:promptDeReparto,repartoDesdeTexto:repartoDesdeTexto,personajeAutoAccion:personajeAutoAccion,vistasQueFaltan:vistasQueFaltan,
+  return {BRAND_VOICE:BRAND_VOICE,CHANNEL_BASIS:CHANNEL_BASIS,ADULT_RULE:ADULT_RULE,LATIN_SPANISH_RULE:LATIN_SPANISH_RULE,limpiarParaAudioLatino:limpiarParaAudioLatino,hasMinors:hasMinors,mergeContinuousShots:mergeContinuousShots,IMAGE_STYLE:IMAGE_STYLE,AUDIENCES:AUDIENCES,FAMILIES:FAMILIES,REFERENCES:REFERENCES,STRUCTURES:STRUCTURES,CRITERIA:CRITERIA,referenceFor:referenceFor,structureBrief:structureBrief,audienceFor:audienceFor,researchBrief:researchBrief,fingerprint:fingerprint,editorial:editorial,norm:norm,words:words,chunks:chunks,tagsFor:tagsFor,rankAssets:rankAssets,limpiarIdReparto:limpiarIdReparto,rasgosVariados:rasgosVariados,promptDeReparto:promptDeReparto,repartoDesdeTexto:repartoDesdeTexto,personajeAutoAccion:personajeAutoAccion,vistasQueFaltan:vistasQueFaltan,
     continuity:continuity,scenePlan:scenePlan,selectPlan:selectPlan,familyFor:familyFor,formatFor:formatFor,feedback:feedback,validateMetric:validateMetric,recipes:recipes,segments:segments};
 });

@@ -188,6 +188,16 @@ test('automatic character: the extraction reply is parsed and validated, seconda
   assert.match(prompt,/define a sus personajes/);assert.match(prompt,/companera/);assert.match(prompt,/25 años o más/);
 });
 
+test('character variety: each project gets its own assigned face traits, stable per project',()=>{
+  assert.equal(core.rasgosVariados('proyecto-1','mujer'),core.rasgosVariados('proyecto-1','mujer'),'la misma semilla da los mismos rasgos (reintentos estables)');
+  const promptA=core.promptDeReparto({tema:'A',guion:'Una mujer ahorra...',escenas:[],conIds:[],semilla:'proyecto-1'});
+  assert.match(promptA,/VARIEDAD OBLIGATORIA/);
+  const caras=new Set(['proyecto-1','proyecto-2','proyecto-3','proyecto-4','proyecto-5','proyecto-6'].map(function(s){return core.rasgosVariados(s,'mujer');}));
+  assert.ok(caras.size>=3,'proyectos distintos reciben caras de mujer distintas, no la misma de siempre');
+  const promptSin=core.promptDeReparto({tema:'Ahorrar',guion:'Un hombre decide...',escenas:['Un hombre en su taller'],conIds:['companera']});
+  assert.match(promptSin,/VARIEDAD OBLIGATORIA/,'sin semilla explícita también hay variedad (sale del guion)');
+});
+
 test('latin accent: the writing rule exists once and bans the Spain forms',()=>{
   assert.match(core.LATIN_SPANISH_RULE,/NEUTRO LATINOAMERICANO/);
   assert.match(core.LATIN_SPANISH_RULE,/vosotros/);
