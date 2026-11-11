@@ -2564,10 +2564,8 @@ var voxWired=false;
 function wireVox(){
   var VAL_G={
     voz:VOCES.map(function(x){return x.v;}),
-    tono:['canal','autoridad','duro','cercano','energico','calmado','narrador'],
-    velocidad:['0.80','0.90','1.00','1.10','1.20'],
-    intensidad:['baja','media','alta'],
-    model:['gemini-2.5-flash-tts','gemini-2.5-pro-tts','gemini-2.5-flash-lite-preview-tts'],
+    tono:['canal','serio','emocionado','misterioso','calmado','plano'],
+    model:['gemini-3.8-flash-tts'],
   };
   var RANGO_E={stability:[0,1],similarity_boost:[0,1],style:[0,1],speed:[0.7,1.2]};
   try{
@@ -2636,7 +2634,7 @@ function wireVox(){
     selC.appendChild(cH);selC.appendChild(cM);
   }
 
-  var campG=[['vVoz','voz'],['vTono','tono'],['vVel','velocidad'],['vInt','intensidad'],['vModel','model'],['vExtra','extra']];
+  var campG=[['vVoz','voz'],['vTono','tono'],['vModel','model'],['vExtra','extra']];
   var campE=[['vStab','vStabV','stability'],['vSim','vSimV','similarity_boost'],['vSty','vStyV','style'],['vSpd','vSpdV','speed']];
 
   function paint(){
@@ -2715,10 +2713,9 @@ function wireVox(){
     Array.prototype.forEach.call(document.querySelectorAll('.voxSet'),function(btn){
       btn.addEventListener('click',function(){
         var p=(btn.getAttribute('data-p')||'').split(',');
-        if(p.length!==4)return;
+        if(p.length!==2)return;
         if(VAL_G.voz.indexOf(p[0])===-1||VAL_G.tono.indexOf(p[1])===-1)return;
-        if(VAL_G.velocidad.indexOf(p[2])===-1||VAL_G.intensidad.indexOf(p[3])===-1)return;
-        VOX.gemini.voz=p[0];VOX.gemini.tono=p[1];VOX.gemini.velocidad=p[2];VOX.gemini.intensidad=p[3];
+        VOX.gemini.voz=p[0];VOX.gemini.tono=p[1];
         paint();save();
       });
     });
@@ -3272,12 +3269,13 @@ var VOCES=[
 // Ajustes de voz. Se guardan por MOTOR, para poder cambiar de uno a otro sin
 // perder lo que tenias afinado en cada uno.
 //  - eleven: perillas numericas de ElevenLabs (la voz original del canal).
-//  - gemini: no hay perillas; el tono, la velocidad y la intensidad se convierten
-//    en el servidor en una instruccion hablada delante del guion.
+//  - gemini: Gemini 3.8 Flash TTS; sin perillas numericas — se elige voz y
+//    uno de los estilos de su herramienta de audios, y el estilo viaja al
+//    servidor como indicacion interna (speech_metadata), nunca leida en alto.
 var VOX={
   engine:'eleven',
   eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true,model:'eleven_v4'},
-  gemini:{voz:'Algenib',tono:'canal',velocidad:'0.90',intensidad:'media',model:'gemini-2.5-flash-tts',extra:''},
+  gemini:{voz:'Algenib',tono:'canal',model:'gemini-3.8-flash-tts',extra:''},
   chirp:{voz:'Algenib',velocidad:0.9},
 };
 var loadedRefsCount=0; // cuantas vistas del personaje de ESTE video cargaron en el ultimo intento

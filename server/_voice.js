@@ -3,19 +3,21 @@
 //   engine 'eleven' -> ElevenLabs, la voz original del canal (ver _eleven.js).
 //   engine 'chirp'  -> Chirp 3 HD (Cloud TTS): locucion neutra, la que menos
 //                      suena a anuncio. Credito de Google (ver _chirp.js).
-//   engine 'gemini' -> Gemini-TTS en Vertex AI: actua segun instrucciones.
+//   engine 'gemini' -> Gemini 3.8 Flash TTS en Vertex AI: el modelo nuevo,
+//                      el que mantiene el mismo tono de principio a fin.
 // El usuario decide cual usar segun los creditos que tenga en cada sitio.
 //
-// COMO SE PIDE A GEMINI-TTS (lo que no es obvio):
+// COMO SE PIDE A GEMINI 3.8 TTS (lo que no es obvio):
 //   - Se llama a :generateContent, como cualquier modelo Gemini, con
 //     responseModalities ['AUDIO'] y speechConfig.voiceConfig.prebuiltVoiceConfig.
 //   - Region SIEMPRE "global".
 //   - La salida es PCM 16 bits, 24 kHz, MONO, y NO trae cabecera WAV: hay que
 //     ponersela aqui o el navegador no puede reproducirlo.
-//   - NO hay parametros numericos de tono/velocidad: el estilo se dirige con una
-//     INSTRUCCION EN LENGUAJE NATURAL delante del texto ("Di lo siguiente con voz
-//     grave y pausada: ..."). De ahi que la UI mande tono/velocidad/intensidad y
-//     aqui se conviertan en esa frase.
+//   - NO hay parametros numericos de tono/velocidad: el estilo viaja en el
+//     campo estructurado speech_metadata.style de la parte de texto, NUNCA
+//     dentro del texto que se lee en voz alta. Los estilos son LOS MISMOS de
+//     su herramienta de audios (generador-audios/lib/styles.js), palabra por
+//     palabra, para que la voz suene igual en las dos herramientas.
 //
 // Devuelve el MISMO formato que antes ({success, parts:[b64], alignments:[]}),
 // para que la unificacion en Cloud Run y el reproductor sigan funcionando igual.
@@ -25,11 +27,9 @@ const { generarEleven } = require('./_eleven');
 const { generarChirp } = require('./_chirp');
 
 const ALLOWED_MODELS = {
-  'gemini-2.5-flash-tts': true,
-  'gemini-2.5-pro-tts': true,
-  'gemini-2.5-flash-lite-preview-tts': true,
+  'gemini-3.8-flash-tts': true,
 };
-const DEFAULT_MODEL = 'gemini-2.5-flash-tts';
+const DEFAULT_MODEL = 'gemini-3.8-flash-tts';
 
 // Las 30 voces de Gemini. Se validan aqui para no mandar nombres inventados.
 const VOICES = ['Achernar','Achird','Algenib','Algieba','Alnilam','Aoede','Autonoe','Callirrhoe',
@@ -41,50 +41,26 @@ const VOICE_SET = VOICES.reduce((a, v) => (a[v.toLowerCase()] = v, a), {});
 // locutor de anuncio y la que mas se acerca a la voz grave del canal.
 const DEFAULT_VOICE = 'Algenib';
 
-// Piezas de la instruccion de estilo. Son frases, no numeros, porque asi es como
-// Gemini-TTS acepta la direccion de actuacion.
-const TONOS = {
-  canal:     'con voz grave, madura y algo desgastada, en volumen bajo y contenido, como un hombre que le cuenta a otro una verdad que le costo aprender',
-  autoridad: 'con voz grave, firme y de autoridad, como alguien que sabe de lo que habla',
-  cercano:   'en tono cercano y directo, como si le hablaras a un amigo a los ojos',
-  energico:  'con energia y empuje, transmitiendo urgencia y ganas, pero sin gritar',
-  calmado:   'con calma y peso, sin prisa, dejando que cada frase asiente',
-  duro:      'con dureza y contundencia, sin adornos, como quien dice una verdad incomoda',
-  narrador:  'con voz de narrador de documental serio, grave y envolvente',
+// ESTILOS de narracion: los MISMOS de su herramienta de audios
+// (generador-audios/lib/styles.js), con la instruccion interna en ingles
+// palabra por palabra, identica en cada tramo de una generacion. La UI manda
+// el id del estilo en v.tono. 'plano' = sin instruccion (lectura tal cual).
+const ESTILOS = {
+  canal: 'Narrate in neutral Latin American Spanish exactly like a real person telling something to a friend: relaxed, warm, conversational and completely natural, at a calm everyday speaking pace. Follow the punctuation the way a person naturally does when speaking: flow smoothly through commas with barely a breath, rest only briefly at periods, and keep the sentences connected as one continuous, natural conversation. No exaggerated pauses, no theatrical silences, no choppy or robotic rhythm, and never pause where the punctuation does not ask for it. Give questions and important moments the natural emphasis a person gives them when telling something that matters, without overacting. Clean studio voice with no audible breathing sounds: no inhalation noise, no gasps between phrases. Keep exactly the same tone, timbre and volume from the beginning to the end.',
+  serio: 'Narrate in a serious, deep documentary tone, in neutral Latin American Spanish. Slow, weighty and solemn delivery, with clear pauses and restrained emotion. Keep exactly the same steady pace, tone, timbre and volume from the beginning to the end.',
+  emocionado: 'Narrate with joy and energy, in neutral Latin American Spanish. Bright, enthusiastic and lively delivery, with a smiling voice and dynamic emphasis, without shouting. Keep exactly the same steady pace, tone, timbre and volume from the beginning to the end.',
+  misterioso: 'Narrate in a mysterious tone, in neutral Latin American Spanish. Slower pace, slightly lower volume, intriguing delivery with longer pauses that build suspense. Keep exactly the same tone, timbre, volume and pace from the beginning to the end.',
+  calmado: 'Narrate in a calm, soft and soothing tone, in neutral Latin American Spanish. Gentle, relaxed delivery at a slow, even pace, ideal for falling asleep or for learning quietly. Keep exactly the same tone, timbre, volume and pace from the beginning to the end.',
+  plano: '',
 };
 
-// ANTI-LOCUTOR (va SIEMPRE). Sin esto Gemini-TTS entrega una lectura de anuncio:
-// entusiasta, con sonrisa en la voz y entonacion ascendente. Este canal necesita
-// lo contrario — alguien hablandole a UNA persona, no vendiendole algo a muchas.
-const NO_COMERCIAL = 'MUY IMPORTANTE: no suenes a locutor de comercial, ni a anuncio publicitario, ni a promocion de radio, ni a presentador de television. '
-  + 'Nada de entusiasmo fingido, ni sonrisa en la voz, ni entonacion que sube al final de las frases, ni energia de vendedor. '
-  + 'Habla como una persona real hablandole a OTRA persona, en corto, con voz de pecho, seria y natural, '
-  + 'con pausas de verdad entre las frases y bajando el tono al final de cada una.';
-const VELOCIDADES = {
-  '0.80': 'muy despacio, marcando mucho cada palabra',
-  '0.90': 'algo mas despacio de lo normal',
-  '1.00': 'a un ritmo natural',
-  '1.10': 'a buen ritmo, agil pero sin atropellarse',
-  '1.20': 'rapido y sin pausas largas',
-};
-const INTENSIDADES = {
-  baja:   'con emocion contenida, sobrio',
-  media:  '',
-  alta:   'con mucha carga emocional, que se note la conviccion',
-};
-
+// Instruccion de estilo para Gemini 3.8: viaja en speech_metadata.style.
+// v.extra (texto libre de la UI) se anade al final de la instruccion elegida.
 function construirInstruccion(v) {
-  const partes = [];
-  const tono = TONOS[v.tono] || TONOS.canal;
-  if (tono) partes.push(tono);
-  const vel = VELOCIDADES[v.velocidad] || '';
-  if (vel) partes.push(vel);
-  const inten = INTENSIDADES[v.intensidad];
-  if (inten) partes.push(inten);
-  if (v.extra) partes.push(String(v.extra).slice(0, 200));
-  return 'Lee el siguiente texto ' + partes.join(', ') + '.\n'
-    + NO_COMERCIAL + '\n'
-    + 'No leas estas instrucciones en voz alta, solo el texto que viene despues:\n\n';
+  const base = ESTILOS[v.tono] !== undefined ? ESTILOS[v.tono] : ESTILOS.canal;
+  const extra = v.extra ? String(v.extra).slice(0, 200).trim() : '';
+  if (base && extra) return base + ' ' + extra;
+  return base || extra;
 }
 
 // PCM crudo -> WAV. Gemini-TTS entrega PCM 16 bits mono a 24 kHz sin cabecera.
@@ -121,9 +97,12 @@ async function generateAudioChunk(text, engine, voice, lang, options) {
   const model = ALLOWED_MODELS[v.model] ? v.model : DEFAULT_MODEL;
   if (!process.env.GCP_PROJECT_ID) throw failure('GCP_PROJECT_ID no configurado.');
   const url = 'https://aiplatform.googleapis.com/v1/projects/'+process.env.GCP_PROJECT_ID+'/locations/global/publishers/google/models/'+model+':generateContent';
+  const parteTexto = {text};
+  const instruccion = construirInstruccion(v);
+  if (instruccion) parteTexto.speech_metadata = {style: instruccion};
   const r = await fetch(url,{method:'POST',signal,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({
-    contents:[{role:'user',parts:[{text:construirInstruccion(v)+text}]}],
-    generationConfig:{responseModalities:['AUDIO'],speechConfig:{languageCode:lang === 'en' ? 'en-US':'es-US',voiceConfig:{prebuiltVoiceConfig:{voiceName:voz}}}}
+    contents:[{role:'user',parts:[parteTexto]}],
+    generationConfig:{responseModalities:['AUDIO'],speechConfig:{languageCode:lang === 'en' ? 'en-US':'es-419',voiceConfig:{prebuiltVoiceConfig:{voiceName:voz}}}}
   })});
   const d = await r.json();
   if (!r.ok) throw failure((d.error && d.error.message) || 'No se pudo generar la voz.',r.status);
