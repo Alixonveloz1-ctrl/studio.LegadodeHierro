@@ -37,9 +37,10 @@ const VOICES = ['Achernar','Achird','Algenib','Algieba','Alnilam','Aoede','Auton
   'Orus','Puck','Pulcherrima','Rasalgethi','Sadachbia','Sadaltager','Schedar','Sulafat','Umbriel',
   'Vindemiatrix','Zephyr','Zubenelgenubi'];
 const VOICE_SET = VOICES.reduce((a, v) => (a[v.toLowerCase()] = v, a), {});
-// Algenib es la mas rasposa y de pecho del catalogo: es la que menos suena a
-// locutor de anuncio y la que mas se acerca a la voz grave del canal.
-const DEFAULT_VOICE = 'Algenib';
+// Voz predeterminada del motor Gemini, elegida por el usuario el 2026-11-11
+// tras probar las voces en su herramienta de audios: Sadachbia, con estilo
+// 'plano' (sin estilo, lectura tal cual).
+const DEFAULT_VOICE = 'Sadachbia';
 
 // ESTILOS de narracion: los MISMOS de su herramienta de audios
 // (generador-audios/lib/styles.js), con la instruccion interna en ingles

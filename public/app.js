@@ -2575,6 +2575,20 @@ function wireVox(){
       localStorage.setItem('lh_v4_v1','1');
     }
   }catch(e){}
+  // Configuracion Gemini elegida por el usuario el 2026-11-11 tras probar las
+  // voces en su herramienta de audios: Sadachbia, sin estilo (lectura tal
+  // cual), modelo 3.8. Se fija UNA vez en cada dispositivo; si luego cambia
+  // la voz o el estilo en el panel, su eleccion se guarda y no se pisa.
+  try{
+    if(!localStorage.getItem('lh_g38_v1')){
+      var rawG=localStorage.getItem('lh_vox');
+      var oG={};try{oG=rawG?JSON.parse(rawG):{};}catch(e2){oG={};}
+      if(!oG||typeof oG!=='object')oG={};
+      oG.gemini={voz:'Sadachbia',tono:'plano',model:'gemini-3.8-flash-tts',extra:''};
+      localStorage.setItem('lh_vox',JSON.stringify(oG));
+      localStorage.setItem('lh_g38_v1','1');
+    }
+  }catch(e){}
   try{
     var saved=localStorage.getItem('lh_vox');
     if(saved){
@@ -3275,7 +3289,7 @@ var VOCES=[
 var VOX={
   engine:'eleven',
   eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true,model:'eleven_v4'},
-  gemini:{voz:'Algenib',tono:'canal',model:'gemini-3.8-flash-tts',extra:''},
+  gemini:{voz:'Sadachbia',tono:'plano',model:'gemini-3.8-flash-tts',extra:''},
   chirp:{voz:'Algenib',velocidad:0.9},
 };
 var loadedRefsCount=0; // cuantas vistas del personaje de ESTE video cargaron en el ultimo intento
