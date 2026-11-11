@@ -4380,8 +4380,8 @@ async function toggleMixPreview(objectOverride){
       if(!MIX.bufs[vkey])MIX.bufs[vkey]=await MIX.ctx.decodeAudioData(await audMix.blob.arrayBuffer());
       vb=MIX.bufs[vkey];
     }
-    var vol=mv?parseInt(mv.value,10)/100:0.18;
-    if(!isFinite(vol)||vol<0)vol=0.18;
+    var vol=mv?parseInt(mv.value,10)/100:0.12;
+    if(!isFinite(vol)||vol<0)vol=0.12;
     MIX.gen=(MIX.gen||0)+1;var myGen=MIX.gen; // invalida temporizadores de reproducciones anteriores
     // LA ESCUCHA TIENE QUE SONAR COMO VA A SONAR EL VIDEO.
     //
@@ -4437,8 +4437,8 @@ function selectedMusic(){
   var sel=document.getElementById('musicSel');
   var vol=document.getElementById('mVol');
   if(!sel||!sel.value)return null;
-  var v=vol?parseInt(vol.value,10)/100:0.18;
-  if(!isFinite(v)||v<0||v>1)v=0.18;
+  var v=vol?parseInt(vol.value,10)/100:0.12;
+  if(!isFinite(v)||v<0||v>1)v=0.12;
   return {object:sel.value,volume:v};
 }
 

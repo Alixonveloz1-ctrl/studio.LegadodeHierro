@@ -269,6 +269,15 @@ test('latin accent: ElevenLabs request cleans the text and forces es except on v
   } finally { global.fetch=realFetch; }
 });
 
+test('gemini voice: a missing or unknown style NEVER falls back to a narrative tone',()=>{
+  const {construirInstruccion}=require('../server/_voice');
+  assert.equal(construirInstruccion({}),'','sin estilo en la petición: ninguna instrucción, lectura tal cual');
+  assert.equal(construirInstruccion({tono:'plano'}),'');
+  assert.equal(construirInstruccion({tono:'inventado'}),'','un estilo desconocido tampoco puede colar un tono');
+  assert.equal(construirInstruccion({tono:'plano',extra:'   '}),'');
+  assert.match(construirInstruccion({tono:'canal'}),/Narrate/,'el estilo de canal solo entra si se elige de verdad');
+});
+
 test('automatic character: the project lock runs once, waits while fresh, retries when stale, never loops on failure',()=>{
   const now=Date.now();
   assert.equal(core.personajeAutoAccion(null,now),'crear');

@@ -57,8 +57,12 @@ const ESTILOS = {
 
 // Instruccion de estilo para Gemini 3.8: viaja en speech_metadata.style.
 // v.extra (texto libre de la UI) se anade al final de la instruccion elegida.
+// ORDEN DEL DUEÑO (2026-11-11): la narracion de Legado va SIN tono narrativo,
+// tal como sale de su herramienta de audios en su forma predeterminada. Si el
+// estilo no llega o llega desconocido, el defecto es PLANO (ninguna
+// instruccion), NUNCA 'canal': ningun tono puede colarse en silencio.
 function construirInstruccion(v) {
-  const base = ESTILOS[v.tono] !== undefined ? ESTILOS[v.tono] : ESTILOS.canal;
+  const base = ESTILOS[v.tono] !== undefined ? ESTILOS[v.tono] : ESTILOS.plano;
   const extra = v.extra ? String(v.extra).slice(0, 200).trim() : '';
   if (base && extra) return base + ' ' + extra;
   return base || extra;
@@ -118,4 +122,4 @@ async function generateAudioChunk(text, engine, voice, lang, options) {
   const wav = pcm.subarray(0,4).toString() === 'RIFF' ? pcm : pcmAWav(pcm,sr,ch);
   return {parts:[wav.toString('base64')],alignments:[null],format:'wav',engine,voice:voz,model};
 }
-module.exports = {generateAudioChunk,pcmAWav};
+module.exports = {generateAudioChunk,pcmAWav,construirInstruccion};

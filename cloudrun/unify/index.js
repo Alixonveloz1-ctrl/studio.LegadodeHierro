@@ -259,7 +259,7 @@ async function processJob(jobId, payload) {
         throw new Error('No se pudo descargar la musica "' + music.object + '" del bucket: ' + e.message);
       }
       let vol = Number(music.volume);
-      if (!isFinite(vol) || vol < 0 || vol > 1) vol = 0.18;
+      if (!isFinite(vol) || vol < 0 || vol > 1) vol = 0.12;
       // Pre: musica -> WAV 48k estereo (PCM, sin perdida).
       const musicWav = path.join(dir, 'music_wav.wav');
       await run('ffmpeg', ['-y', '-i', musicSrc,
