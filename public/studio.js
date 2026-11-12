@@ -19,8 +19,40 @@ function studioOptions(mode,seconds,topic,theme){
   if(research&&mode!=='profesor'&&mode!=='relato'&&mode!=='historia'&&mode!=='finanzas')family=research.family;
   var audience=research?research.audience:LH.audienceFor(topic,theme||sT);
   if(mode==='finanzas'){family='finanzas';audience='finanzas';}
-  return {audience:audience,family:family,platform:'facebook',seconds:Number(seconds||sD),
+  // BANCO DE FORMATOS: en este modo cada video lleva UNA estructura del
+  // banco, asignada por rotación contra el historial. La asignación se
+  // guarda por tema para que todas las etapas del mismo video (plan, guion,
+  // revisión, captions) usen la misma estructura, y queda registrada en el
+  // historial dentro de las opciones editoriales del proyecto.
+  var formato='';
+  if(mode==='finanzas'&&LH.formatoPara){
+    try{
+      var topicKey=LH.norm(topic||''),asig=null;
+      try{asig=JSON.parse(localStorage.getItem('lh_formato_asig')||'null');}catch(e){}
+      if(asig&&asig.topic===topicKey&&LH.formatoPorId(asig.id))formato=asig.id;
+      else{
+        var usados=[];
+        if(typeof getHistory==='function')getHistory().forEach(function(r){var f=(r.editorial&&r.editorial.formato)||r.formato||'';if(f)usados.push(f);});
+        formato=LH.formatoPara(usados,usados.length).id;
+        try{localStorage.setItem('lh_formato_asig',JSON.stringify({topic:topicKey,id:formato}));}catch(e){}
+      }
+    }catch(e){formato='';}
+  }
+  return {audience:audience,family:family,platform:'facebook',seconds:Number(seconds||sD),formato:formato,
     referenceId:family==='identidad'&&/reto|ano|dias/.test(LH.norm(topic))?'lh-reto':'auto',research:research,referenceVideo:idea&&idea.videoUrl||'',referenceAnalysis:idea&&idea.analysis||null};
+}
+// Muestra en el panel qué estructura del banco le toca a este video y avisa
+// cuando el banco ya dio la vuelta completa (toca traer formatos nuevos).
+function studioPaintFormato(){
+  var el=studioEl('formatoInfo');if(!el)return;
+  if(typeof sMode==='undefined'||sMode!=='finanzas'||!LH.formatoPara){el.hidden=true;el.innerHTML='';return;}
+  var opts=studioOptions('finanzas'),f=opts.formato?LH.formatoPorId(opts.formato):null;
+  if(!f){el.hidden=true;return;}
+  var usados=[];if(typeof getHistory==='function')getHistory().forEach(function(r){var x=(r.editorial&&r.editorial.formato)||r.formato||'';if(x)usados.push(x);});
+  var est=LH.bancoEstado(usados);
+  el.hidden=false;
+  el.innerHTML='🧩 <b>Estructura de este video:</b> '+f.name+' <span style="opacity:.75">(del banco de formatos: rota sola contra los videos recientes y no se repite hasta que pasen varias distintas)</span>'
+    +(est.agotado?'<br>⚠️ <b>El banco ya dio la vuelta completa:</b> se usaron las '+est.total+' estructuras en los últimos videos. Toca traer formatos nuevos en la próxima revisión de formatos.':'');
 }
 async function studioPrepareReference(context){
   var options=context.editorial||{},url=options.referenceVideo;if(!url)return '';
@@ -1128,3 +1160,5 @@ function studioModelPickers(){
     };
   });
 }
+// Pinta la estructura asignada si el estudio abre ya en modo finanzas.
+if(typeof studioPaintFormato==='function'){try{studioPaintFormato();}catch(e){}}

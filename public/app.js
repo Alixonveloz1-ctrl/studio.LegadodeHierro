@@ -398,7 +398,7 @@ function buildSP(mode,editorialOptions){
     +'El protagonista visual del canal es una ilustración, no una afirmación de que el autor vivió las historias. '
     +(story?'HISTORIA: un conflicto, una decisión y consecuencias observables. Situación ilustrativa salvo hechos aportados por el autor. Mantén continuidad espacial y de vestuario. '
       :mode==='profesor'?'CLASE: problema, demostración, pasos con cómo hacerlos, ejemplo hipotético, errores y una acción final. '
-      :mode==='finanzas'?'LIBERTAD FINANCIERA: un solo problema de dinero con dolor concreto (deuda, sueldo que no alcanza, gasto que se escapa), UNA mini-historia de una persona común con nombre, oficio y sueldo aproximado, un método con NOMBRE PROPIO en pasos cortos y la CUENTA en voz alta con cifras de ejemplo hipotéticas que el espectador repita con su sueldo. Sin sermón: primero el método y su cuenta. El tema puede ser de DEFENDER (deuda, sueldo, gasto, ahorro) o de GENERAR: un oficio o servicio que se vuelve ingreso extra o negocio pequeño, con su cuenta de negocio (qué ofrece, a quién, precio de ejemplo, inversión y en cuánto se recupera). '
+      :mode==='finanzas'?'LIBERTAD FINANCIERA: un solo problema de dinero con dolor concreto (deuda, sueldo que no alcanza, gasto que se escapa), UNA mini-historia de una persona común con nombre, oficio y sueldo aproximado, un método con NOMBRE PROPIO en pasos cortos y la CUENTA en voz alta con cifras de ejemplo hipotéticas que el espectador repita con su sueldo. Sin sermón: primero el método y su cuenta. El tema puede ser de DEFENDER (deuda, sueldo, gasto, ahorro) o de GENERAR: un negocio que se construye y se ESCALA por escalones —reinversión, procesos con un encargado, segundo activo o canal digital— hasta cifras grandes, con la cuenta del negocio completo (qué ofrece, a quién, precio e inversión de ejemplo, costos y cuánto deja YA ESCALADO). La ARQUITECTURA de este video viene del banco de formatos y rota de video en video: síguela tal cual, no repitas el esqueleto de siempre. '
       :'UNA IDEA: un conflicto reconocible, un ejemplo concreto y una decisión útil. ')
     +'Habla al espectador en presente, futuro o imperativo; no inventes su pasado. '
     +'La primera frase entra en el tema sin saludos. Cierra cumpliendo la promesa y con Legado de Hierro. '
@@ -646,7 +646,7 @@ function buildAll(){
       b.style.background=sMode===m.id?'#26262b':'';
       b.querySelector('.om').style.color=sMode===m.id?'#d9a441':'';
       b.addEventListener('click',function(){
-        sMode=m.id;SP=buildSP();pintarDuraciones();rfAll();
+        sMode=m.id;SP=buildSP();pintarDuraciones();rfAll();if(typeof studioPaintFormato==='function')studioPaintFormato();
         // Conservar los modelos y formatos elegidos al cambiar de modo.
         aplicarFormatoDelModo();
         updImgLabel();

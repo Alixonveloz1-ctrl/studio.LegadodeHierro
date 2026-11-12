@@ -183,3 +183,26 @@ test('a slow stage stays owned after the old 65-second lease and completes once'
     assert.equal((await store.read(BASE+j.id+'.json')).data.leaseUntil,0);
   }finally{Date.now=originalNow;}
 });
+
+test('formato bank: nine structures, rotation covers the whole bank before repeating, exhaustion is flagged',()=>{
+  assert.ok(core.FORMATOS_FINANZAS.length>=8);
+  core.FORMATOS_FINANZAS.forEach((f)=>{assert.ok(f.id&&f.name&&Array.isArray(f.beats)&&f.beats.length>=4,f.id);});
+  const usados=[],vistos=[];
+  for(let i=0;i<core.FORMATOS_FINANZAS.length;i++){const f=core.formatoPara(usados,usados.length);vistos.push(f.id);usados.unshift(f.id);}
+  assert.equal(new Set(vistos).size,core.FORMATOS_FINANZAS.length);
+  assert.equal(core.bancoEstado(usados).agotado,true);
+  assert.equal(core.bancoEstado([]).agotado,false);
+  const recientes=['duelo','giro','serie'];
+  assert.ok(!recientes.includes(core.formatoPara(recientes,3).id));
+});
+
+test('formato bank: the assigned structure reaches the editorial prompt and the scale rules always apply',()=>{
+  const duelo=core.editorial({family:'finanzas',seconds:60,formato:'duelo'});
+  assert.match(duelo,/El duelo/);
+  assert.match(duelo,/REGLAS DE ESCALA Y VARIEDAD/);
+  const autopsia=core.editorial({family:'finanzas',seconds:60,formato:'autopsia'});
+  assert.match(autopsia,/Autopsia de un negocio/);
+  assert.notEqual(duelo,autopsia);
+  const clasico=core.editorial({family:'finanzas',seconds:60});
+  assert.match(clasico,/ARQUITECTURA: Libertad financiera/);
+});
