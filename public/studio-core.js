@@ -96,6 +96,7 @@
       var f=formatoPorId(o.formato);
       if(f){s={name:f.name,beats:f.beats};extra='\nESTRUCTURA DE ESTE VIDEO (sale del banco de formatos del canal y rota contra los videos recientes; NO la nombres en la narración ni leas esta etiqueta): '+f.name+' — '+f.clase;}
       extra+='\nREGLAS DE ESCALA Y VARIEDAD (fijas en este modo): la historia enseña a ESCALAR, no solo a empezar: muestra los escalones (reinvertir lo que entra, escribir los procesos y formar un encargado, abrir el segundo activo o el canal digital) y no te conformes con el primer ingreso. La cuenta final debe ser GRANDE en cifras absolutas, con un camino creíble a una riqueza seria: si la ganancia final es miserable para lo que se invierte, esa historia no sirve; sube el nivel del negocio. El desenlace de ESTA estructura manda: no lo sustituyas por el final predecible de siempre.';
+      extra+='\nNEGOCIO CLARO (regla fija, orden del dueño): en los primeros segundos el guion dice EL NEGOCIO con palabras simples — qué es exactamente, quién paga y por qué paga — para que cualquiera pueda repetir en una frase cuál es el negocio («renta casas por noche», «vende celulares en su tienda», «cobra una regalía por cada unidad que otros venden»). No des el negocio por sobreentendido entre metáforas ni lo dejes escondido detrás de las cifras: la cuenta en voz alta muestra ese mismo mecanismo (quién pone el dinero y a cambio de qué), no solo números sueltos. Si al terminar el video no se puede decir en una frase cuál es el negocio y cómo gana dinero, el guion está mal.';
     }
     return '\nARQUITECTURA: '+s.name+'\n'+s.beats.join('\n')+extra
       +'\nLos porcentajes son una guía de escritura, no una curva de retención observada. No leerlos ni añadir encabezados a la voz.'
@@ -451,7 +452,12 @@
       return elegir(RASGOS_PIEL, h, 0) + ', ' + elegir(rh.rostro, h, 3) + ', ' + elegir(rh.pelo, h, 6) + ', ' + elegir(rh.barba, h, 9) + ', ' + elegir(RASGOS_OJOS, h, 12) + ' y ' + elegir(rh.distintivo, h, 15);
     }
     var rm = RASGOS_MUJER;
-    return elegir(RASGOS_PIEL, h, 1) + ', ' + elegir(rm.rostro, h, 4) + ', ' + elegir(rm.pelo, h, 7) + ', ' + elegir(RASGOS_OJOS, h, 10) + ' y ' + elegir(rm.distintivo, h, 13);
+    var pielM = elegir(RASGOS_PIEL, h, 1), peloM = elegir(rm.pelo, h, 7);
+    // Regla del dueño (2026-11-11): rubia = piel clara. El pelo rubio nunca
+    // se cruza con piel oscura; esa combinación salió en un video (Camila)
+    // y el dueño la marcó como ilógica.
+    if (peloM.indexOf('rubio') >= 0) pielM = elegir(['piel blanca', 'piel clara'], h, 16);
+    return pielM + ', ' + elegir(rm.rostro, h, 4) + ', ' + peloM + ', ' + elegir(RASGOS_OJOS, h, 10) + ' y ' + elegir(rm.distintivo, h, 13);
   }
   function promptDeReparto(d) {
     var datos = d || {};

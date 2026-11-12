@@ -194,6 +194,7 @@ test('character variety: each project gets its own assigned face traits, stable 
   assert.match(promptA,/VARIEDAD OBLIGATORIA/);
   const caras=new Set(['proyecto-1','proyecto-2','proyecto-3','proyecto-4','proyecto-5','proyecto-6'].map(function(s){return core.rasgosVariados(s,'mujer');}));
   assert.ok(caras.size>=3,'proyectos distintos reciben caras de mujer distintas, no la misma de siempre');
+  for(let i=0;i<80;i++){const r=core.rasgosVariados('semilla-'+i,'mujer');if(r.includes('rubio'))assert.match(r,/piel blanca|piel clara/,'rubia siempre con piel clara, nunca con piel oscura');}
   const promptSin=core.promptDeReparto({tema:'Ahorrar',guion:'Un hombre decide...',escenas:['Un hombre en su taller'],conIds:['companera']});
   assert.match(promptSin,/VARIEDAD OBLIGATORIA/,'sin semilla explícita también hay variedad (sale del guion)');
 });
