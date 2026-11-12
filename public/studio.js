@@ -291,7 +291,7 @@ async function studioRestoreAssets(item){
       if(p.music&&p.music.object){
         try{localStorage.setItem('lh_music_sel',p.music.object);}catch(e){}
         var msel=studioEl('musicSel');if(msel)msel.value=p.music.object;
-        var mvol=studioEl('mVol');if(mvol&&isFinite(Number(p.music.volume)))mvol.value=Math.round(Number(p.music.volume)*100);
+        var mvol=studioEl('mVol');if(mvol&&isFinite(Number(p.music.volume))){mvol.value=Math.round(Number(p.music.volume)*100);var mvv=studioEl('mVolV');if(mvv)mvv.textContent=mvol.value+'%';}
         if(typeof loadMusicList==='function'&&msel&&!Array.from(msel.options||[]).some(function(o){return o.value===p.music.object;}))loadMusicList();
       }
     }catch(e){}
@@ -642,7 +642,14 @@ async function studioRenderVideo(){
   if(!audio)throw new Error('Genera o sube la narración '+lang.toUpperCase()+' primero.');
   if(!audio.dur){var C=window.OfflineAudioContext||window.webkitOfflineAudioContext,c=new C(1,1,24000);audio.dur=(await c.decodeAudioData(await audio.blob.arrayBuffer())).duration;}
   if(lang==='es')studioRememberSpeech(audio,owner.a);
-  var payload=await studioPrepareMontage(audio);payload.music=selectedMusic();payload.srt=audio.srt||(audio.alignment?makeSRTFromAlignment(audio.alignment):makeSRT(lang==='en'?owner.f:owner.a,audio,lang));
+  var payload=await studioPrepareMontage(audio);payload.music=selectedMusic();
+  // SIN SUBTITULOS QUEMADOS (orden del dueño, 2026-11-11): los videos de
+  // Legado salen sin subtitulos pegados en la imagen. YouTube, Facebook,
+  // Instagram y TikTok generan sus propios subtitulos automaticos sobre el
+  // audio, y los calculados aqui nunca quedaron a su gusto. El .srt se sigue
+  // guardando en el proyecto y en el ZIP por si algun dia se quiere subir a
+  // mano; simplemente ya no se quema en el video.
+  payload.srt='';
   payload.targetSeconds=Number(owner.dO&&owner.dO.id)||0;
   studioMontageMessage('Enviando el montaje con archivos guardados...');
   var d=await studioAPI('start',payload,'/api/unify');
