@@ -4969,6 +4969,20 @@ function makeSRT(text,aud,idioma){
       segs.push({text:gs[g],start:ini2,end:Math.max(ini2+0.2,fin2)});
     }
   }
+  // ANTICIPO DE LECTURA (2026-11-11): cada subtitulo aparece 0,3 s ANTES de
+  // que la voz llegue a su frase. Medido sobre audios reales, el calculo ya
+  // caia sobre la palabra (error medio ~0,1 s), pero el dueño — que ve estos
+  // videos a diario — lo seguia oyendo detras de la voz: un subtitulo que
+  // aparece justo cuando la palabra ya empezo se LEE tarde, porque al
+  // terminar de leerlo la voz ya va una o dos palabras mas adelante. Con el
+  // anticipo el texto ya esta en pantalla cuando la frase empieza, que es
+  // como se subtitula profesionalmente. Se mueven inicio y fin juntos para
+  // no crear solapes entre subtitulos vecinos.
+  var ANTICIPO_SUB=0.3;
+  for(var z=0;z<segs.length;z++){
+    segs[z].start=Math.max(0,segs[z].start-ANTICIPO_SUB);
+    segs[z].end=Math.max(segs[z].start+0.2,segs[z].end-ANTICIPO_SUB);
+  }
   return segs.map(function(s,i){
     return(i+1)+'\n'+fmtSRTTime(s.start)+' --> '+fmtSRTTime(s.end)+'\n'+s.text.toUpperCase()+'\n';
   }).join('\n');
