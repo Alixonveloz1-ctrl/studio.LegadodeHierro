@@ -184,7 +184,7 @@ test('a slow stage stays owned after the old 65-second lease and completes once'
   }finally{Date.now=originalNow;}
 });
 
-test('formato bank: nine structures, rotation covers the whole bank before repeating, exhaustion is flagged',()=>{
+test('formato bank: eight structures, rotation covers the whole bank before repeating, exhaustion is flagged',()=>{
   assert.ok(core.FORMATOS_FINANZAS.length>=8);
   core.FORMATOS_FINANZAS.forEach((f)=>{assert.ok(f.id&&f.name&&Array.isArray(f.beats)&&f.beats.length>=4,f.id);});
   const usados=[],vistos=[];
@@ -192,17 +192,27 @@ test('formato bank: nine structures, rotation covers the whole bank before repea
   assert.equal(new Set(vistos).size,core.FORMATOS_FINANZAS.length);
   assert.equal(core.bancoEstado(usados).agotado,true);
   assert.equal(core.bancoEstado([]).agotado,false);
-  const recientes=['duelo','giro','serie'];
+  const recientes=['espejo','ciclo','regla'];
   assert.ok(!recientes.includes(core.formatoPara(recientes,3).id));
 });
 
-test('formato bank: the assigned structure reaches the editorial prompt and the scale rules always apply',()=>{
-  const duelo=core.editorial({family:'finanzas',seconds:60,formato:'duelo'});
-  assert.match(duelo,/El duelo/);
-  assert.match(duelo,/REGLAS DE ESCALA Y VARIEDAD/);
-  const autopsia=core.editorial({family:'finanzas',seconds:60,formato:'autopsia'});
-  assert.match(autopsia,/Autopsia de un negocio/);
-  assert.notEqual(duelo,autopsia);
+test('formato bank: the assigned structure reaches the editorial prompt and the channel voice rules always apply',()=>{
+  const protocolo=core.editorial({family:'finanzas',seconds:60,formato:'protocolo'});
+  assert.match(protocolo,/El protocolo/);
+  assert.match(protocolo,/VOZ DE LEGADO/);
+  assert.match(protocolo,/segunda persona/);
+  assert.match(protocolo,/PROHIBIDO el salto/);
+  const espejo=core.editorial({family:'finanzas',seconds:60,formato:'espejo'});
+  assert.match(espejo,/El espejo/);
+  assert.notEqual(protocolo,espejo);
   const clasico=core.editorial({family:'finanzas',seconds:60});
   assert.match(clasico,/ARQUITECTURA: Libertad financiera/);
+});
+
+test('channel voice: every bank format speaks to the viewer, never a third-person case study',()=>{
+  core.FORMATOS_FINANZAS.forEach((f)=>{
+    const brief=core.editorial({family:'finanzas',seconds:60,formato:f.id});
+    assert.match(brief,/VOZ DE LEGADO/,f.id);
+    assert.match(brief,/espectador/,f.id);
+  });
 });
