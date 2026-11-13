@@ -7,7 +7,7 @@
 //   imageBase64 (obligatorio)
 //   prompt      (obligatorio)
 //   model       (opcional) veo-3.1-lite-generate-001 (DEFECTO) |
-//                          veo-3.1-fast-generate-001 | veo-3.1-generate-001 |
+//                          veo-3.1-fast-generate-001 |
 //                          veo-2.0-generate-001 |
 //                          gemini-omni-1.2-flash-360p | gemini-omni-1.2-flash-720p
 //                          (Gemini Omni 1.2 Flash en dos calidades; rama Omni abajo)
@@ -16,7 +16,6 @@
 const ALLOWED_VIDEO_MODELS = {
   'veo-3.1-lite-generate-001': true,
   'veo-3.1-fast-generate-001': true,
-  'veo-3.1-generate-001': true,
   'veo-2.0-generate-001': true,
 };
 

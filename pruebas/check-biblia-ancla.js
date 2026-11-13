@@ -129,7 +129,7 @@ const ficha = (lista, id) => lista.find(x => x.id === id);
   t('y todavía no tiene ninguna vista generada', ins && (ins.refs || []).filter(Boolean).length === 0);
 
   // ---- 2. la vista 1 se genera CON las fotos reales de referencia ----
-  r = await llamar({ action: 'generar', personaje: ins, vista: 0, model: 'gemini-3-pro-image' });
+  r = await llamar({ action: 'generar', personaje: ins, vista: 0, model: 'gemini-3.1-flash-image' });
   t('la vista 1 se genera', r.code === 200 && r.body.vistas && r.body.vistas.length === 1);
   let l = LLAMADAS[LLAMADAS.length - 1];
   t('y viaja con las fotos REALES del personaje, no a ciegas',

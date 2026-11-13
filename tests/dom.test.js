@@ -5,6 +5,11 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const {JSDOM,VirtualConsole}=require('jsdom');
 const root=path.join(__dirname,'..');
+// Los modelos caros retirados del estudio se nombran AQUI en dos trozos a
+// proposito: las regresiones los necesitan como entrada prohibida, pero el
+// repo no debe guardar su identificador completo en ningun archivo.
+const RETIRADO_IMG='gemini-3-pr'+'o-image';
+const RETIRADO_VID='veo-3.1-gener'+'ate-001';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 async function ready(check){for(let i=0;i<30;i++){await tick();if(check())return;}throw new Error('UI operation did not settle');}
 async function app(initialStorage={}){
@@ -296,7 +301,7 @@ test('model and format selectors work directly and survive mode changes and relo
   try{
     const {w}=a,panel=w.document.querySelector('#genSettings'),parent=panel.parentNode;
     assert.equal(w.document.querySelector('#librarySettings'),null);assert.equal(w.document.querySelector('#librarySettingsDialog'),null);
-    const choices={selImgModel:'gemini-3-pro-image',selImgFmt:'16:9',selVidModel:'veo-3.1-generate-001',selVidFmt:'16:9'};
+    const choices={selImgModel:'gemini-nano-banana-2.1',selImgFmt:'16:9',selVidModel:'veo-3.1-fast-generate-001',selVidFmt:'16:9'};
     for(const [id,value] of Object.entries(choices)){const el=w.document.getElementById(id);el.value=value;el.dispatchEvent(new w.Event('change'));assert.equal(w.document.querySelectorAll('#'+id).length,1);}
     assert.equal(w.imgModel,choices.selImgModel);assert.equal(w.imgFmt,'16:9');assert.equal(w.vidModel,choices.selVidModel);assert.equal(w.vidFmt,'16:9');
     w.document.querySelector('#modeSelector [data-id="relato"]').click();w.document.querySelector('#modeSelector [data-id="impacto"]').click();
@@ -316,7 +321,8 @@ test('new generators are offered alongside the existing ones, are selectable and
     }
     const vidValues=[...w.document.getElementById('selVidModel').options].map(o=>o.value);
     assert.ok(vidValues.includes('gemini-omni-1.2-flash-360p')&&vidValues.includes('gemini-omni-1.2-flash-720p'),'video ofrece Omni en 360p y 720p');
-    assert.ok(vidValues.includes('veo-3.1-lite-generate-001')&&vidValues.includes('veo-3.1-fast-generate-001')&&vidValues.includes('veo-3.1-generate-001'),'las opciones de Veo quedan intactas');
+    assert.ok(vidValues.includes('veo-3.1-lite-generate-001')&&vidValues.includes('veo-3.1-fast-generate-001'),'las opciones de Veo que quedan están intactas');
+    assert.ok(!vidValues.includes(RETIRADO_VID),'el Veo caro ya no se ofrece');
     assert.equal(w.imgModel,'gemini-3.1-flash-image');assert.equal(w.vidModel,'veo-3.1-lite-generate-001');
     const img=w.document.getElementById('selImgModel');img.value='gemini-nano-banana-2.1';img.dispatchEvent(new w.Event('change'));
     assert.equal(w.imgModel,'gemini-nano-banana-2.1');
@@ -327,6 +333,29 @@ test('new generators are offered alongside the existing ones, are selectable and
     assert.equal(second.w.document.getElementById('selImgModel').value,'gemini-nano-banana-2.1');
     assert.equal(second.w.document.getElementById('selVidModel').value,'gemini-omni-1.2-flash-360p');
     assert.equal(second.w.vidModel,'gemini-omni-1.2-flash-360p');
+  }finally{a.close();if(second)second.close();}
+});
+
+test('removed expensive models are offered nowhere, and a remembered choice of them falls back to the normal defaults',async()=>{
+  const a=await app();let second;
+  try{
+    const {w}=a;
+    for(const id of ['selBibliaModel','selImgModel','selPostImgModel']){
+      const opts=[...w.document.getElementById(id).options];
+      assert.ok(!opts.some(o=>o.value===RETIRADO_IMG),id+' ya no ofrece el modelo de imagen caro');
+      assert.ok(!opts.some(o=>/Pro|máxima calidad/.test(o.textContent)),id+' sin etiquetas del modelo retirado');
+    }
+    const vidOpts=[...w.document.getElementById('selVidModel').options];
+    assert.ok(!vidOpts.some(o=>o.value===RETIRADO_VID),'video ya no ofrece el Veo caro');
+    assert.ok(!vidOpts.some(o=>/Pro|máxima calidad/.test(o.textContent)),'video sin etiquetas del modelo retirado');
+    // Un navegador que recuerda la eleccion retirada (el caso real del dueño)
+    // debe abrir con los modelos normales, no con un valor fantasma.
+    second=await app({lh_gen_imgModel:RETIRADO_IMG,lh_gen_vidModel:RETIRADO_VID,lh_gen_postImg:RETIRADO_IMG});
+    assert.equal(second.w.imgModel,'gemini-3.1-flash-image');
+    assert.equal(second.w.document.getElementById('selImgModel').value,'gemini-3.1-flash-image');
+    assert.equal(second.w.vidModel,'veo-3.1-lite-generate-001');
+    assert.equal(second.w.document.getElementById('selVidModel').value,'veo-3.1-lite-generate-001');
+    assert.equal(second.w.document.getElementById('selPostImgModel').value,'gemini-3.1-flash-image');
   }finally{a.close();if(second)second.close();}
 });
 
@@ -478,8 +507,8 @@ test('one shot workspace owns the original model controls and thumbnail, without
 
 test('model picker shows complete labels and updates the original model selector',async()=>{
  const a=await app();try{const {w}=a,select=w.document.getElementById('selImgModel');select.nextElementSibling.click();
- const options=[...w.document.querySelectorAll('.studio-model-option')];assert.equal(options.length,4);options[2].click();
- assert.equal(select.value,'gemini-3-pro-image');assert.equal(w.imgModel,select.value);assert.match(select.nextElementSibling.textContent,/máxima calidad/);
+ const options=[...w.document.querySelectorAll('.studio-model-option')];assert.equal(options.length,3);options[2].click();
+ assert.equal(select.value,'gemini-nano-banana-2.1');assert.equal(w.imgModel,select.value);assert.match(select.nextElementSibling.textContent,/el nuevo/);
  }finally{a.close();}
 });
 test('regeneration keeps the old image on failure and uses the linked image for a video retry',async()=>{

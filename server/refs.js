@@ -539,7 +539,7 @@ async function biblia(req, res) {
       // NUNCA podia casar con 'gemini-nano-banana-2.1' —tras «gemini-» exige
       // digitos y un final «-image»—, asi que elegir el 2.1 para las vistas
       // generaba en silencio con Nano Banana 2 sin que nadie lo supiera.
-      const MODELOS_VISTA = ['gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-3-pro-image', 'gemini-nano-banana-2.1'];
+      const MODELOS_VISTA = ['gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-nano-banana-2.1'];
       const modelo = MODELOS_VISTA.includes(String(body.model || ''))
         ? String(body.model) : 'gemini-3.1-flash-image';
 

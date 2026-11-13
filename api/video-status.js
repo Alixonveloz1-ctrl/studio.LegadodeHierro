@@ -134,7 +134,10 @@ export default async function handler(req) {
       const lm = operationName.match(/\/locations\/([^/]+)\//);
       if (lm && lm[1]) REGION = lm[1];
     } else {
-      const fallbackModel = (body.model && String(body.model)) || 'veo-3.1-lite-generate-001';
+      // Solo se aceptan los modelos de video que existen en el estudio; un
+      // nombre retirado o inventado cae en el modelo normal, nunca en otro.
+      const VE_MODELOS = ['veo-3.1-lite-generate-001', 'veo-3.1-fast-generate-001', 'veo-2.0-generate-001'];
+      const fallbackModel = VE_MODELOS.includes(body.model && String(body.model)) ? String(body.model) : 'veo-3.1-lite-generate-001';
       modelResource = `projects/${GCP_PROJECT_ID}/locations/${REGION}/publishers/google/models/${fallbackModel}`;
     }
 

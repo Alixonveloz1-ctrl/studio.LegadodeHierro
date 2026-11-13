@@ -8,7 +8,6 @@
 //   model       (opcional) uno de:
 //                 gemini-2.5-flash-image      (Nano Banana, estable)
 //                 gemini-3.1-flash-image      (Nano Banana 2, rapido — DEFECTO)
-//                 gemini-3-pro-image          (Nano Banana Pro, maxima calidad)
 //                 gemini-nano-banana-2.1      (Nano Banana 2.1, el nuevo)
 //   aspectRatio (opcional) 1:1 | 2:3 | 3:2 | 3:4 | 4:3 | 4:5 | 5:4 | 9:16 | 16:9 | 21:9
 //                 El formato se controla con generationConfig.imageConfig.aspectRatio
@@ -48,7 +47,6 @@ async function getGCPToken() {
 const ALLOWED_IMAGE_MODELS = {
   'gemini-2.5-flash-image': true,
   'gemini-3.1-flash-image': true,
-  'gemini-3-pro-image': true,
   'gemini-nano-banana-2.1': true,
 };
 const ALLOWED_RATIOS = {

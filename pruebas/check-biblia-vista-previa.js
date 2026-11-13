@@ -25,12 +25,12 @@ const { chromium } = require('playwright-core');
     return s ? { valor: s.value, n: s.options.length } : null;
   });
   t('hay selector de modelo dentro de la biblia', !!sel, sel ? sel.n + ' modelos' : 'no existe');
-  t('por defecto el de máxima calidad', sel && sel.valor === 'gemini-3-pro-image', sel && sel.valor);
+  t('por defecto Nano Banana 2', sel && sel.valor === 'gemini-3.1-flash-image', sel && sel.valor);
   t('la generación usa ESE modelo, no el de los reels',
-    await page.evaluate(() => { imgModel = 'gemini-2.5-flash-image'; return modeloBiblia() === 'gemini-3-pro-image'; }));
+    await page.evaluate(() => { imgModel = 'gemini-2.5-flash-image'; return modeloBiblia() === 'gemini-3.1-flash-image'; }));
   t('el coste se calcula con el modelo de la biblia',
-    await page.evaluate(() => Math.abs(costoBiblia() - 0.134) < 0.001 && Math.abs(imgCost() - 0.039) < 0.001),
-    'biblia $0.134 vs reels $0.039 por imagen');
+    await page.evaluate(() => Math.abs(costoBiblia() - 0.067) < 0.001 && Math.abs(imgCost() - 0.039) < 0.001),
+    'biblia $0.067 vs reels $0.039 por imagen');
 
   // ---- vista previa ----
   const conBoton = await page.evaluate(() => document.querySelectorAll('#bibliaGrid .bibliaVer').length);
@@ -103,7 +103,7 @@ const { chromium } = require('playwright-core');
   t('rehacer una vista pide SOLO esa (no paga las otras tres)',
     pedido && pedido.vista === 2,
     pedido ? 'vista ' + pedido.vista : 'no se capturó');
-  t('y la pide con el modelo de la biblia', pedido && pedido.model === 'gemini-3-pro-image', pedido && pedido.model);
+  t('y la pide con el modelo de la biblia', pedido && pedido.model === 'gemini-3.1-flash-image', pedido && pedido.model);
 
   // ---- fotos propias como ancla ----
   const anc = await page.evaluate(() => ({

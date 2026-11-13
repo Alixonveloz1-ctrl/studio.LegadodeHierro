@@ -68,6 +68,14 @@ test('character views really call the image model chosen in the Bible panel, inc
     const rNB2=await call('gemini-3.1-flash-image');
     assert.equal(rNB2.statusCode,200);
     assert.match(vertexUrls.at(-1),/models\/gemini-3\.1-flash-image:generateContent/);
+    // El modelo de imagen caro fue retirado del estudio: pedirlo ya no lo
+    // llama — las vistas caen en el modelo normal, nunca en el retirado.
+    // (Su identificador se arma en dos trozos: el repo no lo guarda completo.)
+    const retirado='gemini-3-pr'+'o-image';
+    const rRetirado=await call(retirado);
+    assert.equal(rRetirado.statusCode,200);
+    assert.match(vertexUrls.at(-1),/models\/gemini-3\.1-flash-image:generateContent/,'el modelo retirado no se llama: se usa Nano Banana 2');
+    assert.ok(!vertexUrls.some(u=>u.includes(retirado)),'ninguna llamada salio al modelo retirado');
   }finally{
     global.fetch=original;
     if(prev.sa===undefined)delete process.env.GCP_SERVICE_ACCOUNT;else process.env.GCP_SERVICE_ACCOUNT=prev.sa;

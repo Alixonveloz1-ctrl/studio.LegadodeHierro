@@ -77,6 +77,13 @@ test('unreadable files do not prevent later files from being cataloged; provider
   j=await finish(s,j,{analyze:async(st,info)=>{if(info.name.includes('bad'))throw base.failure('Unreadable file',422);return analysis(info);}});assert.equal(j.completed,1);assert.equal(j.failed,1);assert.match(j.stage,/no se pudieron/);
   j=await lib.start(s,{type:'catalog',objects:['legado-videos/bad.mp4']},'bad-file-request-002');await assert.rejects(lib.advance(s,j.id,{analyze:async()=>{throw base.failure('quota',429);}}),/quota/);assert.equal((await s.read(lib.ACTIVE)).data.status,'paused');
 });
+test('the library refuses the removed expensive image model instead of generating with it',async()=>{
+  const s=new Store();
+  await assert.rejects(
+    lib.start(s,{type:'generate',recipeIds:['receta-0-2'],model:'gemini-3-pr'+'o-image',aspect:'9:16'},'removed-model-request-001'),
+    e=>e.status===400&&/Modelo o formato de imagen inválido/.test(e.message));
+  assert.equal(await s.read(lib.ACTIVE),null,'el lote con el modelo retirado no se guarda');
+});
 test('validation rejects credentials/paths, preserves active batches and model output cannot select storage paths',async()=>{
   for(const source of ['https://bad.example/bucket','gs://bucket/../../secret','gs://bucket/path?token=123'])assert.throws(()=>lib.sourceConfig(source));
   assert.equal(lib.eligible({name:'refs/a.png'},true),false);assert.equal(lib.eligible({name:'unify/final.mp4'},true),false);
