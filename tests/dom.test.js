@@ -307,6 +307,29 @@ test('model and format selectors work directly and survive mode changes and relo
   }finally{a.close();if(second)second.close();}
 });
 
+test('new generators are offered alongside the existing ones, are selectable and survive reload; defaults stay untouched',async()=>{
+  const a=await app();let second;
+  try{
+    const {w}=a;
+    for(const id of ['selBibliaModel','selImgModel','selPostImgModel']){
+      assert.ok([...w.document.getElementById(id).options].some(o=>o.value==='gemini-nano-banana-2.1'),id+' ofrece Nano Banana 2.1');
+    }
+    const vidValues=[...w.document.getElementById('selVidModel').options].map(o=>o.value);
+    assert.ok(vidValues.includes('gemini-omni-1.2-flash-360p')&&vidValues.includes('gemini-omni-1.2-flash-720p'),'video ofrece Omni en 360p y 720p');
+    assert.ok(vidValues.includes('veo-3.1-lite-generate-001')&&vidValues.includes('veo-3.1-fast-generate-001')&&vidValues.includes('veo-3.1-generate-001'),'las opciones de Veo quedan intactas');
+    assert.equal(w.imgModel,'gemini-3.1-flash-image');assert.equal(w.vidModel,'veo-3.1-lite-generate-001');
+    const img=w.document.getElementById('selImgModel');img.value='gemini-nano-banana-2.1';img.dispatchEvent(new w.Event('change'));
+    assert.equal(w.imgModel,'gemini-nano-banana-2.1');
+    const vid=w.document.getElementById('selVidModel');vid.value='gemini-omni-1.2-flash-720p';vid.dispatchEvent(new w.Event('change'));
+    assert.equal(w.vidModel,'gemini-omni-1.2-flash-720p');
+    vid.value='gemini-omni-1.2-flash-360p';vid.dispatchEvent(new w.Event('change'));assert.equal(w.vidModel,'gemini-omni-1.2-flash-360p');
+    const storage=Object.fromEntries(Object.keys(w.localStorage).map(k=>[k,w.localStorage.getItem(k)]));second=await app(storage);
+    assert.equal(second.w.document.getElementById('selImgModel').value,'gemini-nano-banana-2.1');
+    assert.equal(second.w.document.getElementById('selVidModel').value,'gemini-omni-1.2-flash-360p');
+    assert.equal(second.w.vidModel,'gemini-omni-1.2-flash-360p');
+  }finally{a.close();if(second)second.close();}
+});
+
 test('per-video generation needs no library panel: painting recipes without it does not crash',async()=>{
   const a=await app();try{
     const {w,errors}=a;
@@ -455,7 +478,7 @@ test('one shot workspace owns the original model controls and thumbnail, without
 
 test('model picker shows complete labels and updates the original model selector',async()=>{
  const a=await app();try{const {w}=a,select=w.document.getElementById('selImgModel');select.nextElementSibling.click();
- const options=[...w.document.querySelectorAll('.studio-model-option')];assert.equal(options.length,3);options[2].click();
+ const options=[...w.document.querySelectorAll('.studio-model-option')];assert.equal(options.length,4);options[2].click();
  assert.equal(select.value,'gemini-3-pro-image');assert.equal(w.imgModel,select.value);assert.match(select.nextElementSibling.textContent,/máxima calidad/);
  }finally{a.close();}
 });

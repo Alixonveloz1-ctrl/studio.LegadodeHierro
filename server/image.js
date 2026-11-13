@@ -9,6 +9,7 @@
 //                 gemini-2.5-flash-image      (Nano Banana, estable)
 //                 gemini-3.1-flash-image      (Nano Banana 2, rapido — DEFECTO)
 //                 gemini-3-pro-image          (Nano Banana Pro, maxima calidad)
+//                 gemini-nano-banana-2.1      (Nano Banana 2.1, el nuevo)
 //   aspectRatio (opcional) 1:1 | 2:3 | 3:2 | 3:4 | 4:3 | 4:5 | 5:4 | 9:16 | 16:9 | 21:9
 //                 El formato se controla con generationConfig.imageConfig.aspectRatio
 //                 (no con texto en el prompt).
@@ -48,6 +49,7 @@ const ALLOWED_IMAGE_MODELS = {
   'gemini-2.5-flash-image': true,
   'gemini-3.1-flash-image': true,
   'gemini-3-pro-image': true,
+  'gemini-nano-banana-2.1': true,
 };
 const ALLOWED_RATIOS = {
   '1:1': true, '2:3': true, '3:2': true, '3:4': true, '4:3': true,
@@ -55,7 +57,8 @@ const ALLOWED_RATIOS = {
 };
 
 function endpointFor(model, projectId) {
-  if (/^gemini-3/.test(model)) {
+  // Gemini 3.x y Nano Banana 2.1 SOLO responden en GLOBAL; 2.5 en us-central1.
+  if (/^gemini-3/.test(model) || model === 'gemini-nano-banana-2.1') {
     return 'https://aiplatform.googleapis.com/v1/projects/' + projectId +
       '/locations/global/publishers/google/models/' + model + ':generateContent';
   }
@@ -126,8 +129,16 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Los modelos Gemini 3.x esperan TEXT+IMAGE; 2.5-flash-image usa solo IMAGE.
-    const modalities = /^gemini-3/.test(model) ? ['TEXT', 'IMAGE'] : ['IMAGE'];
+    // Los modelos Gemini 3.x y Nano Banana 2.1 esperan TEXT+IMAGE; 2.5-flash-image usa solo IMAGE.
+    const modalities = (/^gemini-3/.test(model) || model === 'gemini-nano-banana-2.1') ? ['TEXT', 'IMAGE'] : ['IMAGE'];
+
+    const generationConfig = {
+      responseModalities: modalities,
+      imageConfig: { aspectRatio: aspectRatio },
+    };
+    // Nano Banana 2.1 no admite temperature (su ficha oficial lo marca como no
+    // soportado): se omite solo para ese modelo; los demas quedan como siempre.
+    if (model !== 'gemini-nano-banana-2.1') generationConfig.temperature = 1.0;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(function() { controller.abort(); }, 58000);
@@ -143,11 +154,7 @@ module.exports = async (req, res) => {
         },
         body: JSON.stringify({
           contents: [{ role: 'user', parts: parts }],
-          generationConfig: {
-            responseModalities: modalities,
-            imageConfig: { aspectRatio: aspectRatio },
-            temperature: 1.0
-          },
+          generationConfig: generationConfig,
         }),
         signal: imageDeadline
       });

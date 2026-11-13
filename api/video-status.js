@@ -139,6 +139,19 @@ export default async function handler(req) {
     }
 
     const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
+
+    // Clips que ya nacieron terminados (Gemini Omni): su operationName ES el
+    // gs:// del MP4 ya guardado en el bucket. Solo hay que firmar la URL,
+    // igual que la de un clip de Veo terminado.
+    if (operationName.indexOf('gs://') === 0) {
+      const sinEsquema = operationName.replace('gs://', '');
+      const primerSlash = sinEsquema.indexOf('/');
+      const bucketGs = sinEsquema.slice(0, primerSlash);
+      const rutaGs = sinEsquema.slice(primerSlash + 1);
+      const urlGs = await getSignedUrl(serviceAccount, bucketGs, rutaGs);
+      return new Response(JSON.stringify({ done: true, videoUrl: urlGs }), { status: 200, headers: corsHeaders });
+    }
+
     const accessToken = await getAccessToken(serviceAccount);
 
     const url = `https://${REGION}-aiplatform.googleapis.com/v1/${modelResource}:fetchPredictOperation`;

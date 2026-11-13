@@ -71,7 +71,7 @@ async function start(store,c,requestId){
     if(!Array.isArray(c.recipeIds))throw failure('Elige las tomas del lote.',400);
     const recipes=core.recipes(),ids=[...new Set(c.recipeIds)];
     if(!ids.length||ids.length>recipes.length||!ids.every(id=>recipes.some(r=>r.id===id)))throw failure('Elige un lote de tomas preparadas.',400);
-    if(!['gemini-2.5-flash-image','gemini-3.1-flash-image','gemini-3-pro-image'].includes(c.model)||!['9:16','16:9','1:1','4:5','3:4','2:3','21:9'].includes(c.aspect))throw failure('Modelo o formato de imagen inválido.',400);
+    if(!['gemini-2.5-flash-image','gemini-3.1-flash-image','gemini-3-pro-image','gemini-nano-banana-2.1'].includes(c.model)||!['9:16','16:9','1:1','4:5','3:4','2:3','21:9'].includes(c.aspect))throw failure('Modelo o formato de imagen inválido.',400);
     // characterId = la ficha de la biblia del video de este lote. Viaja en el
     // trabajo para que _library-model lea las vistas DE ESE personaje; sin el,
     // la generacion falla con un error claro (nada de personaje fijo).

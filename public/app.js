@@ -504,9 +504,9 @@ var audES=null,audEN=null,imgs=[];
 var imgModel='gemini-3.1-flash-image',imgFmt='9:16';
 var vidModel='veo-3.1-lite-generate-001',vidFmt='9:16';
 // Costo estimado por imagen segun modelo (solo para el contador $ estimado)
-var IMG_COST={'gemini-2.5-flash-image':0.039,'gemini-3.1-flash-image':0.067,'gemini-3-pro-image':0.134};
+var IMG_COST={'gemini-2.5-flash-image':0.039,'gemini-3.1-flash-image':0.067,'gemini-3-pro-image':0.134,'gemini-nano-banana-2.1':0.034};
 // Costo estimado por clip de 8s segun modelo de video
-var VID_COST={'veo-3.1-lite-generate-001':0.30,'veo-3.1-fast-generate-001':0.40,'veo-3.1-generate-001':0.60,'veo-2.0-generate-001':0.40};
+var VID_COST={'veo-3.1-lite-generate-001':0.30,'veo-3.1-fast-generate-001':0.40,'veo-3.1-generate-001':0.60,'veo-2.0-generate-001':0.40,'gemini-omni-1.2-flash-360p':0.19,'gemini-omni-1.2-flash-720p':0.56};
 function imgCost(){return IMG_COST[imgModel]||0.05;}
 // El coste de la biblia se calcula con SU modelo, que puede ser otro (por defecto
 // el bueno). Con imgCost() se estimaba con el de los reels y el aviso mentia.
