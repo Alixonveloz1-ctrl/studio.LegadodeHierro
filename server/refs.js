@@ -534,7 +534,13 @@ async function biblia(req, res) {
       if (!f.id) return res.status(400).json({ error: 'El personaje necesita un nombre' });
       const projectId = process.env.GCP_PROJECT_ID;
       if (!projectId) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
-      const modelo = /^gemini-[0-9.]+(-flash|-pro)?-image/.test(String(body.model || ''))
+      // Lista explicita, como en server/image.js y server/_library.js. La
+      // expresion regular anterior (/^gemini-[0-9.]+(-flash|-pro)?-image/)
+      // NUNCA podia casar con 'gemini-nano-banana-2.1' —tras «gemini-» exige
+      // digitos y un final «-image»—, asi que elegir el 2.1 para las vistas
+      // generaba en silencio con Nano Banana 2 sin que nadie lo supiera.
+      const MODELOS_VISTA = ['gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-3-pro-image', 'gemini-nano-banana-2.1'];
+      const modelo = MODELOS_VISTA.includes(String(body.model || ''))
         ? String(body.model) : 'gemini-3.1-flash-image';
 
       let i = Number(body.vista);

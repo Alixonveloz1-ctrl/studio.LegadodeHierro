@@ -1401,6 +1401,18 @@ function esLimite(msg){
   return /429|RESOURCE_EXHAUSTED|quota|rate limit|too many/i.test(msg||'');
 }
 
+function esErrorFatal(msg){
+  // Errores que NO se arreglan esperando: el proveedor RECHAZO la peticion
+  // (un parametro que ese modelo no admite, un modelo que no existe, una
+  // peticion invalida). Reintentarlos como si fueran el limite por minuto
+  // dejaba la pantalla en «Generando/Regenerando» durante minutos — cuatro
+  // intentos con esperas de 15/30/60 s por cada imagen o vista — para acabar
+  // enseñando el mismo error al final. Con esto se corta en el primer
+  // intento y el error se ve enseguida. El limite por minuto (429) NO es
+  // fatal: esLimite lo sigue tratando aparte, esperando como hasta ahora.
+  return /invalid|unsupported|not supported|no soportad|NOT_FOUND|not found/i.test(msg||'');
+}
+
 async function generarVistasDe(p,cuales,alProgreso){
   var lista=cuales&&cuales.length?cuales.slice():TODAS_LAS_VISTAS();
   // La vista 1 primero SIEMPRE que este en la tanda: es la que fija la cara.
@@ -1447,6 +1459,7 @@ async function generarVistasDe(p,cuales,alProgreso){
         break;
       }catch(e){
         ultimoError=e.message||'error';
+        if(esErrorFatal(ultimoError))break; // rechazo permanente: ni esperar ni reintentar
         if(intento<ESPERAS_REINTENTO.length){
           var espera=ESPERAS_REINTENTO[intento];
           // Si es el limite por minuto, se espera el doble: no sirve de nada
@@ -3899,6 +3912,7 @@ async function generateImagesForCurrent(){
         break;
       }catch(e){
         ultimo=e.message||'error';
+        if(esErrorFatal(ultimo))break; // rechazo permanente: ni esperar ni reintentar
         if(intento<ESPERAS_REINTENTO.length){
           var esp=ESPERAS_REINTENTO[intento];
           if(esLimite(ultimo))esp*=2;   // el limite por minuto no se arregla insistiendo antes

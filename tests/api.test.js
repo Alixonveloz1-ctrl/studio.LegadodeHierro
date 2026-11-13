@@ -43,3 +43,35 @@ test('publication measurements canonicalize share parameters, reject mismatched 
   r=await request({action:'metric-save',metric:{...metric,platform:'youtube'}});assert.equal(r.statusCode,400);
   r=await request({action:'metric-save',metric:{...metric,measuredAt:'2026-09-01'}});assert.equal(r.statusCode,400);
 });
+test('character views really call the image model chosen in the Bible panel, including Nano Banana 2.1',async()=>{
+  const {generateKeyPairSync}=require('crypto');
+  const {privateKey}=generateKeyPairSync('rsa',{modulusLength:2048});
+  const prev={sa:process.env.GCP_SERVICE_ACCOUNT,bucket:process.env.GCS_OUTPUT_BUCKET,project:process.env.GCP_PROJECT_ID};
+  process.env.GCP_SERVICE_ACCOUNT=JSON.stringify({client_email:'fixture@test.iam.gserviceaccount.com',private_key:privateKey.export({type:'pkcs8',format:'pem'})});
+  process.env.GCS_OUTPUT_BUCKET='fixture-bucket';process.env.GCP_PROJECT_ID='fixture-project';
+  const refsHandler=require('../server/refs');
+  const original=global.fetch;const vertexUrls=[];
+  global.fetch=async(url,o)=>{
+    if(String(url).includes('oauth2.googleapis.com'))return {ok:true,json:async()=>({access_token:'fixture'})};
+    if(String(url).includes('aiplatform.googleapis.com')){vertexUrls.push(String(url));return {ok:true,json:async()=>({candidates:[{content:{parts:[{inlineData:{data:'AAAA'}}]}}]})};}
+    return new Response('[]',{status:200});
+  };
+  const call=async(model)=>{
+    const res={statusCode:200,headers:{},setHeader(){},status(n){this.statusCode=n;return this;},json(d){this.body=d;return this;},end(){return this;}};
+    await refsHandler({method:'POST',headers:{'x-app-key':process.env.APP_KEY},body:{action:'generar',personaje:{id:'vista-test',nombre:'Vista Test',fisico:'Hombre de 35 años, pelo corto oscuro, barba cuidada'},model,vista:0,ignorar:[]}},res);
+    return res;
+  };
+  try{
+    const r21=await call('gemini-nano-banana-2.1');
+    assert.equal(r21.statusCode,200);assert.equal(r21.body.success,true);
+    assert.match(vertexUrls.at(-1),/locations\/global\/publishers\/google\/models\/gemini-nano-banana-2\.1:generateContent/,'elegir el 2.1 debe llamar al 2.1, no sustituirlo en silencio');
+    const rNB2=await call('gemini-3.1-flash-image');
+    assert.equal(rNB2.statusCode,200);
+    assert.match(vertexUrls.at(-1),/models\/gemini-3\.1-flash-image:generateContent/);
+  }finally{
+    global.fetch=original;
+    if(prev.sa===undefined)delete process.env.GCP_SERVICE_ACCOUNT;else process.env.GCP_SERVICE_ACCOUNT=prev.sa;
+    if(prev.bucket===undefined)delete process.env.GCS_OUTPUT_BUCKET;else process.env.GCS_OUTPUT_BUCKET=prev.bucket;
+    if(prev.project===undefined)delete process.env.GCP_PROJECT_ID;else process.env.GCP_PROJECT_ID=prev.project;
+  }
+});

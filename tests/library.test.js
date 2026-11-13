@@ -174,3 +174,24 @@ test('a second scan of 136 organized files queues nothing; only new or changed f
   s.add('legado-videos/new.mp4');s.files.get('legado-videos/clip-0.mp4').info.generation='changed';
   j=await run('pending-third-003');assert.equal(j.total,2);assert.equal(j.completed,2);assert.equal(j.alreadyReady,135);assert.equal(calls,138);
 });
+test('Nano Banana 2.1 generation sends NO sampling parameters (Vertex rejects them); Nano Banana 2 keeps temperature',async()=>{
+  const s=new Store();
+  await s.put('personajes/index.json',[{id:'video-test-1',nombre:'Protagonista',refs:['personajes/video-test-1/vista-1.png','personajes/video-test-1/vista-2.png',null]}]);
+  s.add('personajes/video-test-1/vista-1.png');s.add('personajes/video-test-1/vista-2.png');
+  const original=global.fetch;const seen=[];
+  global.fetch=async(url,o)=>{seen.push({url,body:JSON.parse(o.body)});return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{inlineData:{mimeType:'image/png',data:Buffer.alloc(200).toString('base64')}}]}}]})};}
+  const recipe=require('../public/studio-core').recipes()[0];
+  try{
+    await models.generate(s,recipe,{model:'gemini-nano-banana-2.1',aspect:'9:16',characterId:'video-test-1'},lib.imageObject(recipe.id,'9:16'));
+    const call21=seen.at(-1);
+    assert.match(call21.url,/aiplatform\.googleapis\.com\/v1\/projects\/fixture-project\/locations\/global\/publishers\/google\/models\/gemini-nano-banana-2\.1:generateContent/);
+    assert.equal(call21.body.generationConfig.temperature,undefined,'el 2.1 no puede recibir temperature');
+    assert.equal(call21.body.generationConfig.topP,undefined);
+    assert.equal(call21.body.generationConfig.topK,undefined);
+    assert.equal(call21.body.generationConfig.seed,undefined);
+    await models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16',characterId:'video-test-1'},lib.imageObject(recipe.id+'-b','9:16'));
+    const callNB2=seen.at(-1);
+    assert.match(callNB2.url,/models\/gemini-3\.1-flash-image:generateContent/);
+    assert.equal(callNB2.body.generationConfig.temperature,1,'Nano Banana 2 conserva su temperature de siempre');
+  }finally{global.fetch=original;}
+});
