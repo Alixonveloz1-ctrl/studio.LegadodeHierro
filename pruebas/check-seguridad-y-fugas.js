@@ -82,23 +82,18 @@ const REPO = '/home/user/studio.LegadodeHierro';
     !!(barra && /créditos/i.test(barra.txt) && /APP_KEY/.test(barra.txt)));
   t('la barra va arriba del todo', !!(barra && barra.primero));
 
-  // ===== 0.3 los modelos se recuerdan =====
-  // El selector vive dentro de un panel plegable: se cambia por codigo, igual que
-  // haria el usuario al desplegarlo.
-  await page.evaluate(()=>{
-    const s=document.getElementById('selVidModel');
-    s.value='veo-3.1-fast-generate-001';
-    s.dispatchEvent(new Event('change'));
-  });
-  await page.waitForTimeout(100);
-  t('cambiar el modelo lo guarda',
-    await page.evaluate(()=>localStorage.getItem('lh_gen_vidModel')==='veo-3.1-fast-generate-001'));
+  // ===== 0.3 un solo generador de video: lo guardado no puede imponer otro =====
+  // Desde 2026-11-14 el estudio tiene UN generador de imagen (Nano Banana 2.1)
+  // y UNO de video (Veo 3.1 Lite). Una preferencia guardada de un modelo
+  // retirado se ignora sola al recargar: manda el unico que queda.
+  // (El identificador retirado se arma en dos trozos: el repo no lo guarda entero.)
+  await page.evaluate(()=>localStorage.setItem('lh_gen_vidModel','veo-3.1-fast-gener'+'ate-001'));
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForSelector('#pg-app.on');
   await page.waitForTimeout(200);
-  t('tras recargar sigue el modelo elegido, no el de por defecto',
-    await page.evaluate(()=>vidModel==='veo-3.1-fast-generate-001'
-      && document.getElementById('selVidModel').value==='veo-3.1-fast-generate-001'));
+  t('un modelo de video retirado y guardado no se impone al recargar',
+    await page.evaluate(()=>vidModel==='veo-3.1-lite-generate-001'
+      && document.getElementById('selVidModel').value==='veo-3.1-lite-generate-001'));
   // un valor guardado que ya no existe no puede dejar el select en blanco
   await page.evaluate(()=>localStorage.setItem('lh_gen_vidModel','veo-inventado-999'));
   await page.reload({waitUntil:'domcontentloaded'});

@@ -79,14 +79,45 @@ function studioRemember(pending){if(pending)localStorage.setItem('lh_pending_job
 function studioPaintPending(){var el=studioEl('studioPending'),p=studioPending();if(el){el.hidden=!p;el.textContent=p?'Reanudar '+(p.label||'trabajo guardado'):'';}}
 async function studioRetryWait(ms){await new Promise(function(resolve){setTimeout(resolve,ms);});}
 async function studioRunJob(config,requestId,onProgress){
-  var d=await studioAPI('create',{config:config,requestId:requestId},'/api/studio-job');
-  var retries=0,busySince=0;
+  var d;
+  try{
+    d=await studioAPI('create',{config:config,requestId:requestId},'/api/studio-job');
+  }catch(e){
+    // Sin estado HTTP la respuesta se perdio por el camino. La creacion es
+    // idempotente (mismo requestId y misma configuracion dan el mismo
+    // trabajo), asi que pedirla otra vez devuelve el trabajo ya creado en
+    // vez de duplicarlo. Si el servidor la rechazo, su mensaje manda.
+    if(e&&e.status)throw e;
+    await studioRetryWait(2000);
+    d=await studioAPI('create',{config:config,requestId:requestId},'/api/studio-job');
+  }
+  var retries=0,busySince=0,lost=0;
   while(d.status!=='done'){
     if(onProgress)onProgress(d);
     try{
       var next=await studioAPI('advance',{id:d.id},'/api/studio-job');
-      if(!next.busy)retries=0;d=next;
+      if(!next.busy)retries=0;lost=0;d=next;
     }catch(e){
+      // RESPUESTA PERDIDA (error de red, sin estado HTTP): el trabajo vive en
+      // el servidor y puede haber avanzado, terminado o quedado pausado con
+      // su error guardado sin que la respuesta llegara a esta pantalla. Se
+      // consulta su estado real antes de rendirse: si termino, se recoge el
+      // resultado; si quedo pausado con error, se muestra ESE error (la causa
+      // de verdad) en vez del «Failed to fetch» del navegador, y la pantalla
+      // deja de esperar a ciegas un trabajo que ya murio.
+      if(!e.status&&lost<4){
+        lost++;
+        if(onProgress)onProgress(Object.assign({},d,{stage:'La respuesta se perdió; consultando el estado real del trabajo…'}));
+        await studioRetryWait(2000);
+        var now=null;
+        try{now=await studioAPI('status',{id:d.id},'/api/studio-job');}catch(readError){now=null;}
+        if(now){
+          if(now.status==='paused'&&now.error&&config.type!=='script')throw new Error(now.error);
+          d=now;busySince=0;continue;
+        }
+        if(lost>=4)throw e;
+        continue;
+      }
       var temporary=[408,429,500,502,503,504].includes(e.status)||['TimeoutError','AbortError','TypeError'].includes(e.name);
       if(config.type!=='script'||!temporary||retries>=2||e.retryAfterMs>60000)throw e;
       var wait=Math.max(3000*Math.pow(2,retries++),e.retryAfterMs||0);

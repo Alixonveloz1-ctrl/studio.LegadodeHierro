@@ -134,26 +134,14 @@ export default async function handler(req) {
       const lm = operationName.match(/\/locations\/([^/]+)\//);
       if (lm && lm[1]) REGION = lm[1];
     } else {
-      // Solo se aceptan los modelos de video que existen en el estudio; un
-      // nombre retirado o inventado cae en el modelo normal, nunca en otro.
-      const VE_MODELOS = ['veo-3.1-lite-generate-001', 'veo-3.1-fast-generate-001', 'veo-2.0-generate-001'];
+      // El estudio tiene un unico generador de video; un nombre retirado o
+      // inventado cae en el, nunca en otro.
+      const VE_MODELOS = ['veo-3.1-lite-generate-001'];
       const fallbackModel = VE_MODELOS.includes(body.model && String(body.model)) ? String(body.model) : 'veo-3.1-lite-generate-001';
       modelResource = `projects/${GCP_PROJECT_ID}/locations/${REGION}/publishers/google/models/${fallbackModel}`;
     }
 
     const serviceAccount = JSON.parse(GCP_SERVICE_ACCOUNT);
-
-    // Clips que ya nacieron terminados (Gemini Omni): su operationName ES el
-    // gs:// del MP4 ya guardado en el bucket. Solo hay que firmar la URL,
-    // igual que la de un clip de Veo terminado.
-    if (operationName.indexOf('gs://') === 0) {
-      const sinEsquema = operationName.replace('gs://', '');
-      const primerSlash = sinEsquema.indexOf('/');
-      const bucketGs = sinEsquema.slice(0, primerSlash);
-      const rutaGs = sinEsquema.slice(primerSlash + 1);
-      const urlGs = await getSignedUrl(serviceAccount, bucketGs, rutaGs);
-      return new Response(JSON.stringify({ done: true, videoUrl: urlGs }), { status: 200, headers: corsHeaders });
-    }
 
     const accessToken = await getAccessToken(serviceAccount);
 

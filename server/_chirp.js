@@ -60,6 +60,9 @@ async function generarChirp(text, vIn, lang, token, signal) {
   const d = await r.json().catch(() => ({}));
   if (!r.ok) {
     const msg = (d && d.error && d.error.message) ? d.error.message : ('Error ' + r.status);
+    // Mismo registro que en _voice.js: que el rechazo del proveedor no quede
+    // como un 400 anonimo imposible de diagnosticar desde los registros.
+    console.error('[voice-provider-error]',JSON.stringify({engine:'chirp',status:r.status,message:msg}));
     const e = new Error(msg);
     e.status = r.status;
     throw e;

@@ -10,6 +10,14 @@ const root=path.join(__dirname,'..');
 // repo no debe guardar su identificador completo en ningun archivo.
 const RETIRADO_IMG='gemini-3-pr'+'o-image';
 const RETIRADO_VID='veo-3.1-gener'+'ate-001';
+// Retirados el 2026-11-14 (alineacion final: imagen SOLO Nano Banana 2.1,
+// video SOLO Veo 3.1 Lite). Tambien en dos trozos, por la misma razon.
+const RETIRADO_NB2='gemini-3.1-flash-'+'image';
+const RETIRADO_NB25='gemini-2.5-flash-'+'image';
+const RETIRADO_FAST='veo-3.1-fast-gener'+'ate-001';
+const RETIRADO_VEO2='veo-2.0-gener'+'ate-001';
+const RETIRADO_OMNI360='gemini-omni-1.2-flash-'+'360p';
+const RETIRADO_OMNI720='gemini-omni-1.2-flash-'+'720p';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 async function ready(check){for(let i=0;i<30;i++){await tick();if(check())return;}throw new Error('UI operation did not settle');}
 async function app(initialStorage={}){
@@ -151,7 +159,7 @@ test('simplified UI shows no cross-video library or bank controls; the per-video
     assert.ok(studioJs.includes('extra.music'),'la música debe guardarse por video');
     assert.ok(studioJs.includes('p.music&&p.music.object'),'al restaurar, debe volver la música de ese video');
     assert.deepEqual([...w.document.getElementById('selImgFmt').options].map(o=>o.value),['9:16','16:9'],'el formato de imagen solo debe ofrecer 9:16 y 16:9');
-    assert.equal([...w.document.getElementById('selVidModel').options].some(o=>o.value==='veo-2.0-generate-001'),false,'Veo 2 debe estar eliminado de los modelos de video');
+    assert.equal([...w.document.getElementById('selVidModel').options].some(o=>o.value===RETIRADO_VEO2),false,'Veo 2 debe estar eliminado de los modelos de video');
     assert.equal(w.document.querySelector('.lh-bottom button[data-lh-step="mis-videos"]').textContent.includes('Mis videos'),true,'la pestaña inferior debe decir Mis videos, no Biblioteca');
     // Inicio se pinta al arrancar, no solo al tocar su botón, y Ver todos no
     // borra la marca de limpieza: solo muestra los viejos en esa vista.
@@ -301,7 +309,7 @@ test('model and format selectors work directly and survive mode changes and relo
   try{
     const {w}=a,panel=w.document.querySelector('#genSettings'),parent=panel.parentNode;
     assert.equal(w.document.querySelector('#librarySettings'),null);assert.equal(w.document.querySelector('#librarySettingsDialog'),null);
-    const choices={selImgModel:'gemini-nano-banana-2.1',selImgFmt:'16:9',selVidModel:'veo-3.1-fast-generate-001',selVidFmt:'16:9'};
+    const choices={selImgModel:'gemini-nano-banana-2.1',selImgFmt:'16:9',selVidModel:'veo-3.1-lite-generate-001',selVidFmt:'16:9'};
     for(const [id,value] of Object.entries(choices)){const el=w.document.getElementById(id);el.value=value;el.dispatchEvent(new w.Event('change'));assert.equal(w.document.querySelectorAll('#'+id).length,1);}
     assert.equal(w.imgModel,choices.selImgModel);assert.equal(w.imgFmt,'16:9');assert.equal(w.vidModel,choices.selVidModel);assert.equal(w.vidFmt,'16:9');
     w.document.querySelector('#modeSelector [data-id="relato"]').click();w.document.querySelector('#modeSelector [data-id="impacto"]').click();
@@ -312,50 +320,51 @@ test('model and format selectors work directly and survive mode changes and relo
   }finally{a.close();if(second)second.close();}
 });
 
-test('new generators are offered alongside the existing ones, are selectable and survive reload; defaults stay untouched',async()=>{
+test('the studio offers exactly one image generator (Nano Banana 2.1) and one video generator (Veo 3.1 Lite), selected by default and after reload',async()=>{
   const a=await app();let second;
   try{
     const {w}=a;
     for(const id of ['selBibliaModel','selImgModel','selPostImgModel']){
-      assert.ok([...w.document.getElementById(id).options].some(o=>o.value==='gemini-nano-banana-2.1'),id+' ofrece Nano Banana 2.1');
+      assert.deepEqual([...w.document.getElementById(id).options].map(o=>o.value),['gemini-nano-banana-2.1'],id+' ofrece SOLO Nano Banana 2.1');
+      assert.equal(w.document.getElementById(id).value,'gemini-nano-banana-2.1',id+' abre en Nano Banana 2.1');
     }
-    const vidValues=[...w.document.getElementById('selVidModel').options].map(o=>o.value);
-    assert.ok(vidValues.includes('gemini-omni-1.2-flash-360p')&&vidValues.includes('gemini-omni-1.2-flash-720p'),'video ofrece Omni en 360p y 720p');
-    assert.ok(vidValues.includes('veo-3.1-lite-generate-001')&&vidValues.includes('veo-3.1-fast-generate-001'),'las opciones de Veo que quedan están intactas');
-    assert.ok(!vidValues.includes(RETIRADO_VID),'el Veo caro ya no se ofrece');
-    assert.equal(w.imgModel,'gemini-3.1-flash-image');assert.equal(w.vidModel,'veo-3.1-lite-generate-001');
+    assert.deepEqual([...w.document.getElementById('selVidModel').options].map(o=>o.value),['veo-3.1-lite-generate-001'],'video ofrece SOLO Veo 3.1 Lite');
+    assert.equal(w.imgModel,'gemini-nano-banana-2.1');assert.equal(w.vidModel,'veo-3.1-lite-generate-001');
+    assert.equal(w.postImgModel,'gemini-nano-banana-2.1');
     const img=w.document.getElementById('selImgModel');img.value='gemini-nano-banana-2.1';img.dispatchEvent(new w.Event('change'));
     assert.equal(w.imgModel,'gemini-nano-banana-2.1');
-    const vid=w.document.getElementById('selVidModel');vid.value='gemini-omni-1.2-flash-720p';vid.dispatchEvent(new w.Event('change'));
-    assert.equal(w.vidModel,'gemini-omni-1.2-flash-720p');
-    vid.value='gemini-omni-1.2-flash-360p';vid.dispatchEvent(new w.Event('change'));assert.equal(w.vidModel,'gemini-omni-1.2-flash-360p');
+    const vid=w.document.getElementById('selVidModel');vid.value='veo-3.1-lite-generate-001';vid.dispatchEvent(new w.Event('change'));
+    assert.equal(w.vidModel,'veo-3.1-lite-generate-001');
     const storage=Object.fromEntries(Object.keys(w.localStorage).map(k=>[k,w.localStorage.getItem(k)]));second=await app(storage);
     assert.equal(second.w.document.getElementById('selImgModel').value,'gemini-nano-banana-2.1');
-    assert.equal(second.w.document.getElementById('selVidModel').value,'gemini-omni-1.2-flash-360p');
-    assert.equal(second.w.vidModel,'gemini-omni-1.2-flash-360p');
+    assert.equal(second.w.document.getElementById('selVidModel').value,'veo-3.1-lite-generate-001');
+    assert.equal(second.w.imgModel,'gemini-nano-banana-2.1');
+    assert.equal(second.w.vidModel,'veo-3.1-lite-generate-001');
   }finally{a.close();if(second)second.close();}
 });
 
-test('removed expensive models are offered nowhere, and a remembered choice of them falls back to the normal defaults',async()=>{
+test('removed models are offered nowhere, and a remembered choice of any of them falls back to Nano Banana 2.1 and Veo 3.1 Lite',async()=>{
   const a=await app();let second;
   try{
     const {w}=a;
+    const retiradosImg=[RETIRADO_IMG,RETIRADO_NB2,RETIRADO_NB25];
+    const retiradosVid=[RETIRADO_VID,RETIRADO_FAST,RETIRADO_VEO2,RETIRADO_OMNI360,RETIRADO_OMNI720];
     for(const id of ['selBibliaModel','selImgModel','selPostImgModel']){
       const opts=[...w.document.getElementById(id).options];
-      assert.ok(!opts.some(o=>o.value===RETIRADO_IMG),id+' ya no ofrece el modelo de imagen caro');
+      for(const r of retiradosImg)assert.ok(!opts.some(o=>o.value===r),id+' ya no ofrece un generador de imagen retirado');
       assert.ok(!opts.some(o=>/Pro|máxima calidad/.test(o.textContent)),id+' sin etiquetas del modelo retirado');
     }
     const vidOpts=[...w.document.getElementById('selVidModel').options];
-    assert.ok(!vidOpts.some(o=>o.value===RETIRADO_VID),'video ya no ofrece el Veo caro');
+    for(const r of retiradosVid)assert.ok(!vidOpts.some(o=>o.value===r),'video ya no ofrece un generador retirado');
     assert.ok(!vidOpts.some(o=>/Pro|máxima calidad/.test(o.textContent)),'video sin etiquetas del modelo retirado');
-    // Un navegador que recuerda la eleccion retirada (el caso real del dueño)
-    // debe abrir con los modelos normales, no con un valor fantasma.
-    second=await app({lh_gen_imgModel:RETIRADO_IMG,lh_gen_vidModel:RETIRADO_VID,lh_gen_postImg:RETIRADO_IMG});
-    assert.equal(second.w.imgModel,'gemini-3.1-flash-image');
-    assert.equal(second.w.document.getElementById('selImgModel').value,'gemini-3.1-flash-image');
+    // Un navegador que recuerda una eleccion retirada (el caso real del dueño)
+    // debe abrir con los unicos generadores que quedan, no con un valor fantasma.
+    second=await app({lh_gen_imgModel:RETIRADO_NB2,lh_gen_vidModel:RETIRADO_FAST,lh_gen_postImg:RETIRADO_NB25});
+    assert.equal(second.w.imgModel,'gemini-nano-banana-2.1');
+    assert.equal(second.w.document.getElementById('selImgModel').value,'gemini-nano-banana-2.1');
     assert.equal(second.w.vidModel,'veo-3.1-lite-generate-001');
     assert.equal(second.w.document.getElementById('selVidModel').value,'veo-3.1-lite-generate-001');
-    assert.equal(second.w.document.getElementById('selPostImgModel').value,'gemini-3.1-flash-image');
+    assert.equal(second.w.document.getElementById('selPostImgModel').value,'gemini-nano-banana-2.1');
   }finally{a.close();if(second)second.close();}
 });
 
@@ -404,6 +413,33 @@ test('script transients retry the same saved job automatically, with a finite li
     const out=await w.studioRunJob({type:'script'},'request-001');assert.equal(out.a,'saved script');assert.equal(creates,1);assert.equal(advances,3);assert.deepEqual(waits,[3000,6000]);
     advances=0;w.studioAPI=async action=>{if(action==='create')return {id:'same-job',status:'ready'};advances++;const e=new Error('persistent');e.status=503;throw e;};
     await assert.rejects(w.studioRunJob({type:'script'},'request-002'),/persistent/);assert.equal(advances,3);
+  }finally{a.close();}
+});
+
+test('a lost advance response is recovered from the real job state (audio)',async()=>{
+  const a=await app();try{
+    const {w}=a;let advances=0,reads=0;const waits=[];
+    w.studioRetryWait=async ms=>waits.push(ms);
+    w.studioAPI=async(action,b)=>{
+      if(action==='create')return {id:'audio-job',status:'ready',completed:0,total:1,stage:'Listo para comenzar'};
+      if(action==='status'){reads++;return {id:'audio-job',status:'done',completed:1,total:1,stage:'Narración: tramo 1 de 1',result:{parts:[{object:'tramo.wav'}]}};}
+      advances++;throw new TypeError('Failed to fetch');
+    };
+    const out=await w.studioRunJob({type:'audio'},'request-audio-001');
+    assert.deepEqual(out,{parts:[{object:'tramo.wav'}]});assert.equal(advances,1);assert.equal(reads,1);assert.deepEqual(waits,[2000]);
+  }finally{a.close();}
+});
+
+test('a lost response that left the job paused shows the stored server error (audio)',async()=>{
+  const a=await app();try{
+    const {w}=a;
+    w.studioRetryWait=async()=>{};
+    w.studioAPI=async(action,b)=>{
+      if(action==='create')return {id:'audio-job',status:'ready',completed:0,total:1,stage:'Listo para comenzar'};
+      if(action==='status')return {id:'audio-job',status:'paused',completed:0,total:1,stage:'',error:'El proveedor de voz rechazó el tramo.'};
+      throw new TypeError('Failed to fetch');
+    };
+    await assert.rejects(w.studioRunJob({type:'audio'},'request-audio-002'),/proveedor de voz rechazó/);
   }finally{a.close();}
 });
 
@@ -507,8 +543,8 @@ test('one shot workspace owns the original model controls and thumbnail, without
 
 test('model picker shows complete labels and updates the original model selector',async()=>{
  const a=await app();try{const {w}=a,select=w.document.getElementById('selImgModel');select.nextElementSibling.click();
- const options=[...w.document.querySelectorAll('.studio-model-option')];assert.equal(options.length,3);options[2].click();
- assert.equal(select.value,'gemini-nano-banana-2.1');assert.equal(w.imgModel,select.value);assert.match(select.nextElementSibling.textContent,/el nuevo/);
+ const options=[...w.document.querySelectorAll('.studio-model-option')];assert.equal(options.length,1,'el selector de imagen solo ofrece el unico generador que queda');options[0].click();
+ assert.equal(select.value,'gemini-nano-banana-2.1');assert.equal(w.imgModel,select.value);assert.match(select.nextElementSibling.textContent,/Nano Banana 2\.1/);
  }finally{a.close();}
 });
 test('regeneration keeps the old image on failure and uses the linked image for a video retry',async()=>{

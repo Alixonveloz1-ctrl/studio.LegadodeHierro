@@ -107,14 +107,28 @@ async function generateAudioChunk(text, engine, voice, lang, options) {
   if (instruccion) parteTexto.speech_metadata = {style: instruccion};
   const r = await fetch(url,{method:'POST',signal,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({
     contents:[{role:'user',parts:[parteTexto]}],
-    generationConfig:{responseModalities:['AUDIO'],speechConfig:{languageCode:lang === 'en' ? 'en-US':'es-419',voiceConfig:{prebuiltVoiceConfig:{voiceName:voz}}}}
+    // es-US y no es-419: es el codigo que Vertex acepto en todas las
+    // narraciones verificadas en produccion. El es-419 entro con la
+    // reescritura a Gemini 3.8 sin una sola generacion verificada detras, y
+    // un codigo de idioma no admitido es justo el tipo de argumento que
+    // Vertex rechaza con 400 INVALID_ARGUMENT.
+    generationConfig:{responseModalities:['AUDIO'],speechConfig:{languageCode:lang === 'en' ? 'en-US':'es-US',voiceConfig:{prebuiltVoiceConfig:{voiceName:voz}}}}
   })});
   const d = await r.json();
-  if (!r.ok) throw failure((d.error && d.error.message) || 'No se pudo generar la voz.',r.status);
+  if (!r.ok) {
+    // El rechazo del proveedor se registra AQUI, con su estado y su mensaje:
+    // sin esta linea el fallo solo se ve como un 400 anonimo en el registro
+    // de accesos y no hay forma de saber que argumento rechazo Vertex.
+    console.error('[voice-provider-error]',JSON.stringify({engine:'gemini',model:model,status:r.status,message:(d.error && d.error.message) || ''}));
+    throw failure((d.error && d.error.message) || 'No se pudo generar la voz.',r.status);
+  }
   const c = d.candidates && d.candidates[0];
   if (c && c.finishReason && c.finishReason !== 'STOP') throw failure('El audio llegó incompleto.',502);
   const ps = ((c && c.content && c.content.parts)||[]).map(p=>p.inlineData || p.inline_data).filter(p=>p && /^audio/.test(p.mimeType || p.mime_type || ''));
-  if (!ps.length) throw failure('El proveedor no devolvió audio.',502);
+  if (!ps.length) {
+    console.error('[voice-provider-error]',JSON.stringify({engine:'gemini',model:model,status:'sin-audio',finishReason:(c && c.finishReason) || ''}));
+    throw failure('El proveedor no devolvió audio.',502);
+  }
   const pcm = Buffer.concat(ps.map(p=>Buffer.from(p.data,'base64')));
   const mime = ps[0].mimeType || ps[0].mime_type || '';
   const sr = Number((/rate=(\d+)/.exec(mime)||[])[1]) || 24000;

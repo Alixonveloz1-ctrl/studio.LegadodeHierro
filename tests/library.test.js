@@ -40,11 +40,11 @@ test('two tabs share one paid analysis and checkpoints survive a lost final stat
 test('a generated image saved before interruption is described on resume without regenerating or sharing the provider deadline',async()=>{
   const s=new Store();let generated=0,analyzed=0;
   const deps={generate:async(st,r,c,object)=>{generated++;await st.bytes(object,Buffer.alloc(200),'image/png');return {title:r.title,description:r.description,recipeId:r.id,aspect:c.aspect,kind:'image',character:'insignia'};},analyze:async(st,info)=>{analyzed++;return analysis(info);}};
-  let j=await lib.start(s,{type:'generate',recipeIds:['receta-0-2','receta-1-2'],model:'gemini-3.1-flash-image',aspect:'9:16'},'generation-request-001');
+  let j=await lib.start(s,{type:'generate',recipeIds:['receta-0-2','receta-1-2'],model:'gemini-nano-banana-2.1',aspect:'9:16'},'generation-request-001');
   s.failState=true;await assert.rejects(lib.advance(s,j.id,deps),/lost state/);assert.equal(generated,1);assert.equal(analyzed,0);
   j=await finish(s,j,deps);assert.equal(generated,2);assert.equal(analyzed,2);
   const a=(await s.read(assets.PREFIX+assets.idFor(lib.imageObject('receta-0-2','9:16'))+'.json')).data;assert.equal(a.recipeId,'receta-0-2');assert.equal(a.character,'insignia');
-  j=await lib.start(s,{type:'generate',recipeIds:['receta-0-2'],model:'gemini-3.1-flash-image',aspect:'9:16'},'generation-request-002');await finish(s,j,deps);assert.equal(generated,2);assert.equal(analyzed,2);
+  j=await lib.start(s,{type:'generate',recipeIds:['receta-0-2'],model:'gemini-nano-banana-2.1',aspect:'9:16'},'generation-request-002');await finish(s,j,deps);assert.equal(generated,2);assert.equal(analyzed,2);
 });
 test('generation exposes the fixed selection and saved settings through progress and stop, including every existing image format',async()=>{
   const html=require('fs').readFileSync(require('path').join(__dirname,'../public/index.html'),'utf8');
@@ -104,15 +104,15 @@ test('library image generation sends the views of the character of THIS video an
   const anchor='legado-studio/media/anchor.png';s.add(anchor);
   const original=global.fetch;let body;
   global.fetch=async(url,o)=>{body=JSON.parse(o.body);return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{inlineData:{mimeType:'image/png',data:Buffer.alloc(200).toString('base64')}}]}}]})};};
-  try{const recipe=require('../public/studio-core').recipes()[0],object=lib.imageObject(recipe.id,'9:16');const d=await models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16',characterId:'video-test-1',anchorObject:anchor},object);
+  try{const recipe=require('../public/studio-core').recipes()[0],object=lib.imageObject(recipe.id,'9:16');const d=await models.generate(s,recipe,{model:'gemini-nano-banana-2.1',aspect:'9:16',characterId:'video-test-1',anchorObject:anchor},object);
     const parts=body.contents[0].parts;assert.match(parts[0].text,/Cinematic premium 2D illustration/);assert.ok(parts.some(p=>p.fileData?.fileUri==='gs://current-bucket/personajes/video-test-1/vista-1.png'));assert.ok(parts.some(p=>p.fileData?.fileUri==='gs://current-bucket/personajes/video-test-1/vista-2.png'));assert.ok(!parts.some(p=>String(p.fileData?.fileUri||'').includes('refs/personaje')),'ninguna parte puede usar el set fijo');assert.equal(parts.at(-1).fileData.fileUri,'gs://current-bucket/'+anchor);assert.equal(body.generationConfig.imageConfig.aspectRatio,'9:16');assert.equal(d.recipeId,recipe.id);assert.equal(d.character,'video-test-1');assert.ok(await s.info(object));
   }finally{global.fetch=original;}
 });
 test('library image generation fails clearly without a per-video character or without its views',async()=>{
   const s=new Store();const recipe=require('../public/studio-core').recipes()[0],object=lib.imageObject(recipe.id,'9:16');
-  await assert.rejects(models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16'},object),e=>e.status===409&&/se crea solo desde el guion/.test(e.message));
+  await assert.rejects(models.generate(s,recipe,{model:'gemini-nano-banana-2.1',aspect:'9:16'},object),e=>e.status===409&&/se crea solo desde el guion/.test(e.message));
   await s.put('personajes/index.json',[{id:'video-test-2',nombre:'Sin vistas',refs:[null,null,null]}]);
-  await assert.rejects(models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16',characterId:'video-test-2'},object),e=>e.status===409&&/vistas/.test(e.message));
+  await assert.rejects(models.generate(s,recipe,{model:'gemini-nano-banana-2.1',aspect:'9:16',characterId:'video-test-2'},object),e=>e.status===409&&/vistas/.test(e.message));
 });
 test('Storage copies are server-to-server, generation-pinned, resumable and retain the original metadata by default',async()=>{
   const {privateKey}=require('crypto').generateKeyPairSync('rsa',{modulusLength:2048});
@@ -181,7 +181,7 @@ test('a second scan of 136 organized files queues nothing; only new or changed f
   s.add('legado-videos/new.mp4');s.files.get('legado-videos/clip-0.mp4').info.generation='changed';
   j=await run('pending-third-003');assert.equal(j.total,2);assert.equal(j.completed,2);assert.equal(j.alreadyReady,135);assert.equal(calls,138);
 });
-test('Nano Banana 2.1 generation sends NO sampling parameters (Vertex rejects them); Nano Banana 2 keeps temperature',async()=>{
+test('Nano Banana 2.1 generation sends NO sampling parameters (Vertex rejects them), and it is the only image model a library job accepts',async()=>{
   const s=new Store();
   await s.put('personajes/index.json',[{id:'video-test-1',nombre:'Protagonista',refs:['personajes/video-test-1/vista-1.png','personajes/video-test-1/vista-2.png',null]}]);
   s.add('personajes/video-test-1/vista-1.png');s.add('personajes/video-test-1/vista-2.png');
@@ -196,9 +196,9 @@ test('Nano Banana 2.1 generation sends NO sampling parameters (Vertex rejects th
     assert.equal(call21.body.generationConfig.topP,undefined);
     assert.equal(call21.body.generationConfig.topK,undefined);
     assert.equal(call21.body.generationConfig.seed,undefined);
-    await models.generate(s,recipe,{model:'gemini-3.1-flash-image',aspect:'9:16',characterId:'video-test-1'},lib.imageObject(recipe.id+'-b','9:16'));
-    const callNB2=seen.at(-1);
-    assert.match(callNB2.url,/models\/gemini-3\.1-flash-image:generateContent/);
-    assert.equal(callNB2.body.generationConfig.temperature,1,'Nano Banana 2 conserva su temperature de siempre');
+    // Un trabajo de generacion con un generador retirado se rechaza al
+    // arrancar: la lista de modelos validos del servidor solo tiene el 2.1.
+    // (El identificador retirado se arma en dos trozos, como en dom.test.js.)
+    await assert.rejects(lib.start(s,{type:'generate',recipeIds:[recipe.id],model:'gemini-3.1-flash-'+'image',aspect:'9:16'},'generation-request-retirado'),e=>e.status===400&&/Modelo o formato/.test(e.message));
   }finally{global.fetch=original;}
 });

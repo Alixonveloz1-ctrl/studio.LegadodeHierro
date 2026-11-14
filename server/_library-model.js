@@ -6,8 +6,9 @@ const MIME={mp4:'video/mp4',mov:'video/mov',webm:'video/webm',png:'image/png',jp
 function mimeFor(info){return MIME[String(info.name).split('.').pop().toLowerCase()]||info.contentType;}
 async function modelCall(model,parts,generationConfig,signal){
   const project=process.env.GCP_PROJECT_ID;if(!project)throw failure('Falta el proyecto de generación.');
-  const access=await token(signal),global=model!=='gemini-2.5-flash-image';
-  const url='https://'+(global?'':'us-central1-')+'aiplatform.googleapis.com/v1/projects/'+encodeURIComponent(project)+'/locations/'+(global?'global':'us-central1')+'/publishers/google/models/'+model+':generateContent';
+  const access=await token(signal);
+  // Todos los modelos que usa el estudio (imagen y analisis) responden en GLOBAL.
+  const url='https://aiplatform.googleapis.com/v1/projects/'+encodeURIComponent(project)+'/locations/global/publishers/google/models/'+model+':generateContent';
   const r=await fetch(url,{method:'POST',signal,headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts}],generationConfig})});
   const d=await r.json();
   if(!r.ok){const e=failure('Google no pudo completar esta etapa (HTTP '+r.status+'). '+String(d.error?.message||'').slice(0,300),r.status===429?429:r.status>=500?502:r.status);e.provider=true;throw e;}
@@ -57,13 +58,11 @@ async function generate(store,recipe,settings,object){
   if(refs.length<2)throw failure('El personaje de este video aún no tiene sus vistas guardadas: se crean solas desde su guion al entrar en Producción (panel «Personaje de este video»). Espera a que estén listas y vuelve a generar el lote.',409);
   const parts=[{text:core.IMAGE_STYLE+'Formato '+settings.aspect+'. '+recipe.description},...refs];
   if(settings.anchorObject){const anchor=await store.info(settings.anchorObject);if(anchor)parts.push({text:'La última imagen fija el lugar, iluminación y vestuario. Conserva esos detalles y cambia solo el encuadre a '+recipe.shot+'.'}, {fileData:{mimeType:anchor.contentType||'image/png',fileUri:'gs://'+bucket+'/'+settings.anchorObject}});}
-  const generationConfig={responseModalities:settings.model==='gemini-2.5-flash-image'?['IMAGE']:['TEXT','IMAGE'],imageConfig:{aspectRatio:settings.aspect}};
-  // Nano Banana 2.1 NO admite temperature (ni topP/topK/seed/logprobs): su
-  // ficha oficial de Vertex los marca «not supported» y la peticion que los
-  // manda vuelve con error del proveedor, asi que con el 2.1 elegido NINGUNA
-  // imagen de la biblioteca llegaba nunca. Se omite solo para ese modelo,
-  // igual que ya hacia server/image.js; los demas quedan como siempre.
-  if(settings.model!=='gemini-nano-banana-2.1')generationConfig.temperature=1;
+  const generationConfig={responseModalities:['TEXT','IMAGE'],imageConfig:{aspectRatio:settings.aspect}};
+  // Nano Banana 2.1 (el unico generador de imagen del estudio) NO admite
+  // temperature (ni topP/topK/seed/logprobs): su ficha oficial de Vertex los
+  // marca «not supported» y la peticion que los manda vuelve con error del
+  // proveedor. Nunca se mandan, igual que en server/image.js.
   const response=await modelCall(settings.model,parts,generationConfig,AbortSignal.timeout(40000));
   const image=response.find(p=>!p.thought&&p.inlineData?.data&&/^image\//.test(p.inlineData.mimeType));
   if(!image)throw failure('Google no devolvió una imagen. Las otras tomas del lote están guardadas.',422);

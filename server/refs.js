@@ -356,7 +356,9 @@ async function generarVistaConPapeles(token, projectId, modelo, prompt, grupos) 
 
 // El envio en si: recibe las partes ya montadas y devuelve el base64 de la imagen.
 async function pedirImagen(token, projectId, modelo, parts) {
-  const region = /^gemini-2\.5-flash-image/.test(modelo) ? 'us-central1' : 'global';
+  // El unico generador de imagen del estudio (Nano Banana 2.1) solo
+  // responde en el endpoint GLOBAL.
+  const region = 'global';
   const host = region === 'global' ? 'aiplatform.googleapis.com' : region + '-aiplatform.googleapis.com';
   const url = 'https://' + host + '/v1/projects/' + projectId + '/locations/' + region +
     '/publishers/google/models/' + modelo + ':generateContent';
@@ -534,14 +536,12 @@ async function biblia(req, res) {
       if (!f.id) return res.status(400).json({ error: 'El personaje necesita un nombre' });
       const projectId = process.env.GCP_PROJECT_ID;
       if (!projectId) return res.status(500).json({ error: 'GCP_PROJECT_ID no configurado en Vercel' });
-      // Lista explicita, como en server/image.js y server/_library.js. La
-      // expresion regular anterior (/^gemini-[0-9.]+(-flash|-pro)?-image/)
-      // NUNCA podia casar con 'gemini-nano-banana-2.1' —tras «gemini-» exige
-      // digitos y un final «-image»—, asi que elegir el 2.1 para las vistas
-      // generaba en silencio con Nano Banana 2 sin que nadie lo supiera.
-      const MODELOS_VISTA = ['gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-nano-banana-2.1'];
+      // Lista explicita, como en server/image.js y server/_library.js. Desde
+      // 2026-11-14 el estudio tiene UN SOLO generador de imagen: cualquier
+      // otro valor que llegue cae en Nano Banana 2.1, nunca en otro modelo.
+      const MODELOS_VISTA = ['gemini-nano-banana-2.1'];
       const modelo = MODELOS_VISTA.includes(String(body.model || ''))
-        ? String(body.model) : 'gemini-3.1-flash-image';
+        ? String(body.model) : 'gemini-nano-banana-2.1';
 
       let i = Number(body.vista);
       if (!isFinite(i) || i < 0 || i >= VISTAS.length) {

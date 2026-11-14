@@ -65,17 +65,15 @@ test('character views really call the image model chosen in the Bible panel, inc
     const r21=await call('gemini-nano-banana-2.1');
     assert.equal(r21.statusCode,200);assert.equal(r21.body.success,true);
     assert.match(vertexUrls.at(-1),/locations\/global\/publishers\/google\/models\/gemini-nano-banana-2\.1:generateContent/,'elegir el 2.1 debe llamar al 2.1, no sustituirlo en silencio');
-    const rNB2=await call('gemini-3.1-flash-image');
-    assert.equal(rNB2.statusCode,200);
-    assert.match(vertexUrls.at(-1),/models\/gemini-3\.1-flash-image:generateContent/);
-    // El modelo de imagen caro fue retirado del estudio: pedirlo ya no lo
-    // llama — las vistas caen en el modelo normal, nunca en el retirado.
-    // (Su identificador se arma en dos trozos: el repo no lo guarda completo.)
-    const retirado='gemini-3-pr'+'o-image';
-    const rRetirado=await call(retirado);
-    assert.equal(rRetirado.statusCode,200);
-    assert.match(vertexUrls.at(-1),/models\/gemini-3\.1-flash-image:generateContent/,'el modelo retirado no se llama: se usa Nano Banana 2');
-    assert.ok(!vertexUrls.some(u=>u.includes(retirado)),'ninguna llamada salio al modelo retirado');
+    // Los demas generadores de imagen fueron retirados del estudio: pedirlos
+    // ya no los llama — las vistas caen en Nano Banana 2.1, nunca en otro.
+    // (Sus identificadores se arman en dos trozos: el repo no los guarda completos.)
+    for(const retirado of ['gemini-3-pr'+'o-image','gemini-3.1-flash-'+'image','gemini-2.5-flash-'+'image']){
+      const rRetirado=await call(retirado);
+      assert.equal(rRetirado.statusCode,200);
+      assert.match(vertexUrls.at(-1),/models\/gemini-nano-banana-2\.1:generateContent/,'un modelo retirado no se llama: se usa Nano Banana 2.1');
+      assert.ok(!vertexUrls.some(u=>u.includes(retirado)),'ninguna llamada salio a un modelo retirado');
+    }
   }finally{
     global.fetch=original;
     if(prev.sa===undefined)delete process.env.GCP_SERVICE_ACCOUNT;else process.env.GCP_SERVICE_ACCOUNT=prev.sa;

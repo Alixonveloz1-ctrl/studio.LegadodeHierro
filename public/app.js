@@ -500,13 +500,17 @@ var sT='',sD='60',sH='dato',sMode='reel'; // sMode: 'reel' | 'historia'
 var loading=false,lastRes=null,activeTab='a';
 var genCount=0,cost=0;
 var audES=null,audEN=null,imgs=[];
-// Modelo y formato elegibles (Gemini / Veo via Vertex AI)
-var imgModel='gemini-3.1-flash-image',imgFmt='9:16';
+// Modelo y formato de generacion (Gemini / Veo via Vertex AI).
+// DECISION DEL DUEÑO (2026-11-14): queda UN SOLO generador de imagen
+// (Nano Banana 2.1) y UN SOLO generador de video (Veo 3.1 Lite). Los demas
+// se retiraron por completo, asi que estos valores son tambien el unico
+// destino posible de cualquier preferencia guardada en el navegador.
+var imgModel='gemini-nano-banana-2.1',imgFmt='9:16';
 var vidModel='veo-3.1-lite-generate-001',vidFmt='9:16';
-// Costo estimado por imagen segun modelo (solo para el contador $ estimado)
-var IMG_COST={'gemini-2.5-flash-image':0.039,'gemini-3.1-flash-image':0.067,'gemini-nano-banana-2.1':0.034};
-// Costo estimado por clip de 8s segun modelo de video
-var VID_COST={'veo-3.1-lite-generate-001':0.30,'veo-3.1-fast-generate-001':0.40,'veo-2.0-generate-001':0.40,'gemini-omni-1.2-flash-360p':0.19,'gemini-omni-1.2-flash-720p':0.56};
+// Costo estimado por imagen (solo para el contador $ estimado)
+var IMG_COST={'gemini-nano-banana-2.1':0.034};
+// Costo estimado por clip de 8s
+var VID_COST={'veo-3.1-lite-generate-001':0.30};
 function imgCost(){return IMG_COST[imgModel]||0.05;}
 // El coste de la biblia se calcula con SU modelo, que puede ser otro (por defecto
 // el bueno). Con imgCost() se estimaba con el de los reels y el aviso mentia.
@@ -534,12 +538,12 @@ function aspectHint(fmt){
 var CHAR_STYLE_ANCHOR=LH.IMAGE_STYLE;
 function imgPromptPrefix(fmt){return CHAR_STYLE_ANCHOR+aspectHint(fmt);}
 // Conecta los <select> de modelo/formato con el estado global.
-// Los modelos elegidos SE RECUERDAN. Antes cada recarga los devolvia al valor por
-// defecto: si trabajabas con veo-3.1-fast y recargabas, volvias al lite sin
-// enterarte — o al reves, seguias pagando el caro creyendo que estabas en el
-// barato. Se guarda solo el valor elegido, y al leerlo se comprueba que la opcion
-// siga existiendo en el desplegable (si algun dia se retira un modelo, no se
-// queda un valor fantasma seleccionado).
+// Los FORMATOS elegidos se recuerdan entre sesiones. De modelos ya no hay
+// nada que recordar: desde 2026-11-14 el estudio tiene un unico generador
+// de imagen y uno de video, y leerAjuste solo acepta un valor guardado si
+// sigue existiendo como opcion en el desplegable — asi, una preferencia
+// vieja de un modelo retirado (o inventado) se ignora sola y la app abre
+// siempre con Nano Banana 2.1 y Veo 3.1 Lite, sin valores fantasma.
 function guardarAjuste(k,v){ try{localStorage.setItem('lh_gen_'+k,v);}catch(e){} }
 function leerAjuste(k,sel,porDefecto){
   var v=null;
@@ -550,14 +554,6 @@ function leerAjuste(k,sel,porDefecto){
 }
 
 function wireGenSettings(){
-  try{
-    if(!localStorage.getItem('lh_nb2_v1')){
-      ['imgModel','postImg'].forEach(function(k){
-        if(localStorage.getItem('lh_gen_'+k)==='gemini-2.5-flash-image') localStorage.setItem('lh_gen_'+k,'gemini-3.1-flash-image');
-      });
-      localStorage.setItem('lh_nb2_v1','1');
-    }
-  }catch(e){}
   var campos=[
     {k:'imgModel', sel:document.getElementById('selImgModel'),     get:function(){return imgModel;},     set:function(v){imgModel=v;}},
     {k:'imgFmt',   sel:document.getElementById('selImgFmt'),       get:function(){return imgFmt;},       set:function(v){imgFmt=v;}},
@@ -845,12 +841,12 @@ function cargarBiblia(){
     .catch(function(){return BIBLIA;});
 }
 
-// El modelo con el que se generan las vistas. Se elige DENTRO de la biblia: antes
+// El modelo con el que se generan las vistas. Se lee DENTRO de la biblia: antes
 // se tomaba en silencio del selector de otro panel y no habia forma de saber cual
-// se estaba usando. Por defecto Nano Banana 2, como en todo el estudio.
+// se estaba usando. Es Nano Banana 2.1, el unico generador de imagen del estudio.
 function modeloBiblia(){
   var s=document.getElementById('selBibliaModel');
-  return (s&&s.value)?s.value:'gemini-3.1-flash-image';
+  return (s&&s.value)?s.value:'gemini-nano-banana-2.1';
 }
 
 // Cache de las vistas ya descargadas para verlas, por id de personaje.
@@ -5116,7 +5112,7 @@ function reset(){
 
 // POST FACEBOOK
 var postFmt='cuadrado';
-var postImgModel='gemini-3.1-flash-image';
+var postImgModel='gemini-nano-banana-2.1';
 
 function selPostFmt(fmt){
   postFmt=fmt;
@@ -5293,7 +5289,7 @@ async function genPost(){
       st.textContent='Componiendo el post...';
       await composeComparacion(oC,imgA,imgB,isVertical);
       lastPostResumen='Post de COMPARACIÓN: '+(oC.titulo1||'')+' '+(oC.titulo2||'')+'. Lo correcto: '+(oC.a_caption||'')+' ('+(oC.a_sub||'')+'). El error: '+(oC.b_caption||'')+' ('+(oC.b_sub||'')+').';
-      cost+=(IMG_COST[postImgModel]||0.039)*2;updCost();
+      cost+=(IMG_COST[postImgModel]||0.034)*2;updCost();
     }else if(postTpl==='cita'){
       var oQ=await postTexto(POST_VOZ+'Crea una CITA corta para un post viral elegante '+sobre+'. Devuelve SOLO un JSON sin markdown: {"destacada":"las 2-4 palabras INICIALES de la cita (las que van en negrita)","resto":"el resto de la cita; total máximo 14 palabras, que golpee","escena_en":"IN ENGLISH: dark elegant scene for the lower half (desk, money, city, the brand man optional), 20-30 words"}',FB_CITA);
       await cargarRefs();
@@ -5301,7 +5297,7 @@ async function genPost(){
       st.textContent='Componiendo el post...';
       await composeCita(oQ,imgQ,isVertical);
       lastPostResumen='Post de CITA: "'+(oQ.destacada||'')+' '+(oQ.resto||'')+'"';
-      cost+=(IMG_COST[postImgModel]||0.039);updCost();
+      cost+=(IMG_COST[postImgModel]||0.034);updCost();
     }else{
       var oF=await postTexto(POST_VOZ+'Crea una FRASE para un post viral de Facebook '+sobre+'. Se muestra en bloques centrados, unas líneas blancas y las CLAVE en dorado. Devuelve SOLO un JSON sin markdown: {"lineas":[{"t":"2-4 palabras","oro":false}]} con 4 a 6 líneas que juntas formen UNA frase dura y concreta; marca "oro":true en las 1-3 líneas más fuertes.',FB_FRASE);
       var estilo=POST_ESTILOS_IMG[Math.floor(Math.random()*POST_ESTILOS_IMG.length)];
@@ -5310,7 +5306,7 @@ async function genPost(){
       st.textContent='Componiendo el post...';
       await composeFrase(oF,imgF,isVertical);
       lastPostResumen='Post de FRASE: "'+((oF.lineas||[]).map(function(l){return l.t;}).join(' '))+'"';
-      cost+=(IMG_COST[postImgModel]||0.039);updCost();
+      cost+=(IMG_COST[postImgModel]||0.034);updCost();
     }
     result.style.display='block';
     st.textContent='Post listo para publicar.';
