@@ -4115,6 +4115,9 @@ async function generateVideoForCurrentSlot(idx,box){
 // piden sin audio y la narracion va aparte; sin esta orden, Veo movia la boca como si el
 // personaje hablara y la deformaba (dientes ensenados, como un grunido). El bloque NO SPEAKING
 // va fijo en TODAS las peticiones y manda sobre cualquier verbo de habla que traiga el contexto.
+// ALCANCE (corregido por el dueño el mismo dia): lo prohibido es HABLAR (lip-sync), no
+// expresarse — si la escena pide risa, sonrisa amplia, sorpresa o pena, esa expresion juega
+// natural, abriendo la boca solo lo que la expresion necesita, sin volverse habla ni grunido.
 function buildVideoMotionPrompt(idx){
   var base=imgs[idx]&&imgs[idx].description||(lastRes&&lastRes.c&&lastRes.c[idx]?lastRes.c[idx]:'');
   // Fuera la marca [CON: id]: es una instruccion nuestra para elegir referencias,
@@ -4124,7 +4127,7 @@ function buildVideoMotionPrompt(idx){
     +'SCENE CONTEXT: '+base+'\n'
     +'Choose ONE small, physically plausible movement already supported by the visible pose. Keep the starting grip and contact points stable. A person holding a cup makes a small natural movement with that same hand; a resting hand remains resting. Do not combine successive actions or add gestures, props or people. '
     +'Preserve the anatomy of every visible person: two arms connected to their respective shoulders, two hands connected to their wrists, five fingers per hand. Keep hidden limbs hidden and silhouettes distinct. '
-    +'NO SPEAKING: nobody in this shot talks, speaks or mouths words at any point, whatever the scene context may suggest. Every mouth stays closed with lips still and relaxed for the entire clip: no lip movement, no talking or conversation gestures, no visible teeth, no open mouth, no snarling or grimacing. Faces stay calm and neutral; the only facial motion allowed is subtle blinking and a slight shift of the eyes or brows, never of the mouth. '
+    +'NO SPEAKING: nobody in this shot talks, speaks or mouths words at any point, whatever the scene context may suggest: no lip-sync and no lip movement as if conversing, ever. When the scene calls for no strong expression, every mouth stays closed and relaxed. But genuine expressions the scene itself calls for DO play naturally — laughter, a broad smile, surprise, sorrow — with the mouth opening only as much as that expression needs, and never turning into speech, snarling or grimacing. Apart from such an expression, facial motion is only subtle blinking and a slight shift of the eyes or brows. '
     +'Use restrained natural motion and subtle blinking. Keep the camera steady for close-ups of hands or object interactions; otherwise a gentle push-in is sufficient. Preserve the drawing and solid opaque frames throughout. No cuts, transitions, morphing, duplicated limbs or overlapping exposures.';
 }
 

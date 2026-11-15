@@ -574,7 +574,7 @@ test('batch image generation stops before animation; video batch uses only revie
 test('animation follows the selected source image and does not silently generate a replacement image',async()=>{
  const a=await app();try{const {w,assets}=a;w.lastRes=episode(w);w.imgs[0]={description:'Hold a cup with the right hand'};
  assert.match(w.buildVideoMotionPrompt(0),/Hold a cup/);assert.ok(!w.buildVideoMotionPrompt(0).includes('Calcular presupuesto'));
- assert.match(w.buildVideoMotionPrompt(0),/NO SPEAKING/);assert.match(w.buildVideoMotionPrompt(0),/mouth stays closed/);assert.match(w.buildVideoMotionPrompt(0),/no visible teeth/);
+ assert.match(w.buildVideoMotionPrompt(0),/NO SPEAKING/);assert.match(w.buildVideoMotionPrompt(0),/no lip-sync/);assert.match(w.buildVideoMotionPrompt(0),/mouth stays closed/);assert.match(w.buildVideoMotionPrompt(0),/genuine expressions the scene itself calls for/);assert.match(w.buildVideoMotionPrompt(0),/laughter/);assert.ok(!w.buildVideoMotionPrompt(0).includes('no visible teeth'));
  assets.push({id:'old',kind:'video'});w.STUDIO.assets=assets;w.STUDIO.plan=[{scene:0,start:0,duration:8,assetId:'old'}];let generated=0;w.studioGenerateShot=async()=>{generated++;};
  await assert.rejects(w.studioAnimateShot(0,w.document.createElement('div')),/imagen de origen/);assert.equal(generated,0);assert.equal(w.STUDIO.plan[0].assetId,'old');await tick();await tick();
  }finally{a.close();}
