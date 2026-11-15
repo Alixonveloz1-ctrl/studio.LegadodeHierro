@@ -50,6 +50,13 @@ module.exports = async (req, res) => {
   if(req.method!=='POST')return res.status(405).json({error:'Usa POST.'});
   try {
     const {makeStore,failure}=require('./_store');
+    // '../cloudrun/unify/timeline' es la ruta del REPO, a propósito: es el
+    // mismo módulo que corre dentro del montador (cloudrun/unify/index.js
+    // lo importa como './timeline'), así la validación de tomas es una sola.
+    // En Vercel la ruta resuelve tal cual; en el paquete de Cloud Run la
+    // coloca cloudrun/studio/instalar.sh en este mismo sitio relativo. Si el
+    // paquete deja de traerla, este endpoint responde «Cannot find module
+    // '../cloudrun/unify/timeline'» al pulsar «Unificar».
     const {validateShots}=require('../cloudrun/unify/timeline');
     const {idFor,PREFIX}=require('./_assets');
     const body=typeof req.body==='string'?JSON.parse(req.body):req.body || {};

@@ -16,7 +16,11 @@ no cambian: ya vivían en ese proyecto.
 - `Dockerfile` — Node 24, `npm ci --omit=dev`, `VERCEL_ENV=production`
   (la app mira esa marca para mantener el candado de producción con
   `APP_KEY`, igual que en Vercel).
-- `instalar.sh` — despliegue completo desde Google Cloud Shell.
+- `instalar.sh` — despliegue completo desde Google Cloud Shell. Al armar
+  el paquete copia también `cloudrun/unify/timeline.js` en su ruta del
+  repo: `server/unify.js` lo importa como `../cloudrun/unify/timeline` y
+  sin esa copia el botón «Unificar» muere en Cloud Run con «Cannot find
+  module» (en Vercel la ruta resuelve porque vive el repo entero).
 
 ## Desplegar
 

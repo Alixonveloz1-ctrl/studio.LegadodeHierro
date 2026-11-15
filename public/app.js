@@ -23,7 +23,7 @@ function forceRelogin(msg){
       init.headers=h;
       var p=_f(input,init);
       // Un 401 NO siempre significa "tu sesion expiro": tambien puede venir de un
-      // proveedor externo (ElevenLabs, Google) y llegar reenviado tal cual. Solo se
+      // proveedor externo (Google) y llegar reenviado tal cual. Solo se
       // manda al login cuando el cuerpo trae code:'APP_AUTH', que es el que pone
       // nuestra puerta de seguridad; el resto se deja pasar para que el error real
       // se vea en pantalla en vez de quedar tapado por la pantalla de acceso.
@@ -576,7 +576,7 @@ function showPills(){
   if(!el)return;
   function mk(lbl){return '<span class="api-pill" style="color:#7a9b8a;background:#1f1f23">● '+lbl+'</span>';}
   // El stack corre con las llaves en el servidor (variables de entorno de Vercel).
-  el.innerHTML=mk('Gemini · texto·imagen·video')+mk('ElevenLabs · audio');
+  el.innerHTML=mk('Gemini · texto·imagen·video')+mk('Google · audio');
 }
 
 // Convierte las lineas "pilar|gancho|concepto" que devuelve la investigacion de
@@ -2571,7 +2571,7 @@ function parseCaption(txt){
 }
 
 // AUDIO
-// Ajustes de voz: dos motores (ElevenLabs y Gemini), cada uno con sus controles.
+// Ajustes de voz: dos motores de Google (Gemini y Chirp), cada uno con sus controles.
 var voxWired=false;
 function wireVox(){
   var VAL_G={
@@ -2579,33 +2579,33 @@ function wireVox(){
     tono:['canal','serio','emocionado','misterioso','calmado','plano'],
     model:['gemini-3.8-flash-tts'],
   };
-  var RANGO_E={stability:[0,1],similarity_boost:[0,1],style:[0,1],speed:[0.7,1.2]};
+  // Configuracion Gemini elegida por el usuario: la voz del canal es
+  // Enceladus, sin estilo (lectura tal cual), modelo 3.8. La eligio el
+  // 2026-11-14 tras escuchar pruebas de oido; reemplaza a Sadachbia (la
+  // configuracion anterior, del 2026-11-11), que le sonaba a locutor de
+  // radio exagerado. Se fija UNA vez en cada dispositivo; la llave subio a
+  // lh_g38_v2 para que la nueva voz del canal llegue tambien a los
+  // dispositivos que ya traian guardada la vieja. Si luego cambia la voz o
+  // el estilo en el panel, su eleccion se guarda y no se pisa.
   try{
-    if(!localStorage.getItem('lh_v4_v1')){
-      var rawV=localStorage.getItem('lh_vox');
-      if(rawV){var oV=JSON.parse(rawV);if(oV&&oV.eleven&&oV.eleven.model==='eleven_multilingual_v2'){oV.eleven.model='eleven_v4';localStorage.setItem('lh_vox',JSON.stringify(oV));}}
-      localStorage.setItem('lh_v4_v1','1');
-    }
-  }catch(e){}
-  // Configuracion Gemini elegida por el usuario el 2026-11-11 tras probar las
-  // voces en su herramienta de audios: Sadachbia, sin estilo (lectura tal
-  // cual), modelo 3.8. Se fija UNA vez en cada dispositivo; si luego cambia
-  // la voz o el estilo en el panel, su eleccion se guarda y no se pisa.
-  try{
-    if(!localStorage.getItem('lh_g38_v1')){
+    if(!localStorage.getItem('lh_g38_v2')){
       var rawG=localStorage.getItem('lh_vox');
       var oG={};try{oG=rawG?JSON.parse(rawG):{};}catch(e2){oG={};}
       if(!oG||typeof oG!=='object')oG={};
-      oG.gemini={voz:'Sadachbia',tono:'plano',model:'gemini-3.8-flash-tts',extra:''};
+      oG.gemini={voz:'Enceladus',tono:'plano',model:'gemini-3.8-flash-tts',extra:''};
       localStorage.setItem('lh_vox',JSON.stringify(oG));
-      localStorage.setItem('lh_g38_v1','1');
+      localStorage.setItem('lh_g38_v2','1');
     }
   }catch(e){}
   try{
     var saved=localStorage.getItem('lh_vox');
     if(saved){
       var o=JSON.parse(saved);
-      if(o.engine==='eleven'||o.engine==='gemini'||o.engine==='chirp')VOX.engine=o.engine;
+      // Solo existen Gemini y Chirp: un motor guardado que ya no existe
+      // (ElevenLabs, eliminado el 2026-11-14) NO se acepta y el panel cae en
+      // el predeterminado, Gemini. Asi ningun proyecto viejo puede reabrir
+      // con un motor fantasma.
+      if(o.engine==='gemini'||o.engine==='chirp')VOX.engine=o.engine;
       if(o.chirp){
         if(VAL_G.voz.indexOf(o.chirp.voz)>-1)VOX.chirp.voz=o.chirp.voz;
         var cn=Number(o.chirp.velocidad);
@@ -2615,21 +2615,6 @@ function wireVox(){
         if(!VOX.gemini.hasOwnProperty(k))continue;
         if(k==='extra'){VOX.gemini.extra=String(o.gemini.extra||'').slice(0,200);continue;}
         if(VAL_G[k]&&VAL_G[k].indexOf(o.gemini[k])>-1)VOX.gemini[k]=o.gemini[k];
-      }
-      // Solo numeros validos y dentro de rango (ojo: Number(null) es 0).
-      // 'model' es la excepcion: es texto y se valida contra la lista de
-      // modelos de ElevenLabs que el servidor acepta.
-      if(o.eleven)for(var k2 in o.eleven){
-        if(!VOX.eleven.hasOwnProperty(k2))continue;
-        if(k2==='model'){
-          if(['eleven_v4','eleven_v3','eleven_multilingual_v2','eleven_flash_v2_5'].indexOf(o.eleven.model)>-1)VOX.eleven.model=o.eleven.model;
-          continue;
-        }
-        if(typeof VOX.eleven[k2]==='boolean'){VOX.eleven[k2]=!!o.eleven[k2];continue;}
-        var raw=o.eleven[k2];
-        if(raw===null||raw===undefined||raw==='')continue;
-        var n=Number(raw),rg=RANGO_E[k2];
-        if(isFinite(n)&&(!rg||(n>=rg[0]&&n<=rg[1])))VOX.eleven[k2]=n;
       }
     }
   }catch(e){}
@@ -2661,14 +2646,12 @@ function wireVox(){
   }
 
   var campG=[['vVoz','voz'],['vTono','tono'],['vModel','model'],['vExtra','extra']];
-  var campE=[['vStab','vStabV','stability'],['vSim','vSimV','similarity_boost'],['vSty','vStyV','style'],['vSpd','vSpdV','speed']];
 
   function paint(){
     var e=document.getElementById('vEngine');
     if(e)e.value=VOX.engine;
     // Solo se muestran los ajustes del motor elegido.
-    var pe=document.getElementById('voxEleven'),pg=document.getElementById('voxGemini'),pc=document.getElementById('voxChirp');
-    if(pe)pe.style.display=VOX.engine==='eleven'?'block':'none';
+    var pg=document.getElementById('voxGemini'),pc=document.getElementById('voxChirp');
     if(pg)pg.style.display=VOX.engine==='gemini'?'block':'none';
     if(pc)pc.style.display=VOX.engine==='chirp'?'block':'none';
     var cv=document.getElementById('cVoz');if(cv)cv.value=VOX.chirp.voz;
@@ -2679,15 +2662,6 @@ function wireVox(){
       var el=document.getElementById(c[0]);
       if(el)el.value=VOX.gemini[c[1]];
     });
-    campE.forEach(function(c){
-      var r=document.getElementById(c[0]),v=document.getElementById(c[1]);
-      if(r)r.value=VOX.eleven[c[2]];
-      if(v)v.textContent=Number(VOX.eleven[c[2]]).toFixed(2);
-    });
-    var b=document.getElementById('vBoost');
-    if(b)b.checked=!!VOX.eleven.use_speaker_boost;
-    var em=document.getElementById('vElevenModel');
-    if(em)em.value=VOX.eleven.model||'eleven_multilingual_v2';
   }
 
   // Los manejadores se conectan UNA sola vez: wireVox corre en cada guion generado
@@ -2703,20 +2677,6 @@ function wireVox(){
         save();
       });
     });
-    campE.forEach(function(c){
-      var r=document.getElementById(c[0]);
-      if(!r)return;
-      r.addEventListener('input',function(){
-        VOX.eleven[c[2]]=parseFloat(r.value);
-        var v=document.getElementById(c[1]);
-        if(v)v.textContent=parseFloat(r.value).toFixed(2);
-        save();
-      });
-    });
-    var bx=document.getElementById('vBoost');
-    if(bx)bx.addEventListener('change',function(){VOX.eleven.use_speaker_boost=bx.checked;save();});
-    var emx=document.getElementById('vElevenModel');
-    if(emx)emx.addEventListener('change',function(){VOX.eleven.model=emx.value;save();});
     var cvz=document.getElementById('cVoz');
     if(cvz)cvz.addEventListener('change',function(){VOX.chirp.voz=cvz.value;save();});
     var cvl=document.getElementById('cVel');
@@ -2742,15 +2702,6 @@ function wireVox(){
         if(p.length!==2)return;
         if(VAL_G.voz.indexOf(p[0])===-1||VAL_G.tono.indexOf(p[1])===-1)return;
         VOX.gemini.voz=p[0];VOX.gemini.tono=p[1];
-        paint();save();
-      });
-    });
-    Array.prototype.forEach.call(document.querySelectorAll('.elevenSet'),function(btn){
-      btn.addEventListener('click',function(){
-        var p=(btn.getAttribute('data-p')||'').split(',').map(parseFloat);
-        if(p.length!==4||p.some(function(n){return !isFinite(n);}))return;
-        VOX.eleven.stability=p[0];VOX.eleven.similarity_boost=p[1];
-        VOX.eleven.style=p[2];VOX.eleven.speed=p[3];
         paint();save();
       });
     });
@@ -3262,8 +3213,6 @@ var lastTikTok='',lastYouTube='';
 // La version en ingles del caption y los hashtags: viene en la MISMA llamada a
 // Gemini que la espanola, asi que no cuesta nada extra.
 var lastCaptionEN='',lastTagsEN='',lastTikTokEN='',lastYouTubeEN='';
-// Ajustes de voz de ElevenLabs. Rangos reales de la API: stability/similarity/style 0-1;
-// speed 0.7-1.2 (fuera de ese rango la calidad se degrada).
 // Las 30 voces de Gemini con su caracter, para poder elegir con criterio.
 // Las masculinas graves y firmes van primero: son las que encajan con la marca.
 var VOCES=[
@@ -3300,14 +3249,16 @@ var VOCES=[
 ];
 // Ajustes de voz. Se guardan por MOTOR, para poder cambiar de uno a otro sin
 // perder lo que tenias afinado en cada uno.
-//  - eleven: perillas numericas de ElevenLabs (la voz original del canal).
 //  - gemini: Gemini 3.8 Flash TTS; sin perillas numericas — se elige voz y
 //    uno de los estilos de su herramienta de audios, y el estilo viaja al
 //    servidor como indicacion interna (speech_metadata), nunca leida en alto.
+//  - chirp: Chirp 3 HD; se elige voz y velocidad.
+// El motor PREDETERMINADO es Gemini: es la voz del canal. ElevenLabs se
+// elimino el 2026-11-14 y ya no existe como opcion en ninguna parte: ni en
+// este objeto, ni en el selector, ni en el servidor.
 var VOX={
-  engine:'eleven',
-  eleven:{stability:0.5,similarity_boost:0.75,style:0,speed:1,use_speaker_boost:true,model:'eleven_v4'},
-  gemini:{voz:'Sadachbia',tono:'plano',model:'gemini-3.8-flash-tts',extra:''},
+  engine:'gemini',
+  gemini:{voz:'Enceladus',tono:'plano',model:'gemini-3.8-flash-tts',extra:''},
   chirp:{voz:'Algenib',velocidad:0.9},
 };
 var loadedRefsCount=0; // cuantas vistas del personaje de ESTE video cargaron en el ultimo intento

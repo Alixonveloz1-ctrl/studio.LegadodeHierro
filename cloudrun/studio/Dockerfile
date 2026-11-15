@@ -1,6 +1,9 @@
 # Legado De Hierro Studio en Cloud Run.
 # El contexto de construcción lo prepara instalar.sh: es la raíz de la app
-# (public/, server/, api/, package.json) más main.js y este Dockerfile.
+# (public/, server/, api/, package.json) más main.js, este Dockerfile y
+# cloudrun/unify/timeline.js EN SU RUTA DEL REPO — server/unify.js lo importa
+# como '../cloudrun/unify/timeline' y el paquete debe resolver igual que en
+# Vercel; sin esa copia, «Unificar» muere con «Cannot find module».
 FROM node:24-slim
 WORKDIR /app
 ENV NODE_ENV=production

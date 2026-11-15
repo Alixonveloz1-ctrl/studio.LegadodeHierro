@@ -9,7 +9,6 @@ module.exports = jsonHandler(async (b, res) => {
     success: true,
     googleCloud: google,
     imageVideo: google,
-    elevenLabs: !!process.env.ELEVENLABS_API_KEY,
     montage: !!(process.env.CLOUD_RUN_UNIFY_URL && process.env.UNIFY_KEY),
     facebookApi: false,
   });

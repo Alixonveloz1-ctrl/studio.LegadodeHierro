@@ -12,7 +12,7 @@ function validateConfig(c) {
     if (c.editorialVersion!==undefined && c.editorialVersion!==2) throw failure('Versión editorial inválida.',400);
     if (c.editorialVersion===2 && (!Number.isInteger(c.sceneCount)||c.sceneCount<3||c.sceneCount>40||(c.mode==='profesor'&&c.sceneCount!==8))) throw failure('Número de escenas inválido.',400);
   } else if (typeof c.text !== 'string' || !c.text.trim() || c.text.length > 100000) throw failure('Texto inválido.',400);
-  if (c.type === 'audio' && !['gemini','chirp','eleven'].includes(c.engine)) throw failure('Motor de voz inválido.',400);
+  if (c.type === 'audio' && !['gemini','chirp'].includes(c.engine)) throw failure('Motor de voz inválido.',400);
   if (c.type==='review' && (typeof c.prompt!=='string'||c.prompt.length<10||c.prompt.length>25000||c.text.length>30000||JSON.stringify(c.plan||{}).length>20000)) throw failure('El encargo de revisión es inválido o demasiado extenso.',400);
 }
 function parseOutline(text, count, prompts, professor) {

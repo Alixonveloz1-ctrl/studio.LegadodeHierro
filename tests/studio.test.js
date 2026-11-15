@@ -244,30 +244,13 @@ test('latin accent: an already-Latin text comes out intact, including coche',()=
   assert.equal(L(ok),ok);
 });
 
-test('latin accent: ElevenLabs request cleans the text and forces es except on v4 and the English path',async()=>{
-  process.env.ELEVENLABS_API_KEY='test-key';
+test('elevenlabs is gone: the removed engine is rejected as unknown, in the chunk call and in job validation',async()=>{
   const {generateAudioChunk}=require('../server/_voice');
-  const seen=[];
-  const realFetch=global.fetch;
-  global.fetch=async(url,opts)=>{seen.push(JSON.parse(opts.body));return {ok:true,json:async()=>({audio_base64:'AAAA',alignment:null})};};
-  try{
-    const es=await generateAudioChunk('Vale, coge tu ordenador y escucha.','eleven',{model:'eleven_multilingual_v2'},'es',{});
-    assert.equal(es.engine,'eleven');
-    assert.equal(seen[0].text,'toma tu computadora y escucha.');
-    assert.equal(seen[0].language_code,'es','multilingual v2 lleva language_code es');
-    seen.length=0;
-    await generateAudioChunk('Coge tu ordenador y escucha.','eleven',{model:'eleven_v3'},'es',{});
-    assert.equal(seen[0].language_code,'es','v3 lleva language_code es');
-    seen.length=0;
-    await generateAudioChunk('Coge tu ordenador y escucha.','eleven',{model:'eleven_v4'},'es',{});
-    assert.equal(seen[0].text,'Toma tu computadora y escucha.','v4 también limpia el texto');
-    assert.equal(seen[0].language_code,undefined,'v4 NO lleva language_code: no está documentado');
-    assert.deepEqual(Object.keys(seen[0].voice_settings).sort(),['similarity_boost','stability'],'v4 mantiene solo sus dos ajustes');
-    seen.length=0;
-    await generateAudioChunk('Coge tu ordenador y escucha.','eleven',{model:'eleven_multilingual_v2'},'en',{});
-    assert.equal(seen[0].text,'Coge tu ordenador y escucha.','el camino en inglés no se limpia ni se fuerza');
-    assert.equal(seen[0].language_code,undefined);
-  } finally { global.fetch=realFetch; }
+  const {validateConfig}=require('../server/_jobs');
+  await assert.rejects(()=>generateAudioChunk('Texto de prueba para narrar.','eleven',{},'es',{}),/Motor de voz desconocido/);
+  assert.throws(()=>validateConfig({type:'audio',text:'Texto de prueba.',engine:'eleven'}),/Motor de voz inválido/);
+  assert.doesNotThrow(()=>validateConfig({type:'audio',text:'Texto de prueba.',engine:'gemini'}));
+  assert.doesNotThrow(()=>validateConfig({type:'audio',text:'Texto de prueba.',engine:'chirp'}));
 });
 
 test('gemini voice: a missing or unknown style NEVER falls back to a narrative tone',()=>{

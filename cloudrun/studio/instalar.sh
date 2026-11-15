@@ -78,8 +78,19 @@ mkdir -p "$APP_DIR"
 cp -r "${REPO_ROOT}/public" "${REPO_ROOT}/server" "${REPO_ROOT}/api" "$APP_DIR/"
 cp "${REPO_ROOT}/package.json" "${REPO_ROOT}/package-lock.json" "$APP_DIR/"
 cp "${SRC_DIR}/main.js" "${SRC_DIR}/Dockerfile" "$APP_DIR/"
+# server/unify.js valida las tomas con la ruta del repo:
+#   require('../cloudrun/unify/timeline')
+# En Vercel vive el repo entero y la ruta resuelve tal cual; el paquete de
+# Cloud Run debe conservar ESE MISMO sitio relativo o el botón «Unificar»
+# responde «Cannot find module '../cloudrun/unify/timeline'» (pasó en
+# producción: el montaje funcionaba por el servicio externo, pero el botón
+# daba error). Se copia solo ese archivo, desde su único original — el
+# módulo no se duplica a mano en ningún otro sitio.
+[ -f "${REPO_ROOT}/cloudrun/unify/timeline.js" ] || fail "No encuentro cloudrun/unify/timeline.js en el repositorio: server/unify.js lo necesita con esa ruta."
+mkdir -p "$APP_DIR/cloudrun/unify"
+cp "${REPO_ROOT}/cloudrun/unify/timeline.js" "$APP_DIR/cloudrun/unify/timeline.js"
 printf 'node_modules\ntests\n.git\n' > "${APP_DIR}/.gcloudignore"
-info "Contexto listo (estáticos + API + servidor)."
+info "Contexto listo (estáticos + API + servidor + validación de tomas del montador)."
 
 # ---------------------------------------------------------------------------
 # 3. Variables de producción desde Vercel (sin imprimir valores)
@@ -162,8 +173,7 @@ env = parse_env(src)
 env = {k: v for k, v in env.items() if not k.startswith("VERCEL")}
 
 required = ["APP_KEY", "CLOUD_RUN_UNIFY_URL", "GCP_PROJECT_ID",
-            "GCP_SERVICE_ACCOUNT", "GCS_OUTPUT_BUCKET", "UNIFY_KEY",
-            "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"]
+            "GCP_SERVICE_ACCOUNT", "GCS_OUTPUT_BUCKET", "UNIFY_KEY"]
 missing = [k for k in required if k not in env or env[k] == ""]
 if missing:
     print("FALTAN variables de producción en Vercel: " + ", ".join(missing), file=sys.stderr)

@@ -283,7 +283,7 @@ section{margin-bottom:20px}
       <div class="lh-quick">
         <button type="button" class="lh-qcard" data-lh-step="investigacion"><span class="lh-qicon" style="border-color:#f0c75e;color:#f0c75e">💡</span><strong>Ideas</strong><span>Tendencias y reels virales</span></button>
         <button type="button" class="lh-qcard" data-lh-step="tema"><span class="lh-qicon" style="border-color:#7a9ec4;color:#7a9ec4">📄</span><strong>Guiones</strong><span>Español e inglés</span></button>
-        <button type="button" class="lh-qcard" data-lh-step="produccion" data-lh-anchor="audioCard"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎙</span><strong>Voces</strong><span>ElevenLabs y Google</span></button>
+        <button type="button" class="lh-qcard" data-lh-step="produccion" data-lh-anchor="audioCard"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎙</span><strong>Voces</strong><span>Gemini y Chirp de Google</span></button>
         <button type="button" class="lh-qcard" data-lh-step="produccion" data-lh-anchor="episodeTools"><span class="lh-qicon" style="border-color:#9ab47a;color:#9ab47a">🖼</span><strong>Imágenes</strong><span>Tomas de este video</span></button>
         <button type="button" class="lh-qcard" data-lh-step="musica"><span class="lh-qicon" style="border-color:#c4897a;color:#c4897a">🎵</span><strong>Música</strong><span>IA original</span></button>
         <button type="button" class="lh-qcard" data-lh-step="montaje"><span class="lh-qicon" style="border-color:#9a8ac4;color:#9a8ac4">🎞</span><strong>Montaje</strong><span>Automático</span></button>
@@ -310,7 +310,6 @@ section{margin-bottom:20px}
       <div class="lh-recent" id="lhRecentGrid"></div>
       <h2 class="lh-step-title" style="font-size:18px;margin-top:22px">Conexiones</h2>
       <div class="lh-conn">
-        <div class="lh-conn-card"><strong>ElevenLabs</strong><span id="lhConnEleven">Comprobando…</span></div>
         <div class="lh-conn-card"><strong>Google Cloud</strong><span id="lhConnGoogle">Comprobando…</span></div>
         <div class="lh-conn-card"><strong>Imágenes y videos</strong><span id="lhConnImageVideo">Comprobando…</span></div>
         <div class="lh-conn-card"><strong>Montaje (Cloud Run)</strong><span id="lhConnMontage">Comprobando…</span></div>
@@ -449,7 +448,7 @@ section{margin-bottom:20px}
     <section>
       <div class="scard" id="audioCard" style="border:1.5px solid #c4897a44">
         <div class="shdr" style="background:var(--warm)">
-          <div><div class="stitl" style="color:#c4897a">🎙 Narración — Audio</div><div class="ssub">Elige el motor abajo: ElevenLabs, Chirp o Gemini</div></div>
+          <div><div class="stitl" style="color:#c4897a">🎙 Narración — Audio</div><div class="ssub">Elige el motor abajo: Chirp o Gemini</div></div>
           <div class="sbtns">
             <button class="cbtn" id="baes" style="border-color:#d9a441;color:#d9a441">🎙 Audio ES</button>
             <button class="cbtn" id="baen" style="border-color:#c4897a;color:#c4897a">🎙 Audio EN</button>
@@ -461,47 +460,11 @@ section{margin-bottom:20px}
             <div style="padding:12px 11px 4px">
               <label class="genLbl" style="margin-bottom:4px">Motor de voz
                 <select id="vEngine" class="genSel">
-                  <option value="eleven">ElevenLabs · la voz del canal (Adam)</option>
                   <option value="chirp">Chirp 3 HD de Google · locución neutra (recomendado si no hay créditos)</option>
-                  <option value="gemini">Gemini de Google · voz actuada, más expresiva</option>
+                  <option value="gemini" selected>Gemini de Google · voz actuada, más expresiva</option>
                 </select>
               </label>
-              <span class="voxH" style="display:block;margin:2px 0 12px">ElevenLabs es la voz de siempre. Los dos de Google gastan tu crédito de Google Cloud: <strong>Chirp 3 HD</strong> lee neutro y serio (lo más parecido a una locución real), <strong>Gemini</strong> actúa más pero tiende a sonar a anuncio.</span>
-
-              <div id="voxEleven">
-                <label class="genLbl" style="margin-bottom:8px">Modelo de ElevenLabs
-                  <select id="vElevenModel" class="genSel">
-                    <option value="eleven_v4" selected>V4 · el más nuevo</option>
-                    <option value="eleven_v3">V3 · expresivo</option>
-                    <option value="eleven_multilingual_v2">V2 · el de siempre</option>
-                    <option value="eleven_flash_v2_5">Flash 2.5 · rápido y barato</option>
-                  </select>
-                  <span class="voxH" style="display:block;margin-top:2px">El V4 solo usa Estabilidad y Claridad: las perillas de Estilo y Velocidad no se le envían.</span>
-                </label>
-                <label class="voxLbl">Estabilidad <span class="voxV" id="vStabV">0.50</span>
-                  <input type="range" id="vStab" class="voxR" min="0" max="1" step="0.05" value="0.5">
-                  <span class="voxH">Bajo: más emoción y variación entre tomas. Alto: consistente pero monótono.</span>
-                </label>
-                <label class="voxLbl">Claridad / Similitud <span class="voxV" id="vSimV">0.75</span>
-                  <input type="range" id="vSim" class="voxR" min="0" max="1" step="0.05" value="0.75">
-                  <span class="voxH">Entre 0.75 y 0.90 es lo recomendado. Al máximo sobre-pronuncia.</span>
-                </label>
-                <label class="voxLbl">Estilo <span class="voxV" id="vStyV">0.00</span>
-                  <input type="range" id="vSty" class="voxR" min="0" max="1" step="0.05" value="0">
-                  <span class="voxH">Exageración del estilo. Subirlo resta estabilidad. Déjalo en 0 salvo que quieras drama.</span>
-                </label>
-                <label class="voxLbl">Velocidad <span class="voxV" id="vSpdV">1.00</span>
-                  <input type="range" id="vSpd" class="voxR" min="0.7" max="1.2" step="0.05" value="1">
-                  <span class="voxH">0.7 lenta · 1.0 normal · 1.2 rápida. Los extremos degradan la calidad.</span>
-                </label>
-                <label class="voxChk"><input type="checkbox" id="vBoost" checked> Speaker boost <span class="voxH" style="margin:0 0 0 4px">Refuerza el parecido con tu voz. Déjalo activo.</span></label>
-                <div style="display:flex;gap:7px;margin:10px 0 8px;flex-wrap:wrap">
-                  <button type="button" class="voxP elevenSet" data-p="0.5,0.75,0,1">Equilibrado</button>
-                  <button type="button" class="voxP elevenSet" data-p="0.75,0.85,0,1">Firme y consistente</button>
-                  <button type="button" class="voxP elevenSet" data-p="0.4,0.8,0.1,1">Crudo y emocional</button>
-                  <button type="button" class="voxP elevenSet" data-p="0.6,0.8,0,1.1">Ágil</button>
-                </div>
-              </div>
+              <span class="voxH" style="display:block;margin:2px 0 12px">Los dos motores son de Google y gastan tu crédito de Google Cloud: <strong>Chirp 3 HD</strong> lee neutro y serio (lo más parecido a una locución real), <strong>Gemini</strong> actúa más pero tiende a sonar a anuncio.</span>
 
               <div id="voxChirp" style="display:none">
                 <label class="genLbl" style="margin-bottom:4px">Voz (30 de Chirp 3 HD)
@@ -555,7 +518,7 @@ section{margin-bottom:20px}
           </div>
           <div style="margin-bottom:12px;border:1px dashed var(--border);border-radius:10px;padding:10px 11px;background:#1f1f23">
             <div class="genLbl" style="margin-bottom:6px">⬆ O sube el audio ya generado (sin gastar API) — solo si lo prefieres así</div>
-            <span class="voxH" style="display:block;margin-bottom:9px">Copia el guion, genéralo en la web de ElevenLabs con la voz del canal, descárgalo y súbelo aquí. El resto del montaje —imágenes, videos, música y unificación— sigue funcionando igual. MP3, M4A o WAV, máximo 20 MB.</span>
+            <span class="voxH" style="display:block;margin-bottom:9px">Copia el guion, genera el audio por fuera con la herramienta que prefieras, descárgalo y súbelo aquí. El resto del montaje —imágenes, videos, música y unificación— sigue funcionando igual. MP3, M4A o WAV, máximo 20 MB.</span>
             <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:7px">
               <button type="button" class="voxP" id="bCopyES">📋 Copiar guion ES</button>
               <button type="button" class="voxP" id="bCopyEN">📋 Copiar guion EN</button>

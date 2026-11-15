@@ -1,11 +1,11 @@
 // api/audio.js
-// NARRACION con DOS MOTORES a elegir desde la herramienta:
-//   engine 'eleven' -> ElevenLabs, la voz original del canal (ver _eleven.js).
+// NARRACION con DOS MOTORES de Google a elegir desde la herramienta:
 //   engine 'chirp'  -> Chirp 3 HD (Cloud TTS): locucion neutra, la que menos
 //                      suena a anuncio. Credito de Google (ver _chirp.js).
 //   engine 'gemini' -> Gemini 3.8 Flash TTS en Vertex AI: el modelo nuevo,
 //                      el que mantiene el mismo tono de principio a fin.
-// El usuario decide cual usar segun los creditos que tenga en cada sitio.
+// ElevenLabs se elimino por completo el 2026-11-14 por orden del dueño: la
+// voz del canal es Gemini. Cualquier otro motor se rechaza como desconocido.
 //
 // COMO SE PIDE A GEMINI 3.8 TTS (lo que no es obvio):
 //   - Se llama a :generateContent, como cualquier modelo Gemini, con
@@ -23,7 +23,6 @@
 // para que la unificacion en Cloud Run y el reproductor sigan funcionando igual.
 
 const {token, failure} = require('./_store');
-const { generarEleven } = require('./_eleven');
 const { generarChirp } = require('./_chirp');
 
 const ALLOWED_MODELS = {
@@ -37,10 +36,12 @@ const VOICES = ['Achernar','Achird','Algenib','Algieba','Alnilam','Aoede','Auton
   'Orus','Puck','Pulcherrima','Rasalgethi','Sadachbia','Sadaltager','Schedar','Sulafat','Umbriel',
   'Vindemiatrix','Zephyr','Zubenelgenubi'];
 const VOICE_SET = VOICES.reduce((a, v) => (a[v.toLowerCase()] = v, a), {});
-// Voz predeterminada del motor Gemini, elegida por el usuario el 2026-11-11
-// tras probar las voces en su herramienta de audios: Sadachbia, con estilo
-// 'plano' (sin estilo, lectura tal cual).
-const DEFAULT_VOICE = 'Sadachbia';
+// Voz predeterminada del motor Gemini, la voz del canal: Enceladus, con
+// estilo 'plano' (sin estilo, lectura tal cual). La eligio el usuario el
+// 2026-11-14 tras escuchar pruebas de oido: reemplaza a Sadachbia (fijada
+// el 2026-11-11), que le sonaba a locutor de radio exagerado. Sadachbia
+// sigue siendo una opcion elegible; solo cambia la predeterminada.
+const DEFAULT_VOICE = 'Enceladus';
 
 // ESTILOS de narracion: los MISMOS de su herramienta de audios
 // (generador-audios/lib/styles.js), con la instruccion interna en ingles
@@ -94,10 +95,9 @@ async function generateAudioChunk(text, engine, voice, lang, options) {
   options = options || {};
   const signal = options.signal || AbortSignal.timeout(40000);
   if (!text || text.trim().split(/\s+/).length > 80 || Buffer.byteLength(text,'utf8') > 3200) throw failure('La narración debe enviarse por tramos de hasta 80 palabras.',400);
-  if (engine === 'eleven') return {...await generarEleven(text,voice,{...options,signal,lang}),engine};
+  if (engine !== 'gemini' && engine !== 'chirp') throw failure('Motor de voz desconocido.',400);
   const access = await token(signal);
   if (engine === 'chirp') return {...await generarChirp(text,voice,lang,access,signal),engine};
-  if (engine !== 'gemini') throw failure('Motor de voz desconocido.',400);
   const v = voice || {}, voz = VOICE_SET[String(v.voz || '').toLowerCase()] || DEFAULT_VOICE;
   const model = ALLOWED_MODELS[v.model] ? v.model : DEFAULT_MODEL;
   if (!process.env.GCP_PROJECT_ID) throw failure('GCP_PROJECT_ID no configurado.');

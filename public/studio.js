@@ -1131,12 +1131,10 @@ async function lhPaintConnections(){
     if(!res.ok)throw new Error(d.error||'Error '+res.status);
     lhSetConn('lhConnGoogle',d.googleCloud?'● Configurado':'● No configurado',!!d.googleCloud);
     lhSetConn('lhConnImageVideo',d.imageVideo?'● Disponible con Google Cloud':'● Falta configuración de Google Cloud',!!d.imageVideo);
-    lhSetConn('lhConnEleven',d.elevenLabs?'● Configurado':'● No configurado',!!d.elevenLabs);
     lhSetConn('lhConnMontage',d.montage?'● Configurado':'● No configurado',!!d.montage);
   }catch(e){
     lhSetConn('lhConnGoogle','No verificado',null);
     lhSetConn('lhConnImageVideo','No verificado',null);
-    lhSetConn('lhConnEleven','No verificado',null);
     lhSetConn('lhConnMontage','No verificado',null);
   }
 }
