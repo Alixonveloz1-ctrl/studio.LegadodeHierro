@@ -91,7 +91,11 @@ test('simplified UI shows no cross-video library or bank controls; the per-video
     // este video»: la biblia ya no es un banco entre videos, es la ficha del
     // personaje del video en curso, y el dueño debe VER sus vistas.
     for(const id of ['libraryPanel','bibliaPanel','bibliaBtn','buildScenePlan','libraryGrid','libraryViewer','librarySettingsDialog','bbanco','bancoPanel','libraryCreateTab','librarySavedTab'])assert.equal(w.document.getElementById(id),null,id+' debe estar eliminado');
-    for(const id of ['personajeVideoCard','bibliaGrid','bibliaLbl','bibliaSt','bBibliaTodas','bBibliaRecargar','selBibliaModel','vElevenModel'])assert.ok(w.document.getElementById(id),id+' debe estar presente (panel del personaje de este video / selector de modelo ElevenLabs)');
+    for(const id of ['personajeVideoCard','bibliaGrid','bibliaLbl','bibliaSt','bBibliaTodas','bBibliaRecargar','selBibliaModel'])assert.ok(w.document.getElementById(id),id+' debe estar presente (panel del personaje de este video)');
+    // ElevenLabs se elimino el 2026-11-14: ni su panel de ajustes ni su
+    // selector de modelo pueden existir en la pagina.
+    assert.equal(w.document.getElementById('voxEleven'),null,'el panel de ElevenLabs debe estar eliminado');
+    assert.equal(w.document.getElementById('vElevenModel'),null,'el selector de modelo ElevenLabs debe estar eliminado');
     for(const id of ['modeSelector','themeGrid','durGrid','hookGrid','conc','gbtn','projectsPanel','episodeTools','genSettings','selImgModel','selImgFmt','selVidModel','selVidFmt','unifyCard'])assert.ok(w.document.getElementById(id),id+' debe seguir presente');
     assert.ok(w.document.querySelectorAll('.lh-step').length===8);
     assert.ok(w.document.querySelector('.lh-step.lh-active').dataset.lhStep==='inicio');
@@ -100,7 +104,7 @@ test('simplified UI shows no cross-video library or bank controls; the per-video
     assert.ok(w.document.querySelector('#lhCurrentTitle'));
     assert.ok(w.document.querySelector('#lhRecentGrid'));
     assert.ok(w.document.querySelector('#lhConnGoogle'));
-    assert.ok(w.document.querySelector('#lhConnEleven'));
+    assert.equal(w.document.querySelector('#lhConnEleven'),null,'la tarjeta de conexión de ElevenLabs debe estar eliminada');
     assert.ok(w.document.querySelector('.lh-bottom button[data-lh-step="mis-videos"]'));
     assert.ok(w.document.querySelector('.lh-bottom button[data-lh-step="produccion"]'));
     assert.ok(w.document.querySelector('.lh-sidebar'));assert.ok(w.document.querySelector('.lh-bottom'));
@@ -144,7 +148,7 @@ test('simplified UI shows no cross-video library or bank controls; the per-video
     const vEngine=w.document.getElementById('vEngine');
     assert.ok(vEngine,'el selector de motor de voz debe existir');
     assert.equal(vEngine.closest('details'),null,'el selector de voz no debe estar dentro de un details plegado');
-    assert.deepEqual([...vEngine.options].map(o=>o.value),['eleven','chirp','gemini']);
+    assert.deepEqual([...vEngine.options].map(o=>o.value),['chirp','gemini']);
     // En el teléfono, las tomas van en una sola columna a ancho completo.
     const studioCss=fs.readFileSync(path.join(root,'public/studio.css'),'utf8');
     assert.ok(/@media\(max-width:520px\)\{[^}]*\.studio-plan\{grid-template-columns:minmax\(0,1fr\)/.test(studioCss),'el plan debe ser de una columna en el teléfono');
@@ -570,6 +574,7 @@ test('batch image generation stops before animation; video batch uses only revie
 test('animation follows the selected source image and does not silently generate a replacement image',async()=>{
  const a=await app();try{const {w,assets}=a;w.lastRes=episode(w);w.imgs[0]={description:'Hold a cup with the right hand'};
  assert.match(w.buildVideoMotionPrompt(0),/Hold a cup/);assert.ok(!w.buildVideoMotionPrompt(0).includes('Calcular presupuesto'));
+ assert.match(w.buildVideoMotionPrompt(0),/NO SPEAKING/);assert.match(w.buildVideoMotionPrompt(0),/mouth stays closed/);assert.match(w.buildVideoMotionPrompt(0),/no visible teeth/);
  assets.push({id:'old',kind:'video'});w.STUDIO.assets=assets;w.STUDIO.plan=[{scene:0,start:0,duration:8,assetId:'old'}];let generated=0;w.studioGenerateShot=async()=>{generated++;};
  await assert.rejects(w.studioAnimateShot(0,w.document.createElement('div')),/imagen de origen/);assert.equal(generated,0);assert.equal(w.STUDIO.plan[0].assetId,'old');await tick();await tick();
  }finally{a.close();}

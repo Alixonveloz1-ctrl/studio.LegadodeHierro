@@ -108,9 +108,12 @@ module.exports = async function handler(req, res) {
       storageUri: destino,
       sampleCount: 1,
       personGeneration: 'allow_adult',
-      negativePrompt: 'deformed hands, extra fingers, missing fingers, merged fingers, bad anatomy, blurry, watermark, text overlay, hopping, skipping, bouncing, little jumps, stutter-stepping, moonwalking, floating, childish scribbles, scribbling, random squiggles, meaningless zigzag lines, crayon marks, rain, raining, rainfall, raindrops, drizzle, downpour, snow, storm, thunderstorm, mist, fog, wet floor, wet surfaces, water on surfaces, water droplets, puddles, splashing water, dripping water, indoor rain, rain inside a room, rain inside a car, water falling indoors, weather effects indoors, damp, soaked, morphing objects, transforming objects, object turning into another object, two pens, writing with both hands, trembling hands, shaking hands, jittering, papers flying, papers jumping',
+      negativePrompt: 'deformed hands, extra fingers, missing fingers, merged fingers, bad anatomy, blurry, watermark, text overlay, hopping, skipping, bouncing, little jumps, stutter-stepping, moonwalking, floating, childish scribbles, scribbling, random squiggles, meaningless zigzag lines, crayon marks, rain, raining, rainfall, raindrops, drizzle, downpour, snow, storm, thunderstorm, mist, fog, wet floor, wet surfaces, water on surfaces, water droplets, puddles, splashing water, dripping water, indoor rain, rain inside a room, rain inside a car, water falling indoors, weather effects indoors, damp, soaked, morphing objects, transforming objects, object turning into another object, two pens, writing with both hands, trembling hands, shaking hands, jittering, papers flying, papers jumping, talking, speaking, lip sync, moving lips, mouth opening and closing, open mouth, visible teeth, showing teeth, snarling, growling, grimacing',
     };
     // Los clips van siempre mudos: el montaje solo usa narracion y musica.
+    // Y nadie habla en pantalla (orden del dueño, 2026-11-14): el prompt del
+    // cliente trae el bloque NO SPEAKING y el negativePrompt de arriba cierra
+    // la puerta a bocas que se mueven/ensenan los dientes como segunda capa.
     parameters.generateAudio = false;
 
     const veoResponse = await fetch(url, {
