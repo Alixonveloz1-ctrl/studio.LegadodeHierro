@@ -187,6 +187,23 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// Tiempos de conexión pensados para vivir DETRÁS del frente de Cloud Run.
+// Node cierra una conexión keep-alive a los 5 s sin uso, pero el frente de
+// Google la mantiene abierta en su lado y puede reutilizarla pasados esos
+// 5 s: la petición muere al entrar (el navegador ve «Failed to fetch») y
+// nunca llega al registro de la aplicación. Es justo la firma observada en
+// producción: la generación (peticiones tras pausas o tras llamadas largas)
+// fallaba sin dejar rastro en los registros, mientras el tráfico seguido
+// (datos, estados, música) pasaba. En Vercel no existía este choque porque
+// no había un servidor Node duradero tras ese frente. La conexión se
+// mantiene viva 120 s —más que la espera del frente— y el corte de cada
+// petición lo manda el límite de Cloud Run (300 s), no un reloj propio:
+// las etapas largas legítimas (guion, hasta 240 s) no deben morir por un
+// doble corte en el mismo punto.
+server.keepAliveTimeout = 120000;
+server.headersTimeout = 125000;
+server.requestTimeout = 0;
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log('Legado De Hierro Studio escuchando en el puerto ' + PORT);
 });
